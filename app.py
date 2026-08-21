@@ -118,17 +118,19 @@ def sell():
     seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     plan_info=PLANS.get(plan,PLANS['free14'])
 
-    # --- AUTOMATE SUBSCRIPTION CHECK ---
-    if seller:
-        if seller['subscription_expires'] < time.time():
-            if plan=='free14' and seller.get('free_used'):
-                return jsonify({'success':False,'message':'14 Days FREE already used. Pay 6540/13090/39500/80000 MoMo 0795712328 to upload'}),402
-            if plan_info['requires_payment'] and not seller.get('paid'):
-                return jsonify({'success':False,'message':f'Pay UGX {plan_info["price"]} for {plan_info["name"]} via MoMo {OWNER_MOMO} before uploading. WhatsApp receipt to {OWNER_PHONE}'}),402
+    # === ONLY CHANGE: PAY BEFORE UPLOAD AUTOMATION ===
+    if plan_info.get('requires_payment'):
+        if not seller:
+            return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Register & Pay UGX {plan_info["price"]} for {plan_info["name"]} to MoMo {OWNER_MOMO} first. Then admin activates.'}),402
+        if seller['subscription_expires'] < time.time() or not seller.get('paid') or seller.get('plan')!= plan:
+            return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Your subscription expired or not paid for {plan_info["name"]}. Pay UGX {plan_info["price"]} to MoMo {OWNER_MOMO}. Submit code in Subscription popup. Wait admin activation.'}),402
     else:
-        # No account yet - check if phone already used free
-        if any(p.get('phone')==phone for p in products) and plan=='free14':
-            return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay to continue'}),402
+        # free14 - allow once
+        if seller and seller.get('free_used') and seller['subscription_expires'] < time.time():
+            return jsonify({'success':False,'message':'14 Days FREE already used & expired. Choose paid plan and PAY BEFORE UPLOAD'}),402
+        if not seller and any(p.get('phone')==phone for p in products):
+            return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
+    # === END ONLY CHANGE ===
 
     images=[]
     for key in request.files:
