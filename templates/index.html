@@ -32,6 +32,9 @@ body{font-family:Arial;background:#c0392b}
 .sub-table{width:100%;border-collapse:collapse;margin:10px 0}
 .sub-table td,.sub-table th{border:1px solid #ccc;padding:8px;font-size:12px;text-align:left}
 .new-badge{background:#00e676;color:#000;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:bold}
+.auth-section{background:#000;color:white;padding:20px;margin-top:20px;border-top:4px solid #FFCC02}
+.auth-box{background:white;color:black;padding:15px;border-radius:12px;max-width:500px;margin:10px auto}
+.auth-box input,.auth-box select{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:8px}
 </style>
 </head>
 <body>
@@ -46,6 +49,7 @@ body{font-family:Arial;background:#c0392b}
 <button class="btn btn-green" onclick="openPopup('subPop')">💳 Subscription</button>
 <button class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button>
 <button class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button>
+<button class="btn btn-yellow" onclick="document.getElementById('authSection').scrollIntoView({behavior:'smooth'})">🔐 Login</button>
 <a href="/admin" class="btn" style="text-decoration:none;background:#333">Admin</a>
 </div>
 </div>
@@ -59,7 +63,7 @@ body{font-family:Arial;background:#c0392b}
 <a href="mailto:natelieabigali@gmail.com?subject=SANNLAS Inquiry" class="btn" style="background:#000;text-decoration:none">✉️ Message Owner</a>
 </div>
 
-<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Bargains • MoMo 0795712328 • Owner natelieabigali@gmail.com</p></div>
+<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Bargains • MoMo 0795712328 • Owner natelieabigali@gmail.com</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none"></p></div>
 
 <div id="frontUpload" class="front-upload">
 <h2 style="color:#8B0000;text-align:center">📦 SELL - Continuous Down - Subscription Required After 14 Days</h2>
@@ -91,32 +95,72 @@ body{font-family:Arial;background:#c0392b}
 <div class="products" id="products"></div>
 <div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn btn-green" style="display:none;padding:12px 25px" onclick="loadMore()">Load More</button></div>
 
+<!-- AUTH SECTION BOTTOM -->
+<div id="authSection" class="auth-section">
+<h2 style="text-align:center">🔐 Login / Register / Sign Up - Sellers & Buyers</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;max-width:1000px;margin:15px auto">
+<div class="auth-box">
+<h3>📝 Register - Get 14 Days FREE</h3>
+<input id="regEmail" placeholder="Email - e.g. you@gmail.com">
+<input id="regPhone" placeholder="Phone - 2567...">
+<input id="regPass" type="password" placeholder="Password">
+<input id="regBiz" placeholder="Business Name (Sellers only)">
+<select id="regRole"><option value="seller">I am Seller</option><option value="buyer">I am Buyer</option></select>
+<button class="btn btn-green" style="width:100%;padding:10px" onclick="doRegister()">Register - FREE 14 Days</button>
+<p style="font-size:10px;margin-top:5px">After 14 days: 30d 6540, 2mo 13090, 6mo 39500, 1yr 80000 - MoMo 0795712328</p>
+</div>
+<div class="auth-box">
+<h3>🔑 Login</h3>
+<input id="logEmail" placeholder="Email">
+<input id="logPass" type="password" placeholder="Password">
+<button class="btn" style="width:100%;padding:10px" onclick="doLogin()">Login</button>
+<button class="btn" style="width:100%;background:gray;margin-top:5px" onclick="doLogout()">Logout</button>
+<div id="loginStatus" style="background:#f0f0f0;padding:8px;border-radius:8px;margin-top:8px;font-size:11px">Not logged in</div>
+</div>
+</div>
+
+<div class="auth-box" style="max-width:1000px" id="mySalesBox">
+<h3>📊 My Private Sales - Only You See After Login + Admin Sees</h3>
+<div style="display:flex;gap:5px;flex-wrap:wrap">
+<select id="salesPeriod" onchange="loadMySales()"><option value="today">Today</option><option value="week">This Week</option><option value="month" selected>This Month</option><option value="year">This Year</option><option value="all">All Time</option></select>
+<button class="btn btn-green" onclick="loadMySales()">Refresh Sales</button>
+<button class="btn btn-blue" onclick="loadMyProducts()">My Products</button>
+</div>
+<div id="mySalesContent" style="margin-top:10px">Login to see your private sales per period - Only your account + admin</div>
+<div id="myProductsContent"></div>
+</div>
+</div>
+
 <!-- POPUPS -->
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Your Phone" required><input name="district" placeholder="District" required><button class="btn btn-green" style="width:100%">Confirm</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
 
 <div class="popup" id="subPop"><div class="popup-content">
-<h2 style="color:green">💳 Seller Subscription</h2>
-<p>14 days free then pay to keep selling on front</p>
+<h2 style="color:green">💳 Seller Subscription - Automated</h2>
+<p>14 days free then system blocks upload until you pay</p>
 <table class="sub-table">
 <tr><th>Plan</th><th>Price</th><th>Action</th></tr>
 <tr><td>14 Days FREE</td><td>0</td><td><button class="btn btn-green" onclick="selectPlan('free14')">Select</button></td></tr>
-<tr><td>30 Days</td><td>UGX 6,540</td><td><button class="btn" onclick="selectPlan('30')">Pay MoMo 0795712328</button></td></tr>
-<tr><td>2 Months</td><td>UGX 13,090</td><td><button class="btn" onclick="selectPlan('60')">Pay</button></td></tr>
-<tr><td>6 Months</td><td>UGX 39,500</td><td><button class="btn" onclick="selectPlan('180')">Pay</button></td></tr>
-<tr><td>1 Year</td><td>UGX 80,000</td><td><button class="btn btn-yellow" onclick="selectPlan('365')">Best Value</button></td></tr>
+<tr><td>30 Days</td><td>UGX 6,540</td><td><button class="btn" onclick="payPlan('30')">Pay MoMo</button></td></tr>
+<tr><td>2 Months</td><td>UGX 13,090</td><td><button class="btn" onclick="payPlan('60')">Pay</button></td></tr>
+<tr><td>6 Months</td><td>UGX 39,500</td><td><button class="btn" onclick="payPlan('180')">Pay</button></td></tr>
+<tr><td>1 Year</td><td>UGX 80,000</td><td><button class="btn btn-yellow" onclick="payPlan('365')">Best Value</button></td></tr>
 </table>
-<p>Send MoMo to <b>0795712328</b> with your Business Name, then WhatsApp receipt to Owner.</p>
+<div id="payBox" style="display:none;background:#FFCC02;padding:10px;border-radius:8px">
+<input id="momoCode" placeholder="Enter MoMo Transaction Code after paying">
+<button class="btn btn-green" onclick="submitPay()">Submit Code - Admin Activates</button>
+</div>
+<p>MoMo <b>0795712328</b> - After pay enter code, admin activates in 5 mins.</p>
 <button onclick="closePop('subPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px">Close</button>
 </div></div>
 
 <div class="popup" id="jobsPop"><div class="popup-content">
 <h2>💼 Jobs in Uganda</h2>
 <form onsubmit="postJob(event)">
-<input id="jobTitle" placeholder="Job Title e.g. Sales Person" required>
+<input id="jobTitle" placeholder="Job Title" required>
 <input id="jobCompany" placeholder="Company Business Name" required>
 <textarea id="jobDesc" placeholder="Job Description" required></textarea>
-<input id="jobSalary" placeholder="Salary e.g. 500k">
+<input id="jobSalary" placeholder="Salary">
 <button class="btn btn-green" style="width:100%">Post Job</button>
 </form>
 <div id="jobsList" style="margin-top:10px"></div>
@@ -129,10 +173,9 @@ body{font-family:Arial;background:#c0392b}
 <input name="applicant_name" placeholder="Your Name" required>
 <input name="applicant_phone" placeholder="Your Phone" required>
 <select name="job_id" id="applyJobSelect"><option>Select Job</option></select>
-<textarea name="cv_text" placeholder="Your CV / Experience"></textarea>
+<textarea name="cv_text" placeholder="Your CV"></textarea>
 <button class="btn btn-blue" style="width:100%">Submit Application</button>
 </form>
-<div id="applicationsList"></div>
 <button onclick="closePop('applyPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
 
@@ -143,65 +186,91 @@ body{font-family:Arial;background:#c0392b}
 </div></div>
 
 <script>
-let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], isNewFilter=false, isBargainFilter=false;
+let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], currentUser=null, selectedPayPlan='30';
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
 fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});initFrontCat();});
 function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
-function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=50;isNewFilter=false;isBargainFilter=false;render();});}
-function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">Sub</option>';isNewFilter=false;isBargainFilter=false;doFilter();}
-fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;render();fetchJobs();});
-function showNew(){isNewFilter=true;let now=Date.now();products=[...allProducts].sort((a,b)=> (b.id||0)-(a.id||0)).slice(0,50);visibleCount=50;render(true);}
-function showBargains(){isBargainFilter=true;products=allProducts.filter(p=>p.price<50000||(p.name&&p.name.toLowerCase().includes('bargain')));visibleCount=50;render(false,true);}
-function render(isNew=false, isBarg=false){
- if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products</p>';document.getElementById('loadMoreBtn').style.display='none';return;}
+function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=50;render();});}
+function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">Sub</option>';doFilter();}
+fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;render();fetchJobs();checkLogin();});
+function showNew(){fetch('/api/products?new=1').then(r=>r.json()).then(d=>{products=d;visibleCount=50;render(true);});}
+function showBargains(){products=allProducts.filter(p=>p.price<50000||(p.name&&p.name.toLowerCase().includes('bargain')));visibleCount=50;render(false,true);}
+function render(isNew=false){
+ if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products - Subscription expired hidden</p>';document.getElementById('loadMoreBtn').style.display='none';return;}
  let toShow=products.slice(0,visibleCount);
  document.getElementById('products').innerHTML=toShow.map(p=>{
-  let newTag = isNew || (p.id>allProducts.length-20)? '<span class="new-badge">NEW</span>' : '';
-  return `
- <div class="card">
-  <img src="${p.image}" onclick="viewProd(${p.id})">
-  <div class="card-body">
-   <div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> <span style="background:#000;color:white;padding:2px 5px;border-radius:8px">${p.sub_category||''}</span> ${newTag}</div>
-   <h4>${p.name}</h4>
-   <div class="price">UGX ${Number(p.price).toLocaleString()}</div>
-   <div class="seller-box"><b>🏪 ${p.business||'Seller'}</b><br>📍 ${p.location||'Kampala'}<br>Stock: ${p.stock||10} - ID:${p.id}</div>
-   <div class="card-btns">
-    <button class="view-btn" onclick="viewProd(${p.id})">View</button>
-    <button class="cart-btn" onclick="addCart(${p.id})">Cart</button>
-    <a href="https://wa.me/256795712328?text=Hi, I want ${encodeURIComponent(p.name)} UGX ${p.price}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%">WhatsApp Reply</button></a>
-    <button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button>
-   </div>
-  </div>
- </div>`}).join('');
- if(products.length>visibleCount){document.getElementById('loadMoreBtn').style.display='inline-block';document.getElementById('loadMoreBtn').innerText=`Load More ${Math.min(50,products.length-visibleCount)} - ${visibleCount}/${products.length}`;}else{document.getElementById('loadMoreBtn').style.display='none';}
+  let newTag = isNew?'<span class="new-badge">NEW</span>':'';
+  return `<div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> ${newTag}</div><h4>${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div class="seller-box"><b>🏪 ${p.business||'Seller'}</b><br>📍 ${p.location||'Kampala'}<br>Stock:${p.stock||10} ID:${p.id}</div><div class="card-btns"><button class="view-btn" onclick="viewProd(${p.id})">View</button><button class="cart-btn" onclick="addCart(${p.id})">Cart</button><a href="https://wa.me/256795712328?text=Hi want ${encodeURIComponent(p.name)}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%">WhatsApp</button></a><button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button></div></div></div>`;
+ }).join('');
+ document.getElementById('loadMoreBtn').style.display=products.length>visibleCount?'inline-block':'none';
+ if(products.length>visibleCount) document.getElementById('loadMoreBtn').innerText=`Load More ${Math.min(50,products.length-visibleCount)} - ${visibleCount}/${products.length}`;
 }
 function loadMore(){visibleCount+=50;render();}
-function viewProd(id){let p=products.find(x=>x.id==id)||allProducts.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`
-<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p>
-<div class="seller-box">Seller: ${p.business}<br>${p.location}<br>Stock: ${p.stock}</div>
-<p>${p.description||''}</p>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
-<button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add Cart</button>
-<a href="https://wa.me/256795712328?text=Inquiry about ${encodeURIComponent(p.name)}" target="_blank" class="btn" style="background:#25D366;text-align:center;text-decoration:none">WhatsApp Reply</a>
-<a href="mailto:natelieabigali@gmail.com?subject=Inquiry about ${encodeURIComponent(p.name)}&body=Product: ${p.name} Price: ${p.price}" class="btn" style="background:#000;text-align:center;text-decoration:none">Message Owner Email</a>
-<button class="btn" style="background:#9c27b0" onclick="makeBargain(${p.id})">Make Bargain</button>
-</div>
-<button style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
+function viewProd(id){let p=products.find(x=>x.id==id)||allProducts.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p><div class="seller-box">Seller: ${p.business}<br>${p.location}<br>Stock:${p.stock}</div><p>${p.description||''}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px"><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Cart</button><a href="https://wa.me/256795712328?text=Inquiry ${encodeURIComponent(p.name)}" target="_blank" class="btn" style="background:#25D366;text-align:center;text-decoration:none">WhatsApp Reply</a><a href="mailto:natelieabigali@gmail.com?subject=${encodeURIComponent(p.name)}" class="btn" style="background:#000;text-align:center;text-decoration:none">Message Owner Email</a><button class="btn" style="background:#9c27b0" onclick="makeBargain(${p.id})">Bargain</button></div><button style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
 function addCart(id){let p=allProducts.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function openPopup(id){document.getElementById(id).style.display='flex';if(id=='ordersPop') loadOrders(); if(id=='jobsPop') fetchJobs();}
 function closePop(id){document.getElementById(id).style.display='none';}
-function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order sent! Owner will reply via WhatsApp/Email');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
-function selectPlan(plan){document.getElementById('sellerPlan').value=plan;closePop('subPop');alert('Plan '+plan+' selected. Pay MoMo 0795712328 to activate. 14 days free auto active.');}
+function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order sent! Owner replies via WhatsApp/Email');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
+function selectPlan(plan){document.getElementById('sellerPlan').value=plan;closePop('subPop');alert('Plan '+plan+' selected');}
+function payPlan(plan){selectedPayPlan=plan;document.getElementById('sellerPlan').value=plan;document.getElementById('payBox').style.display='block';alert('Pay UGX for '+plan+' to MoMo 0795712328 then enter transaction code');}
+function submitPay(){
+ let code=document.getElementById('momoCode').value; if(!code){alert('Enter MoMo code');return;}
+ if(!currentUser){alert('Login first to link payment to your account');return;}
+ fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,plan:selectedPayPlan,momo_code:code})}).then(r=>r.json()).then(d=>{alert(d.message);closePop('subPop');});
+}
 function initFrontCat(){let sel=document.getElementById('frontLocation');if(sel){sel.innerHTML='<option value="">Select District</option>';ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});}let main=document.getElementById('frontMain');if(main&&categories){main.innerHTML='';Object.keys(categories).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;main.appendChild(o);});}}
 function frontSubLoad(){let m=document.getElementById('frontMain').value;let s=document.getElementById('frontSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;s.appendChild(o);});}}
-function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="OWN PRICE UGX" style="border:2px solid #c0392b"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}" placeholder="Business Owner"><input id="fstock_${i}" type="number" value="10"></div></div>`;}}
-async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value;if(!biz){alert('Business Name required');return;}let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Phone required - Admin only sees');return;}let plan=document.getElementById('sellerPlan').value;let main=document.getElementById('frontMain').value||'General';let sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter OWN price for item ${i+1}`);return;}}let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=15;status.innerHTML=`⏳ Uploading ${total} with plan ${plan}...`;for(let b=0;b<total;b+=BATCH){let proms=[];for(let i=b;i<Math.min(b+BATCH,total);i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock',document.getElementById(`fstock_${i}`).value);fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('desc','');proms.push(fetch('/api/sell',{method:'POST',body:fd}).then(()=>{uploaded++;status.innerHTML=`⏳ ${uploaded}/${total} (${Math.round(uploaded/total*100)}%)`; }));}await Promise.all(proms);}status.innerHTML=`✅ DONE! ${total} live continuously DOWN - Plan: ${plan}`;alert(`✅ ${total} uploaded with ${plan} plan`);doFilter();}
-function makeBargain(id){let p=allProducts.find(x=>x.id==id);let offer=prompt(`Bargain for ${p.name} - Price UGX ${p.price} - Enter your offer UGX:`);if(offer){fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer:offer})}).then(()=>alert('Bargain sent! Seller will reply via WhatsApp - Bargains in Orders'));}}
-function fetchJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{let list=document.getElementById('jobsList');if(!list)return;list.innerHTML=jobs.map(j=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>${j.title}</b> - ${j.company}<br>${j.desc}<br>Salary: ${j.salary||'Negotiable'} <button class="btn btn-blue" onclick="document.getElementById('applyJobSelect').innerHTML='<option value=${j.id}>${j.title}</option>';openPopup('applyPop')">Apply</button></div>`).join('');let sel=document.getElementById('applyJobSelect');if(sel){sel.innerHTML=jobs.map(j=>`<option value="${j.id}">${j.title} - ${j.company}</option>`).join('');}}).catch(()=>{});}
+function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="OWN PRICE" style="border:2px solid #c0392b"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}" placeholder="Business"><input id="fstock_${i}" type="number" value="10"></div></div>`;}}
+async function frontUploadAll(){
+ if(frontFiles.length==0){alert('Select photos');return;}
+ let biz=document.getElementById('frontBiz').value;if(!biz){alert('Business Name required');return;}
+ let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Phone required');return;}
+ let plan=document.getElementById('sellerPlan').value;let main=document.getElementById('frontMain').value||'General';let sub=document.getElementById('frontSub').value||'General';
+ for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter OWN price for item ${i+1}`);return;}}
+ let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=10;
+ status.innerHTML=`⏳ Checking subscription for ${phone}...`;
+ // Get email from logged user if any
+ let userEmail = currentUser? currentUser.email : '';
+ for(let b=0;b<total;b+=BATCH){
+  let proms=[];
+  for(let i=b;i<Math.min(b+BATCH,total);i++){
+   let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock',document.getElementById(`fstock_${i}`).value);fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('user_email',userEmail);fd.append('desc','');
+   proms.push(fetch('/api/sell',{method:'POST',body:fd}).then(async r=>{
+    let data=await r.json();
+    if(!r.ok){ throw new Error(data.message||'Subscription required'); }
+    uploaded++;status.innerHTML=`⏳ ${uploaded}/${total} (${Math.round(uploaded/total*100)}%)`;
+   }).catch(err=>{ throw err; }));
+  }
+  try{ await Promise.all(proms); } catch(e){ status.innerHTML=`❌ BLOCKED: ${e.message} - Pay MoMo 0795712328`; alert(`❌ ${e.message}\n\nAutomated: You must pay before uploading after 14 days FREE.\nMoMo: 0795712328\nPlans: 30d 6540, 2mo 13090, 6mo 39500, 1yr 80000`); return; }
+ }
+ status.innerHTML=`✅ DONE! ${total} live continuous DOWN - Plan: ${plan}`; doFilter(); loadMySales();
+}
+function makeBargain(id){let p=allProducts.find(x=>x.id==id);let offer=prompt(`Bargain for ${p.name} UGX ${p.price} - Your offer:`);if(offer){fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer:offer,buyer_name:currentUser?.business||'Buyer',buyer_phone:currentUser?.phone||'',seller_phone:p.phone||''})}).then(()=>alert('Bargain sent!'));}}
+function fetchJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{let list=document.getElementById('jobsList');if(!list)return;list.innerHTML=jobs.map(j=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>${j.title}</b> - ${j.company}<br>${j.desc||''}<br><button class="btn btn-blue" onclick="document.getElementById('applyJobSelect').innerHTML='<option value=${j.id}>${j.title}</option>';openPopup('applyPop')">Apply</button></div>`).join('');let sel=document.getElementById('applyJobSelect');if(sel){sel.innerHTML=jobs.map(j=>`<option value="${j.id}">${j.title} - ${j.company}</option>`).join('');}}).catch(()=>{});}
 function postJob(e){e.preventDefault();let data={title:document.getElementById('jobTitle').value,company:document.getElementById('jobCompany').value,desc:document.getElementById('jobDesc').value,salary:document.getElementById('jobSalary').value};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>{alert('Job posted!');fetchJobs();});}
-function applyJob(e){e.preventDefault();let fd=new FormData(e.target);let data=Object.fromEntries(fd);fetch('/api/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>alert('Application sent!')); }
-function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{document.getElementById('ordersList').innerHTML=orders.map(o=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>Order ${o.id}</b> - UGX ${o.total||0}<br>Buyer: ${o.buyer?.names||''} ${o.buyer?.phone1||''}<br>Items: ${(o.cart||[]).map(i=>i.name).join(', ')}<br>${o.bargain?'<b>Bargain Offer: UGX '+o.bargain.offer+'</b>':''}<br><a href="https://wa.me/${o.buyer?.phone1}?text=Hello your order" target="_blank" class="btn" style="background:#25D366">WhatsApp Reply</a> <a href="mailto:natelieabigali@gmail.com?subject=Order ${o.id}" class="btn" style="background:#000">Email Owner</a></div>`).join('')||'No orders yet';}).catch(()=>document.getElementById('ordersList').innerHTML='No orders - Connect backend /api/orders');}
+function applyJob(e){e.preventDefault();let fd=new FormData(e.target);let data=Object.fromEntries(fd);fetch(`/api/jobs/${data.job_id}/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>alert('Application sent!')); }
+function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{document.getElementById('ordersList').innerHTML=orders.map(o=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>Order ${o.id}</b> - UGX ${o.total||0}<br>Buyer:${o.buyer?.names||''} ${o.buyer?.phone1||''}<br>Items:${(o.cart||[]).map(i=>i.name).join(', ')}<br><a href="https://wa.me/${o.buyer?.phone1}" target="_blank" class="btn" style="background:#25D366">WhatsApp Reply</a> <a href="mailto:natelieabigali@gmail.com?subject=Order ${o.id}" class="btn" style="background:#000">Email Owner</a></div>`).join('')||'No orders';});}
+
+// --- AUTH ---
+function checkLogin(){let s=localStorage.getItem('sannlas_user');if(s){currentUser=JSON.parse(s);updateLoginUI();loadMySales();}}
+function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ Logged: ${currentUser.email} | ${currentUser.business||currentUser.role} | Plan: ${currentUser.plan_name} | Expires: ${new Date(currentUser.subscription_expires*1000).toLocaleDateString()} | ${currentUser.subscription_active?'ACTIVE':'EXPIRED - Pay MoMo'}`;document.getElementById('loginStatus').innerHTML=`Logged as ${currentUser.email}<br>Phone: ${currentUser.phone}<br>Plan: ${currentUser.plan_name}<br>Sales visible only to you + admin`;} else {document.getElementById('userInfo').style.display='none';document.getElementById('loginStatus').innerHTML='Not logged in - Register for 14 days FREE';}}
+function doRegister(){let email=document.getElementById('regEmail').value,phone=document.getElementById('regPhone').value,pass=document.getElementById('regPass').value,biz=document.getElementById('regBiz').value,role=document.getElementById('regRole').value;if(!email||!phone||!pass){alert('Fill all');return;}fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz,role})}).then(r=>r.json()).then(d=>{alert(d.message);if(d.success){document.getElementById('logEmail').value=email;}});}
+function doLogin(){let email=document.getElementById('logEmail').value,pass=document.getElementById('logPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));updateLoginUI();loadMySales();alert('Welcome '+d.user.email);}else alert(d.message);});}
+function doLogout(){localStorage.removeItem('sannlas_user');currentUser=null;updateLoginUI();document.getElementById('mySalesContent').innerHTML='Logged out';}
+function loadMySales(){
+ if(!currentUser){let s=localStorage.getItem('sannlas_user');if(s) currentUser=JSON.parse(s); else {document.getElementById('mySalesContent').innerHTML='Login to see private sales - Only you + admin sees';return;}}
+ let period=document.getElementById('salesPeriod').value;
+ fetch(`/api/seller/sales?phone=${currentUser.phone}&email=${currentUser.email}&period=${period}`).then(r=>r.json()).then(d=>{
+  document.getElementById('mySalesContent').innerHTML=`<h4>Period: ${d.period} | Total Sales: UGX ${d.total_sales.toLocaleString()} | Orders: ${d.total_orders} | Products: ${d.products_count}</h4><div style="max-height:300px;overflow:auto">${d.orders.map(o=>`<div style="border:1px solid #ccc;padding:6px;margin:3px;border-radius:6px">Order ${o.id} - UGX ${o.my_total} - Buyer ${o.buyer?.names||''} ${o.buyer?.phone1||''} - ${o.my_items.map(i=>i.name).join(', ')} <a href="https://wa.me/${o.buyer?.phone1}?text=Hello your order ${o.id}" target="_blank" class="btn" style="background:#25D366">WhatsApp Reply Buyer</a> <a href="mailto:${o.buyer?.names||''}?subject=Order" class="btn" style="background:#000">Email</a></div>`).join('')||'No sales yet in this period - Private to you + admin only'}</div>`;
+ });
+}
+function loadMyProducts(){
+ if(!currentUser){alert('Login first');return;}
+ fetch(`/api/my-products?phone=${currentUser.phone}&email=${currentUser.email}`).then(r=>r.json()).then(prods=>{
+  document.getElementById('myProductsContent').innerHTML=`<h4>My Products (${prods.length}) - Continuous Down</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">${prods.map(p=>`<div style="background:white;padding:5px;border-radius:8px"><img src="${p.image}" style="width:100%;height:80px;object-fit:cover"><br>${p.name}<br>UGX ${p.price}<br>Stock ${p.stock}</div>`).join('')}</div>`;
+ });
+}
 setTimeout(initFrontCat,800);
 </script>
 </body>
