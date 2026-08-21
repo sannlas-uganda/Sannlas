@@ -1,135 +1,207 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>SANNLAS UGANDA - Continuous Down</title>
+<title>SANNLAS UGANDA - All Features</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial;background:#c0392b}
-.navbar{background:#000;color:white;padding:12px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10}
-.btn{background:#8B0000;color:white;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold}
-.search-bar{background:rgba(0,0,0,0.8);padding:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:sticky;top:50px;z-index:9}
-.search-bar input,.search-bar select{padding:8px;border-radius:20px;border:none;max-width:200px}
-.hero{background:linear-gradient(#e74c3c,#c0392b);color:white;text-align:center;padding:15px}
-.hero h1{font-size:22px}
-.front-upload{background:white;margin:15px auto;max-width:1300px;padding:15px;border-radius:12px}
-#frontPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;max-height:85vh;min-height:400px;overflow-y:auto;background:#ff6a00;background:linear-gradient(#ff6a00,#e74c3c);padding:15px;border-radius:12px}
+.navbar{background:#000;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:12}
+.btn{background:#8B0000;color:white;border:none;padding:7px 12px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-size:12px}
+.btn-green{background:#2e7d32}.btn-yellow{background:#FFCC02;color:#000}.btn-blue{background:#1976d2}
+.search-bar{background:rgba(0,0,0,0.85);padding:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:sticky;top:58px;z-index:11}
+.search-bar input,.search-bar select{padding:8px;border-radius:20px;border:none;max-width:180px}
+.hero{background:linear-gradient(#e74c3c,#c0392b);color:white;text-align:center;padding:12px}
+.front-upload{background:white;margin:12px auto;max-width:1300px;padding:12px;border-radius:12px}
+#frontPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;max-height:85vh;min-height:350px;overflow-y:auto;background:linear-gradient(#ff6a00,#e74c3c);padding:15px;border-radius:12px}
 .front-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.3)}
-.front-card img{width:100%;height:180px;object-fit:cover}
-.front-card.info{padding:8px}
-.front-card input{width:100%;padding:5px;margin:2px 0;font-size:11px;border:1px solid #ccc;border-radius:5px}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;padding:15px;background:linear-gradient(#e74c3c,#ff6a00);min-height:80vh}
+.front-card img{width:100%;height:160px;object-fit:cover}
+.front-card input{width:100%;padding:4px;margin:2px 0;font-size:11px;border:1px solid #ccc;border-radius:5px}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;padding:15px;background:linear-gradient(#e74c3c,#ff6a00);min-height:60vh}
 .card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
-.card img{width:100%;height:200px;object-fit:cover}
+.card img{width:100%;height:190px;object-fit:cover}
 .card-body{padding:10px}
-.card h4{font-size:13px;height:36px;overflow:hidden}
-.price{color:#000;font-weight:bold;font-size:13px}
-.seller-box{background:#FFCC02;padding:8px;border-radius:8px;font-size:11px;margin:6px 0;line-height:1.3}
-.seller-box b{color:#000}
-.card-btns{display:flex;gap:6px;margin-top:6px}
-.card-btns button{flex:1;padding:6px;font-size:11px;border:none;border-radius:15px;cursor:pointer;font-weight:bold}
-.view-btn{background:#ff6a00;color:white}
-.cart-btn{background:#c0392b;color:white}
-input,select,textarea{width:100%;padding:8px;margin:3px 0;border:1px solid #ccc;border-radius:6px}
-.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100}
-.popup-content{background:white;padding:15px;border-radius:12px;max-width:600px;width:95%;max-height:90vh;overflow:auto}
+.card h4{font-size:13px;height:32px;overflow:hidden}
+.price{color:#000;font-weight:bold}
+.seller-box{background:#FFCC02;padding:7px;border-radius:8px;font-size:11px;margin:5px 0}
+.card-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
+.card-btns button{padding:6px;font-size:10px;border:none;border-radius:15px;cursor:pointer;font-weight:bold}
+.view-btn{background:#ff6a00;color:white}.cart-btn{background:#c0392b;color:white}.wa-btn{background:#25D366;color:white}.msg-btn{background:#000;color:white}.bargain-btn{background:#9c27b0;color:white}
+.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100;padding:10px}
+.popup-content{background:white;padding:15px;border-radius:12px;max-width:700px;width:98%;max-height:92vh;overflow:auto}
+.sub-table{width:100%;border-collapse:collapse;margin:10px 0}
+.sub-table td,.sub-table th{border:1px solid #ccc;padding:8px;font-size:12px;text-align:left}
+.new-badge{background:#00e676;color:#000;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:bold}
 </style>
 </head>
 <body>
-<div class="navbar"><h3>🛍️ SANNLAS UGANDA</h3><div><button class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button><button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button><a href="/admin" class="btn" style="text-decoration:none;background:green">Admin - Phones</a></div></div>
-<div class="search-bar"><input id="searchInput" placeholder="Search..." onkeyup="doFilter()"><select id="mainFilter" onchange="onMainChange()"><option value="">All Categories</option></select><select id="subFilter" onchange="doFilter()"><option value="">All Sub</option></select><button class="btn" onclick="clearFilter()">Clear</button></div>
-<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Deliver • MoMo 0795712328 • Owner natelieabigali@gmail.com</p></div>
+<div class="navbar">
+<h3>🛍️ SANNLAS</h3>
+<div style="display:flex;flex-wrap:wrap;gap:3px">
+<button class="btn btn-yellow" onclick="showNew()">🆕 New Products</button>
+<button class="btn" onclick="openPopup('jobsPop')">💼 Jobs</button>
+<button class="btn" onclick="openPopup('applyPop')">📝 Job Applications</button>
+<button class="btn btn-blue" onclick="openPopup('ordersPop')">📦 Orders</button>
+<button class="btn" style="background:#9c27b0" onclick="showBargains()">🤝 Bargains</button>
+<button class="btn btn-green" onclick="openPopup('subPop')">💳 Subscription</button>
+<button class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button>
+<button class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button>
+<a href="/admin" class="btn" style="text-decoration:none;background:#333">Admin</a>
+</div>
+</div>
+
+<div class="search-bar">
+<input id="searchInput" placeholder="Search products..." onkeyup="doFilter()">
+<select id="mainFilter" onchange="onMainChange()"><option value="">All</option></select>
+<select id="subFilter" onchange="doFilter()"><option value="">Sub</option></select>
+<button class="btn" onclick="clearFilter()">Clear</button>
+<a href="https://wa.me/256795712328?text=Hello SANNLAS Owner" target="_blank" class="btn" style="background:#25D366;text-decoration:none">💬 WhatsApp Owner</a>
+<a href="mailto:natelieabigali@gmail.com?subject=SANNLAS Inquiry" class="btn" style="background:#000;text-decoration:none">✉️ Message Owner</a>
+</div>
+
+<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Bargains • MoMo 0795712328 • Owner natelieabigali@gmail.com</p></div>
 
 <div id="frontUpload" class="front-upload">
-<h2 style="color:#8B0000;text-align:center">📦 UPLOAD - Photos go continuously DOWN like front page</h2>
+<h2 style="color:#8B0000;text-align:center">📦 SELL - Continuous Down - Subscription Required After 14 Days</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<input id="frontBiz" placeholder="Seller: Business Name e.g. Bright future Pharmaceuticals medical Company">
-<select id="frontLocation"><option value="">Kampala - Select District</option></select>
+<input id="frontBiz" placeholder="Business Name e.g. Bright future Pharma">
+<select id="frontLocation"><option value="">Select District</option></select>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<select id="frontMain" onchange="frontSubLoad()"><option value="">Health & Medical</option></select>
-<select id="frontSub"><option value="">Clinics</option></select>
+<select id="frontMain" onchange="frontSubLoad()"><option value="">Main Category</option></select>
+<select id="frontSub"><option value="">Sub Category</option></select>
 </div>
-<input id="frontPhone" type="hidden" placeholder="Phone hidden">
-<input id="frontPhoneReal" placeholder="Your Phone - HIDDEN - Only Admin sees - 256..." style="background:#FFCC02;border:2px solid #000">
-<div style="border:3px dashed #8B0000;padding:10px;border-radius:10px;margin:10px 0">
-<label style="font-weight:bold;color:#8B0000">📸 Choose Many Photos - They add continuously DOWN</label>
-<input type="file" id="frontInput" multiple accept="image/*" onchange="frontPreview(this)" style="padding:10px">
-<div style="background:#000;color:#0f0;padding:6px;border-radius:6px;text-align:center">Selected: <b><span id="frontCount">0</span></b> | Continuous down | 100,000+ ready | Each with OWN price</div>
+<input id="frontPhoneReal" placeholder="Your Phone - ADMIN ONLY SEES - 256..." style="background:#FFCC02;border:2px solid #000">
+<select id="sellerPlan" style="border:2px solid green;font-weight:bold">
+<option value="free14">14 Days FREE Trial</option>
+<option value="30">30 Days - UGX 6,540</option>
+<option value="60">2 Months - UGX 13,090</option>
+<option value="180">6 Months - UGX 39,500</option>
+<option value="365">1 Year - UGX 80,000</option>
+</select>
+<div style="border:3px dashed #8B0000;padding:8px;border-radius:10px;margin:8px 0">
+<input type="file" id="frontInput" multiple accept="image/*" onchange="frontPreview(this)" style="padding:8px;width:100%">
+<div style="background:#000;color:#0f0;padding:5px;border-radius:6px;text-align:center">Selected: <b><span id="frontCount">0</span></b> | Continuous Down | Own Price Each</div>
 </div>
-<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:100px;font-weight:bold">No photos yet - Select files - They will appear here continuously DOWN as in your photo - 5 per row</p></div>
-<div id="frontStatus" style="background:#000;color:#0f0;padding:10px;border-radius:8px;margin:10px 0;text-align:center">Ready</div>
-<button onclick="frontUploadAll()" class="btn" style="width:100%;padding:15px;background:#2e7d32;font-size:18px">🚀 UPLOAD <span id="frontCount2">0</span> - CONTINUOUS DOWN TO FRONT</button>
+<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">Select photos - They appear continuously DOWN - 5 per row</p></div>
+<div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready - No phone text on front</div>
+<button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> TO FRONT - Continuous Down</button>
 </div>
 
 <div class="products" id="products"></div>
-<div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn" style="display:none;background:green;padding:12px 25px" onclick="loadMore()">Load More - Continuous Down</button></div>
+<div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn btn-green" style="display:none;padding:12px 25px" onclick="loadMore()">Load More</button></div>
 
+<!-- POPUPS -->
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
-<div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout - Admin will contact seller (phone hidden)</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Your Phone" required><input name="district" placeholder="District" required><button class="btn" style="width:100%">Confirm Order</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
+<div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Your Phone" required><input name="district" placeholder="District" required><button class="btn btn-green" style="width:100%">Confirm</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
+
+<div class="popup" id="subPop"><div class="popup-content">
+<h2 style="color:green">💳 Seller Subscription</h2>
+<p>14 days free then pay to keep selling on front</p>
+<table class="sub-table">
+<tr><th>Plan</th><th>Price</th><th>Action</th></tr>
+<tr><td>14 Days FREE</td><td>0</td><td><button class="btn btn-green" onclick="selectPlan('free14')">Select</button></td></tr>
+<tr><td>30 Days</td><td>UGX 6,540</td><td><button class="btn" onclick="selectPlan('30')">Pay MoMo 0795712328</button></td></tr>
+<tr><td>2 Months</td><td>UGX 13,090</td><td><button class="btn" onclick="selectPlan('60')">Pay</button></td></tr>
+<tr><td>6 Months</td><td>UGX 39,500</td><td><button class="btn" onclick="selectPlan('180')">Pay</button></td></tr>
+<tr><td>1 Year</td><td>UGX 80,000</td><td><button class="btn btn-yellow" onclick="selectPlan('365')">Best Value</button></td></tr>
+</table>
+<p>Send MoMo to <b>0795712328</b> with your Business Name, then WhatsApp receipt to Owner.</p>
+<button onclick="closePop('subPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px">Close</button>
+</div></div>
+
+<div class="popup" id="jobsPop"><div class="popup-content">
+<h2>💼 Jobs in Uganda</h2>
+<form onsubmit="postJob(event)">
+<input id="jobTitle" placeholder="Job Title e.g. Sales Person" required>
+<input id="jobCompany" placeholder="Company Business Name" required>
+<textarea id="jobDesc" placeholder="Job Description" required></textarea>
+<input id="jobSalary" placeholder="Salary e.g. 500k">
+<button class="btn btn-green" style="width:100%">Post Job</button>
+</form>
+<div id="jobsList" style="margin-top:10px"></div>
+<button onclick="closePop('jobsPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
+</div></div>
+
+<div class="popup" id="applyPop"><div class="popup-content">
+<h2>📝 Job Applications</h2>
+<form onsubmit="applyJob(event)">
+<input name="applicant_name" placeholder="Your Name" required>
+<input name="applicant_phone" placeholder="Your Phone" required>
+<select name="job_id" id="applyJobSelect"><option>Select Job</option></select>
+<textarea name="cv_text" placeholder="Your CV / Experience"></textarea>
+<button class="btn btn-blue" style="width:100%">Submit Application</button>
+</form>
+<div id="applicationsList"></div>
+<button onclick="closePop('applyPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
+</div></div>
+
+<div class="popup" id="ordersPop"><div class="popup-content">
+<h2>📦 All Orders</h2>
+<div id="ordersList">Loading...</div>
+<button onclick="closePop('ordersPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
+</div></div>
 
 <script>
-let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50;
+let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], isNewFilter=false, isBargainFilter=false;
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
 fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});initFrontCat();});
-function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">All Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
-function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{products=d;visibleCount=50;render();});}
-function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">All Sub</option>';doFilter();}
-fetch('/api/products').then(r=>r.json()).then(d=>{products=d;render();});
-function render(){
- if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:50px">No products - Upload above to show continuously down</p>';document.getElementById('loadMoreBtn').style.display='none';return;}
+function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
+function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=50;isNewFilter=false;isBargainFilter=false;render();});}
+function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">Sub</option>';isNewFilter=false;isBargainFilter=false;doFilter();}
+fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;render();fetchJobs();});
+function showNew(){isNewFilter=true;let now=Date.now();products=[...allProducts].sort((a,b)=> (b.id||0)-(a.id||0)).slice(0,50);visibleCount=50;render(true);}
+function showBargains(){isBargainFilter=true;products=allProducts.filter(p=>p.price<50000||(p.name&&p.name.toLowerCase().includes('bargain')));visibleCount=50;render(false,true);}
+function render(isNew=false, isBarg=false){
+ if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products</p>';document.getElementById('loadMoreBtn').style.display='none';return;}
  let toShow=products.slice(0,visibleCount);
- document.getElementById('products').innerHTML=toShow.map(p=>`
+ document.getElementById('products').innerHTML=toShow.map(p=>{
+  let newTag = isNew || (p.id>allProducts.length-20)? '<span class="new-badge">NEW</span>' : '';
+  return `
  <div class="card">
   <img src="${p.image}" onclick="viewProd(${p.id})">
   <div class="card-body">
-   <div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||'Health & Medical'}</span> <span style="background:#000;color:white;padding:2px 5px;border-radius:8px">${p.sub_category||'Clinics'}</span> <span style="background:#ddd;padding:2px 5px;border-radius:8px">Only ${p.stock||0} left</span></div>
+   <div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> <span style="background:#000;color:white;padding:2px 5px;border-radius:8px">${p.sub_category||''}</span> ${newTag}</div>
    <h4>${p.name}</h4>
    <div class="price">UGX ${Number(p.price).toLocaleString()}</div>
-   <div class="seller-box"><b>🏪 Seller: ${p.business||'Bright future'}</b><br>Pharmaceuticals medical Company<br>📍 ${p.location||'Kampala'}<br>5.0 - Stock: ${p.stock||100} - ID: ${p.id}</div>
-   <div class="card-btns"><button class="view-btn" onclick="viewProd(${p.id})">View Details</button><button class="cart-btn" onclick="addCart(${p.id})">Add to Cart</button></div>
-   <div style="font-size:8px;color:gray;margin-top:3px">🔒 Phone hidden - Admin only</div>
+   <div class="seller-box"><b>🏪 ${p.business||'Seller'}</b><br>📍 ${p.location||'Kampala'}<br>Stock: ${p.stock||10} - ID:${p.id}</div>
+   <div class="card-btns">
+    <button class="view-btn" onclick="viewProd(${p.id})">View</button>
+    <button class="cart-btn" onclick="addCart(${p.id})">Cart</button>
+    <a href="https://wa.me/256795712328?text=Hi, I want ${encodeURIComponent(p.name)} UGX ${p.price}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%">WhatsApp Reply</button></a>
+    <button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button>
+   </div>
   </div>
- </div>`).join('');
- if(products.length>visibleCount){document.getElementById('loadMoreBtn').style.display='inline-block';document.getElementById('loadMoreBtn').innerText=`Load More ${Math.min(50,products.length-visibleCount)} - ${visibleCount}/${products.length} - Continuous Down`;}else{document.getElementById('loadMoreBtn').style.display='none';}
+ </div>`}).join('');
+ if(products.length>visibleCount){document.getElementById('loadMoreBtn').style.display='inline-block';document.getElementById('loadMoreBtn').innerText=`Load More ${Math.min(50,products.length-visibleCount)} - ${visibleCount}/${products.length}`;}else{document.getElementById('loadMoreBtn').style.display='none';}
 }
 function loadMore(){visibleCount+=50;render();}
-function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p><div class="seller-box">Seller: ${p.business}<br>${p.location}<br><span style="background:#000;color:#FFCC02;padding:3px">🔒 Phone hidden - Only Admin sees</span></div><p>${p.description||''}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button style="float:right;background:gray;color:white;border:none;padding:6px;border-radius:8px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
-function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;}
+function viewProd(id){let p=products.find(x=>x.id==id)||allProducts.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`
+<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p>
+<div class="seller-box">Seller: ${p.business}<br>${p.location}<br>Stock: ${p.stock}</div>
+<p>${p.description||''}</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+<button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add Cart</button>
+<a href="https://wa.me/256795712328?text=Inquiry about ${encodeURIComponent(p.name)}" target="_blank" class="btn" style="background:#25D366;text-align:center;text-decoration:none">WhatsApp Reply</a>
+<a href="mailto:natelieabigali@gmail.com?subject=Inquiry about ${encodeURIComponent(p.name)}&body=Product: ${p.name} Price: ${p.price}" class="btn" style="background:#000;text-align:center;text-decoration:none">Message Owner Email</a>
+<button class="btn" style="background:#9c27b0" onclick="makeBargain(${p.id})">Make Bargain</button>
+</div>
+<button style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
+function addCart(id){let p=allProducts.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
+function openPopup(id){document.getElementById(id).style.display='flex';if(id=='ordersPop') loadOrders(); if(id=='jobsPop') fetchJobs();}
 function closePop(id){document.getElementById(id).style.display='none';}
-function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order sent! Admin will call seller - Phone hidden');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
-function initFrontCat(){let sel=document.getElementById('frontLocation');if(sel){sel.innerHTML='<option value="">Kampala - Select District</option>';ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});}let main=document.getElementById('frontMain');if(main){main.innerHTML='';Object.keys(categories).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;main.appendChild(o);});}}
+function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order sent! Owner will reply via WhatsApp/Email');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
+function selectPlan(plan){document.getElementById('sellerPlan').value=plan;closePop('subPop');alert('Plan '+plan+' selected. Pay MoMo 0795712328 to activate. 14 days free auto active.');}
+function initFrontCat(){let sel=document.getElementById('frontLocation');if(sel){sel.innerHTML='<option value="">Select District</option>';ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});}let main=document.getElementById('frontMain');if(main&&categories){main.innerHTML='';Object.keys(categories).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;main.appendChild(o);});}}
 function frontSubLoad(){let m=document.getElementById('frontMain').value;let s=document.getElementById('frontSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;s.appendChild(o);});}}
-function frontPreview(input){
- frontFiles=Array.from(input.files);
- document.getElementById('frontCount').innerText=frontFiles.length;
- document.getElementById('frontCount2').innerText=frontFiles.length;
- let box=document.getElementById('frontPreview'); box.innerHTML='';
- for(let i=0;i<frontFiles.length;i++){
-  let url=URL.createObjectURL(frontFiles[i]);
-  box.innerHTML+=`<div class="front-card"><img src="${url}"><div class="info"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="UGX OWN PRICE" style="border:2px solid #c0392b"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}" placeholder="Seller Business"><input id="fstock_${i}" type="number" value="10" placeholder="Stock"></div></div>`;
- }
-}
-async function frontUploadAll(){
- if(frontFiles.length==0){alert('Select photos');return;}
- let biz=document.getElementById('frontBiz').value;if(!biz){alert('Enter Seller Business Name');return;}
- let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Enter phone - Hidden admin only');return;}
- let main=document.getElementById('frontMain').value||'Health & Medical';let sub=document.getElementById('frontSub').value||'Clinics';
- for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter OWN price for item ${i+1}`);return;}}
- let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=15;
- status.innerHTML=`⏳ Uploading ${total} continuously down...`;
- for(let b=0;b<total;b+=BATCH){
-  let proms=[];
-  for(let i=b;i<Math.min(b+BATCH,total);i++){
-   let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock',document.getElementById(`fstock_${i}`).value);fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('desc','');
-   proms.push(fetch('/api/sell',{method:'POST',body:fd}).then(()=>{uploaded++;status.innerHTML=`⏳ ${uploaded}/${total} added continuously DOWN - ${Math.round(uploaded/total*100)}%`; }));
-  }
-  await Promise.all(proms);
- }
- status.innerHTML=`✅ DONE! ${total} products added continuously DOWN like your photo! Phone ${phone} hidden - admin only`;
- alert(`✅ ${total} products now on front - Continuous down - Phone hidden`);doFilter();
-}
+function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="OWN PRICE UGX" style="border:2px solid #c0392b"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}" placeholder="Business Owner"><input id="fstock_${i}" type="number" value="10"></div></div>`;}}
+async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value;if(!biz){alert('Business Name required');return;}let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Phone required - Admin only sees');return;}let plan=document.getElementById('sellerPlan').value;let main=document.getElementById('frontMain').value||'General';let sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter OWN price for item ${i+1}`);return;}}let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=15;status.innerHTML=`⏳ Uploading ${total} with plan ${plan}...`;for(let b=0;b<total;b+=BATCH){let proms=[];for(let i=b;i<Math.min(b+BATCH,total);i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock',document.getElementById(`fstock_${i}`).value);fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('desc','');proms.push(fetch('/api/sell',{method:'POST',body:fd}).then(()=>{uploaded++;status.innerHTML=`⏳ ${uploaded}/${total} (${Math.round(uploaded/total*100)}%)`; }));}await Promise.all(proms);}status.innerHTML=`✅ DONE! ${total} live continuously DOWN - Plan: ${plan}`;alert(`✅ ${total} uploaded with ${plan} plan`);doFilter();}
+function makeBargain(id){let p=allProducts.find(x=>x.id==id);let offer=prompt(`Bargain for ${p.name} - Price UGX ${p.price} - Enter your offer UGX:`);if(offer){fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer:offer})}).then(()=>alert('Bargain sent! Seller will reply via WhatsApp - Bargains in Orders'));}}
+function fetchJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{let list=document.getElementById('jobsList');if(!list)return;list.innerHTML=jobs.map(j=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>${j.title}</b> - ${j.company}<br>${j.desc}<br>Salary: ${j.salary||'Negotiable'} <button class="btn btn-blue" onclick="document.getElementById('applyJobSelect').innerHTML='<option value=${j.id}>${j.title}</option>';openPopup('applyPop')">Apply</button></div>`).join('');let sel=document.getElementById('applyJobSelect');if(sel){sel.innerHTML=jobs.map(j=>`<option value="${j.id}">${j.title} - ${j.company}</option>`).join('');}}).catch(()=>{});}
+function postJob(e){e.preventDefault();let data={title:document.getElementById('jobTitle').value,company:document.getElementById('jobCompany').value,desc:document.getElementById('jobDesc').value,salary:document.getElementById('jobSalary').value};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>{alert('Job posted!');fetchJobs();});}
+function applyJob(e){e.preventDefault();let fd=new FormData(e.target);let data=Object.fromEntries(fd);fetch('/api/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>alert('Application sent!')); }
+function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{document.getElementById('ordersList').innerHTML=orders.map(o=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>Order ${o.id}</b> - UGX ${o.total||0}<br>Buyer: ${o.buyer?.names||''} ${o.buyer?.phone1||''}<br>Items: ${(o.cart||[]).map(i=>i.name).join(', ')}<br>${o.bargain?'<b>Bargain Offer: UGX '+o.bargain.offer+'</b>':''}<br><a href="https://wa.me/${o.buyer?.phone1}?text=Hello your order" target="_blank" class="btn" style="background:#25D366">WhatsApp Reply</a> <a href="mailto:natelieabigali@gmail.com?subject=Order ${o.id}" class="btn" style="background:#000">Email Owner</a></div>`).join('')||'No orders yet';}).catch(()=>document.getElementById('ordersList').innerHTML='No orders - Connect backend /api/orders');}
 setTimeout(initFrontCat,800);
 </script>
 </body>
