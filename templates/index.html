@@ -33,35 +33,70 @@ input,select,textarea{width:100%;padding:10px;margin:6px 0 12px 0;border:1px sol
 .plan{border:2px solid #ddd;padding:12px;border-radius:10px;margin:8px 0;cursor:pointer}
 .plan.active{background:#8B0000;color:white}
 .cat-tag{background:#8B0000;color:white;padding:3px 8px;border-radius:10px;font-size:11px;display:inline-block;margin:2px}
+.auto-suggest{background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:10px;margin:8px 0;display:none}
+.suggest-btn{background:#2e7d32;color:white;border:none;padding:8px 12px;border-radius:20px;margin:5px 3px;cursor:pointer;font-weight:bold}
+.photo-box{border:2px solid #8B0000;background:#fff3f3;padding:10px;border-radius:10px;margin:10px 0}
 </style>
 </head>
 <body>
 <div class="animated-bg"></div>
 <div class="bubbles"><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
 <div class="navbar"><h2>🛍️ SANNLAS</h2><div><button class="btn" onclick="openSell()">+ Sell</button><button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button><a href="/admin" class="btn" style="text-decoration:none">Admin</a></div></div>
-
 <div class="search-bar">
 <input type="text" id="searchInput" placeholder="🔍 Search anything... e.g. Fish, iPhone, Cement" onkeyup="doFilter()">
 <select id="mainFilter" onchange="onMainChange()"><option value="">All Main Categories</option></select>
 <select id="subFilter" onchange="doFilter()"><option value="">All Subcategories</option></select>
 <button class="btn" onclick="clearFilter()">Clear</button>
 </div>
-
-<div class="hero"><h1>Welcome to SANNLAS UGANDA </h1><p>Shop • Sell • Deliver - MoMo 0795712326 • No More Scrolling, Just Search!</p></div>
+<div class="hero"><h1>Welcome to SANNLAS UGANDA </h1><p>Shop • Sell • Deliver - MoMo 0795712326</p></div>
 <div class="products" id="products"></div>
-
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content"><h3> Delivery Details</h3><form onsubmit="doCheckout(event)"><select name="region" required><option value="">Region</option><option>Central</option><option>Eastern</option><option>Northern</option><option>Western</option></select><input name="district" placeholder="City/District" required><input name="constituency" placeholder="Constituency" required><input name="subcounty" placeholder="Subcounty/Town" required><input name="names" placeholder="Full Names" required><input name="phone1" placeholder="Phone 1" required><input name="phone2" placeholder="Phone 2" required><button class="btn" style="width:100%">✅ Confirm Order</button><button type="button" onclick="closePop('cartPop')" style="width:100%;margin-top:8px;padding:8px;background:gray;color:white;border:none;border-radius:8px">Cancel</button></form></div></div>
 <div class="popup" id="sellPop"><div class="popup-content" id="sellContent"></div></div>
-
 <script>
 let products=[], cart=[], selPlan='free', sellerInfo=null, categories={};
 const MOMO='0795712326';
 function getPrice(){if(selPlan=='30days')return 5000;if(selPlan=='6month')return 30000;if(selPlan=='1year')return 60000;return 0;}
 
-// Load categories from server
-fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d; initFilters();});
+const KEYWORD_MAP = {
+"fish":{"main":"Agriculture & Farming","sub":"Fish Farming"},
+"poultry|chicken|kuku":{"main":"Agriculture & Farming","sub":"Poultry Farming"},
+"farm|agro":{"main":"Agriculture & Farming","sub":"Crop Farming"},
+"restaurant|food|kitchen|rolex|chapati":{"main":"Food & Beverages","sub":"Restaurants"},
+"bakery|cake":{"main":"Food & Beverages","sub":"Bakeries"},
+"cement|hardware|construction":{"main":"Construction & Building","sub":"Cement"},
+"fashion|boutique|clothes|dress|kikoi":{"main":"Fashion & Clothing","sub":"Women's Clothing"},
+"shoe":{"main":"Fashion & Clothing","sub":"Shoes"},
+"phone|mobile|airtime":{"main":"Electronics & Technology","sub":"Mobile Phones"},
+"laptop|computer":{"main":"Electronics & Technology","sub":"Laptops"},
+"car|garage|auto|boda":{"main":"Automotive","sub":"Car Repair"},
+"clinic|pharmacy|medical|hospital|drug":{"main":"Health & Medical","sub":"Clinics"},
+"salon|hair|barber":{"main":"Beauty & Personal Care","sub":"Hair Salons"},
+"school|academy":{"main":"Education","sub":"Schools"},
+"hotel|lodge":{"main":"Travel & Tourism","sub":"Hotels"},
+"gym|fitness":{"main":"Sports & Fitness","sub":"Gyms"},
+"furniture|sofa":{"main":"Home & Furniture","sub":"Sofas"},
+"solar|energy":{"main":"Energy & Utilities","sub":"Solar Energy"},
+"tailor|sewing":{"main":"Manufacturing","sub":"Textile Manufacturing"},
+"lawyer|advocate":{"main":"Professional Services","sub":"Lawyers"},
+"website|software|it solution":{"main":"Information Technology","sub":"Website Development"},
+"cleaning":{"main":"Home & Property Services","sub":"Cleaning"},
+"security|cctv":{"main":"Security Services","sub":"CCTV Systems"},
+"pet|dog":{"main":"Pets & Animals","sub":"Pet Shops"},
+"wedding|event":{"main":"Events & Weddings","sub":"Wedding Planning"},
+"print|graphic":{"main":"Printing & Stationery","sub":"Printing"},
+"repair":{"main":"Repair & Maintenance Services","sub":"Phone Repair"}
+};
+function guessCategory(text){
+ text=text.toLowerCase();
+ for(let k in KEYWORD_MAP){
+   let re=new RegExp(k,'i');
+   if(re.test(text)) return KEYWORD_MAP[k];
+ }
+ return null;
+}
 
+fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d; initFilters();});
 function initFilters(){
  let main=document.getElementById('mainFilter');
  Object.keys(categories).forEach(c=>{
@@ -89,16 +124,10 @@ function doFilter(){
  if(q) url+=`q=${encodeURIComponent(q)}&`;
  fetch(url).then(r=>r.json()).then(d=>{products=d; render();});
 }
-function clearFilter(){
- document.getElementById('searchInput').value='';
- document.getElementById('mainFilter').value='';
- document.getElementById('subFilter').innerHTML='<option value="">All Subcategories</option>';
- doFilter();
-}
+function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">All Subcategories</option>';doFilter();}
 fetch('/api/products').then(r=>r.json()).then(d=>{products=d; render();});
-
 function render(){
- if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products found. Try searching different category.</p>';return;}
+ if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products found.</p>';return;}
  document.getElementById('products').innerHTML=products.map(p=>`<div class="card"><img src="${p.image}"><div class="card-body"><div><span class="cat-tag">${p.main_category||'General'}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category||''}</span></div><h3>${p.name}</h3><p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p><p style="font-size:12px;color:#666">${p.business} • ${p.location}</p><button class="btn" onclick="viewProd(${p.id})">View</button><button class="btn" onclick="addCart(${p.id})">Add to Cart</button></div></div>`).join('');
 }
 function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><p><span class="cat-tag">${p.main_category}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category}</span></p><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${p.price.toLocaleString()}</b></p><p>${p.description}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button class="btn" onclick="closePop('viewPop');openCart()">Order Now</button><button style="float:right;background:gray;color:white;border:none;padding:8px 12px;border-radius:10px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
@@ -106,20 +135,89 @@ function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getE
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
 function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={region:fd.get('region'),district:fd.get('district'),constituency:fd.get('constituency'),subcounty:fd.get('subcounty'),names:fd.get('names'),phone1:fd.get('phone1'),phone2:fd.get('phone2')};let total=cart.reduce((s,i)=>s+i.price,0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert(' '+d.message);cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
-
 function openSell(){selPlan='free';showSellStep1();}
-function showSellStep1(){let qr=`MTN MoMo ${MOMO} Amount ${getPrice()} Ref SANNLAS`;let qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qr)}`;document.getElementById('sellContent').innerHTML=`<h3 style="color:#8B0000"> Seller Subscription</h3><form onsubmit="doSubscribe(event)"><input name="business" placeholder="Business Name" required><input name="location" placeholder="Location" required><input name="phone" placeholder="Phone" required><div class="plan ${selPlan=='free'?'active':''}" onclick="selPlan='free';showSellStep1()"><b>1. 14 Days FREE</b></div><div class="plan ${selPlan=='30days'?'active':''}" onclick="selPlan='30days';showSellStep1()"><b>2. 30 Days - 5,000</b></div><div class="plan ${selPlan=='6month'?'active':''}" onclick="selPlan='6month';showSellStep1()"><b>3. 6 Months - 30,000</b></div><div class="plan ${selPlan=='1year'?'active':''}" onclick="selPlan='1year';showSellStep1()"><b>4. 1 Year - 60,000 BEST</b></div>${selPlan!='free'?`<div class="momo"><h4>Pay via MoMo</h4><img src="${qrUrl}" style="border:2px solid #8B0000;border-radius:8px"><p><b>Send to: ${MOMO}</b><br>Amount: UGX ${getPrice()}</p><a href="tel:*165*1*${MOMO}*${getPrice()}%23" style="display:block;background:#8B0000;color:white;padding:10px;border-radius:8px;text-decoration:none"> CLICK TO PAY</a></div>`:''}<button class="btn" style="width:100%">${selPlan=='free'?'Start Free Trial ':'I Have Paid ✅'}</button><button type="button" onclick="closePop('sellPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Cancel</button></form>`;document.getElementById('sellPop').style.display='flex';}
-function doSubscribe(e){e.preventDefault();let fd=new FormData(e.target);let b=fd.get('business'), l=fd.get('location'), ph=fd.get('phone');sellerInfo={business:b,location:l,phone:ph};if(selPlan!='free'){if(!confirm('Send UGX '+getPrice()+' to '+MOMO+' Ref: '+b+'. OK after payment?'))return;}fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,phone:ph,location:l,plan:selPlan})}).then(r=>r.json()).then(d=>{alert(d.message);showSellStep2();});}
-
-function showSellStep2(){
- let mainOpts=Object.keys(categories).map(c=>`<option value="${c}">${c}</option>`).join('');
- document.getElementById('sellContent').innerHTML=`<h3> Upload Product</h3><p style="color:green">✓ Subscribed as ${sellerInfo.business}</p><form onsubmit="doSell(event)"><input name="name" placeholder="Product Name" required><select id="sellMain" name="main_category" required onchange="sellSubLoad()"><option value="">Select Main Category</option>${mainOpts}</select><select id="sellSub" name="sub_category" required><option value="">Select Subcategory First Choose Main</option></select><input name="image" type="file" accept="image/*"><input name="image_url" placeholder="Or paste image link"><input name="price" type="number" placeholder="Price UGX" required><textarea name="desc" placeholder="Description"></textarea><button class="btn" style="width:100%"> List Product</button></form>`;
+function showSellStep1(){
+ let qr=`MTN MoMo ${MOMO} Amount ${getPrice()} Ref SANNLAS`;
+ let qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qr)}`;
+ document.getElementById('sellContent').innerHTML=`<h3 style="color:#8B0000"> Seller Subscription</h3>
+ <form onsubmit="doSubscribe(event)">
+ <input id="bizName1" name="business" placeholder="Business Name e.g. Mukisa Fish Farm" required onkeyup="suggestBizCat(this.value,'sug1')">
+ <div id="sug1" class="auto-suggest"></div>
+ <input name="location" placeholder="Location" required>
+ <input name="phone" placeholder="Phone" required>
+ <div class="plan ${selPlan=='free'?'active':''}" onclick="selPlan='free';showSellStep1()"><b>1. 14 Days FREE</b></div>
+ <div class="plan ${selPlan=='30days'?'active':''}" onclick="selPlan='30days';showSellStep1()"><b>2. 30 Days - 5,000</b></div>
+ <div class="plan ${selPlan=='6month'?'active':''}" onclick="selPlan='6month';showSellStep1()"><b>3. 6 Months - 30,000</b></div>
+ <div class="plan ${selPlan=='1year'?'active':''}" onclick="selPlan='1year';showSellStep1()"><b>4. 1 Year - 60,000 BEST</b></div>
+ ${selPlan!='free'?`<div class="momo"><h4>Pay via MoMo</h4><img src="${qrUrl}" style="border:2px solid #8B0000;border-radius:8px"><p><b>Send to: ${MOMO}</b><br>Amount: UGX ${getPrice()}</p></div>`:''}
+ <button class="btn" style="width:100%">${selPlan=='free'?'Start Free Trial ':'I Have Paid ✅'}</button>
+ <button type="button" onclick="closePop('sellPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Cancel</button>
+ </form>`;
+ document.getElementById('sellPop').style.display='flex';
 }
-function sellSubLoad(){
+function suggestBizCat(val, divId){
+ let div=document.getElementById(divId);
+ if(!val || val.length<3){div.style.display='none';return;}
+ let g=guessCategory(val);
+ if(g){
+   div.style.display='block';
+   div.innerHTML=`🤖 <b>Detected:</b> ${g.main} → ${g.sub}<br><button type="button" class="suggest-btn" onclick="applyBizCat('${g.main}','${g.sub}')">✅ Add to this Category</button>`;
+   window.lastGuess=g;
+ } else {div.style.display='none';}
+}
+function applyBizCat(main, sub){
+ window.chosenMain=main; window.chosenSub=sub;
+ alert('Category Saved: '+main+' → '+sub+'. It will auto-fill in next step!');
+}
+function doSubscribe(e){
+ e.preventDefault();
+ let fd=new FormData(e.target);
+ let b=fd.get('business'), l=fd.get('location'), ph=fd.get('phone');
+ sellerInfo={business:b,location:l,phone:ph, autoMain: window.chosenMain, autoSub: window.chosenSub};
+ if(selPlan!='free'){if(!confirm('Send UGX '+getPrice()+' to '+MOMO+' Ref: '+b+'. OK after payment?'))return;}
+ fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,phone:ph,location:l,plan:selPlan})}).then(r=>r.json()).then(d=>{alert(d.message);showSellStep2();});
+}
+function showSellStep2(){
+ let mainOpts=Object.keys(categories).map(c=>`<option value="${c}" ${window.chosenMain==c?'selected':''}>${c}</option>`).join('');
+ document.getElementById('sellContent').innerHTML=`<h3> Upload Product - Smart Category</h3><p style="color:green">✓ Subscribed as ${sellerInfo.business}</p>
+ ${window.chosenMain?`<div class="auto-suggest" style="display:block">🤖 Auto-detected from business name: <b>${window.chosenMain} → ${window.chosenSub}</b> <button type="button" class="suggest-btn" onclick="document.getElementById('sellMain').value='${window.chosenMain}';sellSubLoad('${window.chosenSub}')">Use This</button></div>`:''}
+ <form onsubmit="doSell(event)">
+ <input id="prodName" name="name" placeholder="Product Name e.g. Fresh Tilapia" required onkeyup="suggestProdCat(this.value)">
+ <div id="sug2" class="auto-suggest"></div>
+ <select id="sellMain" name="main_category" required onchange="sellSubLoad()"><option value="">Select Main Category</option>${mainOpts}</select>
+ <select id="sellSub" name="sub_category" required><option value="">Select Subcategory - Choose Main First</option></select>
+ <div class="photo-box">
+ <label style="font-weight:bold;color:#8B0000">📸 Product Photo * REQUIRED</label>
+ <input name="image" type="file" accept="image/*" required>
+ <p style="text-align:center;margin:6px 0;font-size:12px;color:#666">OR paste image link below</p>
+ <input name="image_url" placeholder="https://example.com/photo.jpg">
+ </div>
+ <input name="price" type="number" placeholder="Price UGX" required>
+ <textarea name="desc" placeholder="Description"></textarea>
+ <button class="btn" style="width:100%">📤 List Product With Photo</button>
+ </form>`;
+ if(window.chosenMain) sellSubLoad(window.chosenSub);
+}
+function suggestProdCat(val){
+ let div=document.getElementById('sug2');
+ if(!val || val.length<2){div.style.display='none';return;}
+ let g=guessCategory(val);
+ if(g){
+   div.style.display='block';
+   div.innerHTML=`🤖 <b>For "${val}" use:</b> ${g.main} → ${g.sub}<br><button type="button" class="suggest-btn" onclick="document.getElementById('sellMain').value='${g.main}';sellSubLoad('${g.sub}')">✅ Click to Add to ${g.sub}</button>`;
+ }
+}
+function sellSubLoad(preselect){
  let m=document.getElementById('sellMain').value;
  let s=document.getElementById('sellSub');
  s.innerHTML='';
- if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.innerText=sub;s.appendChild(o);});}
+ if(categories[m]){
+   categories[m].forEach(sub=>{
+     let o=document.createElement('option');o.value=sub;o.innerText=sub;
+     if(preselect==sub) o.selected=true;
+     s.appendChild(o);
+   });
+ }
 }
 function doSell(e){
  e.preventDefault();
