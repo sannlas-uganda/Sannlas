@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import os, json, uuid, time, hashlib
 from werkzeug.utils import secure_filename
-import psycopg2
-import psycopg2.extras
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER']='static/uploads'
@@ -24,36 +22,42 @@ PLANS = {
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_conn():
-    return psycopg2.connect(DATABASE_URL)
+    import psycopg2
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-def init_db():
+def ensure_tables():
     if not DATABASE_URL: return
-    conn = get_conn(); cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
-    cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
-    conn.commit(); cur.close(); conn.close()
-
-try: init_db()
-except Exception as e: print(f"DB init error: {e}")
+    try:
+        import psycopg2
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
+        cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        print(f"ensure_tables error: {e}")
 
 def load_db(file, default):
-    # Use Postgres if available - permanent!
     if DATABASE_URL:
         try:
+            ensure_tables()
+            import psycopg2, psycopg2.extras
+            conn = get_conn()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             if file == 'products.json':
-                conn = get_conn(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute("SELECT data FROM products ORDER BY id ASC")
-                rows = cur.fetchall(); cur.close(); conn.close()
+                rows = cur.fetchall()
+                cur.close(); conn.close()
                 return [r['data'] for r in rows]
             else:
-                conn = get_conn(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                row = cur.fetchone(); cur.close(); conn.close()
+                row = cur.fetchone()
+                cur.close(); conn.close()
                 if row: return row['data']
                 return default
         except Exception as e:
-            print(f"load_db {file} error: {e}"); return default
-    # Fallback to local file
+            print(f"load_db {file} error: {e}")
+            return default
     path=f'data/{file}'
     if os.path.exists(path):
         try: return json.load(open(path))
@@ -63,20 +67,18 @@ def load_db(file, default):
 def save_db(file, data):
     if DATABASE_URL:
         try:
+            ensure_tables()
+            import psycopg2, json as js
+            conn = get_conn()
+            cur = conn.cursor()
             if file == 'products.json':
-                # Handled separately in sell/delete - do nothing here
-                # But for compatibility, rebuild table
-                conn = get_conn(); cur = conn.cursor()
                 cur.execute("DELETE FROM products")
                 for item in data:
-                    cur.execute("INSERT INTO products (data) VALUES (%s)", [json.dumps(item)])
-                conn.commit(); cur.close(); conn.close()
-                return
+                    cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(item)])
             else:
-                conn = get_conn(); cur = conn.cursor()
-                cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, json.dumps(data)))
-                conn.commit(); cur.close(); conn.close()
-                return
+                cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, js.dumps(data)))
+            conn.commit(); cur.close(); conn.close()
+            return
         except Exception as e:
             print(f"save_db {file} error: {e}")
     json.dump(data, open(f'data/{file}','w'), indent=2)
@@ -175,7 +177,6 @@ def sell():
             return jsonify({'success':False,'message':'14 Days FREE already used & expired. Choose paid plan and PAY BEFORE UPLOAD'}),402
         if not seller and any(p.get('phone')==phone for p in products):
             return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
-
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -188,11 +189,12 @@ def sell():
     if not images: images=['https://via.placeholder.com/300']
     exp_time = seller['subscription_expires'] if seller and seller['subscription_expires']>time.time() else time.time()+plan_info['days']*86400
     prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time}
-
     if DATABASE_URL:
         try:
+            ensure_tables()
+            import json as js
             conn=get_conn(); cur=conn.cursor()
-            cur.execute("INSERT INTO products (data) VALUES (%s)", [json.dumps(prod)])
+            cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
             conn.commit(); cur.close(); conn.close()
         except Exception as e:
             print(e); return jsonify({'success':False,'message':str(e)}),500
@@ -231,6 +233,7 @@ def my_products():
 def delete_prod(pid):
     if DATABASE_URL:
         try:
+            ensure_tables()
             conn=get_conn(); cur=conn.cursor()
             cur.execute("SELECT id, data FROM products")
             rows=cur.fetchall()
@@ -339,4 +342,5 @@ def admin_generic(filetype):
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
 
-if __name__=='__main__': app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__=='__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
