@@ -37,6 +37,9 @@ BUSINESS_CATEGORIES = {
 
 @app.route('/')
 def home(): return render_template('index.html')
+@app.route('/admin')
+def admin_page(): return render_template('admin.html')
+
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 
@@ -161,5 +164,27 @@ def contact_owner():
     contacts.append({**data, 'time':time.time(), 'id':int(time.time()), 'owner_email':OWNER_EMAIL})
     save_db('contacts.json', contacts)
     return jsonify({'success':True,'message':f'Message sent to {OWNER_EMAIL}!'})
+
+# --- NEW ADMIN API FOR YOUR DASHBOARD ---
+@app.route('/api/admin/data')
+def admin_data():
+    return jsonify({
+        'products': load_db('products.json',[]),
+        'sellers': load_db('sellers.json',[]),
+        'orders': load_db('orders.json',[]),
+        'jobs': load_db('jobs.json',[]),
+        'contacts': load_db('contacts.json',[]),
+        'applications': load_db('applications.json',[]),
+        'bargains': load_db('bargains.json',[]),
+        'total_revenue': sum([o.get('total',0) for o in load_db('orders.json',[])]),
+        'total_sellers': len(load_db('sellers.json',[])),
+        'total_orders': len(load_db('orders.json',[]))
+    })
+
+@app.route('/api/admin/<string:filetype>')
+def admin_generic(filetype):
+    allowed=['contacts','applications','orders','bargains','sellers','jobs','products']
+    if filetype not in allowed: return jsonify([])
+    return jsonify(load_db(f'{filetype}.json', []))
 
 if __name__=='__main__': app.run(debug=True)
