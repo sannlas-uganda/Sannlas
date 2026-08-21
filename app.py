@@ -1,132 +1,165 @@
-from flask import Flask, jsonify, request, send_from_directory,render_template,Response
-from flask_cors import CORS
-import os
-from datetime import datetime, timedelta
+from flask import Flask, request, jsonify, render_template
+import os, json, uuid, time
 from werkzeug.utils import secure_filename
-from functools import wraps
-app = Flask(__name__)
-CORS(app)
-UPLOAD_FOLDER = 'static/uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# ===== YOUR NEW BUSINESS CATEGORIES SYSTEM =====
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER']='static/uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('data', exist_ok=True)
+
+# YOUR CONTACT — EDIT HERE
+OWNER_EMAIL = "natelieabigail@gmail.com"
+OWNER_PHONE = "0795712326"
+OWNER_MOMO = "0795712326"
+
+def load_db(file, default):
+    path=f'data/{file}'
+    if os.path.exists(path):
+        try: return json.load(open(path))
+        except: return default
+    return default
+def save_db(file, data):
+    json.dump(data, open(f'data/{file}','w'), indent=2)
+
 BUSINESS_CATEGORIES = {
-"Agriculture & Farming":["Crop Farming","Livestock Farming","Poultry Farming","Dairy Farming","Fish Farming","Beekeeping","Horticulture","Floriculture","Farm Machinery","Seeds & Fertilizers","Animal Feeds"],
-"Food & Beverages":["Restaurants","Fast Food","Cafes","Bakeries","Butcheries","Supermarkets","Grocery Stores","Catering","Food Delivery","Beverages","Food Processing","Fresh Foods"],
-"Construction & Building":["Cement","Bricks & Blocks","Sand & Aggregates","Roofing Materials","Steel & Metal","Plumbing Materials","Electrical Materials","Paints","Tiles","Doors & Windows","Building Tools","Construction Machinery","Road Construction","Interior Finishing","Landscaping"],
-"Real Estate":["Land","Houses","Apartments","Offices","Shops","Warehouses","Rental Properties","Commercial Buildings","Property Management","Real Estate Agencies"],
-"Fashion & Clothing":["Men's Clothing","Women's Clothing","Children's Clothing","Suits","Dresses","Shirts","Trousers","Shoes","Bags","Sportswear","Underwear","Jewelry","Watches","Fashion Accessories"],
-"Electronics & Technology":["Mobile Phones","Laptops","Desktop Computers","Tablets","Televisions","Cameras","Speakers","Headphones","Computer Accessories","Phone Accessories","Printers","Gaming Devices","Smart Devices","Home Appliances"],
-"Automotive":["Cars","Motorcycles","Trucks","Buses","Car Parts","Motorcycle Parts","Tires","Batteries","Car Accessories","Car Repair","Car Washing","Car Rental","Vehicle Insurance"],
-"Health & Medical":["Hospitals","Clinics","Pharmacies","Medical Equipment","Medical Supplies","Laboratories","Dental Services","Optical Services","Nursing Services","Home Healthcare"],
-"Beauty & Personal Care":["Cosmetics","Skincare","Hair Products","Hair Salons","Barbershops","Makeup","Perfumes","Nail Care","Spa Services","Beauty Equipment"],
-"Education":["Schools","Universities","Vocational Training","Online Courses","Tutoring","Books","Stationery","Educational Software","Training Centers","Educational Consultancy"],
-"Financial Services":["Banking","Insurance","Loans","Microfinance","Accounting","Auditing","Investment","Tax Services","Financial Consultancy","Payment Services"],
-"Transport & Logistics":["Taxi Services","Bus Services","Trucking","Motorcycle Transport","Courier Services","Delivery Services","Freight Forwarding","Warehousing","Shipping","Moving Services"],
-"Travel & Tourism":["Hotels","Lodges","Resorts","Travel Agencies","Tour Operators","Safari Services","Car Hire","Tourist Attractions","Travel Booking","Airlines"],
-"Entertainment & Media":["Music","Movies","Photography","Videography","Gaming","DJs","Event Management","Radio","Television","Publishing","Streaming"],
-"Sports & Fitness":["Gyms","Fitness Training","Sports Equipment","Sportswear","Football","Basketball","Swimming","Martial Arts","Sports Clubs","Fitness Centers"],
-"Home & Furniture":["Sofas","Beds","Tables","Chairs","Cabinets","Mattresses","Curtains","Carpets","Kitchen Equipment","Home Decorations","Household Products"],
-"Energy & Utilities":["Solar Energy","Solar Panels","Batteries","Generators","Electrical Equipment","Gas","Water Supply","Renewable Energy","Energy Services"],
-"Manufacturing":["Textile Manufacturing","Food Manufacturing","Furniture Manufacturing","Metal Fabrication","Plastic Products","Chemical Products","Paper Products","Machinery","Industrial Equipment","Packaging"],
-"Professional Services":["Lawyers","Accountants","Engineers","Architects","Surveyors","Consultants","Marketing Agencies","Advertising Agencies","HR Services","Business Consultancy"],
-"Information Technology":["Website Development","Mobile App Development","Software Development","Cybersecurity","Cloud Services","Data Services","Artificial Intelligence","Computer Repair","Networking","Digital Marketing"],
-"Telecommunications":["Mobile Networks","Internet Services","Fiber Internet","Broadband","SIM Cards","Communication Equipment","Telecommunication Services"],
-"Home & Property Services":["Cleaning","Plumbing","Electrical Services","Painting","Carpentry","Masonry","Roofing","Gardening","Pest Control","Security Services"],
-"Security Services":["Security Guards","CCTV Systems","Alarm Systems","Access Control","Security Equipment","Security Consultancy","Private Investigation"],
-"Pets & Animals":["Pet Food","Pet Accessories","Veterinary Services","Pet Grooming","Pet Shops","Animal Breeding","Animal Equipment"],
-"Events & Weddings":["Wedding Planning","Event Decoration","Catering","Photography","Videography","Wedding Dresses","Event Venues","Entertainment","Event Equipment"],
-"Printing & Stationery":["Printing","Graphic Design","Business Cards","Posters","Books","Stationery","Branding","Sign Making","Packaging"],
-"Repair & Maintenance Services":["Phone Repair","Computer Repair","Appliance Repair","Vehicle Repair","Electrical Repair","Plumbing Repair","Machinery Repair","Furniture Repair"],
-"Business & Consulting Services":["Business Consulting","Management Consulting","Marketing Consulting","Financial Consulting","IT Consulting","Human Resources","Business Registration","Entrepreneurship Services"]
+"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],
+"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],
+"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],
+"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],
+"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],
+"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],
+"Health & Medical":["Clinics","Pharmacies","Lab Services"],
+"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],
+"Home & Furniture":["Furniture","Sofas","Kitchenware"],
+"Professional Services":["Lawyers","Accountants","Printing"],
+"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]
 }
 
-products = [{"id": 1, "name": "iPhone 15 Pro", "price": 4500000, "image": "https://m.media-amazon.com/images/I/71d7rfSl0wL._AC_SL1500_.jpg", "description": "Latest Apple iPhone", "business": "Apple Store UG", "location": "Kampala", "phone": "0795712326", "main_category":"Electronics & Technology", "sub_category":"Mobile Phones"}]
-sellers = []
-orders = []
-PLANS = {"free": {"days": 14, "price": 0, "label": "14 Days FREE"}, "30days": {"days": 30, "price": 5000, "label": "30 Days - 5,000"}, "6month": {"days": 180, "price": 30000, "label": "6 Months - 30,000"}, "1year": {"days": 365, "price": 60000, "label": "1 Year - 60,000"}}
-
+@app.route('/')
+def home(): return render_template('index.html')
 @app.route('/api/categories')
-def get_categories():
-    return jsonify(BUSINESS_CATEGORIES)
+def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 
 @app.route('/api/products')
 def get_products():
-    main = request.args.get('main')
-    sub = request.args.get('sub')
-    q = request.args.get('q','').lower()
-    filtered = products
-    if main:
-        filtered = [p for p in filtered if p.get('main_category')==main]
-    if sub:
-        filtered = [p for p in filtered if p.get('sub_category')==sub]
-    if q:
-        filtered = [p for p in filtered if q in p['name'].lower() or q in p.get('main_category','').lower() or q in p.get('sub_category','').lower() or q in p.get('description','').lower()]
+    products=load_db('products.json', [])
+    main=request.args.get('main'); sub=request.args.get('sub')
+    q=request.args.get('q','').lower(); min_p=request.args.get('min'); max_p=request.args.get('max')
+    filtered=products
+    if main: filtered=[p for p in filtered if p.get('main_category')==main]
+    if sub: filtered=[p for p in filtered if p.get('sub_category')==sub]
+    if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('description','').lower() or q in p.get('business','').lower()]
+    if min_p: filtered=[p for p in filtered if p.get('price',0)>=int(min_p)]
+    if max_p: filtered=[p for p in filtered if p.get('price',0)<=int(max_p)]
+    filtered=sorted(filtered, key=lambda x: x.get('boosted',0), reverse=True)
     return jsonify(filtered)
 
 @app.route('/api/sell', methods=['POST'])
-def sell_product():
-    business_phone = request.form['phone']
-    seller = next((s for s in sellers if s['phone'] == business_phone), None)
-    if not seller or datetime.strptime(seller['expiry'], '%Y-%m-%d') < datetime.now():
-        return jsonify({"success": False, "message": "Subscription expired."}), 403
-    file = request.files.get('image')
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        img_path = '/' + filepath
-    else:
-        img_path = request.form.get('image_url','')
-    new_product = {"id": len(products) + 1, "name": request.form['name'], "price": int(request.form['price']), "image": img_path, "description": request.form.get('desc',''), "business": request.form['business'], "location": request.form['location'], "phone": request.form['phone'], "main_category": request.form.get('main_category',''), "sub_category": request.form.get('sub_category','')}
-    products.append(new_product)
-    return jsonify({"success": True})
+def sell():
+    name=request.form.get('name'); price=int(request.form.get('price',0))
+    business=request.form.get('business'); location=request.form.get('location')
+    phone=request.form.get('phone'); desc=request.form.get('desc','')
+    main_cat=request.form.get('main_category'); sub_cat=request.form.get('sub_category')
+    stock=int(request.form.get('stock',10))
+    images=[]
+    for key in request.files:
+        f=request.files[key]
+        if f and f.filename:
+            fn=str(uuid.uuid4())[:8]+'_'+secure_filename(f.filename)
+            f.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
+            images.append('/static/uploads/'+fn)
+    img_url=request.form.get('image_url')
+    if img_url and not images: images=[img_url]
+    if not images: images=['https://via.placeholder.com/300']
+    products=load_db('products.json', [])
+    prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time()}
+    products.append(prod); save_db('products.json', products)
+    return jsonify({'success':True})
+
+@app.route('/api/my-products')
+def my_products():
+    phone=request.args.get('phone'); products=load_db('products.json', [])
+    if phone: products=[p for p in products if p.get('phone')==phone]
+    return jsonify(products)
+
+@app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
+def delete_prod(pid):
+    products=load_db('products.json', [])
+    products=[p for p in products if p['id']!=pid]
+    save_db('products.json', products)
+    return jsonify({'success':True})
+
+@app.route('/api/rate', methods=['POST'])
+def rate():
+    data=request.json; pid=data['id']
+    products=load_db('products.json', [])
+    for p in products:
+        if p['id']==pid:
+            p['reviews'].append({'rating':data['rating'],'comment':data.get('comment',''),'time':time.time()})
+            p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews'])
+    save_db('products.json', products)
+    return jsonify({'success':True})
+
+@app.route('/api/bargain', methods=['POST'])
+def bargain():
+    data=request.json; bargains=load_db('bargains.json', [])
+    data['id']=int(time.time()); data['status']='pending'
+    bargains.append(data); save_db('bargains.json', bargains)
+    return jsonify({'success':True,'message':"Offer sent! Seller will call you."})
+
+@app.route('/api/boost', methods=['POST'])
+def boost():
+    data=request.json; pid=data['id']
+    products=load_db('products.json', [])
+    for p in products:
+        if p['id']==pid: p['boosted']=time.time()+86400*int(data.get('days',1))
+    save_db('products.json', products)
+    return jsonify({'success':True,'message':'Boosted to top!'})
 
 @app.route('/api/subscribe', methods=['POST'])
-def subscribe():
-    data = request.json
-    plan = PLANS[data['plan']]
-    expiry = datetime.now() + timedelta(days=plan['days'])
-    seller_data = {"business": data['business'], "phone": data['phone'], "location": data['location'], "plan": data['plan'], "plan_label": plan['label'], "price_paid": plan['price'], "expiry": expiry.strftime('%Y-%m-%d'), "started": datetime.now().strftime('%Y-%m-%d')}
-    global sellers
-    sellers = [s for s in sellers if s['phone'] != data['phone']]
-    sellers.append(seller_data)
-    return jsonify({"success": True, "message": f"Subscribed! Expires {expiry.strftime('%Y-%m-%d')}"})
+def sub():
+    data=request.json; sellers=load_db('sellers.json', [])
+    data['id']=int(time.time()); data['referral_code']=str(uuid.uuid4())[:6].upper()
+    sellers.append(data); save_db('sellers.json', sellers)
+    return jsonify({'message':'Subscribed! Welcome to SANNLAS PRO'})
 
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
-    data = request.json
-    data['order_id'] = len(orders) + 1
-    data['date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
-    orders.append(data)
-    return jsonify({"success": True, "message": f"Order Received! Deliver to {data['buyer']['district']}"})
+    data=request.json; orders=load_db('orders.json', [])
+    data['id']=int(time.time()); data['status']='Packed'
+    orders.append(data); save_db('orders.json', orders)
+    products=load_db('products.json', [])
+    for item in data['cart']:
+        for p in products:
+            if p['id']==item['id']: p['stock']=max(0,p.get('stock',10)-1)
+    save_db('products.json', products)
+    return jsonify({'message':'Order placed! ID: '+str(data['id'])})
 
-@app.route('/api/admin/data')
-def admin_data():
-    total_revenue = sum([s['price_paid'] for s in sellers])
-    return jsonify({"sellers": sellers, "orders": orders, "products": products, "total_revenue": total_revenue, "total_sellers": len(sellers), "total_orders": len(orders)})
+# --- JOBS DASHBOARD ---
+@app.route('/api/jobs', methods=['GET','POST'])
+def jobs_api():
+    if request.method=='POST':
+        data=request.json; data['id']=int(time.time()*1000); data['time']=time.time()
+        all_jobs=load_db('jobs.json', []); all_jobs.append(data); save_db('jobs.json', all_jobs)
+        return jsonify({'success':True,'message':'Job posted! People will apply now.'})
+    else:
+        all_jobs=load_db('jobs.json', [])
+        q=request.args.get('q','').lower(); cat=request.args.get('category','')
+        if q: all_jobs=[j for j in all_jobs if q in j.get('title','').lower() or q in j.get('description','').lower()]
+        if cat: all_jobs=[j for j in all_jobs if j.get('category')==cat]
+        return jsonify(all_jobs[::-1])
 
-@app.route('/static/uploads/<filename>')
-def uploaded_file(filename): return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+@app.route('/api/jobs/<int:jid>/apply', methods=['POST'])
+def apply_job(jid):
+    data=request.json; apps=load_db('applications.json', [])
+    data['job_id']=jid; data['id']=int(time.time()); apps.append(data); save_db('applications.json', apps)
+    return jsonify({'success':True,'message':'Application sent!'})
 
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "ThE,RISE")
+@app.route('/api/contact', methods=['POST'])
+def contact_owner():
+    data=request.json; contacts=load_db('contacts.json', [])
+    contacts.append({**data, 'time':time.time(), 'id':int(time.time()), 'owner_email':OWNER_EMAIL})
+    save_db('contacts.json', contacts)
+    return jsonify({'success':True,'message':f'Message sent to {OWNER_EMAIL}!'})
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or auth.password != ADMIN_PASSWORD:
-            return Response('Admin Login Required', 401, {'WWW-Authenticate': 'Basic realm="Admin"'})
-        return f(*args, **kwargs)
-    return decorated
-
-@app.route('/')
-def serve_frontend(): return send_from_directory('templates', 'index.html')
-
-@app.route('/admin')
-def serve_admin(): return send_from_directory('templates', 'admin.html')
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+if __name__=='__main__': app.run(debug=True)
