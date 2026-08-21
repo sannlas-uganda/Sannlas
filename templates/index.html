@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,9 +15,11 @@ body{font-family:Arial;min-height:100vh;overflow-x:hidden}
 .bubble:nth-child(2){left:25%;width:40px;height:40px;animation-delay:2s}
 .bubble:nth-child(3){left:50%;width:100px;height:100px;animation-delay:1s}
 .bubble:nth-child(4){left:75%;width:60px;height:60px;animation-delay:3s}
-.navbar{background:rgba(0,0,0,0.85);color:white;padding:15px 20px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10}
+.navbar{background:rgba(0,0,0,0.85);color:white;padding:15px 20px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap}
 .btn{background:#8B0000;color:white;border:none;padding:10px 16px;border-radius:20px;cursor:pointer;font-weight:bold;margin:0 3px}
 .btn:hover{background:#ff4500}
+.search-bar{background:rgba(0,0,0,0.75);padding:15px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:sticky;top:60px;z-index:9}
+.search-bar input,.search-bar select{padding:12px;border-radius:25px;border:none;width:100%;max-width:280px;font-size:15px}
 .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;padding:20px}
 .card{background:rgba(255,255,255,0.95);border-radius:15px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.2);transition:0.3s}
 .card:hover{transform:translateY(-5px)}
@@ -31,13 +32,22 @@ input,select,textarea{width:100%;padding:10px;margin:6px 0 12px 0;border:1px sol
 .momo{background:linear-gradient(135deg,#FFCC02,#FFA500);border:2px dashed #8B0000;padding:15px;border-radius:10px;text-align:center;margin:10px 0}
 .plan{border:2px solid #ddd;padding:12px;border-radius:10px;margin:8px 0;cursor:pointer}
 .plan.active{background:#8B0000;color:white}
+.cat-tag{background:#8B0000;color:white;padding:3px 8px;border-radius:10px;font-size:11px;display:inline-block;margin:2px}
 </style>
 </head>
 <body>
 <div class="animated-bg"></div>
 <div class="bubbles"><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
 <div class="navbar"><h2>🛍️ SANNLAS</h2><div><button class="btn" onclick="openSell()">+ Sell</button><button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button><a href="/admin" class="btn" style="text-decoration:none">Admin</a></div></div>
-<div class="hero"><h1>Welcome to SANNLAS UGANDA </h1><p>Shop • Sell • Deliver - MoMo 0795712326</p></div>
+
+<div class="search-bar">
+<input type="text" id="searchInput" placeholder="🔍 Search anything... e.g. Fish, iPhone, Cement" onkeyup="doFilter()">
+<select id="mainFilter" onchange="onMainChange()"><option value="">All Main Categories</option></select>
+<select id="subFilter" onchange="doFilter()"><option value="">All Subcategories</option></select>
+<button class="btn" onclick="clearFilter()">Clear</button>
+</div>
+
+<div class="hero"><h1>Welcome to SANNLAS UGANDA </h1><p>Shop • Sell • Deliver - MoMo 0795712326 • No More Scrolling, Just Search!</p></div>
 <div class="products" id="products"></div>
 
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
@@ -45,21 +55,87 @@ input,select,textarea{width:100%;padding:10px;margin:6px 0 12px 0;border:1px sol
 <div class="popup" id="sellPop"><div class="popup-content" id="sellContent"></div></div>
 
 <script>
-let products=[], cart=[], selPlan='free', sellerInfo=null;
+let products=[], cart=[], selPlan='free', sellerInfo=null, categories={};
 const MOMO='0795712326';
 function getPrice(){if(selPlan=='30days')return 5000;if(selPlan=='6month')return 30000;if(selPlan=='1year')return 60000;return 0;}
+
+// Load categories from server
+fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d; initFilters();});
+
+function initFilters(){
+ let main=document.getElementById('mainFilter');
+ Object.keys(categories).forEach(c=>{
+  let o=document.createElement('option');o.value=c;o.innerText=c;main.appendChild(o);
+ });
+}
+function onMainChange(){
+ let mainVal=document.getElementById('mainFilter').value;
+ let sub=document.getElementById('subFilter');
+ sub.innerHTML='<option value="">All Subcategories</option>';
+ if(mainVal && categories[mainVal]){
+   categories[mainVal].forEach(s=>{
+     let o=document.createElement('option');o.value=s;o.innerText=s;sub.appendChild(o);
+   });
+ }
+ doFilter();
+}
+function doFilter(){
+ let q=document.getElementById('searchInput').value;
+ let main=document.getElementById('mainFilter').value;
+ let sub=document.getElementById('subFilter').value;
+ let url='/api/products?';
+ if(main) url+=`main=${encodeURIComponent(main)}&`;
+ if(sub) url+=`sub=${encodeURIComponent(sub)}&`;
+ if(q) url+=`q=${encodeURIComponent(q)}&`;
+ fetch(url).then(r=>r.json()).then(d=>{products=d; render();});
+}
+function clearFilter(){
+ document.getElementById('searchInput').value='';
+ document.getElementById('mainFilter').value='';
+ document.getElementById('subFilter').innerHTML='<option value="">All Subcategories</option>';
+ doFilter();
+}
 fetch('/api/products').then(r=>r.json()).then(d=>{products=d; render();});
-function render(){document.getElementById('products').innerHTML=products.map(p=>`<div class="card"><img src="${p.image}"><div class="card-body"><h3>${p.name}</h3><p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p><p style="font-size:12px;color:#666">${p.business} • ${p.location}</p><button class="btn" onclick="viewProd(${p.id})">View</button><button class="btn" onclick="addCart(${p.id})">Add to Cart</button></div></div>`).join('');}
-function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${p.price.toLocaleString()}</b></p><p>${p.description}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button class="btn" onclick="closePop('viewPop');openCart()">Order Now</button><button style="float:right;background:gray;color:white;border:none;padding:8px 12px;border-radius:10px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
+
+function render(){
+ if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products found. Try searching different category.</p>';return;}
+ document.getElementById('products').innerHTML=products.map(p=>`<div class="card"><img src="${p.image}"><div class="card-body"><div><span class="cat-tag">${p.main_category||'General'}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category||''}</span></div><h3>${p.name}</h3><p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p><p style="font-size:12px;color:#666">${p.business} • ${p.location}</p><button class="btn" onclick="viewProd(${p.id})">View</button><button class="btn" onclick="addCart(${p.id})">Add to Cart</button></div></div>`).join('');
+}
+function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><p><span class="cat-tag">${p.main_category}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category}</span></p><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${p.price.toLocaleString()}</b></p><p>${p.description}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button class="btn" onclick="closePop('viewPop');openCart()">Order Now</button><button style="float:right;background:gray;color:white;border:none;padding:8px 12px;border-radius:10px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
 function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;alert(p.name+' added 🛒');}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
 function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={region:fd.get('region'),district:fd.get('district'),constituency:fd.get('constituency'),subcounty:fd.get('subcounty'),names:fd.get('names'),phone1:fd.get('phone1'),phone2:fd.get('phone2')};let total=cart.reduce((s,i)=>s+i.price,0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert(' '+d.message);cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
+
 function openSell(){selPlan='free';showSellStep1();}
 function showSellStep1(){let qr=`MTN MoMo ${MOMO} Amount ${getPrice()} Ref SANNLAS`;let qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qr)}`;document.getElementById('sellContent').innerHTML=`<h3 style="color:#8B0000"> Seller Subscription</h3><form onsubmit="doSubscribe(event)"><input name="business" placeholder="Business Name" required><input name="location" placeholder="Location" required><input name="phone" placeholder="Phone" required><div class="plan ${selPlan=='free'?'active':''}" onclick="selPlan='free';showSellStep1()"><b>1. 14 Days FREE</b></div><div class="plan ${selPlan=='30days'?'active':''}" onclick="selPlan='30days';showSellStep1()"><b>2. 30 Days - 5,000</b></div><div class="plan ${selPlan=='6month'?'active':''}" onclick="selPlan='6month';showSellStep1()"><b>3. 6 Months - 30,000</b></div><div class="plan ${selPlan=='1year'?'active':''}" onclick="selPlan='1year';showSellStep1()"><b>4. 1 Year - 60,000 BEST</b></div>${selPlan!='free'?`<div class="momo"><h4>Pay via MoMo</h4><img src="${qrUrl}" style="border:2px solid #8B0000;border-radius:8px"><p><b>Send to: ${MOMO}</b><br>Amount: UGX ${getPrice()}</p><a href="tel:*165*1*${MOMO}*${getPrice()}%23" style="display:block;background:#8B0000;color:white;padding:10px;border-radius:8px;text-decoration:none"> CLICK TO PAY</a></div>`:''}<button class="btn" style="width:100%">${selPlan=='free'?'Start Free Trial ':'I Have Paid ✅'}</button><button type="button" onclick="closePop('sellPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Cancel</button></form>`;document.getElementById('sellPop').style.display='flex';}
 function doSubscribe(e){e.preventDefault();let fd=new FormData(e.target);let b=fd.get('business'), l=fd.get('location'), ph=fd.get('phone');sellerInfo={business:b,location:l,phone:ph};if(selPlan!='free'){if(!confirm('Send UGX '+getPrice()+' to '+MOMO+' Ref: '+b+'. OK after payment?'))return;}fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,phone:ph,location:l,plan:selPlan})}).then(r=>r.json()).then(d=>{alert(d.message);showSellStep2();});}
-function showSellStep2(){document.getElementById('sellContent').innerHTML=`<h3> Upload Product</h3><p style="color:green">✓ Subscribed as ${sellerInfo.business}</p><form onsubmit="doSell(event)"><input name="name" placeholder="Product Name" required><input name="image" type="file" accept="image/*" required><input name="price" type="number" placeholder="Price UGX" required><textarea name="desc" placeholder="Description"></textarea><button class="btn" style="width:100%"> List Product</button></form>`;}
-function doSell(e){e.preventDefault();let fd=new FormData();fd.append('name',e.target.name.value);fd.append('price',e.target.price.value);fd.append('image',e.target.image.files[0]);fd.append('desc',e.target.desc.value);fd.append('business',sellerInfo.business);fd.append('location',sellerInfo.location);fd.append('phone',sellerInfo.phone);fetch('/api/sell',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.success){alert('✅ Listed!');closePop('sellPop');location.reload();}else alert(d.message);});}
+
+function showSellStep2(){
+ let mainOpts=Object.keys(categories).map(c=>`<option value="${c}">${c}</option>`).join('');
+ document.getElementById('sellContent').innerHTML=`<h3> Upload Product</h3><p style="color:green">✓ Subscribed as ${sellerInfo.business}</p><form onsubmit="doSell(event)"><input name="name" placeholder="Product Name" required><select id="sellMain" name="main_category" required onchange="sellSubLoad()"><option value="">Select Main Category</option>${mainOpts}</select><select id="sellSub" name="sub_category" required><option value="">Select Subcategory First Choose Main</option></select><input name="image" type="file" accept="image/*"><input name="image_url" placeholder="Or paste image link"><input name="price" type="number" placeholder="Price UGX" required><textarea name="desc" placeholder="Description"></textarea><button class="btn" style="width:100%"> List Product</button></form>`;
+}
+function sellSubLoad(){
+ let m=document.getElementById('sellMain').value;
+ let s=document.getElementById('sellSub');
+ s.innerHTML='';
+ if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.innerText=sub;s.appendChild(o);});}
+}
+function doSell(e){
+ e.preventDefault();
+ let fd=new FormData();
+ fd.append('name',e.target.name.value);
+ fd.append('price',e.target.price.value);
+ if(e.target.image.files[0]) fd.append('image',e.target.image.files[0]);
+ fd.append('image_url',e.target.image_url.value);
+ fd.append('desc',e.target.desc.value);
+ fd.append('business',sellerInfo.business);
+ fd.append('location',sellerInfo.location);
+ fd.append('phone',sellerInfo.phone);
+ fd.append('main_category',e.target.main_category.value);
+ fd.append('sub_category',e.target.sub_category.value);
+ fetch('/api/sell',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.success){alert('✅ Listed in '+e.target.main_category.value+' → '+e.target.sub_category.value);closePop('sellPop');doFilter();}else alert(d.message);});
+}
 </script>
 </body>
 </html>
