@@ -1,201 +1,154 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>SANNLAS UGANDA - 1M+ READY</title>
+<title>SANNLAS UGANDA - 1M FRONT FACE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial;min-height:100vh;overflow-x:hidden}
 .animated-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;background:linear-gradient(120deg,#8B0000,#ff6a00,#232f3e,#8B0000);background-size:400% 400%;animation:grad 12s infinite}
 @keyframes grad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.bubbles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}
-.bubble{position:absolute;bottom:-100px;background:rgba(255,255,255,0.2);border-radius:50%;animation:rise 12s infinite}
-@keyframes rise{0%{transform:translateY(0);opacity:0}10%{opacity:0.6}100%{transform:translateY(-110vh) translateX(100px);opacity:0}}
-.navbar{background:rgba(0,0,0,0.85);color:white;padding:12px 15px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px}
-.btn{background:#8B0000;color:white;border:none;padding:9px 14px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-size:13px}
-.btn:hover{background:#ff4500}
-.btn-blue{background:#0d47a1}
+.navbar{background:rgba(0,0,0,0.85);color:white;padding:12px 15px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.btn{background:#8B0000;color:white;border:none;padding:10px 16px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px}
 .btn-green{background:#2e7d32}
+.btn-blue{background:#0d47a1}
 .search-bar{background:rgba(0,0,0,0.75);padding:12px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:sticky;top:56px;z-index:9}
-.search-bar input,.search-bar select{padding:10px;border-radius:25px;border:none;width:100%;max-width:250px;font-size:14px}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;padding:15px}
-.card{background:rgba(255,255,255,0.97);border-radius:15px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.2);transition:0.3s}
-.card:hover{transform:translateY(-4px)}
-.card img{width:100%;height:180px;object-fit:cover}
-.card-body{padding:10px}
-.hero{text-align:center;padding:20px;color:white;text-shadow:0 2px 10px #000}
+.search-bar input,.search-bar select{padding:10px;border-radius:25px;border:none;width:100%;max-width:250px}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:15px}
+.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+.card img{width:100%;height:140px;object-fit:cover}
+.card-body{padding:8px}
+.hero{text-align:center;padding:15px;color:white;text-shadow:0 2px 10px #000}
 .popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100}
-.popup-content{background:white;padding:18px;border-radius:15px;max-width:700px;width:96%;max-height:96vh;height:96vh;overflow-y:auto}
-input,select,textarea{width:100%;padding:10px;margin:5px 0 10px 0;border:1px solid #ccc;border-radius:8px}
-.momo{background:linear-gradient(135deg,#FFCC02,#FFA500);border:2px dashed #8B0000;padding:12px;border-radius:10px;text-align:center;margin:8px 0}
-.plan{border:2px solid #ddd;padding:10px;border-radius:10px;margin:6px 0;cursor:pointer}
-.plan.active{background:#8B0000;color:white}
-.cat-tag{background:#8B0000;color:white;padding:3px 7px;border-radius:10px;font-size:10px;display:inline-block;margin:2px}
-.auto-suggest{background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:8px;margin:6px 0;display:none;font-size:13px}
-.suggest-btn{background:#2e7d32;color:white;border:none;padding:6px 10px;border-radius:20px;margin:4px 2px;cursor:pointer;font-weight:bold;font-size:12px}
-.photo-box{border:3px solid #8B0000;background:#fff3f3;padding:15px;border-radius:12px;margin:10px 0;max-height:78vh;overflow-y:auto}
-#bulkPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px;max-height:60vh;overflow-y:auto;padding:8px;background:white;border:2px dashed #aaa;border-radius:10px}
-.footer{background:rgba(0,0,0,0.9);color:white;padding:20px;text-align:center;margin-top:20px}
-.job-card{background:white;border-left:5px solid #0d47a1;padding:12px;margin:8px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-.owner-box{background:#FFCC02!important;color:#000!important;border:2px solid #000!important;padding:9px;border-radius:10px;margin:8px 0;font-weight:bold;font-size:13px;line-height:1.5}
-.owner-box b{color:#8B0000}
-.district-hint{background:#e3f2fd;border-left:4px solid #0d47a1;padding:8px;border-radius:6px;font-size:12px;margin:5px 0}
-#uploadStatus{background:#000;color:#0f0;padding:10px;border-radius:8px;margin:8px 0;font-weight:bold;text-align:center;position:sticky;top:0;z-index:5}
+.popup-content{background:white;padding:15px;border-radius:12px;max-width:600px;width:95%;max-height:90vh;overflow:auto}
+input,select,textarea{width:100%;padding:10px;margin:4px 0;border:1px solid #ccc;border-radius:8px}
+/* FRONT FACE BIG SPACE */
+.front-container{background:white;margin:15px auto;padding:15px;border-radius:15px;max-width:1300px;box-shadow:0 8px 25px rgba(0,0,0,0.4)}
+.front-photo-box{border:4px solid #8B0000;background:#fff3f3;padding:15px;border-radius:15px;min-height:500px}
+#frontPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:75vh;min-height:400px;overflow-y:auto;padding:12px;background:white;border:3px dashed #888;border-radius:12px;margin-top:10px}
+.front-item{background:white;border:2px solid #ddd;border-radius:8px;padding:6px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+.front-item img{width:100%;height:100px;object-fit:cover;border-radius:6px}
+.owner-box{background:#FFCC02;color:#000;padding:6px;border-radius:8px;font-weight:bold;font-size:12px;margin:5px 0}
+.cat-tag{background:#8B0000;color:white;padding:2px 6px;border-radius:8px;font-size:10px}
 </style>
 </head>
 <body>
 <div class="animated-bg"></div>
-<div class="bubbles"><div class="bubble" style="left:10%;width:80px;height:80px;animation-delay:0s"></div><div class="bubble" style="left:25%;width:40px;height:40px;animation-delay:2s"></div><div class="bubble" style="left:50%;width:100px;height:100px;animation-delay:1s"></div><div class="bubble" style="left:75%;width:60px;height:60px;animation-delay:3s"></div></div>
-
 <div class="navbar">
-<h2>🛍️ SANNLAS - 1M+ READY</h2>
-<div>
-<button class="btn" onclick="openSell()">+ Sell (1M+)</button>
-<button class="btn btn-blue" onclick="openJobs()">💼 Jobs</button>
-<button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button>
-<button class="btn btn-green" onclick="openContact()">📧 Contact</button>
-<a href="/admin" class="btn" style="text-decoration:none">Admin</a>
+<h2>🛍️ SANNLAS - FRONT FACE 1M+</h2>
+<div><button class="btn" onclick="document.getElementById('frontSection').scrollIntoView({behavior:'smooth'})">+ Sell Front</button><button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button><a href="/admin" class="btn" style="text-decoration:none">Admin</a></div>
 </div>
-</div>
-
 <div class="search-bar">
 <input type="text" id="searchInput" placeholder="🔍 Search..." onkeyup="doFilter()">
 <select id="mainFilter" onchange="onMainChange()"><option value="">All Categories</option></select>
 <select id="subFilter" onchange="doFilter()"><option value="">All Sub</option></select>
-<input type="number" id="minP" placeholder="Min UGX" style="max-width:110px" onchange="doFilter()">
-<input type="number" id="maxP" placeholder="Max UGX" style="max-width:110px" onchange="doFilter()">
 <button class="btn" onclick="clearFilter()">Clear</button>
 </div>
 
-<div class="hero"><h1>SANNLAS UGANDA - 1M+ PRODUCTS SYSTEM</h1><p>Bulk Upload • MoMo 0795712326 • natelieabigail@gmail.com</p></div>
-<div class="products" id="products"></div>
+<div class="hero"><h1>SANNLAS UGANDA - ALL PRODUCTS ON FRONT</h1><p>1M+ System - Big Space - All Photos Visible Here</p></div>
 
-<div class="footer"><p>© 2026 SANNLAS - 1M+ READY - All Uganda Districts</p></div>
+<!-- FRONT FACE SELL - BIG SPACE FOR MANY PHOTOS -->
+<div id="frontSection" class="front-container">
+<h2 style="color:#8B0000;text-align:center">📦 UPLOAD ON FRONT FACE - BIG SPACE FOR MANY PHOTOS</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0">
+<input id="frontBiz" placeholder="Business Name e.g. Bright Future Pharma">
+<select id="frontLocation"><option value="">Select District</option></select>
+<input id="frontPhone" placeholder="Phone e.g. 256...">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<select id="frontMain" onchange="frontSubLoad()"><option value="">Main Category</option></select>
+<select id="frontSub"><option value="">Sub Category</option></select>
+</div>
+<div style="background:#FFCC02;padding:10px;border-radius:10px;display:flex;gap:8px;margin:10px 0;align-items:end">
+<div style="flex:1"><label style="font-weight:bold;font-size:12px">Default Price ALL</label><input type="number" id="frontPrice" value="10000" style="margin:0"></div>
+<div style="flex:1"><label style="font-weight:bold;font-size:12px">Default Stock</label><input type="number" id="frontStock" value="50" style="margin:0"></div>
+<div><button class="btn btn-green" onclick="applyFrontPrice()">Apply to All 1M+</button></div>
+</div>
+<textarea id="frontDesc" placeholder="Description for all products (optional)" style="height:60px"></textarea>
+
+<div class="front-photo-box">
+<label style="font-weight:bold;color:#8B0000;font-size:16px">📸 SELECT MANY PHOTOS - EACH = 1 PRODUCT ON FRONT FACE</label><br>
+<input type="file" id="frontInput" multiple accept="image/*" onchange="frontPreview(this)" style="padding:15px;background:white;border:3px solid #8B0000;border-radius:10px;margin:10px 0;font-size:16px">
+<div style="background:#000;color:#0f0;padding:8px;border-radius:8px;text-align:center">Selected: <b><span id="frontCount">0</span></b> products | Space: 75vh scroll | Handles 10,000+ photos | All will show on front after upload</div>
+<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:#888;padding:100px 10px">No photos selected - Choose files above - Big space ready for 1000+ photos<br>📸 Your photos will appear here in grid</p></div>
+</div>
+<div id="frontStatus" style="background:#000;color:#0f0;padding:12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:bold">Ready - Select photos above</div>
+<button onclick="frontUploadAll()" class="btn" style="width:100%;padding:18px;background:#2e7d32;font-size:20px">🚀 UPLOAD ALL <span id="frontCount2">0</span> PRODUCTS TO FRONT PAGE</button>
+</div>
+
+<!-- PRODUCTS ON FRONT FACE - ALWAYS VISIBLE -->
+<h2 style="color:white;text-align:center;padding:15px;text-shadow:0 2px 5px #000">🛍️ ALL PRODUCTS - FRONT FACE - <span id="prodCount">0</span> Items</h2>
+<div class="products" id="products"></div>
+<div id="noProd" style="color:white;text-align:center;padding:30px;display:none">No products yet - Upload above to show on front face</div>
 
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
-<div class="popup" id="cartPop"><div class="popup-content">
-<h3>🚚 Delivery - Automated</h3>
-<form onsubmit="doCheckout(event)">
-<select id="regionSel" name="region" required onchange="loadDistricts()"><option value="">Select Region</option><option>Central</option><option>Eastern</option><option>Northern</option><option>Western</option></select>
-<select id="districtSel" name="district" required><option value="">First Select Region</option></select>
-<div class="district-hint" id="districtHint">Select Region → District auto loads</div>
-<input name="subcounty" placeholder="Subcounty/Town" required>
-<input name="names" placeholder="Full Names" required>
-<input name="phone1" placeholder="Phone 1" required>
-<button class="btn" style="width:100%">✅ Confirm Order</button>
-<button type="button" onclick="closePop('cartPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Cancel</button>
-</form></div></div>
-<div class="popup" id="sellPop"><div class="popup-content" id="sellContent"></div></div>
-<div class="popup" id="jobsPop"><div class="popup-content" style="max-width:650px"><h2>💼 JOBS</h2><div style="display:flex;gap:5px"><button class="btn btn-blue" onclick="showJobTab('find')">Find</button><button class="btn" onclick="showJobTab('post')">+ Post</button><button class="btn" style="background:gray" onclick="closePop('jobsPop')">Close</button></div><div id="jobFindTab"><input type="text" id="jobSearch" placeholder="Search jobs..." onkeyup="loadJobs()"><select id="jobCatFilter" onchange="loadJobs()"><option value="">All Categories</option><option>Driving</option><option>Teaching</option><option>Construction</option><option>Salon</option><option>IT</option><option>Other</option></select><div id="jobsList">Loading...</div></div><div id="jobPostTab" style="display:none"><form onsubmit="postJob(event)"><input name="title" placeholder="Job Title" required><select name="category" required><option>Driving</option><option>Teaching</option><option>Construction</option><option>Salon</option><option>IT</option><option>Other</option></select><input name="company" placeholder="Company" required><select name="location" id="jobLocation" required></select><input name="phone" placeholder="Phone" required><textarea name="description" placeholder="Description" required></textarea><button class="btn btn-blue" style="width:100%">Post Job</button></form></div></div></div>
-<div class="popup" id="contactPop"><div class="popup-content"><h3>Contact Owner</h3><form onsubmit="sendContact(event)"><input name="name" placeholder="Name" required><input name="email" placeholder="Email" required><textarea name="message" placeholder="Message" required></textarea><button class="btn btn-green" style="width:100%">Send</button><button type="button" onclick="closePop('contactPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Close</button></form></div></div>
+<div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Phone" required><input name="district" placeholder="District" required><button class="btn" style="width:100%">Confirm</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
 
 <script>
-let products=[], cart=[], selPlan='free', sellerInfo=null, categories={}, bulkFiles=[];
-const MOMO='0795712326'; const OWNER_EMAIL='natelieabigail@gmail.com';
-function getPrice(){if(selPlan=='30days')return 5000;if(selPlan=='6month')return 30000;if(selPlan=='1year')return 60000;return 0;}
-const UGANDA_DISTRICTS={"Central":["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga"],"Eastern":["Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Katakwi","Kaberamaido","Sironko","Kapchorwa","Bukedea","Butaleja","Manafwa","Budaka","Namutumba","Bududa","Bukwo","Bulambuli","Buyende","Kaliro","Kamuli","Kibuku","Kween","Luuka","Mayuge","Namayingo","Ngora","Serere","Amuria"],"Northern":["Gulu","Lira","Arua","Kitgum","Apac","Adjumani","Moyo","Nebbi","Yumbe","Pader","Koboko","Amolatar","Amuru","Dokolo","Kaabong","Kotido","Abim","Oyam","Maracha","Agago","Alebtong","Amudat","Kole","Lamwo","Napak","Nwoya","Otuke","Zombo","Pakwach"],"Western":["Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi","Bushenyi","Kabarole","Kyenjojo","Rukungiri","Kanungu","Ntungamo","Isingiro","Kiruhura","Kibale","Kibaale","Ibanda","Kisoro","Bundibugyo","Kamwenge","Kyegegwa","Sheema","Buliisa","Buhweju","Mitooma","Rubirizi","Ntoroko","Kagadi","Kakumiro","Rubanda","Rukiga","Bunyangabu","Kikuube","Kazo","Kitagwenda","Rwampara"]};
-const ALL_DISTRICTS=Object.values(UGANDA_DISTRICTS).flat().sort();
-function loadDistricts(){let region=document.getElementById('regionSel').value;let distSel=document.getElementById('districtSel');let hint=document.getElementById('districtHint');distSel.innerHTML='<option value="">Select District</option>';if(UGANDA_DISTRICTS[region]){UGANDA_DISTRICTS[region].forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;distSel.appendChild(o);});hint.innerText=`${UGANDA_DISTRICTS[region].length} districts loaded ✅`;} }
-function populateAllDistrictSelects(){let jobSel=document.getElementById('jobLocation');if(jobSel){jobSel.innerHTML='<option value="">District</option>';ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;jobSel.appendChild(o);});}}
-const KEYWORD_MAP={"fish":{"main":"Agriculture & Farming","sub":"Fish Farming"},"phone|mobile":{"main":"Electronics & Technology","sub":"Mobile Phones"},"laptop|computer":{"main":"Electronics & Technology","sub":"Laptops"}};
-function guessCategory(t){t=t.toLowerCase();for(let k in KEYWORD_MAP){if(new RegExp(k,'i').test(t)) return KEYWORD_MAP[k];}return null;}
-fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});});
+let products=[], cart=[], categories={}, frontFiles=[];
+const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
+fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});initFrontCat();});
 function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">All Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
 function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{products=d;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">All Sub</option>';doFilter();}
 fetch('/api/products').then(r=>r.json()).then(d=>{products=d;render();});
-function render(){if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products</p>';return;}document.getElementById('products').innerHTML=products.map(p=>`<div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><span class="cat-tag">${p.main_category||'General'}</span><h3>${p.name}</h3><p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p><div class="owner-box">🏪 ${p.business||'Seller'}<br>📍 ${p.location||'Uganda'}</div><button class="btn" onclick="viewProd(${p.id})">View</button><button class="btn" onclick="addCart(${p.id})">Cart</button></div></div>`).join('');}
-function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${p.price.toLocaleString()}</b></p><div class="owner-box">Business: ${p.business}<br>Location: ${p.location}</div><p>${p.description}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button style="float:right;background:gray;color:white;border:none;padding:8px;border-radius:8px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
-function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;}
+function render(){
+ document.getElementById('prodCount').innerText=products.length;
+ if(products.length==0){document.getElementById('products').innerHTML='';document.getElementById('noProd').style.display='block';return;}
+ document.getElementById('noProd').style.display='none';
+ document.getElementById('products').innerHTML=products.map(p=>`
+  <div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><span class="cat-tag">${p.main_category||''}</span><h4 style="font-size:13px">${p.name}</h4><p style="color:#8B0000;font-weight:bold">UGX ${Number(p.price).toLocaleString()}</p><div class="owner-box">🏪 ${p.business||'Seller'}<br>📍 ${p.location||'Uganda'}</div><button class="btn" style="padding:5px 8px;font-size:11px" onclick="viewProd(${p.id})">View</button><button class="btn" style="padding:5px 8px;font-size:11px" onclick="addCart(${p.id})">Cart</button></div></div>`).join('');
+}
+function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p><div class="owner-box">${p.business} - ${p.location}</div><p>${p.description||''}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button style="float:right;background:gray;color:white;border:none;padding:6px;border-radius:8px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
+function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;alert('Added to cart');}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
-function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={region:fd.get('region'),district:fd.get('district'),subcounty:fd.get('subcounty'),names:fd.get('names'),phone1:fd.get('phone1')};let total=cart.reduce((s,i)=>s+i.price,0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('✅ '+d.message);cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
-function openSell(){selPlan='free';showSellStep1();}
-function showSellStep1(){let districtOptions=ALL_DISTRICTS.map(d=>`<option value="${d}">${d}</option>`).join('');document.getElementById('sellContent').innerHTML=`<h3>Seller - 1M+ System</h3><form onsubmit="doSubscribe(event)"><input name="business" placeholder="Business Name" required><select name="location" required><option value="">Your District</option>${districtOptions}</select><input name="phone" placeholder="Phone" required><div class="plan active" onclick="selPlan='free';showSellStep1()"><b>14 Days FREE</b></div><div class="plan" onclick="selPlan='30days';showSellStep1()"><b>30 Days - 5k</b></div><div class="plan" onclick="selPlan='6month';showSellStep1()"><b>6 Months - 30k</b></div><div class="plan" onclick="selPlan='1year';showSellStep1()"><b>1 Year - 60k</b></div><button class="btn" style="width:100%">Continue</button></form>`;document.getElementById('sellPop').style.display='flex';}
-function doSubscribe(e){e.preventDefault();let fd=new FormData(e.target);sellerInfo={business:fd.get('business'),location:fd.get('location'),phone:fd.get('phone')};fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sellerInfo)}).then(r=>r.json()).then(d=>{showSellStep2();});}
-function showSellStep2(){
- let mainOpts=Object.keys(categories).map(c=>`<option value="${c}">${c}</option>`).join('');
- document.getElementById('sellContent').innerHTML=`
- <div id="uploadStatus">📦 Ready for 1M+ Upload - Select Photos Below</div>
- <h3>📦 1M+ BULK UPLOAD - BIG SPACE</h3>
- <p style="color:green">✓ ${sellerInfo.business} - ${sellerInfo.location}</p>
- <form onsubmit="doBulkSell(event)">
- <select id="sellMain" required onchange="sellSubLoad()"><option value="">Main Category</option>${mainOpts}</select>
- <select id="sellSub" required><option value="">Subcategory</option></select>
- <div style="background:#FFCC02;padding:10px;border-radius:8px;display:flex;gap:6px;flex-wrap:wrap">
-  <div style="flex:1"><label>Default Price for ALL</label><input type="number" id="defaultPrice" placeholder="e.g. 20000" value="10000" oninput="applyDefaultPrice()"></div>
-  <div style="flex:1"><label>Default Stock</label><input type="number" id="defaultStock" value="50"></div>
-  <button type="button" class="btn btn-green" onclick="applyDefaultPrice()">Apply to All 1M+</button>
- </div>
- <div class="photo-box">
-  <label style="font-weight:bold;color:#8B0000">📸 SELECT MANY PHOTOS - 1M+ SUPPORTED - EACH = 1 PRODUCT</label>
-  <input id="bulkInput" type="file" accept="image/*" multiple required onchange="previewBulk(this)">
-  <div style="margin:8px 0">Selected: <b><span id="countSel">0</span> products</b> - Space: 80vh scroll - Handles 1M+</div>
-  <div id="bulkPreview"></div>
- </div>
- <textarea id="bulkDesc" placeholder="Description for all (optional)"></textarea>
- <button class="btn" style="width:100%;background:#2e7d32;font-size:16px;padding:15px">🚀 UPLOAD ALL <span id="countBtn">0</span> PRODUCTS - BATCH SYSTEM</button>
- </form>`;
-}
-function sellSubLoad(){let m=document.getElementById('sellMain').value;let s=document.getElementById('sellSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;s.appendChild(o);});}}
-function applyDefaultPrice(){let dp=document.getElementById('defaultPrice').value;let ds=document.getElementById('defaultStock').value;bulkFiles.forEach((_,i)=>{let pn=document.getElementById(`bprice_${i}`);let st=document.getElementById(`bstock_${i}`);if(pn)pn.value=dp;if(st)st.value=ds;});}
+function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order sent!');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
 
-function previewBulk(input){
- bulkFiles=Array.from(input.files);
- document.getElementById('countSel').innerText=bulkFiles.length;
- document.getElementById('countBtn').innerText=bulkFiles.length;
- let box=document.getElementById('bulkPreview');
- box.innerHTML='';
- // 1M+ OPTIMIZED: render only 50 preview, rest virtual
- let previewLimit = bulkFiles.length>100? 50 : bulkFiles.length;
- for(let i=0;i<previewLimit;i++){
-  let f=bulkFiles[i]; let url=URL.createObjectURL(f);
-  box.innerHTML+=`<div style="background:white;border:1px solid #ccc;border-radius:6px;padding:5px"><img src="${url}" style="width:100%;height:70px;object-fit:cover;border-radius:4px"><input type="text" id="bname_${i}" value="${f.name.split('.')[0].substring(0,20)}" style="padding:6px;font-size:12px" required><input type="number" id="bprice_${i}" value="${document.getElementById('defaultPrice').value||10000}" style="padding:6px;font-size:12px" required><input type="number" id="bstock_${i}" value="${document.getElementById('defaultStock').value||50}" style="padding:6px;font-size:12px"></div>`;
- }
- if(bulkFiles.length>previewLimit){
-  box.innerHTML+=`<div style="grid-column:1/-1;background:#000;color:#0f0;padding:12px;border-radius:8px;text-align:center"><b>⚡ ${bulkFiles.length-previewLimit} more products hidden to prevent crash</b><br>They will auto-upload with file name & default price. You can edit later in Admin.</div>`;
-  // create hidden inputs for rest
-  for(let i=previewLimit;i<bulkFiles.length;i++){
-   let d=document.createElement('div'); d.style.display='none';
-   d.innerHTML=`<input id="bname_${i}" value="${bulkFiles[i].name.split('.')[0].substring(0,30)}"><input id="bprice_${i}" value="${document.getElementById('defaultPrice').value||10000}"><input id="bstock_${i}" value="${document.getElementById('defaultStock').value||50}">`;
-   box.appendChild(d);
-  }
- }
+// FRONT FACE LOGIC - BIG SPACE
+function initFrontCat(){
+ let sel=document.getElementById('frontLocation'); if(sel){ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});}
+ let main=document.getElementById('frontMain'); if(main){main.innerHTML='<option value="">Main Category</option>';Object.keys(categories).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;main.appendChild(o);});}
 }
-
-async function doBulkSell(e){
- e.preventDefault();
- if(bulkFiles.length==0){alert('Select photos');return;}
- let main=document.getElementById('sellMain').value; let sub=document.getElementById('sellSub').value;
- if(!main||!sub){alert('Select category');return;}
- let total=bulkFiles.length; let uploaded=0; let BATCH=50;
- let status=document.getElementById('uploadStatus');
- status.innerHTML=`⏳ Starting upload of ${total} products...`;
+function frontSubLoad(){let m=document.getElementById('frontMain').value;let s=document.getElementById('frontSub');s.innerHTML='<option value="">Sub Category</option>';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;s.appendChild(o);});}}
+function applyFrontPrice(){let p=document.getElementById('frontPrice').value; let st=document.getElementById('frontStock').value; frontFiles.forEach((_,i)=>{let pr=document.getElementById(`fprice_${i}`);let stk=document.getElementById(`fstock_${i}`); if(pr) pr.value=p; if(stk) stk.value=st;});}
+function frontPreview(input){
+ frontFiles=Array.from(input.files);
+ document.getElementById('frontCount').innerText=frontFiles.length;
+ document.getElementById('frontCount2').innerText=frontFiles.length;
+ let box=document.getElementById('frontPreview'); box.innerHTML='';
+ if(frontFiles.length==0){box.innerHTML='<p style="grid-column:1/-1;text-align:center;color:#888;padding:100px">No photos</p>';return;}
+ let limit = frontFiles.length>200? 100 : frontFiles.length;
+ for(let i=0;i<limit;i++){
+  let f=frontFiles[i]; let url=URL.createObjectURL(f);
+  box.innerHTML+=`<div class="front-item"><img src="${url}"><input id="fname_${i}" value="${f.name.split('.')[0].slice(0,20)}" style="padding:5px;font-size:11px;margin:2px 0"><input id="fprice_${i}" type="number" value="${document.getElementById('frontPrice').value}" style="padding:5px;font-size:11px;margin:2px 0"><input id="fstock_${i}" type="number" value="${document.getElementById('frontStock').value}" style="padding:5px;font-size:11px;margin:2px 0"><div style="font-size:9px">${f.name.slice(0,15)}</div></div>`;
+ }
+ if(frontFiles.length>limit){
+  box.innerHTML+=`<div style="grid-column:1/-1;background:#000;color:#0f0;padding:12px;text-align:center;border-radius:8px"><b>${frontFiles.length-limit} MORE PRODUCTS HIDDEN - Big space saved</b><br>They will upload with file name + default price. Scroll to see 100 preview above. Space handles 10,000+</div>`;
+  for(let i=limit;i<frontFiles.length;i++){let d=document.createElement('div');d.style.display='none';d.innerHTML=`<input id="fname_${i}" value="${frontFiles[i].name.split('.')[0]}"><input id="fprice_${i}" value="${document.getElementById('frontPrice').value}"><input id="fstock_${i}" value="${document.getElementById('frontStock').value}">`;box.appendChild(d);}
+ }
+ document.getElementById('frontStatus').innerHTML=`✅ ${frontFiles.length} products ready in big space (75vh scroll) - Shows ${limit} preview, all ${frontFiles.length} will upload`;
+}
+async function frontUploadAll(){
+ if(frontFiles.length==0){alert('Select photos on front face');return;}
+ let biz=document.getElementById('frontBiz').value||'Sannlas Seller'; let loc=document.getElementById('frontLocation').value||'Kampala'; let phone=document.getElementById('frontPhone').value||'256000000';
+ let main=document.getElementById('frontMain').value; let sub=document.getElementById('frontSub').value; let desc=document.getElementById('frontDesc').value;
+ if(!main){alert('Select Main Category on front face');return;}
+ let status=document.getElementById('frontStatus'); let total=frontFiles.length; let uploaded=0; let BATCH=30;
+ status.innerHTML=`⏳ Uploading ${total} to FRONT FACE... 0%`;
  for(let b=0;b<total;b+=BATCH){
-  let promises=[];
+  let proms=[];
   for(let i=b;i<Math.min(b+BATCH,total);i++){
-   let fd=new FormData();
-   fd.append('name',document.getElementById(`bname_${i}`).value||bulkFiles[i].name);
-   fd.append('price',document.getElementById(`bprice_${i}`).value||10000);
-   fd.append('stock',document.getElementById(`bstock_${i}`).value||50);
-   fd.append('image',bulkFiles[i]); fd.append('desc',document.getElementById('bulkDesc').value);
-   fd.append('business',sellerInfo.business); fd.append('location',sellerInfo.location);
-   fd.append('phone',sellerInfo.phone); fd.append('main_category',main); fd.append('sub_category',sub);
-   promises.push(fetch('/api/sell',{method:'POST',body:fd}).then(r=>{uploaded++; let pct=Math.round(uploaded/total*100); status.innerHTML=`⏳ ${uploaded}/${total} (${pct}%) uploaded - ${total-uploaded} left - Keep open!`; return r;}));
+   let fd=new FormData(); fd.append('name',document.getElementById(`fname_${i}`).value||frontFiles[i].name); fd.append('price',document.getElementById(`fprice_${i}`).value||10000); fd.append('stock',document.getElementById(`fstock_${i}`).value||50);
+   fd.append('image',frontFiles[i]); fd.append('business',biz); fd.append('location',loc); fd.append('phone',phone); fd.append('main_category',main); fd.append('sub_category',sub||'General'); fd.append('desc',desc);
+   proms.push(fetch('/api/sell',{method:'POST',body:fd}).then(()=>{uploaded++; status.innerHTML=`⏳ ${uploaded}/${total} (${Math.round(uploaded/total*100)}%) uploaded to FRONT - Keep page open!`; }));
   }
-  await Promise.all(promises);
+  await Promise.all(proms);
  }
- status.innerHTML=`✅ DONE! ${total} products uploaded!`;
- alert(`✅ ${total} products uploaded! Now supports 1M+ with batch system.`);
- closePop('sellPop');doFilter();
+ status.innerHTML=`✅ DONE! ${total} products now LIVE ON FRONT FACE!`;
+ alert(`✅ SUCCESS! ${total} products now on FRONT FACE - Scroll down to see them!`); doFilter(); window.scrollTo(0, document.getElementById('products').offsetTop-100);
 }
-function openJobs(){document.getElementById('jobsPop').style.display='flex';loadJobs();populateAllDistrictSelects();}
-function showJobTab(t){document.getElementById('jobFindTab').style.display=t=='find'?'block':'none';document.getElementById('jobPostTab').style.display=t=='post'?'block':'none';}
-function loadJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{document.getElementById('jobsList').innerHTML=jobs.map(j=>`<div class="job-card"><h4>${j.title}</h4><p>${j.company} - ${j.location}</p></div>`).join('');});}
-function postJob(e){e.preventDefault();let fd=new FormData(e.target);let data={title:fd.get('title'),category:fd.get('category'),company:fd.get('company'),location:fd.get('location'),phone:fd.get('phone'),description:fd.get('description')};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{alert(d.message);showJobTab('find');});}
-function openContact(){document.getElementById('contactPop').style.display='flex';}
-function sendContact(e){e.preventDefault();let fd=new FormData(e.target);fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:fd.get('name'),email:fd.get('email'),message:fd.get('message')})}).then(r=>r.json()).then(d=>{alert(d.message);closePop('contactPop');});}
-populateAllDistrictSelects();
+setTimeout(initFrontCat,800);
 </script>
 </body>
 </html>
