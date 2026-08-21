@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 import os, json, uuid, time, hashlib
 from werkzeug.utils import secure_filename
+import psycopg2
+import psycopg2.extras
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER']='static/uploads'
@@ -19,13 +21,64 @@ PLANS = {
     "365": {"days": 365, "price": 80000, "name": "1 Year", "requires_payment": True}
 }
 
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+def get_conn():
+    return psycopg2.connect(DATABASE_URL)
+
+def init_db():
+    if not DATABASE_URL: return
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
+    cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+    conn.commit(); cur.close(); conn.close()
+
+try: init_db()
+except Exception as e: print(f"DB init error: {e}")
+
 def load_db(file, default):
+    # Use Postgres if available - permanent!
+    if DATABASE_URL:
+        try:
+            if file == 'products.json':
+                conn = get_conn(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute("SELECT data FROM products ORDER BY id ASC")
+                rows = cur.fetchall(); cur.close(); conn.close()
+                return [r['data'] for r in rows]
+            else:
+                conn = get_conn(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
+                row = cur.fetchone(); cur.close(); conn.close()
+                if row: return row['data']
+                return default
+        except Exception as e:
+            print(f"load_db {file} error: {e}"); return default
+    # Fallback to local file
     path=f'data/{file}'
     if os.path.exists(path):
         try: return json.load(open(path))
         except: return default
     return default
+
 def save_db(file, data):
+    if DATABASE_URL:
+        try:
+            if file == 'products.json':
+                # Handled separately in sell/delete - do nothing here
+                # But for compatibility, rebuild table
+                conn = get_conn(); cur = conn.cursor()
+                cur.execute("DELETE FROM products")
+                for item in data:
+                    cur.execute("INSERT INTO products (data) VALUES (%s)", [json.dumps(item)])
+                conn.commit(); cur.close(); conn.close()
+                return
+            else:
+                conn = get_conn(); cur = conn.cursor()
+                cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, json.dumps(data)))
+                conn.commit(); cur.close(); conn.close()
+                return
+        except Exception as e:
+            print(f"save_db {file} error: {e}")
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
@@ -48,13 +101,11 @@ BUSINESS_CATEGORIES = {
 def home(): return render_template('index.html')
 @app.route('/admin')
 def admin_page(): return render_template('admin.html')
-
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/plans')
 def get_plans(): return jsonify(PLANS)
 
-# --- NEW: REGISTER / LOGIN BOTTOM FOR SELLERS & BUYERS ---
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json
@@ -99,9 +150,7 @@ def get_products():
     filtered=sorted(filtered,key=lambda x:(x.get('boosted',0),x.get('created',0)),reverse=True)
     public=[]
     for p in filtered:
-        # AUTOMATED: hide expired subscriptions from front
-        if p.get('subscription_expires',0) < time.time():
-            continue
+        if p.get('subscription_expires',0) < time.time(): continue
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
 
@@ -113,24 +162,19 @@ def sell():
     main_cat=request.form.get('main_category'); sub_cat=request.form.get('sub_category')
     stock=int(request.form.get('stock',10)); plan=request.form.get('plan','free14')
     user_email=request.form.get('user_email','').lower()
-
     users=load_db('users.json',[]); products=load_db('products.json',[])
     seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     plan_info=PLANS.get(plan,PLANS['free14'])
-
-    # === ONLY CHANGE: PAY BEFORE UPLOAD AUTOMATION ===
     if plan_info.get('requires_payment'):
         if not seller:
             return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Register & Pay UGX {plan_info["price"]} for {plan_info["name"]} to MoMo {OWNER_MOMO} first. Then admin activates.'}),402
         if seller['subscription_expires'] < time.time() or not seller.get('paid') or seller.get('plan')!= plan:
             return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Your subscription expired or not paid for {plan_info["name"]}. Pay UGX {plan_info["price"]} to MoMo {OWNER_MOMO}. Submit code in Subscription popup. Wait admin activation.'}),402
     else:
-        # free14 - allow once
         if seller and seller.get('free_used') and seller['subscription_expires'] < time.time():
             return jsonify({'success':False,'message':'14 Days FREE already used & expired. Choose paid plan and PAY BEFORE UPLOAD'}),402
         if not seller and any(p.get('phone')==phone for p in products):
             return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
-    # === END ONLY CHANGE ===
 
     images=[]
     for key in request.files:
@@ -142,13 +186,20 @@ def sell():
     img_url=request.form.get('image_url')
     if img_url and not images: images=[img_url]
     if not images: images=['https://via.placeholder.com/300']
-
     exp_time = seller['subscription_expires'] if seller and seller['subscription_expires']>time.time() else time.time()+plan_info['days']*86400
     prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time}
-    products.append(prod); save_db('products.json', products)
+
+    if DATABASE_URL:
+        try:
+            conn=get_conn(); cur=conn.cursor()
+            cur.execute("INSERT INTO products (data) VALUES (%s)", [json.dumps(prod)])
+            conn.commit(); cur.close(); conn.close()
+        except Exception as e:
+            print(e); return jsonify({'success':False,'message':str(e)}),500
+    else:
+        products.append(prod); save_db('products.json', products)
     return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - Continuous Down'})
 
-# --- SELLER PRIVATE SALES PER PERIOD ---
 @app.route('/api/seller/sales')
 def seller_sales():
     phone=request.args.get('phone'); email=request.args.get('email','').lower(); period=request.args.get('period','all')
@@ -178,7 +229,22 @@ def my_products():
 
 @app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
 def delete_prod(pid):
-    products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products); return jsonify({'success':True})
+    if DATABASE_URL:
+        try:
+            conn=get_conn(); cur=conn.cursor()
+            cur.execute("SELECT id, data FROM products")
+            rows=cur.fetchall()
+            for row in rows:
+                r_id, r_data = row[0], row[1]
+                if isinstance(r_data, str): r_data=json.loads(r_data)
+                if r_data.get('id')==pid:
+                    cur.execute("DELETE FROM products WHERE id=%s", (r_id,))
+                    break
+            conn.commit(); cur.close(); conn.close()
+        except Exception as e: print(e)
+    else:
+        products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
+    return jsonify({'success':True})
 
 @app.route('/api/rate', methods=['POST'])
 def rate():
