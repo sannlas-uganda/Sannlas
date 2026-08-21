@@ -227,10 +227,27 @@ async function frontUploadAll(){
  let biz=document.getElementById('frontBiz').value;if(!biz){alert('Business Name required');return;}
  let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Phone required');return;}
  let plan=document.getElementById('sellerPlan').value;let main=document.getElementById('frontMain').value||'General';let sub=document.getElementById('frontSub').value||'General';
+
+ // === ONLY NEW CHECK: PAY BEFORE UPLOAD STRICT ===
+ if(plan!=='free14'){
+   if(!currentUser){
+     alert('⚠️ PAY BEFORE UPLOAD: You chose '+plan+' which requires payment. Login first, Pay MoMo 0795712328, enter code in Subscription popup, admin activates, then upload.');
+     openPopup('subPop'); return;
+   }
+   let active = currentUser.subscription_expires*1000 > Date.now();
+   let samePlan = currentUser.plan===plan;
+   let paid = currentUser.paid===true;
+   if(!active ||!paid ||!samePlan){
+     document.getElementById('frontStatus').innerHTML=`❌ PAY REQUIRED: Choose ${plan} needs UGX. Pay MoMo 0795712328 first.`;
+     alert(`⚠️ PAY BEFORE UPLOAD BLOCKED\n\nYou selected paid plan: ${plan}\nYour current: ${currentUser.plan_name} Paid:${currentUser.paid} Active:${active}\n\nACTION: Pay to MoMo 0795712328\nThen enter transaction code in 💳 Subscription popup\nAdmin activates -> then upload will work`);
+     openPopup('subPop'); return;
+   }
+ }
+ // === END ONLY NEW CHECK ===
+
  for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter OWN price for item ${i+1}`);return;}}
  let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=10;
  status.innerHTML=`⏳ Checking subscription for ${phone}...`;
- // Get email from logged user if any
  let userEmail = currentUser? currentUser.email : '';
  for(let b=0;b<total;b+=BATCH){
   let proms=[];
