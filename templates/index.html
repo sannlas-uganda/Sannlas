@@ -11,229 +11,155 @@ body{font-family:Arial;min-height:100vh;overflow-x:hidden}
 .bubbles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}
 .bubble{position:absolute;bottom:-100px;background:rgba(255,255,255,0.2);border-radius:50%;animation:rise 12s infinite}
 @keyframes rise{0%{transform:translateY(0);opacity:0}10%{opacity:0.6}100%{transform:translateY(-110vh) translateX(100px);opacity:0}}
-.bubble:nth-child(1){left:10%;width:80px;height:80px;animation-delay:0s}
-.bubble:nth-child(2){left:25%;width:40px;height:40px;animation-delay:2s}
-.bubble:nth-child(3){left:50%;width:100px;height:100px;animation-delay:1s}
-.bubble:nth-child(4){left:75%;width:60px;height:60px;animation-delay:3s}
-.navbar{background:rgba(0,0,0,0.85);color:white;padding:15px 20px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap}
-.btn{background:#8B0000;color:white;border:none;padding:10px 16px;border-radius:20px;cursor:pointer;font-weight:bold;margin:0 3px}
+.navbar{background:rgba(0,0,0,0.85);color:white;padding:12px 15px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px}
+.btn{background:#8B0000;color:white;border:none;padding:9px 14px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-size:13px}
 .btn:hover{background:#ff4500}
-.search-bar{background:rgba(0,0,0,0.75);padding:15px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:sticky;top:60px;z-index:9}
-.search-bar input,.search-bar select{padding:12px;border-radius:25px;border:none;width:100%;max-width:280px;font-size:15px}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;padding:20px}
+.btn-blue{background:#0d47a1}
+.btn-green{background:#2e7d32}
+.search-bar{background:rgba(0,0,0,0.75);padding:12px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:sticky;top:56px;z-index:9}
+.search-bar input,.search-bar select{padding:10px;border-radius:25px;border:none;width:100%;max-width:250px;font-size:14px}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:15px;padding:15px}
 .card{background:rgba(255,255,255,0.95);border-radius:15px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.2);transition:0.3s}
-.card:hover{transform:translateY(-5px)}
-.card img{width:100%;height:200px;object-fit:cover}
-.card-body{padding:12px}
-.hero{text-align:center;padding:25px;color:white;text-shadow:0 2px 10px #000}
+.card:hover{transform:translateY(-4px)}
+.card img{width:100%;height:180px;object-fit:cover}
+.card-body{padding:10px}
+.hero{text-align:center;padding:20px;color:white;text-shadow:0 2px 10px #000}
 .popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100}
-.popup-content{background:white;padding:20px;border-radius:15px;max-width:500px;width:90%;max-height:90vh;overflow:auto}
-input,select,textarea{width:100%;padding:10px;margin:6px 0 12px 0;border:1px solid #ccc;border-radius:8px}
-.momo{background:linear-gradient(135deg,#FFCC02,#FFA500);border:2px dashed #8B0000;padding:15px;border-radius:10px;text-align:center;margin:10px 0}
-.plan{border:2px solid #ddd;padding:12px;border-radius:10px;margin:8px 0;cursor:pointer}
+.popup-content{background:white;padding:18px;border-radius:15px;max-width:520px;width:92%;max-height:92vh;overflow:auto}
+input,select,textarea{width:100%;padding:10px;margin:5px 0 10px 0;border:1px solid #ccc;border-radius:8px}
+.momo{background:linear-gradient(135deg,#FFCC02,#FFA500);border:2px dashed #8B0000;padding:12px;border-radius:10px;text-align:center;margin:8px 0}
+.plan{border:2px solid #ddd;padding:10px;border-radius:10px;margin:6px 0;cursor:pointer}
 .plan.active{background:#8B0000;color:white}
-.cat-tag{background:#8B0000;color:white;padding:3px 8px;border-radius:10px;font-size:11px;display:inline-block;margin:2px}
-.auto-suggest{background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:10px;margin:8px 0;display:none}
-.suggest-btn{background:#2e7d32;color:white;border:none;padding:8px 12px;border-radius:20px;margin:5px 3px;cursor:pointer;font-weight:bold}
-.photo-box{border:2px solid #8B0000;background:#fff3f3;padding:10px;border-radius:10px;margin:10px 0}
+.cat-tag{background:#8B0000;color:white;padding:3px 7px;border-radius:10px;font-size:10px;display:inline-block;margin:2px}
+.auto-suggest{background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:8px;margin:6px 0;display:none;font-size:13px}
+.suggest-btn{background:#2e7d32;color:white;border:none;padding:6px 10px;border-radius:20px;margin:4px 2px;cursor:pointer;font-weight:bold;font-size:12px}
+.photo-box{border:2px solid #8B0000;background:#fff3f3;padding:8px;border-radius:10px;margin:8px 0}
+.footer{background:rgba(0,0,0,0.9);color:white;padding:20px;text-align:center;margin-top:20px}
+.job-card{background:white;border-left:5px solid #0d47a1;padding:12px;margin:8px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
 </style>
 </head>
 <body>
 <div class="animated-bg"></div>
-<div class="bubbles"><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
-<div class="navbar"><h2>🛍️ SANNLAS</h2><div><button class="btn" onclick="openSell()">+ Sell</button><button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button><a href="/admin" class="btn" style="text-decoration:none">Admin</a></div></div>
+<div class="bubbles"><div class="bubble" style="left:10%;width:80px;height:80px;animation-delay:0s"></div><div class="bubble" style="left:25%;width:40px;height:40px;animation-delay:2s"></div><div class="bubble" style="left:50%;width:100px;height:100px;animation-delay:1s"></div><div class="bubble" style="left:75%;width:60px;height:60px;animation-delay:3s"></div></div>
+
+<div class="navbar">
+<h2>🛍️ SANNLAS</h2>
+<div>
+<button class="btn" onclick="openSell()">+ Sell</button>
+<button class="btn btn-blue" onclick="openJobs()">💼 Jobs</button>
+<button class="btn" onclick="openCart()">🛒 Cart (<span id="cartN">0</span>)</button>
+<button class="btn btn-green" onclick="openContact()">📧 Contact Owner</button>
+<a href="/admin" class="btn" style="text-decoration:none">Admin</a>
+</div>
+</div>
+
 <div class="search-bar">
-<input type="text" id="searchInput" placeholder="🔍 Search anything... e.g. Fish, iPhone, Cement" onkeyup="doFilter()">
-<select id="mainFilter" onchange="onMainChange()"><option value="">All Main Categories</option></select>
-<select id="subFilter" onchange="doFilter()"><option value="">All Subcategories</option></select>
+<input type="text" id="searchInput" placeholder="🔍 Search products... Fish, iPhone" onkeyup="doFilter()">
+<select id="mainFilter" onchange="onMainChange()"><option value="">All Categories</option></select>
+<select id="subFilter" onchange="doFilter()"><option value="">All Sub</option></select>
+<input type="number" id="minP" placeholder="Min UGX" style="max-width:110px" onchange="doFilter()">
+<input type="number" id="maxP" placeholder="Max UGX" style="max-width:110px" onchange="doFilter()">
 <button class="btn" onclick="clearFilter()">Clear</button>
 </div>
-<div class="hero"><h1>Welcome to SANNLAS UGANDA </h1><p>Shop • Sell • Deliver - MoMo 0795712326</p></div>
+
+<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Deliver - MoMo 0795712326 - Owner: natelieabigail@gmail.com</p></div>
 <div class="products" id="products"></div>
+
+<div class="footer">
+<h3>SANNLAS UGANDA - Owner Contact</h3>
+<p>📧 Email: <a href="mailto:natelieabigail@gmail.com" style="color:#FFCC02">natelieabigail@gmail.com</a> | 📞 MoMo/WhatsApp: 0795712326</p>
+<p><button class="btn" onclick="openContact()">Send Message to Owner</button> <button class="btn btn-blue" onclick="openJobs()">View Jobs Dashboard</button></p>
+<p style="font-size:11px;margin-top:8px">© 2026 SANNLAS - All Rights Reserved</p>
+</div>
+
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content"><h3> Delivery Details</h3><form onsubmit="doCheckout(event)"><select name="region" required><option value="">Region</option><option>Central</option><option>Eastern</option><option>Northern</option><option>Western</option></select><input name="district" placeholder="City/District" required><input name="constituency" placeholder="Constituency" required><input name="subcounty" placeholder="Subcounty/Town" required><input name="names" placeholder="Full Names" required><input name="phone1" placeholder="Phone 1" required><input name="phone2" placeholder="Phone 2" required><button class="btn" style="width:100%">✅ Confirm Order</button><button type="button" onclick="closePop('cartPop')" style="width:100%;margin-top:8px;padding:8px;background:gray;color:white;border:none;border-radius:8px">Cancel</button></form></div></div>
 <div class="popup" id="sellPop"><div class="popup-content" id="sellContent"></div></div>
+
+<div class="popup" id="jobsPop"><div class="popup-content" style="max-width:650px">
+<h2 style="color:#0d47a1">💼 JOBS DASHBOARD - SANNLAS</h2>
+<div style="display:flex;gap:5px;margin:10px 0"><button class="btn btn-blue" onclick="showJobTab('find')">Find Jobs</button><button class="btn" onclick="showJobTab('post')">+ Post Job</button><button class="btn" style="background:gray" onclick="closePop('jobsPop')">Close</button></div>
+<div id="jobFindTab">
+<input type="text" id="jobSearch" placeholder="Search jobs... e.g. Driver, Teacher" onkeyup="loadJobs()">
+<select id="jobCatFilter" onchange="loadJobs()"><option value="">All Job Categories</option><option>Driving</option><option>Teaching</option><option>Construction</option><option>Salon</option><option>IT</option><option>Accounting</option><option>Security</option><option>Cleaning</option><option>Sales</option><option>Farming</option><option>Other</option></select>
+<div id="jobsList">Loading jobs...</div>
+</div>
+<div id="jobPostTab" style="display:none">
+<h3>Post a Job - Free</h3>
+<form onsubmit="postJob(event)">
+<input name="title" placeholder="Job Title e.g. Need Boda Driver" required>
+<select name="category" required><option value="">Job Category</option><option>Driving</option><option>Teaching</option><option>Construction</option><option>Salon</option><option>IT</option><option>Accounting</option><option>Security</option><option>Cleaning</option><option>Sales</option><option>Farming</option><option>Other</option></select>
+<input name="company" placeholder="Company / Your Name" required>
+<input name="location" placeholder="Location" required>
+<input name="salary" placeholder="Salary e.g. 500k per month">
+<input name="phone" placeholder="Your Contact Phone/WhatsApp" required>
+<input name="email" placeholder="Your Email" value="natelieabigail@gmail.com">
+<textarea name="description" placeholder="Job Description, requirements..." required></textarea>
+<button class="btn btn-blue" style="width:100%">📤 Post Job</button>
+</form>
+</div>
+</div></div>
+
+<div class="popup" id="contactPop"><div class="popup-content">
+<h3>📧 Contact SANNLAS Owner</h3>
+<p>Owner Email: <b>natelieabigail@gmail.com</b><br>MoMo: 0795712326</p>
+<form onsubmit="sendContact(event)">
+<input name="name" placeholder="Your Name" required>
+<input name="email" placeholder="Your Email" required>
+<input name="phone" placeholder="Your Phone">
+<textarea name="message" placeholder="Your message to owner..." required></textarea>
+<button class="btn btn-green" style="width:100%">Send Message</button>
+<p style="margin:10px 0;text-align:center">OR</p>
+<a href="mailto:natelieabigail@gmail.com" class="btn" style="display:block;text-align:center;text-decoration:none">📧 Direct Email</a>
+<a href="https://wa.me/256795712326" target="_blank" class="btn btn-green" style="display:block;text-align:center;text-decoration:none;margin-top:6px">💬 WhatsApp Owner</a>
+<button type="button" onclick="closePop('contactPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Close</button>
+</form>
+</div></div>
+
 <script>
 let products=[], cart=[], selPlan='free', sellerInfo=null, categories={};
 const MOMO='0795712326';
+const OWNER_EMAIL='natelieabigail@gmail.com';
 function getPrice(){if(selPlan=='30days')return 5000;if(selPlan=='6month')return 30000;if(selPlan=='1year')return 60000;return 0;}
-
-const KEYWORD_MAP = {
-"fish":{"main":"Agriculture & Farming","sub":"Fish Farming"},
-"poultry|chicken|kuku":{"main":"Agriculture & Farming","sub":"Poultry Farming"},
-"farm|agro":{"main":"Agriculture & Farming","sub":"Crop Farming"},
-"restaurant|food|kitchen|rolex|chapati":{"main":"Food & Beverages","sub":"Restaurants"},
-"bakery|cake":{"main":"Food & Beverages","sub":"Bakeries"},
-"cement|hardware|construction":{"main":"Construction & Building","sub":"Cement"},
-"fashion|boutique|clothes|dress|kikoi":{"main":"Fashion & Clothing","sub":"Women's Clothing"},
-"shoe":{"main":"Fashion & Clothing","sub":"Shoes"},
-"phone|mobile|airtime":{"main":"Electronics & Technology","sub":"Mobile Phones"},
-"laptop|computer":{"main":"Electronics & Technology","sub":"Laptops"},
-"car|garage|auto|boda":{"main":"Automotive","sub":"Car Repair"},
-"clinic|pharmacy|medical|hospital|drug":{"main":"Health & Medical","sub":"Clinics"},
-"salon|hair|barber":{"main":"Beauty & Personal Care","sub":"Hair Salons"},
-"school|academy":{"main":"Education","sub":"Schools"},
-"hotel|lodge":{"main":"Travel & Tourism","sub":"Hotels"},
-"gym|fitness":{"main":"Sports & Fitness","sub":"Gyms"},
-"furniture|sofa":{"main":"Home & Furniture","sub":"Sofas"},
-"solar|energy":{"main":"Energy & Utilities","sub":"Solar Energy"},
-"tailor|sewing":{"main":"Manufacturing","sub":"Textile Manufacturing"},
-"lawyer|advocate":{"main":"Professional Services","sub":"Lawyers"},
-"website|software|it solution":{"main":"Information Technology","sub":"Website Development"},
-"cleaning":{"main":"Home & Property Services","sub":"Cleaning"},
-"security|cctv":{"main":"Security Services","sub":"CCTV Systems"},
-"pet|dog":{"main":"Pets & Animals","sub":"Pet Shops"},
-"wedding|event":{"main":"Events & Weddings","sub":"Wedding Planning"},
-"print|graphic":{"main":"Printing & Stationery","sub":"Printing"},
-"repair":{"main":"Repair & Maintenance Services","sub":"Phone Repair"}
-};
-function guessCategory(text){
- text=text.toLowerCase();
- for(let k in KEYWORD_MAP){
-   let re=new RegExp(k,'i');
-   if(re.test(text)) return KEYWORD_MAP[k];
- }
- return null;
-}
-
-fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d; initFilters();});
-function initFilters(){
- let main=document.getElementById('mainFilter');
- Object.keys(categories).forEach(c=>{
-  let o=document.createElement('option');o.value=c;o.innerText=c;main.appendChild(o);
- });
-}
-function onMainChange(){
- let mainVal=document.getElementById('mainFilter').value;
- let sub=document.getElementById('subFilter');
- sub.innerHTML='<option value="">All Subcategories</option>';
- if(mainVal && categories[mainVal]){
-   categories[mainVal].forEach(s=>{
-     let o=document.createElement('option');o.value=s;o.innerText=s;sub.appendChild(o);
-   });
- }
- doFilter();
-}
-function doFilter(){
- let q=document.getElementById('searchInput').value;
- let main=document.getElementById('mainFilter').value;
- let sub=document.getElementById('subFilter').value;
- let url='/api/products?';
- if(main) url+=`main=${encodeURIComponent(main)}&`;
- if(sub) url+=`sub=${encodeURIComponent(sub)}&`;
- if(q) url+=`q=${encodeURIComponent(q)}&`;
- fetch(url).then(r=>r.json()).then(d=>{products=d; render();});
-}
-function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">All Subcategories</option>';doFilter();}
-fetch('/api/products').then(r=>r.json()).then(d=>{products=d; render();});
-function render(){
- if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products found.</p>';return;}
- document.getElementById('products').innerHTML=products.map(p=>`<div class="card"><img src="${p.image}"><div class="card-body"><div><span class="cat-tag">${p.main_category||'General'}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category||''}</span></div><h3>${p.name}</h3><p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p><p style="font-size:12px;color:#666">${p.business} • ${p.location}</p><button class="btn" onclick="viewProd(${p.id})">View</button><button class="btn" onclick="addCart(${p.id})">Add to Cart</button></div></div>`).join('');
-}
-function viewProd(id){let p=products.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><p><span class="cat-tag">${p.main_category}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category}</span></p><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${p.price.toLocaleString()}</b></p><p>${p.description}</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button class="btn" onclick="closePop('viewPop');openCart()">Order Now</button><button style="float:right;background:gray;color:white;border:none;padding:8px 12px;border-radius:10px" onclick="closePop('viewPop')">X</button>`;document.getElementById('viewPop').style.display='flex';}
+const KEYWORD_MAP = {"fish":{"main":"Agriculture & Farming","sub":"Fish Farming"},"poultry|chicken|kuku":{"main":"Agriculture & Farming","sub":"Poultry Farming"},"farm|agro":{"main":"Agriculture & Farming","sub":"Crop Farming"},"restaurant|food|kitchen|rolex|chapati":{"main":"Food & Beverages","sub":"Restaurants"},"bakery|cake":{"main":"Food & Beverages","sub":"Bakeries"},"cement|hardware|construction":{"main":"Construction & Building","sub":"Cement"},"fashion|boutique|clothes":{"main":"Fashion & Clothing","sub":"Women's Clothing"},"shoe":{"main":"Fashion & Clothing","sub":"Shoes"},"phone|mobile":{"main":"Electronics & Technology","sub":"Mobile Phones"},"laptop|computer":{"main":"Electronics & Technology","sub":"Laptops"},"car|garage|auto|boda":{"main":"Automotive","sub":"Car Repair"},"clinic|pharmacy|medical":{"main":"Health & Medical","sub":"Clinics"},"salon|hair|barber":{"main":"Beauty & Personal Care","sub":"Hair Salons"},"school":{"main":"Education","sub":"Schools"},"hotel":{"main":"Travel & Tourism","sub":"Hotels"}};
+function guessCategory(t){t=t.toLowerCase();for(let k in KEYWORD_MAP){if(new RegExp(k,'i').test(t)) return KEYWORD_MAP[k];}return null;}
+fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});});
+function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">All Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
+function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let minP=document.getElementById('minP').value;let maxP=document.getElementById('maxP').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;if(minP)url+=`min=${minP}&`;if(maxP)url+=`max=${maxP}&`;fetch(url).then(r=>r.json()).then(d=>{products=d;render();});}
+function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">All Sub</option>';document.getElementById('minP').value='';document.getElementById('maxP').value='';doFilter();}
+fetch('/api/products').then(r=>r.json()).then(d=>{products=d;render();});
+function render(){if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products found.</p>';return;}document.getElementById('products').innerHTML=products.map(p=>`<div class="card"><img src="${p.image}"><div class="card-body"><div><span class="cat-tag">${p.main_category||'General'}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category||''}</span> ${p.verified?' <span style="color:blue">✔️</span>':''} ${p.stock<=3?'<span style="color:red;font-size:10px">Only '+p.stock+' left!</span>':''}</div><h3>${p.name}</h3><p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p><p style="font-size:11px;color:#666">${p.business} • ${p.location} • ⭐${(p.rating||5).toFixed(1)}</p><button class="btn" onclick="viewProd(${p.id})">View</button><button class="btn" onclick="addCart(${p.id})">Add</button><a href="https://wa.me/${p.phone}?text=Hi, I saw ${encodeURIComponent(p.name)} on SANNLAS" target="_blank" class="btn btn-green" style="text-decoration:none">WhatsApp</a></div></div>`).join('');}
+function viewProd(id){let p=products.find(x=>x.id==id);let imgs=(p.images||[p.image]).map(i=>`<img src="${i}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;margin:2px">`).join('');document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><p><span class="cat-tag">${p.main_category}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category}</span></p><div>${imgs}</div><img src="${p.image}" style="width:100%;border-radius:10px;margin-top:6px"><p><b>UGX ${p.price.toLocaleString()}</b> | Stock: ${p.stock}</p><p>${p.description}</p><p>⭐ Rating: ${p.rating||5} (${(p.reviews||[]).length} reviews)</p><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button><button class="btn btn-green" onclick="window.open('https://wa.me/${p.phone}?text=Hi, I saw ${encodeURIComponent(p.name)}','_blank')">WhatsApp Seller</button><button class="btn btn-blue" onclick="bargainProd(${p.id})">💰 Bargain</button><button style="float:right;background:gray;color:white;border:none;padding:8px 12px;border-radius:10px" onclick="closePop('viewPop')">X</button><hr><div><h4>Reviews</h4><div id="revList">${(p.reviews||[]).map(r=>`<p>⭐${r.rating} - ${r.comment}</p>`).join('')||'No reviews yet'}</div><input id="revComment" placeholder="Your review"><select id="revStar"><option value="5">5 Stars</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select><button class="btn" onclick="sendReview(${p.id})">Send Review</button></div>`;document.getElementById('viewPop').style.display='flex';}
 function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;alert(p.name+' added 🛒');}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
 function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={region:fd.get('region'),district:fd.get('district'),constituency:fd.get('constituency'),subcounty:fd.get('subcounty'),names:fd.get('names'),phone1:fd.get('phone1'),phone2:fd.get('phone2')};let total=cart.reduce((s,i)=>s+i.price,0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert(' '+d.message);cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
 function openSell(){selPlan='free';showSellStep1();}
-function showSellStep1(){
- let qr=`MTN MoMo ${MOMO} Amount ${getPrice()} Ref SANNLAS`;
- let qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qr)}`;
- document.getElementById('sellContent').innerHTML=`<h3 style="color:#8B0000"> Seller Subscription</h3>
- <form onsubmit="doSubscribe(event)">
- <input id="bizName1" name="business" placeholder="Business Name e.g. Mukisa Fish Farm" required onkeyup="suggestBizCat(this.value,'sug1')">
- <div id="sug1" class="auto-suggest"></div>
- <input name="location" placeholder="Location" required>
- <input name="phone" placeholder="Phone" required>
- <div class="plan ${selPlan=='free'?'active':''}" onclick="selPlan='free';showSellStep1()"><b>1. 14 Days FREE</b></div>
- <div class="plan ${selPlan=='30days'?'active':''}" onclick="selPlan='30days';showSellStep1()"><b>2. 30 Days - 5,000</b></div>
- <div class="plan ${selPlan=='6month'?'active':''}" onclick="selPlan='6month';showSellStep1()"><b>3. 6 Months - 30,000</b></div>
- <div class="plan ${selPlan=='1year'?'active':''}" onclick="selPlan='1year';showSellStep1()"><b>4. 1 Year - 60,000 BEST</b></div>
- ${selPlan!='free'?`<div class="momo"><h4>Pay via MoMo</h4><img src="${qrUrl}" style="border:2px solid #8B0000;border-radius:8px"><p><b>Send to: ${MOMO}</b><br>Amount: UGX ${getPrice()}</p></div>`:''}
- <button class="btn" style="width:100%">${selPlan=='free'?'Start Free Trial ':'I Have Paid ✅'}</button>
- <button type="button" onclick="closePop('sellPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Cancel</button>
- </form>`;
- document.getElementById('sellPop').style.display='flex';
-}
-function suggestBizCat(val, divId){
- let div=document.getElementById(divId);
- if(!val || val.length<3){div.style.display='none';return;}
- let g=guessCategory(val);
- if(g){
-   div.style.display='block';
-   div.innerHTML=`🤖 <b>Detected:</b> ${g.main} → ${g.sub}<br><button type="button" class="suggest-btn" onclick="applyBizCat('${g.main}','${g.sub}')">✅ Add to this Category</button>`;
-   window.lastGuess=g;
- } else {div.style.display='none';}
-}
-function applyBizCat(main, sub){
- window.chosenMain=main; window.chosenSub=sub;
- alert('Category Saved: '+main+' → '+sub+'. It will auto-fill in next step!');
-}
-function doSubscribe(e){
- e.preventDefault();
- let fd=new FormData(e.target);
- let b=fd.get('business'), l=fd.get('location'), ph=fd.get('phone');
- sellerInfo={business:b,location:l,phone:ph, autoMain: window.chosenMain, autoSub: window.chosenSub};
- if(selPlan!='free'){if(!confirm('Send UGX '+getPrice()+' to '+MOMO+' Ref: '+b+'. OK after payment?'))return;}
- fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,phone:ph,location:l,plan:selPlan})}).then(r=>r.json()).then(d=>{alert(d.message);showSellStep2();});
-}
+function showSellStep1(){let qr=`MTN MoMo ${MOMO} Amount ${getPrice()} Ref SANNLAS`;let qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qr)}`;document.getElementById('sellContent').innerHTML=`<h3 style="color:#8B0000"> Seller Subscription</h3><form onsubmit="doSubscribe(event)"><input id="bizName1" name="business" placeholder="Business Name e.g. Mukisa Fish Farm" required onkeyup="suggestBizCat(this.value,'sug1')"><div id="sug1" class="auto-suggest"></div><input name="location" placeholder="Location" required><input name="phone" placeholder="Phone WhatsApp e.g. 256..." required><div class="plan ${selPlan=='free'?'active':''}" onclick="selPlan='free';showSellStep1()"><b>1. 14 Days FREE</b></div><div class="plan ${selPlan=='30days'?'active':''}" onclick="selPlan='30days';showSellStep1()"><b>2. 30 Days - 5,000</b></div><div class="plan ${selPlan=='6month'?'active':''}" onclick="selPlan='6month';showSellStep1()"><b>3. 6 Months - 30,000</b></div><div class="plan ${selPlan=='1year'?'active':''}" onclick="selPlan='1year';showSellStep1()"><b>4. 1 Year - 60,000 BEST</b></div>${selPlan!='free'?`<div class="momo"><h4>Pay via MoMo</h4><img src="${qrUrl}" style="border:2px solid #8B0000;border-radius:8px"><p><b>Send to: ${MOMO}</b><br>Amount: UGX ${getPrice()}</p></div>`:''}<button class="btn" style="width:100%">${selPlan=='free'?'Start Free Trial':'I Have Paid ✅'}</button><button type="button" onclick="closePop('sellPop')" style="width:100%;margin-top:8px;background:gray;color:white;border:none;padding:8px;border-radius:8px">Cancel</button></form>`;document.getElementById('sellPop').style.display='flex';}
+function suggestBizCat(val,divId){let div=document.getElementById(divId);if(!val||val.length<3){div.style.display='none';return;}let g=guessCategory(val);if(g){div.style.display='block';div.innerHTML=`🤖 <b>Detected:</b> ${g.main} → ${g.sub}<br><button type="button" class="suggest-btn" onclick="applyBizCat('${g.main}','${g.sub}')">✅ Add to this Category</button>`;}else{div.style.display='none';}}
+function applyBizCat(m,s){window.chosenMain=m;window.chosenSub=s;alert('Category Saved: '+m+' → '+s);}
+function doSubscribe(e){e.preventDefault();let fd=new FormData(e.target);let b=fd.get('business'),l=fd.get('location'),ph=fd.get('phone');sellerInfo={business:b,location:l,phone:ph};if(selPlan!='free'){if(!confirm('Send UGX '+getPrice()+' to '+MOMO+' Ref: '+b+'. OK after payment?'))return;}fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,phone:ph,location:l,plan:selPlan})}).then(r=>r.json()).then(d=>{alert(d.message);showSellStep2();});}
 function showSellStep2(){
  let mainOpts=Object.keys(categories).map(c=>`<option value="${c}" ${window.chosenMain==c?'selected':''}>${c}</option>`).join('');
- document.getElementById('sellContent').innerHTML=`<h3> Upload Product - Smart Category</h3><p style="color:green">✓ Subscribed as ${sellerInfo.business}</p>
- ${window.chosenMain?`<div class="auto-suggest" style="display:block">🤖 Auto-detected from business name: <b>${window.chosenMain} → ${window.chosenSub}</b> <button type="button" class="suggest-btn" onclick="document.getElementById('sellMain').value='${window.chosenMain}';sellSubLoad('${window.chosenSub}')">Use This</button></div>`:''}
- <form onsubmit="doSell(event)">
- <input id="prodName" name="name" placeholder="Product Name e.g. Fresh Tilapia" required onkeyup="suggestProdCat(this.value)">
- <div id="sug2" class="auto-suggest"></div>
- <select id="sellMain" name="main_category" required onchange="sellSubLoad()"><option value="">Select Main Category</option>${mainOpts}</select>
- <select id="sellSub" name="sub_category" required><option value="">Select Subcategory - Choose Main First</option></select>
- <div class="photo-box">
- <label style="font-weight:bold;color:#8B0000">📸 Product Photo * REQUIRED</label>
- <input name="image" type="file" accept="image/*" required>
- <p style="text-align:center;margin:6px 0;font-size:12px;color:#666">OR paste image link below</p>
- <input name="image_url" placeholder="https://example.com/photo.jpg">
- </div>
- <input name="price" type="number" placeholder="Price UGX" required>
- <textarea name="desc" placeholder="Description"></textarea>
- <button class="btn" style="width:100%">📤 List Product With Photo</button>
- </form>`;
+ document.getElementById('sellContent').innerHTML=`<h3> Upload Product + Smart Category</h3><p style="color:green">✓ Subscribed as ${sellerInfo.business}</p>${window.chosenMain?`<div class="auto-suggest" style="display:block">🤖 Auto-detected: <b>${window.chosenMain} → ${window.chosenSub}</b> <button type="button" class="suggest-btn" onclick="document.getElementById('sellMain').value='${window.chosenMain}';sellSubLoad('${window.chosenSub}')">Use This</button></div>`:''}<form onsubmit="doSell(event)"><input id="prodName" name="name" placeholder="Product Name e.g. Fresh Tilapia" required onkeyup="suggestProdCat(this.value)"><div id="sug2" class="auto-suggest"></div><select id="sellMain" name="main_category" required onchange="sellSubLoad()"><option value="">Select Main Category</option>${mainOpts}</select><select id="sellSub" name="sub_category" required><option value="">Select Subcategory - Choose Main First</option></select><div class="photo-box"><label style="font-weight:bold;color:#8B0000">📸 Product Photos - UP TO 5 PHOTOS * REQUIRED</label><input name="image" type="file" accept="image/*" required><input name="image2" type="file" accept="image/*"><input name="image3" type="file" accept="image/*"><p style="text-align:center;margin:4px 0;font-size:11px">OR paste link</p><input name="image_url" placeholder="https://..."></div><input name="price" type="number" placeholder="Price UGX" required><input name="stock" type="number" placeholder="Stock Quantity e.g. 10" value="10" required><textarea name="desc" placeholder="Description"></textarea><button class="btn" style="width:100%">📤 List Product With Photos</button></form>`;
  if(window.chosenMain) sellSubLoad(window.chosenSub);
 }
-function suggestProdCat(val){
- let div=document.getElementById('sug2');
- if(!val || val.length<2){div.style.display='none';return;}
- let g=guessCategory(val);
- if(g){
-   div.style.display='block';
-   div.innerHTML=`🤖 <b>For "${val}" use:</b> ${g.main} → ${g.sub}<br><button type="button" class="suggest-btn" onclick="document.getElementById('sellMain').value='${g.main}';sellSubLoad('${g.sub}')">✅ Click to Add to ${g.sub}</button>`;
- }
-}
-function sellSubLoad(preselect){
- let m=document.getElementById('sellMain').value;
- let s=document.getElementById('sellSub');
- s.innerHTML='';
- if(categories[m]){
-   categories[m].forEach(sub=>{
-     let o=document.createElement('option');o.value=sub;o.innerText=sub;
-     if(preselect==sub) o.selected=true;
-     s.appendChild(o);
-   });
- }
-}
-function doSell(e){
- e.preventDefault();
- let fd=new FormData();
- fd.append('name',e.target.name.value);
- fd.append('price',e.target.price.value);
- if(e.target.image.files[0]) fd.append('image',e.target.image.files[0]);
- fd.append('image_url',e.target.image_url.value);
- fd.append('desc',e.target.desc.value);
- fd.append('business',sellerInfo.business);
- fd.append('location',sellerInfo.location);
- fd.append('phone',sellerInfo.phone);
- fd.append('main_category',e.target.main_category.value);
- fd.append('sub_category',e.target.sub_category.value);
- fetch('/api/sell',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.success){alert('✅ Listed in '+e.target.main_category.value+' → '+e.target.sub_category.value);closePop('sellPop');doFilter();}else alert(d.message);});
-}
+function suggestProdCat(val){let div=document.getElementById('sug2');if(!val||val.length<2){div.style.display='none';return;}let g=guessCategory(val);if(g){div.style.display='block';div.innerHTML=`🤖 <b>For "${val}" use:</b> ${g.main} → ${g.sub}<br><button type="button" class="suggest-btn" onclick="document.getElementById('sellMain').value='${g.main}';sellSubLoad('${g.sub}')">✅ Click to Add to ${g.sub}</button>`;}}
+function sellSubLoad(pre){let m=document.getElementById('sellMain').value;let s=document.getElementById('sellSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;if(pre==sub)o.selected=true;s.appendChild(o);});}}
+function doSell(e){e.preventDefault();let fd=new FormData();fd.append('name',e.target.name.value);fd.append('price',e.target.price.value);fd.append('stock',e.target.stock.value);if(e.target.image.files[0])fd.append('image',e.target.image.files[0]);if(e.target.image2&&e.target.image2.files[0])fd.append('image2',e.target.image2.files[0]);if(e.target.image3&&e.target.image3.files[0])fd.append('image3',e.target.image3.files[0]);fd.append('image_url',e.target.image_url.value);fd.append('desc',e.target.desc.value);fd.append('business',sellerInfo.business);fd.append('location',sellerInfo.location);fd.append('phone',sellerInfo.phone);fd.append('main_category',e.target.main_category.value);fd.append('sub_category',e.target.sub_category.value);fetch('/api/sell',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.success){alert('✅ Listed!');closePop('sellPop');doFilter();}else alert(d.message);});}
+
+// JOBS FUNCTIONS
+function openJobs(){document.getElementById('jobsPop').style.display='flex';loadJobs();}
+function showJobTab(t){document.getElementById('jobFindTab').style.display=t=='find'?'block':'none';document.getElementById('jobPostTab').style.display=t=='post'?'block':'none';}
+function loadJobs(){let q=document.getElementById('jobSearch').value;let cat=document.getElementById('jobCatFilter').value;let url='/api/jobs?';if(q)url+=`q=${encodeURIComponent(q)}&`;if(cat)url+=`category=${encodeURIComponent(cat)}&`;fetch(url).then(r=>r.json()).then(jobs=>{if(jobs.length==0){document.getElementById('jobsList').innerHTML='<p>No jobs found. Post one!</p>';return;}document.getElementById('jobsList').innerHTML=jobs.map(j=>`<div class="job-card"><h4>${j.title} - ${j.category}</h4><p><b>${j.company}</b> • ${j.location} • ${j.salary||'Negotiable'}</p><p style="font-size:12px">${j.description}</p><p style="font-size:11px;color:#666">📞 ${j.phone} • Posted: ${new Date(j.time*1000).toLocaleDateString()}</p><button class="btn btn-blue" onclick="applyJob(${j.id},'${j.phone}')">Apply Now</button> <a href="https://wa.me/${j.phone}" target="_blank" class="btn btn-green" style="text-decoration:none">WhatsApp</a></div>`).join('');});}
+function postJob(e){e.preventDefault();let fd=new FormData(e.target);let data={title:fd.get('title'),category:fd.get('category'),company:fd.get('company'),location:fd.get('location'),salary:fd.get('salary'),phone:fd.get('phone'),email:fd.get('email'),description:fd.get('description')};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{alert(d.message);showJobTab('find');loadJobs();e.target.reset();});}
+function applyJob(id,sellerPhone){let name=prompt('Your Full Name:');if(!name)return;let phone=prompt('Your Phone:');let msg=prompt('Why should we hire you?');fetch(`/api/jobs/${id}/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,message:msg})}).then(r=>r.json()).then(d=>{alert(d.message+' Employer phone: '+sellerPhone);});}
+
+// CONTACT + BARGAIN + REVIEW
+function openContact(){document.getElementById('contactPop').style.display='flex';}
+function sendContact(e){e.preventDefault();let fd=new FormData(e.target);let data={name:fd.get('name'),email:fd.get('email'),phone:fd.get('phone'),message:fd.get('message')};fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{alert(d.message+' Owner email: '+OWNER_EMAIL);closePop('contactPop');});}
+function bargainProd(id){let offer=prompt('Enter your offer in UGX:');if(!offer)return;let p=products.find(x=>x.id==id);fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer:parseInt(offer),buyer_phone:prompt('Your phone:'),seller_phone:p.phone})}).then(r=>r.json()).then(d=>alert(d.message));}
+function sendReview(id){let c=document.getElementById('revComment').value;let s=document.getElementById('revStar').value;fetch('/api/rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,rating:parseInt(s),comment:c})}).then(r=>r.json()).then(()=>{alert('Review sent!');viewProd(id);});}
 </script>
 </body>
 </html>
