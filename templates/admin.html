@@ -21,6 +21,10 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 .t{padding:9px 12px;background:#2a2a2a;border-radius:20px;cursor:pointer;font-size:13px}
 .t.active{background:#ff0000}
 .badge{background:#ff6a00;padding:2px 8px;border-radius:10px;font-size:11px}
+.yellow-box{background:#FFCC02;color:#000;padding:6px 10px;border-radius:8px;font-weight:bold;border:2px solid #000}
+.green-box{background:#00FF00;color:#000;padding:6px 10px;border-radius:8px;font-weight:bold;border:2px solid #000;font-size:14px}
+.prod-row{display:flex;gap:10px;border-bottom:1px solid #333;padding:10px 0;align-items:center}
+.prod-row img{width:60px;height:60px;object-fit:cover;border-radius:8px}
 </style>
 </head>
 <body>
@@ -56,7 +60,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 
 <div id="overview" class="tabPane">
 <div class="card" style="border:1px solid #ff0000">
-<h2>📂 Business Categories - Smart Search (No Scrolling)</h2>
+<h2>📂 Business Categories - Smart Search</h2>
 <div class="search-box">
 <input type="text" id="catSearch" placeholder="🔍 Type to search category e.g. Fish, Shoes, Solar..." onkeyup="filterCats()">
 <div style="display:flex;gap:8px"><select id="mainCat" onchange="loadSub()"><option value="">Select Main Category</option></select><select id="subCat"><option value="">Select Subcategory</option></select></div>
@@ -70,9 +74,9 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="jobs" class="tabPane" style="display:none"><div class="card"><h2>💼 Posted Jobs</h2><div id="jobsBox">Loading...</div></div></div>
 <div id="applications" class="tabPane" style="display:none"><div class="card"><h2>📄 Job Applications</h2><div id="appsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
-<div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products</h2><div id="productsBox">Loading...</div></div></div>
+<div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products - Seller Info PRIVATE (Yellow = Business, Green = Phone)</h2><div id="productsBox">Loading...</div></div></div>
 <div id="bargains" class="tabPane" style="display:none"><div class="card"><h2>💰 Bargain Offers</h2><div id="bargainsBox">Loading...</div></div></div>
-<div id="sellers" class="tabPane" style="display:none"><div class="card"><h2>👥 Sellers</h2><div id="sellersBox">Loading...</div></div></div>
+<div id="sellers" class="tabPane" style="display:none"><div class="card"><h2>👥 Sellers - PRIVATE PHONES</h2><div id="sellersBox">Loading...</div></div></div>
 <div id="cats" class="tabPane" style="display:none"><div class="card"><h2>Full Category Map</h2><div id="catsBox"></div></div></div>
 </div>
 
@@ -100,12 +104,31 @@ function loadData(){
   document.getElementById('stats').innerHTML=`<div class="stat">Revenue<br><b>UGX ${d.total_revenue||0}</b></div><div class="stat">Sellers<br><b>${sellers.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Messages<br><b>${contacts.length}</b></div><div class="stat">Jobs<br><b>${jobs.length}</b></div><div class="stat">Apps<br><b>${apps.length}</b></div>`;
   document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Recent Messages to Owner</h3>${contacts.slice(-3).reverse().map(c=>`${c.name} (${c.email}): ${c.message}`).join('<br>')||'No messages'}</div>`;
   document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email} - ${c.phone||''}<br>${c.message}<br><small>${c.time?new Date(c.time*1000).toLocaleString():''}</small><br><a href="mailto:${c.email}"><button>Reply Email</button></a> <a href="https://wa.me/${c.phone}" target="_blank"><button style="background:green">WhatsApp</button></a></div>`).join(''):'No messages yet';
-  document.getElementById('jobsBox').innerHTML=jobs.length?jobs.slice().reverse().map(j=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${j.title}</b> - ${j.category} - ${j.company}<br>${j.location} - ${j.salary} - ${j.phone}<br>${j.description}</div>`).join(''):'No jobs';
-  document.getElementById('appsBox').innerHTML=apps.length?apps.slice().reverse().map(a=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>Job ${a.job_id}</b> - ${a.name} - ${a.phone}<br>${a.message||''}<br><a href="https://wa.me/${a.phone}" target="_blank"><button style="background:green">Contact</button></a></div>`).join(''):'No applications';
-  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>Buyer</th><th>Phone</th><th>District</th><th>Total</th></tr>'+orders.map(o=>`<tr><td>${o.buyer?.names||o.buyer||''}</td><td>${o.buyer?.phone1||''}</td><td>${o.buyer?.district||o.district||''}</td><td>${o.total||''}</td></tr>`).join('')+'</table>':'No orders';
-  document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:6px 0"><span>${p.name} - UGX ${p.price} - Stock ${p.stock}</span><button style="background:#900" onclick="delProd(${p.id})">Del</button></div>`).join(''):'No products';
-  document.getElementById('bargainsBox').innerHTML=bargains.length?bargains.map(b=>`${b.product_name} - Offer ${b.offer} by ${b.buyer_phone}`).join('<br>'):'No bargains';
-  document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone</th><th>Plan</th></tr>'+sellers.map(s=>`<tr><td>${s.business}</td><td>${s.phone}</td><td>${s.plan}</td></tr>`).join('')+'</table>':'No sellers';
+  document.getElementById('jobsBox').innerHTML=jobs.length?jobs.slice().reverse().map(j=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${j.title}</b> - ${j.category} - ${j.company}<br>${j.location} - ${j.salary} - <span class="green-box">${j.phone}</span><br>${j.description}</div>`).join(''):'No jobs';
+  document.getElementById('appsBox').innerHTML=apps.length?apps.slice().reverse().map(a=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>Job ${a.job_id}</b> - ${a.name} - <span class="green-box">${a.phone}</span><br>${a.message||''}<br><a href="https://wa.me/${a.phone}" target="_blank"><button style="background:green">Contact</button></a></div>`).join(''):'No applications';
+  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>Buyer</th><th>Phone</th><th>District</th><th>Total</th><th>Products</th></tr>'+orders.map(o=>`<tr><td>${o.buyer?.names||o.buyer||''}</td><td><span class="green-box">${o.buyer?.phone1||''}</span></td><td>${o.buyer?.district||o.district||''}</td><td>${o.total||''}</td><td>${(o.cart||[]).map(c=>c.name).join(', ')}</td></tr>`).join('')+'</table>':'No orders';
+
+  // PRODUCTS WITH YELLOW BUSINESS + GREEN PHONE - ADMIN ONLY
+  document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`
+   <div class="prod-row">
+    <img src="${p.image}">
+    <div style="flex:1">
+     <b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()} - Stock ${p.stock}<br>
+     <span class="yellow-box">🏪 ${p.business||'No Business'}</span>
+     <span class="green-box">📞 ${p.phone||'No Phone'}</span>
+     <span style="background:#222;color:#fff;padding:4px 8px;border-radius:5px;font-size:11px">📍 ${p.location||''} | ${p.main_category||''} → ${p.sub_category||''}</span>
+     <div style="margin-top:5px">
+      <a href="https://wa.me/${p.phone}?text=Hello ${p.business}, your product ${p.name} on SANNLAS" target="_blank"><button style="background:green">WhatsApp Seller</button></a>
+      <a href="tel:${p.phone}"><button style="background:#0d47a1">Call ${p.phone}</button></a>
+      <button style="background:#900" onclick="delProd(${p.id})">Delete</button>
+     </div>
+    </div>
+   </div>`).join(''):'No products';
+
+  document.getElementById('bargainsBox').innerHTML=bargains.length?bargains.map(b=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${b.product_name}</b> - Offer UGX ${b.offer} by <span class="green-box">${b.buyer_phone}</span> → Seller <span class="green-box">${b.seller_phone}</span> <a href="https://wa.me/${b.seller_phone}" target="_blank"><button style="background:green">WhatsApp Seller</button></a></div>`).join(''):'No bargains';
+
+  // SELLERS WITH PRIVATE PHONE
+  document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone (Private)</th><th>Location</th><th>Plan</th><th>Action</th></tr>'+sellers.map(s=>`<tr><td><span class="yellow-box">${s.business}</span></td><td><span class="green-box">${s.phone}</span></td><td>${s.location||''}</td><td>${s.plan}</td><td><a href="https://wa.me/${s.phone}" target="_blank"><button style="background:green">WhatsApp</button></a> <a href="tel:${s.phone}"><button>Call</button></a></td></tr>`).join('')+'</table>':'No sellers';
  }).catch(e=>alert('Load error '+e));
 }
 function delProd(id){if(!confirm('Delete product '+id+'?'))return;fetch('/api/delete-product/'+id,{method:'DELETE'}).then(()=>loadData());}
