@@ -36,7 +36,8 @@ input,select,textarea{width:100%;padding:10px;margin:5px 0 10px 0;border:1px sol
 .photo-box{border:2px solid #8B0000;background:#fff3f3;padding:10px;border-radius:10px;margin:8px 0}
 .footer{background:rgba(0,0,0,0.9);color:white;padding:20px;text-align:center;margin-top:20px}
 .job-card{background:white;border-left:5px solid #0d47a1;padding:12px;margin:8px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-.owner-box{background:#111;border-left:4px solid #ff0000;padding:7px;border-radius:8px;margin:6px 0;font-size:12px;line-height:1.4}
+.owner-box{background:#FFCC02!important;color:#000!important;border:2px solid #000!important;padding:9px;border-radius:10px;margin:8px 0;font-weight:bold;font-size:13px;line-height:1.5}
+.owner-box b{color:#8B0000}
 </style>
 </head>
 <body>
@@ -129,6 +130,7 @@ function onMainChange(){let mv=document.getElementById('mainFilter').value;let s
 function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let minP=document.getElementById('minP').value;let maxP=document.getElementById('maxP').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;if(minP)url+=`min=${minP}&`;if(maxP)url+=`max=${maxP}&`;fetch(url).then(r=>r.json()).then(d=>{products=d;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">All Sub</option>';document.getElementById('minP').value='';document.getElementById('maxP').value='';doFilter();}
 fetch('/api/products').then(r=>r.json()).then(d=>{products=d;render();});
+
 function render(){
  if(products.length==0){document.getElementById('products').innerHTML='<p style="color:white;text-align:center;padding:40px">No products found.</p>';return;}
  document.getElementById('products').innerHTML=products.map(p=>`
@@ -138,16 +140,18 @@ function render(){
     <div><span class="cat-tag">${p.main_category||'General'}</span> <span class="cat-tag" style="background:#232f3e">${p.sub_category||''}</span> ${p.verified?' <span style="color:blue">✔️</span>':''} ${p.stock<=3?'<span style="color:red;font-size:10px">Only '+p.stock+' left!</span>':''}</div>
     <h3>${p.name}</h3>
     <p style="color:#8B0000;font-weight:bold">UGX ${p.price.toLocaleString()}</p>
+    <!-- YELLOW SELLER BOX - PHONE HIDDEN -->
     <div class="owner-box">
-     🏪 <b>${p.business||'Sannlas Seller'}</b><br>
-     📞 <a href="tel:${p.phone}" style="color:#2e7d32;text-decoration:none;font-weight:bold">${p.phone||'0795712326'}</a> • <a href="https://wa.me/${p.phone}?text=Hi, I saw ${encodeURIComponent(p.name)} on SANNLAS" target="_blank" style="color:#25D366">WhatsApp</a><br>
-     📍 ${p.location||'Uganda'}
+     🏪 Seller: <b>${p.business||'Sannlas Seller'}</b><br>
+     📍 ${p.location||'Uganda'}<br>
+     <span style="font-size:11px;color:#000">⭐${(p.rating||5).toFixed(1)} • Stock: ${p.stock} • ID: ${p.id}</span>
     </div>
-    <button class="btn" onclick="viewProd(${p.id})">View</button>
-    <button class="btn" onclick="addCart(${p.id})">Add</button>
+    <button class="btn" onclick="viewProd(${p.id})">View Details</button>
+    <button class="btn" onclick="addCart(${p.id})">Add to Cart</button>
    </div>
   </div>`).join('');
 }
+
 function viewProd(id){
  let p=products.find(x=>x.id==id);
  let imgs=(p.images||[p.image]).map(i=>`<img src="${i}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;margin:2px">`).join('');
@@ -157,25 +161,26 @@ function viewProd(id){
   <div>${imgs}</div>
   <img src="${p.image}" style="width:100%;border-radius:10px;margin-top:6px">
   <p><b>UGX ${p.price.toLocaleString()}</b> | Stock: ${p.stock}</p>
+  <!-- YELLOW BOX - PHONE HIDDEN FROM PUBLIC -->
   <div class="owner-box" style="font-size:14px">
-   <b>SELLER INFO</b><br>
+   <b>SELLER INFORMATION</b><br>
    🏪 Business: <b>${p.business}</b><br>
-   📞 Phone: <a href="tel:${p.phone}" style="color:green;font-weight:bold">${p.phone}</a><br>
    📍 Location: ${p.location}<br>
-   Owner: ${OWNER_EMAIL}
+   📦 Stock: ${p.stock} items<br>
+   <span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:5px;font-size:11px">🔒 Seller phone is private - Admin only - Order to contact</span>
   </div>
   <p>${p.description}</p>
   <p>⭐ Rating: ${p.rating||5} (${(p.reviews||[]).length} reviews)</p>
-  <button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart</button>
-  <button class="btn btn-green" onclick="window.open('https://wa.me/${p.phone}?text=Hi, I saw ${encodeURIComponent(p.name)}','_blank')">WhatsApp Seller</button>
-  <button class="btn btn-blue" onclick="bargainProd(${p.id})">💰 Bargain</button>
+  <button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add to Cart - Admin Will Connect You</button>
+  <button class="btn btn-blue" onclick="bargainProd(${p.id})">💰 Make Offer</button>
   <button style="float:right;background:gray;color:white;border:none;padding:8px 12px;border-radius:10px" onclick="closePop('viewPop')">X</button>
   <hr>
   <div><h4>Reviews</h4><div id="revList">${(p.reviews||[]).map(r=>`<p>⭐${r.rating} - ${r.comment}</p>`).join('')||'No reviews yet'}</div><input id="revComment" placeholder="Your review"><select id="revStar"><option value="5">5 Stars</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select><button class="btn" onclick="sendReview(${p.id})">Send Review</button></div>
  `;
  document.getElementById('viewPop').style.display='flex';
 }
-function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;alert(p.name+' added 🛒');}
+
+function addCart(id){let p=products.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;alert(p.name+' added 🛒 Admin will call seller for you!');}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
 function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={region:fd.get('region'),district:fd.get('district'),constituency:fd.get('constituency'),subcounty:fd.get('subcounty'),names:fd.get('names'),phone1:fd.get('phone1'),phone2:fd.get('phone2')};let total=cart.reduce((s,i)=>s+i.price,0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert(' '+d.message);cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
@@ -205,7 +210,6 @@ function showSellStep2(){
  </form>`;
  if(window.chosenMain) sellSubLoad(window.chosenSub);
 }
-
 function previewBulk(input){
  bulkFiles = Array.from(input.files);
  let box=document.getElementById('bulkPreview');
@@ -222,9 +226,7 @@ function previewBulk(input){
   </div>`;
  });
 }
-
 function sellSubLoad(pre){let m=document.getElementById('sellMain').value;let s=document.getElementById('sellSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;if(pre==sub)o.selected=true;s.appendChild(o);});}}
-
 async function doBulkSell(e){
  e.preventDefault();
  if(bulkFiles.length==0){alert('Select at least 1 photo');return;}
@@ -239,32 +241,20 @@ async function doBulkSell(e){
   let stock=document.getElementById(`bstock_${i}`).value||10;
   if(!name||!price){alert('Fill name and price for all items');return;}
   let fd=new FormData();
-  fd.append('name',name);
-  fd.append('price',price);
-  fd.append('stock',stock);
-  fd.append('image',bulkFiles[i]);
-  fd.append('desc',desc);
-  fd.append('business',sellerInfo.business);
-  fd.append('location',sellerInfo.location);
-  fd.append('phone',sellerInfo.phone);
-  fd.append('main_category',main);
-  fd.append('sub_category',sub);
-  await fetch('/api/sell',{method:'POST',body:fd});
-  count++;
+  fd.append('name',name);fd.append('price',price);fd.append('stock',stock);
+  fd.append('image',bulkFiles[i]);fd.append('desc',desc);
+  fd.append('business',sellerInfo.business);fd.append('location',sellerInfo.location);
+  fd.append('phone',sellerInfo.phone);fd.append('main_category',main);fd.append('sub_category',sub);
+  await fetch('/api/sell',{method:'POST',body:fd});count++;
  }
- alert(`✅ ${count} products uploaded! Each has its own price + your phone ${sellerInfo.phone} visible.`);
- closePop('sellPop');
- doFilter();
+ alert(`✅ ${count} products uploaded! Your phone ${sellerInfo.phone} is hidden from buyers, only visible to you in Admin.`);
+ closePop('sellPop');doFilter();
 }
-
-// JOBS FUNCTIONS
 function openJobs(){document.getElementById('jobsPop').style.display='flex';loadJobs();}
 function showJobTab(t){document.getElementById('jobFindTab').style.display=t=='find'?'block':'none';document.getElementById('jobPostTab').style.display=t=='post'?'block':'none';}
 function loadJobs(){let q=document.getElementById('jobSearch').value;let cat=document.getElementById('jobCatFilter').value;let url='/api/jobs?';if(q)url+=`q=${encodeURIComponent(q)}&`;if(cat)url+=`category=${encodeURIComponent(cat)}&`;fetch(url).then(r=>r.json()).then(jobs=>{if(jobs.length==0){document.getElementById('jobsList').innerHTML='<p>No jobs found. Post one!</p>';return;}document.getElementById('jobsList').innerHTML=jobs.map(j=>`<div class="job-card"><h4>${j.title} - ${j.category}</h4><p><b>${j.company}</b> • ${j.location} • ${j.salary||'Negotiable'}</p><p style="font-size:12px">${j.description}</p><p style="font-size:11px;color:#666">📞 ${j.phone} • Posted: ${new Date(j.time*1000).toLocaleDateString()}</p><button class="btn btn-blue" onclick="applyJob(${j.id},'${j.phone}')">Apply Now</button> <a href="https://wa.me/${j.phone}" target="_blank" class="btn btn-green" style="text-decoration:none">WhatsApp</a></div>`).join('');});}
 function postJob(e){e.preventDefault();let fd=new FormData(e.target);let data={title:fd.get('title'),category:fd.get('category'),company:fd.get('company'),location:fd.get('location'),salary:fd.get('salary'),phone:fd.get('phone'),email:fd.get('email'),description:fd.get('description')};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{alert(d.message);showJobTab('find');loadJobs();e.target.reset();});}
 function applyJob(id,sellerPhone){let name=prompt('Your Full Name:');if(!name)return;let phone=prompt('Your Phone:');let msg=prompt('Why should we hire you?');fetch(`/api/jobs/${id}/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,message:msg})}).then(r=>r.json()).then(d=>{alert(d.message+' Employer phone: '+sellerPhone);});}
-
-// CONTACT + BARGAIN + REVIEW
 function openContact(){document.getElementById('contactPop').style.display='flex';}
 function sendContact(e){e.preventDefault();let fd=new FormData(e.target);let data={name:fd.get('name'),email:fd.get('email'),phone:fd.get('phone'),message:fd.get('message')};fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{alert(d.message+' Owner email: '+OWNER_EMAIL);closePop('contactPop');});}
 function bargainProd(id){let offer=prompt('Enter your offer in UGX:');if(!offer)return;let p=products.find(x=>x.id==id);fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer:parseInt(offer),buyer_phone:prompt('Your phone:'),seller_phone:p.phone})}).then(r=>r.json()).then(d=>alert(d.message));}
