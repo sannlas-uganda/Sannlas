@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, request, send_from_directory,render_template
+from flask import Flask, jsonify, request, send_from_directory,render_template,Response
 from flask_cors import CORS
 import os
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
+from functools import wraps
 app = Flask(__name__)
 CORS(app)
 UPLOAD_FOLDER = 'static/uploads'
@@ -50,10 +51,39 @@ def admin_data():
     return jsonify({"sellers": sellers, "orders": orders, "products": products, "total_revenue": total_revenue, "total_sellers": len(sellers), "total_orders": len(orders)})
 @app.route('/static/uploads/<filename>')
 def uploaded_file(filename): return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+from functools import wraps
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Sannlas2026!")
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.password != ADMIN_PASSWORD:
+            return Response('Admin Login Required', 401, {'WWW-Authenticate': 'Basic realm="Admin"'})
+        return f(*args, **kwargs)
+    return decorated
+
+
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "ThE,RISE")
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.password != ADMIN_PASSWORD:
+            return Response('Admin Login Required', 401, {'WWW-Authenticate': 'Basic realm="Admin"'})
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/')
 def serve_frontend(): return send_from_directory('templates', 'index.html')
+
 @app.route('/admin')
+@admin_required
 def serve_admin(): return send_from_directory('templates', 'admin.html')
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
