@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sannlas Admin - Private</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;padding:20px;background:#0f0f0f;color:white;margin:0}
+.card{background:#1e1e1e;padding:15px;margin:12px 0;border-radius:10px;border:1px solid #333}
+h1{color:#ff3333;text-align:center}
+input{padding:12px;width:90%;border-radius:8px;border:none;margin:8px 0;background:#2a2a2a;color:white;font-size:16px}
+button{padding:12px 20px;background:#ff0000;color:white;border:none;border-radius:8px;font-weight:bold;width:100%;font-size:16px}
+.stat{display:inline-block;margin:6px;padding:12px;background:#222;border:1px solid #333;border-radius:8px;min-width:100px;text-align:center}
+table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #333;padding:8px;text-align:left;font-size:14px}th{background:#ff0000}
+#adminContent{display:none}
+#loginBox{max-width:350px;margin:80px auto;background:#1e1e1e;padding:25px;border-radius:12px;text-align:center;border:1px solid #ff0000}
+</style>
+</head>
+<body>
+
+<div id="loginBox">
+<h1> SANNLAS ADMIN</h1>
+<p>Private - Owner Only</p>
+<input type="password" id="pass" placeholder="Enter Admin Password">
+<button onclick="login()">Unlock Dashboard</button>
+<p id="msg" style="color:#ff6666"></p>
+<a href="/" style="color:#aaa;font-size:13px">← Back to Shop</a>
+</div>
+
+<div id="adminContent">
+<h1>SANNLAS UGANDA - ADMIN</h1>
+<a href="/" style="color:#ff6666">← Back to Shop</a> | <a href="#" onclick="logout()" style="color:#aaa">Logout</a>
+<div id="stats"></div>
+<div class="card"><h2>Sellers</h2><div id="sellers">Loading...</div></div>
+<div class="card"><h2>Orders</h2><div id="orders">Loading...</div></div>
+<div class="card"><h2>Products</h2><div id="products">Loading...</div></div>
+<div class="card"><h2>Revenue</h2><div id="revenue"></div></div>
+</div>
+
+<script>
+const MY_PASSWORD = "ThE,RISE!"; // <-- CHANGE THIS TO YOUR OWN SECRET PASSWORD!
+
+function login(){
+  let p = document.getElementById('pass').value;
+  if(p === MY_PASSWORD){
+    localStorage.setItem('sannlas_admin','ok');
+    showAdmin();
+  } else {
+    document.getElementById('msg').innerText = "Wrong password!";
+  }
+}
+function showAdmin(){
+  document.getElementById('loginBox').style.display='none';
+  document.getElementById('adminContent').style.display='block';
+  loadData();
+}
+function logout(){
+  localStorage.removeItem('sannlas_admin');
+  location.reload();
+}
+function loadData(){
+  fetch('/api/admin/data').then(r=>r.json()).then(d=>{
+    document.getElementById('stats').innerHTML=`
+     <div class="stat">Revenue<br><b>UGX ${d.total_revenue||0}</b></div>
+     <div class="stat">Sellers<br><b>${d.total_sellers||0}</b></div>
+     <div class="stat">Orders<br><b>${d.total_orders||0}</b></div>
+     <div class="stat">Products<br><b>${d.products?.length||0}</b></div>
+    `;
+    document.getElementById('sellers').innerHTML='<table><tr><th>Business</th><th>Phone</th><th>Plan</th><th>Expiry</th></tr>'+ (d.sellers||[]).map(s=>`<tr><td>${s.business}</td><td>${s.phone}</td><td>${s.plan}</td><td>${s.expiry}</td></tr>`).join('')+'</table>';
+    document.getElementById('orders').innerHTML='<table><tr><th>Buyer</th><th>District</th><th>Date</th></tr>'+ (d.orders||[]).map(o=>`<tr><td>${o.buyer}</td><td>${o.district}</td><td>${o.date}</td></tr>`).join('')+'</table>';
+    document.getElementById('products').innerHTML=(d.products||[]).map(p=>`${p.name} - UGX ${p.price}`).join('<br>') || 'No products';
+    document.getElementById('revenue').innerText = "Total: UGX " + (d.total_revenue||0);
+  }).catch(e=>{document.getElementById('sellers').innerText='Error: '+e});
+}
+
+// Auto-login if already logged
+if(localStorage.getItem('sannlas_admin')==='ok'){showAdmin();}
+</script>
+</body>
+</html>
