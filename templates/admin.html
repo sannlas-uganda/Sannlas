@@ -1,130 +1,115 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Sannlas Admin - Private</title>
+<title>Sannlas Admin - Private Owner natelieabigail@gmail.com</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:Arial;padding:20px;background:#0f0f0f;color:white;margin:0}
-.card{background:#1e1e1e;padding:15px;margin:12px 0;border-radius:10px;border:1px solid #333}
+body{font-family:Arial;padding:0;background:#0f0f0f;color:white;margin:0}
+.card{background:#1e1e1e;padding:15px;margin:12px;border-radius:10px;border:1px solid #333}
 h1{color:#ff3333;text-align:center}
-input, select{padding:12px;width:95%;border-radius:8px;border:none;margin:8px 0;background:#2a2a2a;color:white;font-size:16px}
-button{padding:12px 20px;background:#ff0000;color:white;border:none;border-radius:8px;font-weight:bold;width:100%;font-size:16px;margin-top:8px;cursor:pointer}
-.stat{display:inline-block;margin:6px;padding:12px;background:#222;border:1px solid #333;border-radius:8px;min-width:100px;text-align:center}
-table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #333;padding:8px;text-align:left;font-size:14px}th{background:#ff0000}
+input,select,textarea{padding:12px;width:95%;border-radius:8px;border:none;margin:8px 0;background:#2a2a2a;color:white;font-size:16px}
+button{padding:12px 20px;background:#ff0000;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin:3px}
+.stat{display:inline-block;margin:6px;padding:12px;background:#222;border:1px solid #333;border-radius:8px;min-width:110px;text-align:center}
+table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #333;padding:8px;text-align:left;font-size:13px}th{background:#ff0000}
 #adminContent{display:none}
-#loginBox{max-width:350px;margin:80px auto;background:#1e1e1e;padding:25px;border-radius:12px;text-align:center;border:1px solid #ff0000}
+#loginBox{max-width:380px;margin:80px auto;background:#1e1e1e;padding:25px;border-radius:12px;text-align:center;border:1px solid #ff0000}
 .search-box{background:#111;padding:12px;border-radius:8px;border:1px solid #444;margin:10px 0}
-.cat-item{padding:8px;background:#2a2a2a;margin:4px 0;border-radius:6px;cursor:pointer}
+.cat-item{padding:8px;background:#2a2a2a;margin:4px 0;border-radius:6px}
 .cat-item:hover{background:#333}
-.sub{color:#ff9999;font-size:13px;margin-left:10px}
+.sub{color:#ff9999;font-size:12px;margin-left:8px}
+.tabs{display:flex;flex-wrap:wrap;gap:5px;padding:10px;background:#111;position:sticky;top:0;z-index:9}
+.t{padding:9px 12px;background:#2a2a2a;border-radius:20px;cursor:pointer;font-size:13px}
+.t.active{background:#ff0000}
+.badge{background:#ff6a00;padding:2px 8px;border-radius:10px;font-size:11px}
 </style>
 </head>
 <body>
 
 <div id="loginBox">
-<h1> SANNLAS ADMIN</h1>
-<p>Private - Owner Only</p>
+<h1>SANNLAS ADMIN</h1>
+<p>Owner: natelieabigail@gmail.com<br>Private</p>
 <input type="password" id="pass" placeholder="Enter Admin Password">
-<button onclick="login()">Unlock Dashboard</button>
+<button onclick="login()" style="width:100%">Unlock Dashboard</button>
 <p id="msg" style="color:#ff6666"></p>
 <a href="/" style="color:#aaa;font-size:13px">← Back to Shop</a>
 </div>
 
 <div id="adminContent">
-<h1>SANNLAS UGANDA - ADMIN</h1>
-<a href="/" style="color:#ff6666">← Back to Shop</a> | <a href="#" onclick="logout()" style="color:#aaa">Logout</a>
-<div id="stats"></div>
+<div style="padding:12px;background:#8B0000;display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center">
+<h2 style="margin:0">SANNLAS UGANDA - OWNER</h2>
+<div><span style="font-size:12px">natelieabigail@gmail.com | 0795712326</span> <a href="/" style="color:white">Shop</a> | <a href="#" onclick="logout()" style="color:#ffaaaa">Logout</a></div>
+</div>
 
+<div id="stats" style="padding:10px"></div>
+
+<div class="tabs">
+<div class="t active" onclick="tab('overview',this)">📊 Overview</div>
+<div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div>
+<div class="t" onclick="tab('jobs',this)">💼 Jobs <span id="cJobs" class="badge">0</span></div>
+<div class="t" onclick="tab('applications',this)">📄 Applications <span id="cApps" class="badge">0</span></div>
+<div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
+<div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
+<div class="t" onclick="tab('bargains',this)">💰 Bargains</div>
+<div class="t" onclick="tab('sellers',this)">👥 Sellers</div>
+<div class="t" onclick="tab('cats',this)">📂 Categories</div>
+</div>
+
+<div id="overview" class="tabPane">
 <div class="card" style="border:1px solid #ff0000">
 <h2>📂 Business Categories - Smart Search (No Scrolling)</h2>
 <div class="search-box">
 <input type="text" id="catSearch" placeholder="🔍 Type to search category e.g. Fish, Shoes, Solar..." onkeyup="filterCats()">
-<div style="display:flex;gap:8px">
-<select id="mainCat" onchange="loadSub()"><option value="">Select Main Category</option></select>
-<select id="subCat"><option value="">Select Subcategory</option></select>
-</div>
-<p style="font-size:12px;color:#aaa">Buyer flow: Choose Main → Sub auto-loads. No scrolling needed.</p>
+<div style="display:flex;gap:8px"><select id="mainCat" onchange="loadSub()"><option value="">Select Main Category</option></select><select id="subCat"><option value="">Select Subcategory</option></select></div>
 </div>
 <div id="catList" style="max-height:300px;overflow-y:auto;background:#111;padding:10px;border-radius:8px"></div>
 </div>
+<div id="overviewData"></div>
+</div>
 
-<div class="card"><h2>Sellers</h2><div id="sellers">Loading...</div></div>
-<div class="card"><h2>Orders</h2><div id="orders">Loading...</div></div>
-<div class="card"><h2>Products</h2><div id="products">Loading...</div></div>
-<div class="card"><h2>Revenue</h2><div id="revenue"></div></div>
+<div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages to natelieabigail@gmail.com</h2><div id="contactsBox">Loading...</div></div></div>
+<div id="jobs" class="tabPane" style="display:none"><div class="card"><h2>💼 Posted Jobs</h2><div id="jobsBox">Loading...</div></div></div>
+<div id="applications" class="tabPane" style="display:none"><div class="card"><h2>📄 Job Applications</h2><div id="appsBox">Loading...</div></div></div>
+<div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
+<div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products</h2><div id="productsBox">Loading...</div></div></div>
+<div id="bargains" class="tabPane" style="display:none"><div class="card"><h2>💰 Bargain Offers</h2><div id="bargainsBox">Loading...</div></div></div>
+<div id="sellers" class="tabPane" style="display:none"><div class="card"><h2>👥 Sellers</h2><div id="sellersBox">Loading...</div></div></div>
+<div id="cats" class="tabPane" style="display:none"><div class="card"><h2>Full Category Map</h2><div id="catsBox"></div></div></div>
 </div>
 
 <script>
-const MY_PASSWORD = "ThE,RISE";
-const BUSINESS_CATEGORIES = {
-"Agriculture & Farming":["Crop Farming","Livestock Farming","Poultry Farming","Dairy Farming","Fish Farming","Beekeeping","Horticulture","Floriculture","Farm Machinery","Seeds & Fertilizers","Animal Feeds"],
-"Food & Beverages":["Restaurants","Fast Food","Cafes","Bakeries","Butcheries","Supermarkets","Grocery Stores","Catering","Food Delivery","Beverages","Food Processing","Fresh Foods"],
-"Construction & Building":["Cement","Bricks & Blocks","Sand & Aggregates","Roofing Materials","Steel & Metal","Plumbing Materials","Electrical Materials","Paints","Tiles","Doors & Windows","Building Tools","Construction Machinery","Road Construction","Interior Finishing","Landscaping"],
-"Real Estate":["Land","Houses","Apartments","Offices","Shops","Warehouses","Rental Properties","Commercial Buildings","Property Management","Real Estate Agencies"],
-"Fashion & Clothing":["Men's Clothing","Women's Clothing","Children's Clothing","Suits","Dresses","Shirts","Trousers","Shoes","Bags","Sportswear","Underwear","Jewelry","Watches","Fashion Accessories"],
-"Electronics & Technology":["Mobile Phones","Laptops","Desktop Computers","Tablets","Televisions","Cameras","Speakers","Headphones","Computer Accessories","Phone Accessories","Printers","Gaming Devices","Smart Devices","Home Appliances"],
-"Automotive":["Cars","Motorcycles","Trucks","Buses","Car Parts","Motorcycle Parts","Tires","Batteries","Car Accessories","Car Repair","Car Washing","Car Rental","Vehicle Insurance"],
-"Health & Medical":["Hospitals","Clinics","Pharmacies","Medical Equipment","Medical Supplies","Laboratories","Dental Services","Optical Services","Nursing Services","Home Healthcare"],
-"Beauty & Personal Care":["Cosmetics","Skincare","Hair Products","Hair Salons","Barbershops","Makeup","Perfumes","Nail Care","Spa Services","Beauty Equipment"],
-"Education":["Schools","Universities","Vocational Training","Online Courses","Tutoring","Books","Stationery","Educational Software","Training Centers","Educational Consultancy"],
-"Financial Services":["Banking","Insurance","Loans","Microfinance","Accounting","Auditing","Investment","Tax Services","Financial Consultancy","Payment Services"],
-"Transport & Logistics":["Taxi Services","Bus Services","Trucking","Motorcycle Transport","Courier Services","Delivery Services","Freight Forwarding","Warehousing","Shipping","Moving Services"],
-"Travel & Tourism":["Hotels","Lodges","Resorts","Travel Agencies","Tour Operators","Safari Services","Car Hire","Tourist Attractions","Travel Booking","Airlines"],
-"Entertainment & Media":["Music","Movies","Photography","Videography","Gaming","DJs","Event Management","Radio","Television","Publishing","Streaming"],
-"Sports & Fitness":["Gyms","Fitness Training","Sports Equipment","Sportswear","Football","Basketball","Swimming","Martial Arts","Sports Clubs","Fitness Centers"],
-"Home & Furniture":["Sofas","Beds","Tables","Chairs","Cabinets","Mattresses","Curtains","Carpets","Kitchen Equipment","Home Decorations","Household Products"],
-"Energy & Utilities":["Solar Energy","Solar Panels","Batteries","Generators","Electrical Equipment","Gas","Water Supply","Renewable Energy","Energy Services"],
-"Manufacturing":["Textile Manufacturing","Food Manufacturing","Furniture Manufacturing","Metal Fabrication","Plastic Products","Chemical Products","Paper Products","Machinery","Industrial Equipment","Packaging"],
-"Professional Services":["Lawyers","Accountants","Engineers","Architects","Surveyors","Consultants","Marketing Agencies","Advertising Agencies","HR Services","Business Consultancy"],
-"Information Technology":["Website Development","Mobile App Development","Software Development","Cybersecurity","Cloud Services","Data Services","Artificial Intelligence","Computer Repair","Networking","Digital Marketing"],
-"Telecommunications":["Mobile Networks","Internet Services","Fiber Internet","Broadband","SIM Cards","Communication Equipment","Telecommunication Services"],
-"Home & Property Services":["Cleaning","Plumbing","Electrical Services","Painting","Carpentry","Masonry","Roofing","Gardening","Pest Control","Security Services"],
-"Security Services":["Security Guards","CCTV Systems","Alarm Systems","Access Control","Security Equipment","Security Consultancy","Private Investigation"],
-"Pets & Animals":["Pet Food","Pet Accessories","Veterinary Services","Pet Grooming","Pet Shops","Animal Breeding","Animal Equipment"],
-"Events & Weddings":["Wedding Planning","Event Decoration","Catering","Photography","Videography","Wedding Dresses","Event Venues","Entertainment","Event Equipment"],
-"Printing & Stationery":["Printing","Graphic Design","Business Cards","Posters","Books","Stationery","Branding","Sign Making","Packaging"],
-"Repair & Maintenance Services":["Phone Repair","Computer Repair","Appliance Repair","Vehicle Repair","Electrical Repair","Plumbing Repair","Machinery Repair","Furniture Repair"],
-"Business & Consulting Services":["Business Consulting","Management Consulting","Marketing Consulting","Financial Consulting","IT Consulting","Human Resources","Business Registration","Entrepreneurship Services"]
-};
-
-function initCats(){
- let main = document.getElementById('mainCat');
- Object.keys(BUSINESS_CATEGORIES).forEach(c=>{
-   let o=document.createElement('option');o.value=c;o.innerText=c;main.appendChild(o);
- });
- renderCats(BUSINESS_CATEGORIES);
-}
-function loadSub(){
- let m=document.getElementById('mainCat').value;
- let s=document.getElementById('subCat');s.innerHTML='<option value="">Select Subcategory</option>';
- if(BUSINESS_CATEGORIES[m]){BUSINESS_CATEGORIES[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.innerText=sub;s.appendChild(o);});}
-}
-function renderCats(data){
- let html='';
- Object.entries(data).forEach(([main, subs])=>{
-   html+=`<div class="cat-item"><b>${main}</b><div class="sub">${subs.join(' • ')}</div></div>`;
- });
- document.getElementById('catList').innerHTML=html||'No match';
-}
-function filterCats(){
- let q=document.getElementById('catSearch').value.toLowerCase();
- if(!q){renderCats(BUSINESS_CATEGORIES);return;}
- let filtered={};
- Object.entries(BUSINESS_CATEGORIES).forEach(([main, subs])=>{
-   if(main.toLowerCase().includes(q)){filtered[main]=subs;}
-   else {
-     let matchSubs=subs.filter(s=>s.toLowerCase().includes(q));
-     if(matchSubs.length>0) filtered[main]=matchSubs;
-   }
- });
- renderCats(filtered);
-}
-
-function login(){let p=document.getElementById('pass').value;if(p===MY_PASSWORD){localStorage.setItem('sannlas_admin','ok');showAdmin();}else{document.getElementById('msg').innerText="Wrong password!";}}
+const MY_PASSWORD="ThE,RISE";
+const BUSINESS_CATEGORIES={"Agriculture & Farming":["Crop Farming","Livestock Farming","Poultry Farming","Dairy Farming","Fish Farming","Beekeeping","Horticulture","Floriculture","Farm Machinery","Seeds & Fertilizers","Animal Feeds"],"Food & Beverages":["Restaurants","Fast Food","Cafes","Bakeries","Butcheries","Supermarkets","Grocery Stores","Catering","Food Delivery","Beverages","Food Processing","Fresh Foods"],"Construction & Building":["Cement","Bricks & Blocks","Sand & Aggregates","Roofing Materials","Steel & Metal","Plumbing Materials","Electrical Materials","Paints","Tiles","Doors & Windows","Building Tools","Construction Machinery","Road Construction","Interior Finishing","Landscaping"],"Real Estate":["Land","Houses","Apartments","Offices","Shops","Warehouses","Rental Properties","Commercial Buildings","Property Management","Real Estate Agencies"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Children's Clothing","Suits","Dresses","Shirts","Trousers","Shoes","Bags","Sportswear","Underwear","Jewelry","Watches","Fashion Accessories"],"Electronics & Technology":["Mobile Phones","Laptops","Desktop Computers","Tablets","Televisions","Cameras","Speakers","Headphones","Computer Accessories","Phone Accessories","Printers","Gaming Devices","Smart Devices","Home Appliances"],"Automotive":["Cars","Motorcycles","Trucks","Buses","Car Parts","Motorcycle Parts","Tires","Batteries","Car Accessories","Car Repair","Car Washing","Car Rental","Vehicle Insurance"],"Health & Medical":["Hospitals","Clinics","Pharmacies","Medical Equipment","Medical Supplies","Laboratories","Dental Services","Optical Services","Nursing Services","Home Healthcare"],"Beauty & Personal Care":["Cosmetics","Skincare","Hair Products","Hair Salons","Barbershops","Makeup","Perfumes","Nail Care","Spa Services","Beauty Equipment"],"Education":["Schools","Universities","Vocational Training","Online Courses","Tutoring","Books","Stationery","Educational Software","Training Centers","Educational Consultancy"],"Financial Services":["Banking","Insurance","Loans","Microfinance","Accounting","Auditing","Investment","Tax Services","Financial Consultancy","Payment Services"],"Transport & Logistics":["Taxi Services","Bus Services","Trucking","Motorcycle Transport","Courier Services","Delivery Services","Freight Forwarding","Warehousing","Shipping","Moving Services"],"Travel & Tourism":["Hotels","Lodges","Resorts","Travel Agencies","Tour Operators","Safari Services","Car Hire","Tourist Attractions","Travel Booking","Airlines"],"Entertainment & Media":["Music","Movies","Photography","Videography","Gaming","DJs","Event Management","Radio","Television","Publishing","Streaming"],"Sports & Fitness":["Gyms","Fitness Training","Sports Equipment","Sportswear","Football","Basketball","Swimming","Martial Arts","Sports Clubs","Fitness Centers"],"Home & Furniture":["Sofas","Beds","Tables","Chairs","Cabinets","Mattresses","Curtains","Carpets","Kitchen Equipment","Home Decorations","Household Products"],"Energy & Utilities":["Solar Energy","Solar Panels","Batteries","Generators","Electrical Equipment","Gas","Water Supply","Renewable Energy","Energy Services"],"Manufacturing":["Textile Manufacturing","Food Manufacturing","Furniture Manufacturing","Metal Fabrication","Plastic Products","Chemical Products","Paper Products","Machinery","Industrial Equipment","Packaging"],"Professional Services":["Lawyers","Accountants","Engineers","Architects","Surveyors","Consultants","Marketing Agencies","Advertising Agencies","HR Services","Business Consultancy"],"Information Technology":["Website Development","Mobile App Development","Software Development","Cybersecurity","Cloud Services","Data Services","Artificial Intelligence","Computer Repair","Networking","Digital Marketing"],"Telecommunications":["Mobile Networks","Internet Services","Fiber Internet","Broadband","SIM Cards","Communication Equipment","Telecommunication Services"],"Home & Property Services":["Cleaning","Plumbing","Electrical Services","Painting","Carpentry","Masonry","Roofing","Gardening","Pest Control","Security Services"],"Security Services":["Security Guards","CCTV Systems","Alarm Systems","Access Control","Security Equipment","Security Consultancy","Private Investigation"],"Pets & Animals":["Pet Food","Pet Accessories","Veterinary Services","Pet Grooming","Pet Shops","Animal Breeding","Animal Equipment"],"Events & Weddings":["Wedding Planning","Event Decoration","Catering","Photography","Videography","Wedding Dresses","Event Venues","Entertainment","Event Equipment"],"Printing & Stationery":["Printing","Graphic Design","Business Cards","Posters","Books","Stationery","Branding","Sign Making","Packaging"],"Repair & Maintenance Services":["Phone Repair","Computer Repair","Appliance Repair","Vehicle Repair","Electrical Repair","Plumbing Repair","Machinery Repair","Furniture Repair"],"Business & Consulting Services":["Business Consulting","Management Consulting","Marketing Consulting","Financial Consulting","IT Consulting","Human Resources","Business Registration","Entrepreneurship Services"]};
+let ALL={};
+function initCats(){let m=document.getElementById('mainCat');Object.keys(BUSINESS_CATEGORIES).forEach(c=>{let o=document.createElement('option');o.value=c;o.text=c;m.appendChild(o);});renderCats(BUSINESS_CATEGORIES);document.getElementById('catsBox').innerHTML=Object.entries(BUSINESS_CATEGORIES).map(([k,v])=>`<div class="cat-item"><b>${k}</b><div class="sub">${v.join(' • ')}</div></div>`).join('');}
+function loadSub(){let mv=document.getElementById('mainCat').value;let s=document.getElementById('subCat');s.innerHTML='<option value="">Select Subcategory</option>';if(BUSINESS_CATEGORIES[mv])BUSINESS_CATEGORIES[mv].forEach(x=>{let o=document.createElement('option');o.value=x;o.text=x;s.appendChild(o);});}
+function renderCats(data){let h='';Object.entries(data).forEach(([main,subs])=>{h+=`<div class="cat-item"><b>${main}</b><div class="sub">${subs.join(' • ')}</div></div>`});document.getElementById('catList').innerHTML=h||'No match';}
+function filterCats(){let q=document.getElementById('catSearch').value.toLowerCase();if(!q){renderCats(BUSINESS_CATEGORIES);return;}let f={};Object.entries(BUSINESS_CATEGORIES).forEach(([main,subs])=>{if(main.toLowerCase().includes(q))f[main]=subs;else{let ms=subs.filter(s=>s.toLowerCase().includes(q));if(ms.length)f[main]=ms;}});renderCats(f);}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+function login(){if(document.getElementById('pass').value===MY_PASSWORD){localStorage.setItem('sannlas_admin','ok');showAdmin();}else document.getElementById('msg').innerText='Wrong password!';}
 function showAdmin(){document.getElementById('loginBox').style.display='none';document.getElementById('adminContent').style.display='block';initCats();loadData();}
 function logout(){localStorage.removeItem('sannlas_admin');location.reload();}
-function loadData(){fetch('/api/admin/data').then(r=>r.json()).then(d=>{document.getElementById('stats').innerHTML=`<div class="stat">Revenue<br><b>UGX ${d.total_revenue||0}</b></div><div class="stat">Sellers<br><b>${d.total_sellers||0}</b></div><div class="stat">Orders<br><b>${d.total_orders||0}</b></div><div class="stat">Products<br><b>${d.products?.length||0}</b></div>`;document.getElementById('sellers').innerHTML='<table><tr><th>Business</th><th>Phone</th><th>Plan</th><th>Expiry</th></tr>'+ (d.sellers||[]).map(s=>`<tr><td>${s.business}</td><td>${s.phone}</td><td>${s.plan}</td><td>${s.expiry}</td></tr>`).join('')+'</table>';document.getElementById('orders').innerHTML='<table><tr><th>Buyer</th><th>District</th><th>Date</th></tr>'+ (d.orders||[]).map(o=>`<tr><td>${o.buyer}</td><td>${o.district}</td><td>${o.date}</td></tr>`).join('')+'</table>';document.getElementById('products').innerHTML=(d.products||[]).map(p=>`${p.name} - UGX ${p.price}`).join('<br>') || 'No products';document.getElementById('revenue').innerText="Total: UGX "+(d.total_revenue||0);}).catch(e=>{document.getElementById('sellers').innerText='Error: '+e});}
-if(localStorage.getItem('sannlas_admin')==='ok'){showAdmin();}
+function loadData(){
+ fetch('/api/admin/data').then(r=>r.json()).then(d=>{
+  ALL=d;
+  let prods=d.products||[], sellers=d.sellers||[], orders=d.orders||[], jobs=d.jobs||[], contacts=d.contacts||[], apps=d.applications||[], bargains=d.bargains||[];
+  document.getElementById('cContacts').innerText=contacts.length;
+  document.getElementById('cJobs').innerText=jobs.length;
+  document.getElementById('cApps').innerText=apps.length;
+  document.getElementById('cOrders').innerText=orders.length;
+  document.getElementById('cProds').innerText=prods.length;
+  document.getElementById('stats').innerHTML=`<div class="stat">Revenue<br><b>UGX ${d.total_revenue||0}</b></div><div class="stat">Sellers<br><b>${sellers.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Messages<br><b>${contacts.length}</b></div><div class="stat">Jobs<br><b>${jobs.length}</b></div><div class="stat">Apps<br><b>${apps.length}</b></div>`;
+  document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Recent Messages to Owner</h3>${contacts.slice(-3).reverse().map(c=>`${c.name} (${c.email}): ${c.message}`).join('<br>')||'No messages'}</div>`;
+  document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email} - ${c.phone||''}<br>${c.message}<br><small>${c.time?new Date(c.time*1000).toLocaleString():''}</small><br><a href="mailto:${c.email}"><button>Reply Email</button></a> <a href="https://wa.me/${c.phone}" target="_blank"><button style="background:green">WhatsApp</button></a></div>`).join(''):'No messages yet';
+  document.getElementById('jobsBox').innerHTML=jobs.length?jobs.slice().reverse().map(j=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${j.title}</b> - ${j.category} - ${j.company}<br>${j.location} - ${j.salary} - ${j.phone}<br>${j.description}</div>`).join(''):'No jobs';
+  document.getElementById('appsBox').innerHTML=apps.length?apps.slice().reverse().map(a=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>Job ${a.job_id}</b> - ${a.name} - ${a.phone}<br>${a.message||''}<br><a href="https://wa.me/${a.phone}" target="_blank"><button style="background:green">Contact</button></a></div>`).join(''):'No applications';
+  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>Buyer</th><th>Phone</th><th>District</th><th>Total</th></tr>'+orders.map(o=>`<tr><td>${o.buyer?.names||o.buyer||''}</td><td>${o.buyer?.phone1||''}</td><td>${o.buyer?.district||o.district||''}</td><td>${o.total||''}</td></tr>`).join('')+'</table>':'No orders';
+  document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:6px 0"><span>${p.name} - UGX ${p.price} - Stock ${p.stock}</span><button style="background:#900" onclick="delProd(${p.id})">Del</button></div>`).join(''):'No products';
+  document.getElementById('bargainsBox').innerHTML=bargains.length?bargains.map(b=>`${b.product_name} - Offer ${b.offer} by ${b.buyer_phone}`).join('<br>'):'No bargains';
+  document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone</th><th>Plan</th></tr>'+sellers.map(s=>`<tr><td>${s.business}</td><td>${s.phone}</td><td>${s.plan}</td></tr>`).join('')+'</table>':'No sellers';
+ }).catch(e=>alert('Load error '+e));
+}
+function delProd(id){if(!confirm('Delete product '+id+'?'))return;fetch('/api/delete-product/'+id,{method:'DELETE'}).then(()=>loadData());}
+if(localStorage.getItem('sannlas_admin')==='ok')showAdmin();
 </script>
 </body>
 </html>
