@@ -183,7 +183,8 @@ def get_products():
     filtered=sorted(filtered,key=lambda x:(x.get('boosted',0),x.get('created',0)),reverse=True)
     public=[]
     for p in filtered:
-        if p.get('subscription_expires',0) < time.time(): continue
+        # FIX: Products stay until seller deletes - do NOT hide by subscription_expires
+        # if p.get('subscription_expires',0) < time.time(): continue
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
 
@@ -273,7 +274,6 @@ def delete_prod(pid):
             cur.execute("SELECT id, data FROM products")
             rows=cur.fetchall()
             for row in rows:
-                # row can be tuple or dict_row
                 if isinstance(row, dict):
                     r_id, r_data = row['id'], row['data']
                 else:
