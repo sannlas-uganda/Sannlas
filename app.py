@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response, send_from_directory
 import os, json, uuid, time, hashlib
 from werkzeug.utils import secure_filename
 
@@ -139,6 +139,57 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/plans')
 def get_plans(): return jsonify(PLANS)
 
+# === PWA ROUTES - FREE APP INSTALL - ADDED ONLY ===
+@app.route('/manifest.json')
+def manifest():
+    return jsonify({
+        "name": "SANNLAS UGANDA",
+        "short_name": "SANNLAS",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#c0392b",
+        "theme_color": "#000000",
+        "orientation": "any",
+        "description": "Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers - Uganda",
+        "icons": [
+            {"src": "/icon-192.png","sizes": "192x192","type": "image/png","purpose": "any maskable"},
+            {"src": "/icon-512.png","sizes": "512x512","type": "image/png","purpose": "any maskable"}
+        ]
+    })
+
+@app.route('/service-worker.js')
+def sw():
+    js = """
+const CACHE = "sannlas-v1";
+const FILES = ["/","/manifest.json"];
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
+});
+self.addEventListener("fetch", e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).catch(()=>caches.match("/")))
+  );
+});
+"""
+    return Response(js, mimetype='application/javascript')
+
+@app.route('/icon-192.png')
+def icon192():
+    # serve if you upload icons to static, else fallback placeholder
+    try:
+        return send_from_directory('static', 'icon-192.png')
+    except:
+        return send_from_directory('static/uploads', 'icon-192.png') if os.path.exists('static/uploads/icon-192.png') else ("", 204)
+
+@app.route('/icon-512.png')
+def icon512():
+    try:
+        return send_from_directory('static', 'icon-512.png')
+    except:
+        return send_from_directory('static/uploads', 'icon-512.png') if os.path.exists('static/uploads/icon-512.png') else ("", 204)
+# === END PWA ROUTES ===
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json
@@ -185,8 +236,6 @@ def get_products():
     filtered=sorted(filtered,key=lambda x:(x.get('boosted',0),x.get('created',0)),reverse=True)
     public=[]
     for p in filtered:
-        # FIX: Products stay until seller deletes - do NOT hide by subscription_expires
-        # if p.get('subscription_expires',0) < time.time(): continue
         pp=p.copy(); pp.pop('phone',None)
         seller=next((u for u in users if u.get('phone')==p.get('phone') or u.get('business')==p.get('business')),None)
         pp['seller_verified']=seller.get('verified',False) if seller else False
@@ -244,7 +293,6 @@ def sell():
         products.append(prod); save_db('products.json', products)
     return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - Continuous Down'})
 
-# === NEW FEATURES START ===
 @app.route('/api/follow', methods=['POST'])
 def follow_seller():
     data=request.json; business=data.get('business'); follower_phone=data.get('follower_phone'); follower_email=data.get('follower_email','').lower()
@@ -319,7 +367,6 @@ def update_order():
             o['status']=new_status; o['boda_phone']=boda_phone; o['boda_name']=boda_name
     save_db('orders.json',orders)
     return jsonify({'success':True,'message':f'Order {new_status}'})
-# === NEW FEATURES END ===
 
 @app.route('/api/seller/sales')
 def seller_sales():
