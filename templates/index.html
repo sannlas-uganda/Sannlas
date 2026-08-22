@@ -53,20 +53,17 @@ body{font-family:Arial;background:#c0392b}
 <a href="/admin" class="btn" style="text-decoration:none;background:#333">Admin</a>
 </div>
 </div>
-
 <div class="search-bar">
 <input id="searchInput" placeholder="Search products..." onkeyup="doFilter()">
 <select id="mainFilter" onchange="onMainChange()"><option value="">All</option></select>
 <select id="subFilter" onchange="doFilter()"><option value="">Sub</option></select>
 <button class="btn" onclick="clearFilter()">Clear</button>
-<a href="https://wa.me/256795712328?text=Hello SANNLAS Owner" target="_blank" class="btn" style="background:#25D366;text-decoration:none">💬 WhatsApp Owner</a>
+<a href="https://wa.me/256795712326?text=Hello SANNLAS Owner" target="_blank" class="btn" style="background:#25D366;text-decoration:none">💬 WhatsApp Owner</a>
 <a href="mailto:natelieabigali@gmail.com?subject=SANNLAS Inquiry" class="btn" style="background:#000;text-decoration:none">✉️ Message Owner</a>
 </div>
-
-<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Bargains • MoMo 0795712328 • Owner natelieabigali@gmail.com</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none"></p></div>
-
+<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Bargains • MoMo 0795712326 • Owner natelieabigali@gmail.com</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none"></p></div>
 <div id="frontUpload" class="front-upload">
-<h2 style="color:#8B0000;text-align:center">📦 SELL - Continuous Down - Subscription Required After 14 Days</h2>
+<h2 style="color:#8B0000;text-align:center">📦 SELL - Continuous Down - 14 Days FREE (NO PAYMENT) - Payment remains after 14 days</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <input id="frontBiz" placeholder="Business Name e.g. Bright future Pharma">
 <select id="frontLocation"><option value="">Select District</option></select>
@@ -77,7 +74,7 @@ body{font-family:Arial;background:#c0392b}
 </div>
 <input id="frontPhoneReal" placeholder="Your Phone - ADMIN ONLY SEES - 256..." style="background:#FFCC02;border:2px solid #000">
 <select id="sellerPlan" style="border:2px solid green;font-weight:bold">
-<option value="free14">14 Days FREE Trial</option>
+<option value="free14">14 Days FREE Trial - NO PAYMENT NEEDED</option>
 <option value="30">30 Days - UGX 6,540</option>
 <option value="60">2 Months - UGX 13,090</option>
 <option value="180">6 Months - UGX 39,500</option>
@@ -91,11 +88,8 @@ body{font-family:Arial;background:#c0392b}
 <div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready - No phone text on front</div>
 <button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> TO FRONT - Continuous Down</button>
 </div>
-
 <div class="products" id="products"></div>
 <div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn btn-green" style="display:none;padding:12px 25px" onclick="loadMore()">Load More</button></div>
-
-<!-- AUTH SECTION BOTTOM -->
 <div id="authSection" class="auth-section">
 <h2 style="text-align:center">🔐 Login / Register / Sign Up - Sellers & Buyers</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;max-width:1000px;margin:15px auto">
@@ -107,7 +101,7 @@ body{font-family:Arial;background:#c0392b}
 <input id="regBiz" placeholder="Business Name (Sellers only)">
 <select id="regRole"><option value="seller">I am Seller</option><option value="buyer">I am Buyer</option></select>
 <button class="btn btn-green" style="width:100%;padding:10px" onclick="doRegister()">Register - FREE 14 Days</button>
-<p style="font-size:10px;margin-top:5px">After 14 days: 30d 6540, 2mo 13090, 6mo 39500, 1yr 80000 - MoMo 0795712328</p>
+<p style="font-size:10px;margin-top:5px">After 14 days: 30d 6540, 2mo 13090, 6mo 39500, 1yr 80000 - MoMo 0795712326</p>
 </div>
 <div class="auth-box">
 <h3>🔑 Login</h3>
@@ -118,7 +112,6 @@ body{font-family:Arial;background:#c0392b}
 <div id="loginStatus" style="background:#f0f0f0;padding:8px;border-radius:8px;margin-top:8px;font-size:11px">Not logged in</div>
 </div>
 </div>
-
 <div class="auth-box" style="max-width:1000px" id="mySalesBox">
 <h3>📊 My Private Sales - Only You See After Login + Admin Sees</h3>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -130,11 +123,8 @@ body{font-family:Arial;background:#c0392b}
 <div id="myProductsContent"></div>
 </div>
 </div>
-
-<!-- POPUPS -->
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Your Phone" required><input name="district" placeholder="District" required><button class="btn btn-green" style="width:100%">Confirm</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
-
 <div class="popup" id="subPop"><div class="popup-content">
 <h2 style="color:green">💳 Seller Subscription - Automated</h2>
 <p>14 days free then system blocks upload until you pay</p>
@@ -150,10 +140,9 @@ body{font-family:Arial;background:#c0392b}
 <input id="momoCode" placeholder="Enter MoMo Transaction Code after paying">
 <button class="btn btn-green" onclick="submitPay()">Submit Code - Admin Activates</button>
 </div>
-<p>MoMo <b>0795712328</b> - After pay enter code, admin activates in 5 mins.</p>
+<p>MoMo <b>0795712326</b> - After pay enter code, admin activates in 5 mins.</p>
 <button onclick="closePop('subPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px">Close</button>
 </div></div>
-
 <div class="popup" id="jobsPop"><div class="popup-content">
 <h2>💼 Jobs in Uganda</h2>
 <form onsubmit="postJob(event)">
@@ -166,7 +155,6 @@ body{font-family:Arial;background:#c0392b}
 <div id="jobsList" style="margin-top:10px"></div>
 <button onclick="closePop('jobsPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
-
 <div class="popup" id="applyPop"><div class="popup-content">
 <h2>📝 Job Applications</h2>
 <form onsubmit="applyJob(event)">
@@ -178,13 +166,11 @@ body{font-family:Arial;background:#c0392b}
 </form>
 <button onclick="closePop('applyPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
-
 <div class="popup" id="ordersPop"><div class="popup-content">
 <h2>📦 All Orders</h2>
 <div id="ordersList">Loading...</div>
 <button onclick="closePop('ordersPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
-
 <script>
 let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], currentUser=null, selectedPayPlan='30';
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
@@ -200,20 +186,20 @@ function render(isNew=false){
  let toShow=products.slice(0,visibleCount);
  document.getElementById('products').innerHTML=toShow.map(p=>{
   let newTag = isNew?'<span class="new-badge">NEW</span>':'';
-  return `<div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> ${newTag}</div><h4>${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div class="seller-box"><b>🏪 ${p.business||'Seller'}</b><br>📍 ${p.location||'Kampala'}<br>Stock:${p.stock||10} ID:${p.id}</div><div class="card-btns"><button class="view-btn" onclick="viewProd(${p.id})">View</button><button class="cart-btn" onclick="addCart(${p.id})">Cart</button><a href="https://wa.me/256795712328?text=Hi want ${encodeURIComponent(p.name)}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%">WhatsApp</button></a><button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button></div></div></div>`;
+  return `<div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> ${newTag}</div><h4>${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div class="seller-box"><b>🏪 ${p.business||'Seller'}</b><br>📍 ${p.location||'Kampala'}<br>Stock:${p.stock||10} ID:${p.id}</div><div class="card-btns"><button class="view-btn" onclick="viewProd(${p.id})">View</button><button class="cart-btn" onclick="addCart(${p.id})">Cart</button><a href="https://wa.me/256795712326?text=Hi want ${encodeURIComponent(p.name)}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%">WhatsApp</button></a><button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button></div></div></div>`;
  }).join('');
  document.getElementById('loadMoreBtn').style.display=products.length>visibleCount?'inline-block':'none';
  if(products.length>visibleCount) document.getElementById('loadMoreBtn').innerText=`Load More ${Math.min(50,products.length-visibleCount)} - ${visibleCount}/${products.length}`;
 }
 function loadMore(){visibleCount+=50;render();}
-function viewProd(id){let p=products.find(x=>x.id==id)||allProducts.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p><div class="seller-box">Seller: ${p.business}<br>${p.location}<br>Stock:${p.stock}</div><p>${p.description||''}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px"><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Cart</button><a href="https://wa.me/256795712328?text=Inquiry ${encodeURIComponent(p.name)}" target="_blank" class="btn" style="background:#25D366;text-align:center;text-decoration:none">WhatsApp Reply</a><a href="mailto:natelieabigali@gmail.com?subject=${encodeURIComponent(p.name)}" class="btn" style="background:#000;text-align:center;text-decoration:none">Message Owner Email</a><button class="btn" style="background:#9c27b0" onclick="makeBargain(${p.id})">Bargain</button></div><button style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
+function viewProd(id){let p=products.find(x=>x.id==id)||allProducts.find(x=>x.id==id);document.getElementById('viewContent').innerHTML=`<h3>${p.name}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b></p><div class="seller-box">Seller: ${p.business}<br>${p.location}<br>Stock:${p.stock}</div><p>${p.description||''}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px"><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Cart</button><a href="https://wa.me/256795712326?text=Inquiry ${encodeURIComponent(p.name)}" target="_blank" class="btn" style="background:#25D366;text-align:center;text-decoration:none">WhatsApp Reply</a><a href="mailto:natelieabigali@gmail.com?subject=${encodeURIComponent(p.name)}" class="btn" style="background:#000;text-align:center;text-decoration:none">Message Owner Email</a><button class="btn" style="background:#9c27b0" onclick="makeBargain(${p.id})">Bargain</button></div><button style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
 function addCart(id){let p=allProducts.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
 function openPopup(id){document.getElementById(id).style.display='flex';if(id=='ordersPop') loadOrders(); if(id=='jobsPop') fetchJobs();}
 function closePop(id){document.getElementById(id).style.display='none';}
 function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order sent! Owner replies via WhatsApp/Email');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
 function selectPlan(plan){document.getElementById('sellerPlan').value=plan;closePop('subPop');alert('Plan '+plan+' selected');}
-function payPlan(plan){selectedPayPlan=plan;document.getElementById('sellerPlan').value=plan;document.getElementById('payBox').style.display='block';alert('Pay UGX for '+plan+' to MoMo 0795712328 then enter transaction code');}
+function payPlan(plan){selectedPayPlan=plan;document.getElementById('sellerPlan').value=plan;document.getElementById('payBox').style.display='block';alert('Pay UGX for '+plan+' to MoMo 0795712326 then enter transaction code');}
 function submitPay(){
  let code=document.getElementById('momoCode').value; if(!code){alert('Enter MoMo code');return;}
  if(!currentUser){alert('Login first to link payment to your account');return;}
@@ -227,24 +213,20 @@ async function frontUploadAll(){
  let biz=document.getElementById('frontBiz').value;if(!biz){alert('Business Name required');return;}
  let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Phone required');return;}
  let plan=document.getElementById('sellerPlan').value;let main=document.getElementById('frontMain').value||'General';let sub=document.getElementById('frontSub').value||'General';
-
- // === ONLY NEW CHECK: PAY BEFORE UPLOAD STRICT ===
  if(plan!=='free14'){
    if(!currentUser){
-     alert('⚠️ PAY BEFORE UPLOAD: You chose '+plan+' which requires payment. Login first, Pay MoMo 0795712328, enter code in Subscription popup, admin activates, then upload.');
+     alert('⚠️ PAY BEFORE UPLOAD: You chose '+plan+' which requires payment. Login first, Pay MoMo 0795712326, enter code in Subscription popup, admin activates, then upload.');
      openPopup('subPop'); return;
    }
    let active = currentUser.subscription_expires*1000 > Date.now();
    let samePlan = currentUser.plan===plan;
    let paid = currentUser.paid===true;
    if(!active ||!paid ||!samePlan){
-     document.getElementById('frontStatus').innerHTML=`❌ PAY REQUIRED: Choose ${plan} needs UGX. Pay MoMo 0795712328 first.`;
-     alert(`⚠️ PAY BEFORE UPLOAD BLOCKED\n\nYou selected paid plan: ${plan}\nYour current: ${currentUser.plan_name} Paid:${currentUser.paid} Active:${active}\n\nACTION: Pay to MoMo 0795712328\nThen enter transaction code in 💳 Subscription popup\nAdmin activates -> then upload will work`);
+     document.getElementById('frontStatus').innerHTML=`❌ PAY REQUIRED: Choose ${plan} needs UGX. Pay MoMo 0795712326 first.`;
+     alert(`⚠️ PAY BEFORE UPLOAD BLOCKED - You selected paid plan: ${plan} - Pay to MoMo 0795712326 Then enter transaction code`);
      openPopup('subPop'); return;
    }
  }
- // === END ONLY NEW CHECK ===
-
  for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter OWN price for item ${i+1}`);return;}}
  let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=10;
  status.innerHTML=`⏳ Checking subscription for ${phone}...`;
@@ -259,7 +241,7 @@ async function frontUploadAll(){
     uploaded++;status.innerHTML=`⏳ ${uploaded}/${total} (${Math.round(uploaded/total*100)}%)`;
    }).catch(err=>{ throw err; }));
   }
-  try{ await Promise.all(proms); } catch(e){ status.innerHTML=`❌ BLOCKED: ${e.message} - Pay MoMo 0795712328`; alert(`❌ ${e.message}\n\nAutomated: You must pay before uploading after 14 days FREE.\nMoMo: 0795712328\nPlans: 30d 6540, 2mo 13090, 6mo 39500, 1yr 80000`); return; }
+  try{ await Promise.all(proms); } catch(e){ status.innerHTML=`❌ BLOCKED: ${e.message} - Pay MoMo 0795712326`; alert(`❌ ${e.message} - MoMo: 0795712326`); return; }
  }
  status.innerHTML=`✅ DONE! ${total} live continuous DOWN - Plan: ${plan}`; doFilter(); loadMySales();
 }
@@ -268,8 +250,6 @@ function fetchJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{let list=d
 function postJob(e){e.preventDefault();let data={title:document.getElementById('jobTitle').value,company:document.getElementById('jobCompany').value,desc:document.getElementById('jobDesc').value,salary:document.getElementById('jobSalary').value};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>{alert('Job posted!');fetchJobs();});}
 function applyJob(e){e.preventDefault();let fd=new FormData(e.target);let data=Object.fromEntries(fd);fetch(`/api/jobs/${data.job_id}/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>alert('Application sent!')); }
 function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{document.getElementById('ordersList').innerHTML=orders.map(o=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>Order ${o.id}</b> - UGX ${o.total||0}<br>Buyer:${o.buyer?.names||''} ${o.buyer?.phone1||''}<br>Items:${(o.cart||[]).map(i=>i.name).join(', ')}<br><a href="https://wa.me/${o.buyer?.phone1}" target="_blank" class="btn" style="background:#25D366">WhatsApp Reply</a> <a href="mailto:natelieabigali@gmail.com?subject=Order ${o.id}" class="btn" style="background:#000">Email Owner</a></div>`).join('')||'No orders';});}
-
-// --- AUTH ---
 function checkLogin(){let s=localStorage.getItem('sannlas_user');if(s){currentUser=JSON.parse(s);updateLoginUI();loadMySales();}}
 function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ Logged: ${currentUser.email} | ${currentUser.business||currentUser.role} | Plan: ${currentUser.plan_name} | Expires: ${new Date(currentUser.subscription_expires*1000).toLocaleDateString()} | ${currentUser.subscription_active?'ACTIVE':'EXPIRED - Pay MoMo'}`;document.getElementById('loginStatus').innerHTML=`Logged as ${currentUser.email}<br>Phone: ${currentUser.phone}<br>Plan: ${currentUser.plan_name}<br>Sales visible only to you + admin`;} else {document.getElementById('userInfo').style.display='none';document.getElementById('loginStatus').innerHTML='Not logged in - Register for 14 days FREE';}}
 function doRegister(){let email=document.getElementById('regEmail').value,phone=document.getElementById('regPhone').value,pass=document.getElementById('regPass').value,biz=document.getElementById('regBiz').value,role=document.getElementById('regRole').value;if(!email||!phone||!pass){alert('Fill all');return;}fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz,role})}).then(r=>r.json()).then(d=>{alert(d.message);if(d.success){document.getElementById('logEmail').value=email;}});}
