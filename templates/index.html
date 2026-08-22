@@ -3,6 +3,8 @@
 <head>
 <title>SANNLAS UGANDA - All Features</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial;background:#c0392b}
@@ -175,8 +177,10 @@ body{font-family:Arial;background:#c0392b}
 </form>
 <button onclick="closePop('applyPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
-<div class="popup" id="ordersPop"><div class="popup-content">
-<h2>📦 Orders + Boda Boda Tracking</h2>
+<div class="popup" id="ordersPop"><div class="popup-content" style="max-width:900px">
+<h2>📦 Orders + Boda Boda GPS Tracking</h2>
+<div id="bodaMap" style="width:100%;height:350px;border-radius:12px;border:3px solid #2e7d32;display:none;margin-bottom:10px"></div>
+<div id="mapInfo" style="background:#FFCC02;padding:8px;border-radius:8px;font-size:12px;display:none;text-align:center;margin-bottom:8px"></div>
 <div id="ordersList">Loading...</div>
 <button onclick="closePop('ordersPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
@@ -302,9 +306,52 @@ function makeBargain(id){let p=allProducts.find(x=>x.id==id);let offer=prompt(`B
 function fetchJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{let list=document.getElementById('jobsList');if(!list)return;list.innerHTML=jobs.map(j=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>${j.title}</b> - ${j.company}<br>${j.desc||''}<br><button class="btn btn-blue" onclick="document.getElementById('applyJobSelect').innerHTML='<option value=${j.id}>${j.title}</option>';openPopup('applyPop')">Apply</button></div>`).join('');let sel=document.getElementById('applyJobSelect');if(sel){sel.innerHTML=jobs.map(j=>`<option value="${j.id}">${j.title} - ${j.company}</option>`).join('');}}).catch(()=>{});}
 function postJob(e){e.preventDefault();let data={title:document.getElementById('jobTitle').value,company:document.getElementById('jobCompany').value,desc:document.getElementById('jobDesc').value,salary:document.getElementById('jobSalary').value};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>{alert('Job posted!');fetchJobs();});}
 function applyJob(e){e.preventDefault();let fd=new FormData(e.target);let data=Object.fromEntries(fd);fetch(`/api/jobs/${data.job_id}/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>alert('Application sent!')); }
-function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{document.getElementById('ordersList').innerHTML=orders.map(o=>{
+
+// === GPS MAP FOR BUYER + SELLER + ADMIN ONLY ===
+let bodaMap=null, bodaMarker=null, buyerMarker=null, routeLine=null, buyerLatLng=null;
+function isAdminUser(){ if(!currentUser) return false; return currentUser.role==='admin' || currentUser.email==='natelieabigali@gmail.com'; }
+function isBuyerOfOrder(order){ if(!currentUser) return false; let myPhone=(currentUser.phone||'').replace(/\D/g,'').slice(-9); let oPhone=(order.buyer?.phone1||'').replace(/\D/g,'').slice(-9); return myPhone && oPhone && myPhone===oPhone; }
+function isSellerOfOrder(order){ if(!currentUser) return false; let myBiz=(currentUser.business||'').toLowerCase(); let cartBiz=(order.cart||[]).map(i=>i.business||'').join(' ').toLowerCase(); return (myBiz && cartBiz.includes(myBiz)) || currentUser.role==='seller'; }
+function canSeeGPSMap(order){ if(!currentUser) return false; return isAdminUser() || isBuyerOfOrder(order) || isSellerOfOrder(order); }
+function initBodaMap(lat,lng){ document.getElementById('bodaMap').style.display='block'; document.getElementById('mapInfo').style.display='block'; if(bodaMap){ bodaMap.setView([lat,lng],14); return; } bodaMap=L.map('bodaMap').setView([lat,lng],14); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(bodaMap); setTimeout(()=>bodaMap.invalidateSize(),300); }
+function showBodaGPS(orderId, buyerName){
+ let order=window._lastOrders?.find(o=>o.id==orderId);
+ if(order &&!canSeeGPSMap(order)){ alert('❌ GPS Tracking only for Buyer + Seller + Admin. Please login as buyer/seller.'); return; }
+ if(navigator.geolocation){
+   navigator.geolocation.getCurrentPosition(pos=>{
+     buyerLatLng=[pos.coords.latitude,pos.coords.longitude];
+     initBodaMap(buyerLatLng[0],buyerLatLng[1]);
+     if(buyerMarker) bodaMap.removeLayer(buyerMarker);
+     buyerMarker=L.marker(buyerLatLng).addTo(bodaMap).bindPopup(`📍 Buyer: ${buyerName}<br>Delivery Point`).openPopup();
+     document.getElementById('mapInfo').innerHTML=`📍 Buyer: ${buyerLatLng[0].toFixed(5)},${buyerLatLng[1].toFixed(5)} | Waiting Boda... | <a href="https://www.google.com/maps/dir/?api=1&destination=${buyerLatLng[0]},${buyerLatLng[1]}" target="_blank" class="btn" style="background:#1976d2;padding:4px 8px">🧭 Navigate</a>`;
+     trackBodaLive(orderId);
+   },()=>{ alert('Allow GPS to show map'); initBodaMap(0.3476,32.5825); });
+ }
+}
+function trackBodaLive(orderId){
+ if(navigator.geolocation){
+   navigator.geolocation.watchPosition(pos=>{
+     let bodaLL=[pos.coords.latitude,pos.coords.longitude];
+     if(bodaMarker) bodaMap.removeLayer(bodaMarker);
+     bodaMarker=L.marker(bodaLL,{icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',iconSize:[35,35]})}).addTo(bodaMap).bindPopup('🏍️ Boda Boda Live');
+     if(routeLine) bodaMap.removeLayer(routeLine);
+     if(buyerLatLng){
+       routeLine=L.polyline([bodaLL,buyerLatLng],{color:'red',weight:4,dashArray:'10,10'}).addTo(bodaMap);
+       let dist=bodaMap.distance(bodaLL,buyerLatLng)/1000;
+       let eta=Math.round(dist/30*60);
+       document.getElementById('mapInfo').innerHTML=`🏍️ Boda to Buyer: ${dist.toFixed(2)} km | ETA: ${eta} mins | <a href="https://www.google.com/maps/dir/${bodaLL[0]},${bodaLL[1]}/${buyerLatLng[0]},${buyerLatLng[1]}" target="_blank" class="btn btn-blue" style="padding:4px 8px">🧭 Navigate Now</a> <button class="btn" style="background:#25D366" onclick="window.open('https://wa.me/?text='+encodeURIComponent('🏍️ Track Boda Order ${orderId}: https://www.google.com/maps/dir/${bodaLL[0]},${bodaLL[1]}/${buyerLatLng[0]},${buyerLatLng[1]}'))">Share WhatsApp</button>`;
+       fetch('/api/update-order-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId,boda_lat:bodaLL[0],boda_lng:bodaLL[1],buyer_lat:buyerLatLng[0],buyer_lng:buyerLatLng[1]})});
+     }
+   },null,{enableHighAccuracy:true});
+ }
+}
+function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{
+ window._lastOrders=orders;
+ document.getElementById('ordersList').innerHTML=orders.map(o=>{
  let tracking=(o.tracking||[]).map(t=>`<div class="tracking-line">📦 ${t.status} - ${new Date(t.time*1000).toLocaleString()} ${t.boda_name?` | Boda: ${t.boda_name} ${t.boda_phone}`:''}</div>`).join('');
- let updateBox = currentUser? `<div style="margin-top:6px;background:#FFCC02;padding:6px;border-radius:8px"><input id="bodaName_${o.id}" placeholder="Boda Name" style="width:90px"><input id="bodaPhone_${o.id}" placeholder="Boda Phone" style="width:90px"><select id="newStatus_${o.id}"><option>Packed</option><option>Given to Boda</option><option>On the way</option><option>Delivered</option></select><button class="btn btn-green" onclick="updateBodaStatus(${o.id})">Update Tracking</button></div>`:'';
+ let canSee = canSeeGPSMap(o);
+ let gpsBtn = canSee? `<button class="btn btn-blue" onclick="showBodaGPS(${o.id}, '${(o.buyer?.names||'Buyer').replace(/'/g,'')}')">🗺️ GPS Map + Navigation</button>` : `<span style="font-size:10px;color:gray">🔒 GPS hidden - Login as Buyer/Seller/Admin to view live map</span>`;
+ let updateBox = currentUser? `<div style="margin-top:6px;background:#FFCC02;padding:6px;border-radius:8px"><input id="bodaName_${o.id}" placeholder="Boda Name" style="width:90px"><input id="bodaPhone_${o.id}" placeholder="Boda Phone" style="width:90px"><select id="newStatus_${o.id}"><option>Packed</option><option>Given to Boda</option><option>On the way</option><option>Delivered</option></select><button class="btn btn-green" onclick="updateBodaStatus(${o.id})">Update</button> ${gpsBtn}</div>` : `<div>${gpsBtn}</div>`;
  return `<div style="border:2px solid #2e7d32;padding:8px;border-radius:8px;margin:5px 0"><b>Order ${o.id}</b> - UGX ${o.total||0} - Status: <b>${o.status}</b><br>Buyer:${o.buyer?.names||''} ${o.buyer?.phone1||''}<br>Items:${(o.cart||[]).map(i=>i.name).join(', ')}<br>${tracking}${updateBox}<br><a href="https://wa.me/${o.buyer?.phone1}" target="_blank" class="btn" style="background:#25D366">WhatsApp Buyer</a></div>`;
 }).join('')||'No orders';});}
 function updateBodaStatus(orderId){
