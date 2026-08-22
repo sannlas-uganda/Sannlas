@@ -149,7 +149,7 @@ def register():
     users=load_db('users.json',[])
     if any(u['email']==email for u in users):
         return jsonify({'success':False,'message':'Email already registered - Login'}),400
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True}
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True,'verified':False,'nin_status':'not_uploaded','followers':0}
     users.append(user); save_db('users.json',users)
     safe={k:v for k,v in user.items() if k!='password'}
     return jsonify({'success':True,'message':'Registered! 14 Days FREE active - Login now','user':safe})
@@ -167,13 +167,15 @@ def login():
 @app.route('/api/products')
 def get_products():
     products=load_db('products.json', [])
+    users=load_db('users.json',[])
     main=request.args.get('main'); sub=request.args.get('sub')
     q=request.args.get('q','').lower(); min_p=request.args.get('min'); max_p=request.args.get('max')
-    new_only=request.args.get('new')
+    new_only=request.args.get('new'); business=request.args.get('business')
     filtered=products
     if main: filtered=[p for p in filtered if p.get('main_category')==main]
     if sub: filtered=[p for p in filtered if p.get('sub_category')==sub]
     if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('description','').lower() or q in p.get('business','').lower()]
+    if business: filtered=[p for p in filtered if p.get('business')==business]
     if min_p: filtered=[p for p in filtered if p.get('price',0)>=int(min_p)]
     if max_p: filtered=[p for p in filtered if p.get('price',0)<=int(max_p)]
     if new_only:
@@ -185,7 +187,11 @@ def get_products():
     for p in filtered:
         # FIX: Products stay until seller deletes - do NOT hide by subscription_expires
         # if p.get('subscription_expires',0) < time.time(): continue
-        pp=p.copy(); pp.pop('phone',None); public.append(pp)
+        pp=p.copy(); pp.pop('phone',None)
+        seller=next((u for u in users if u.get('phone')==p.get('phone') or u.get('business')==p.get('business')),None)
+        pp['seller_verified']=seller.get('verified',False) if seller else False
+        pp['seller_followers']=seller.get('followers',0) if seller else 0
+        public.append(pp)
     return jsonify(public)
 
 @app.route('/api/sell', methods=['POST'])
@@ -212,7 +218,7 @@ def sell():
     images=[]
     for key in request.files:
         f=request.files[key]
-        if f and f.filename:
+        if f and f.filename and 'nin' not in key.lower() and 'review' not in key.lower():
             fn=str(uuid.uuid4())[:8]+'_'+secure_filename(f.filename)
             f.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
             images.append('/static/uploads/'+fn)
@@ -237,6 +243,83 @@ def sell():
     else:
         products.append(prod); save_db('products.json', products)
     return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - Continuous Down'})
+
+# === NEW FEATURES START ===
+@app.route('/api/follow', methods=['POST'])
+def follow_seller():
+    data=request.json; business=data.get('business'); follower_phone=data.get('follower_phone'); follower_email=data.get('follower_email','').lower()
+    if not business: return jsonify({'success':False,'message':'Business required'}),400
+    followers=load_db('followers.json',[]); users=load_db('users.json',[])
+    if any(f['business']==business and (f.get('follower_phone')==follower_phone or f.get('follower_email')==follower_email) for f in followers):
+        return jsonify({'success':False,'message':'Already following'}),400
+    followers.append({'id':int(time.time()*1000),'business':business,'follower_phone':follower_phone,'follower_email':follower_email,'time':time.time()})
+    save_db('followers.json',followers)
+    for u in users:
+        if u.get('business')==business: u['followers']=u.get('followers',0)+1
+    save_db('users.json',users)
+    return jsonify({'success':True,'message':f'Following {business}'})
+
+@app.route('/api/unfollow', methods=['POST'])
+def unfollow_seller():
+    data=request.json; business=data.get('business'); phone=data.get('follower_phone'); email=data.get('follower_email','').lower()
+    followers=load_db('followers.json',[]); users=load_db('users.json',[])
+    before=len(followers)
+    followers=[f for f in followers if not (f['business']==business and (f.get('follower_phone')==phone or f.get('follower_email')==email))]
+    if len(followers)<before:
+        for u in users:
+            if u.get('business')==business: u['followers']=max(0,u.get('followers',1)-1)
+        save_db('users.json',users)
+    save_db('followers.json',followers)
+    return jsonify({'success':True})
+
+@app.route('/api/followers/<business>')
+def get_followers(business):
+    followers=load_db('followers.json',[]); filtered=[f for f in followers if f['business']==business]
+    return jsonify({'business':business,'count':len(filtered),'followers':filtered})
+
+@app.route('/api/verify-nin', methods=['POST'])
+def upload_nin():
+    phone=request.form.get('phone'); email=request.form.get('email','').lower(); nin_number=request.form.get('nin_number')
+    users=load_db('users.json',[])
+    front=request.files.get('nin_front'); back=request.files.get('nin_back')
+    front_url=''; back_url=''
+    if front and front.filename:
+        fn='nin_front_'+str(uuid.uuid4())[:8]+'_'+secure_filename(front.filename)
+        front.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
+        front_url='/static/uploads/'+fn
+    if back and back.filename:
+        fn='nin_back_'+str(uuid.uuid4())[:8]+'_'+secure_filename(back.filename)
+        back.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
+        back_url='/static/uploads/'+fn
+    for u in users:
+        if u['phone']==phone or u['email']==email:
+            u['nin_number']=nin_number; u['nin_front']=front_url; u['nin_back']=back_url; u['nin_status']='pending'; u['verified']=False
+    save_db('users.json',users)
+    return jsonify({'success':True,'message':'NIN uploaded! Wait admin verification for blue tick ✓'})
+
+@app.route('/api/admin/verify-seller', methods=['POST'])
+def admin_verify():
+    data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); action=data.get('action','approve')
+    users=load_db('users.json',[])
+    for u in users:
+        if u['phone']==phone or u['email']==email:
+            if action=='approve': u['verified']=True; u['nin_status']='verified'
+            else: u['verified']=False; u['nin_status']='rejected'
+    save_db('users.json',users)
+    return jsonify({'success':True,'message':f'Seller {action}d - blue tick updated'})
+
+@app.route('/api/update-order-status', methods=['POST'])
+def update_order():
+    data=request.json; order_id=data.get('order_id'); new_status=data.get('status'); boda_phone=data.get('boda_phone',''); boda_name=data.get('boda_name','')
+    orders=load_db('orders.json',[])
+    for o in orders:
+        if o['id']==order_id:
+            if 'tracking' not in o: o['tracking']=[]
+            o['tracking'].append({'status':new_status,'time':time.time(),'boda_name':boda_name,'boda_phone':boda_phone})
+            o['status']=new_status; o['boda_phone']=boda_phone; o['boda_name']=boda_name
+    save_db('orders.json',orders)
+    return jsonify({'success':True,'message':f'Order {new_status}'})
+# === NEW FEATURES END ===
 
 @app.route('/api/seller/sales')
 def seller_sales():
@@ -290,12 +373,27 @@ def delete_prod(pid):
 
 @app.route('/api/rate', methods=['POST'])
 def rate():
-    data=request.json; pid=data['id']; products=load_db('products.json', [])
-    for p in products:
-        if p['id']==pid:
-            p['reviews'].append({'rating':data['rating'],'comment':data.get('comment',''),'time':time.time()})
-            p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews'])
-    save_db('products.json', products); return jsonify({'success':True})
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        pid=int(request.form.get('id')); rating=int(request.form.get('rating',5)); comment=request.form.get('comment','')
+        photo=request.files.get('review_photo'); photo_url=''
+        if photo and photo.filename:
+            fn='review_'+str(uuid.uuid4())[:8]+'_'+secure_filename(photo.filename)
+            photo.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
+            photo_url='/static/uploads/'+fn
+        products=load_db('products.json', [])
+        for p in products:
+            if p['id']==pid:
+                p['reviews'].append({'rating':rating,'comment':comment,'photo':photo_url,'time':time.time(),'verified_purchase':True})
+                p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews'])
+        save_db('products.json', products)
+        return jsonify({'success':True,'message':'Review with photo added!'})
+    else:
+        data=request.json; pid=data['id']; products=load_db('products.json', [])
+        for p in products:
+            if p['id']==pid:
+                p['reviews'].append({'rating':data['rating'],'comment':data.get('comment',''),'photo':data.get('photo',''),'time':time.time(),'verified_purchase':True})
+                p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews'])
+        save_db('products.json', products); return jsonify({'success':True})
 
 @app.route('/api/bargain', methods=['POST'])
 def bargain():
@@ -339,7 +437,7 @@ def activate_sub():
 
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
-    data=request.json; orders=load_db('orders.json', []); data['id']=int(time.time()); data['status']='Packed'; data['time']=time.time(); orders.append(data); save_db('orders.json', orders)
+    data=request.json; orders=load_db('orders.json', []); data['id']=int(time.time()); data['status']='Packed'; data['tracking']=[{'status':'Packed','time':time.time()}]; data['time']=time.time(); orders.append(data); save_db('orders.json', orders)
     products=load_db('products.json', [])
     for item in data['cart']:
         for p in products:
@@ -362,8 +460,14 @@ def apply_job(jid):
 
 @app.route('/api/job-applications')
 def get_applications(): return jsonify(load_db('applications.json', [])[::-1])
+
 @app.route('/api/orders')
-def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
+def get_orders():
+    orders=load_db('orders.json', [])[::-1]
+    for o in orders:
+        if 'tracking' not in o: o['tracking']=[{'status':o.get('status','Packed'),'time':o.get('time',time.time())}]
+    return jsonify(orders)
+
 @app.route('/api/contact', methods=['POST'])
 def contact_owner():
     data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time()),'owner_email':OWNER_EMAIL}); save_db('contacts.json', contacts); return jsonify({'success':True,'message':f'Message sent to {OWNER_EMAIL}!'})
@@ -373,11 +477,11 @@ def admin_data():
     products=load_db('products.json',[]); now=time.time()
     for p in products:
         if p.get('subscription_expires',0)<now: p['expired']=True
-    return jsonify({'products':products,'users':load_db('users.json',[]),'sellers':load_db('sellers.json',[]),'orders':load_db('orders.json',[]),'jobs':load_db('jobs.json',[]),'contacts':load_db('contacts.json',[]),'applications':load_db('applications.json',[]),'bargains':load_db('bargains.json',[]),'total_revenue':sum([o.get('total',0) for o in load_db('orders.json',[]) if isinstance(o.get('total'),(int,float))]),'total_sellers':len(load_db('users.json',[])),'total_orders':len(load_db('orders.json',[])),'plans':PLANS})
+    return jsonify({'products':products,'users':load_db('users.json',[]),'sellers':load_db('sellers.json',[]),'orders':load_db('orders.json',[]),'jobs':load_db('jobs.json',[]),'contacts':load_db('contacts.json',[]),'applications':load_db('applications.json',[]),'bargains':load_db('bargains.json',[]),'followers':load_db('followers.json',[]),'total_revenue':sum([o.get('total',0) for o in load_db('orders.json',[]) if isinstance(o.get('total'),(int,float))]),'total_sellers':len(load_db('users.json',[])),'total_orders':len(load_db('orders.json',[])),'plans':PLANS})
 
 @app.route('/api/admin/<string:filetype>')
 def admin_generic(filetype):
-    allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users']
+    allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers']
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
 
