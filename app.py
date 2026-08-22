@@ -20,11 +20,9 @@ PLANS = {
 }
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
-
 def get_conn():
     import psycopg2
     return psycopg2.connect(DATABASE_URL, sslmode='require')
-
 def ensure_tables():
     if not DATABASE_URL: return
     try:
@@ -36,7 +34,6 @@ def ensure_tables():
         conn.commit(); cur.close(); conn.close()
     except Exception as e:
         print(f"ensure_tables error: {e}")
-
 def load_db(file, default):
     if DATABASE_URL:
         try:
@@ -63,7 +60,6 @@ def load_db(file, default):
         try: return json.load(open(path))
         except: return default
     return default
-
 def save_db(file, data):
     if DATABASE_URL:
         try:
@@ -82,7 +78,6 @@ def save_db(file, data):
         except Exception as e:
             print(f"save_db {file} error: {e}")
     json.dump(data, open(f'data/{file}','w'), indent=2)
-
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
 BUSINESS_CATEGORIES = {
@@ -167,21 +162,16 @@ def sell():
     users=load_db('users.json',[]); products=load_db('products.json',[])
     seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     plan_info=PLANS.get(plan,PLANS['free14'])
-
-    # --- FIXED: 14 Days FREE should NEVER ask for payment ---
     if plan == "free14" or not plan_info.get('requires_payment'):
         if seller and seller.get('free_used') and seller['subscription_expires'] < time.time():
             return jsonify({'success':False,'message':'14 Days FREE already used & expired. Choose paid plan and PAY BEFORE UPLOAD'}),402
-        if not seller and any(p.get('phone')==phone for p in products):
-            existing_free = any(p.get('phone')==phone and p.get('plan')=='free14' for p in products)
-            if existing_free:
-                return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
+        if not seller and any(p.get('phone')==phone and p.get('plan')=='free14' for p in products):
+            return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
     else:
         if not seller:
             return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Register & Pay UGX {plan_info["price"]} for {plan_info["name"]} to MoMo {OWNER_MOMO} first. Then admin activates.'}),402
         if seller['subscription_expires'] < time.time() or not seller.get('paid') or seller.get('plan')!= plan:
             return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Your subscription expired or not paid for {plan_info["name"]}. Pay UGX {plan_info["price"]} to MoMo {OWNER_MOMO}. Submit code in Subscription popup. Wait admin activation.'}),402
-
     images=[]
     for key in request.files:
         f=request.files[key]
