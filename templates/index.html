@@ -2,43 +2,85 @@
 <html>
 <head>
 <title>SANNLAS UGANDA - All Features</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial;background:#c0392b}
-.navbar{background:#000;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:12}
-.btn{background:#8B0000;color:white;border:none;padding:7px 12px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-size:12px}
+body{font-family:Arial;background:#c0392b;overflow-x:hidden}
+.navbar{background:#000;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:12;gap:8px}
+.btn{background:#8B0000;color:white;border:none;padding:9px 14px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-size:12px;white-space:nowrap}
 .btn-green{background:#2e7d32}.btn-yellow{background:#FFCC02;color:#000}.btn-blue{background:#1976d2}
-.search-bar{background:rgba(0,0,0,0.85);padding:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:sticky;top:58px;z-index:11}
-.search-bar input,.search-bar select{padding:8px;border-radius:20px;border:none;max-width:180px}
-.hero{background:linear-gradient(#e74c3c,#c0392b);color:white;text-align:center;padding:12px}
-.front-upload{background:white;margin:12px auto;max-width:1300px;padding:12px;border-radius:12px}
-#frontPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;max-height:85vh;min-height:350px;overflow-y:auto;background:linear-gradient(#ff6a00,#e74c3c);padding:15px;border-radius:12px}
+.search-bar{background:rgba(0,0,0,0.92);padding:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:sticky;top:58px;z-index:11}
+.search-bar input,.search-bar select{padding:11px;border-radius:20px;border:none;flex:1;min-width:120px;max-width:200px;font-size:14px}
+.hero{background:linear-gradient(#e74c3c,#c0392b);color:white;text-align:center;padding:14px 10px}
+.hero h1{font-size:22px;line-height:1.3}
+.hero p{font-size:12px;line-height:1.5}
+.front-upload{background:white;margin:10px auto;max-width:1300px;padding:12px;border-radius:12px;width:97%}
+#frontPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:85vh;min-height:350px;overflow-y:auto;background:linear-gradient(#ff6a00,#e74c3c);padding:10px;border-radius:12px}
 .front-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.3)}
-.front-card img{width:100%;height:160px;object-fit:cover}
-.front-card input{width:100%;padding:4px;margin:2px 0;font-size:11px;border:1px solid #ccc;border-radius:5px}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;padding:15px;background:linear-gradient(#e74c3c,#ff6a00);min-height:60vh}
-.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
-.card img{width:100%;height:190px;object-fit:cover}
-.card-body{padding:10px}
-.card h4{font-size:13px;height:32px;overflow:hidden}
-.price{color:#000;font-weight:bold}
-.seller-box{background:#FFCC02;padding:7px;border-radius:8px;font-size:11px;margin:5px 0}
+.front-card img{width:100%;height:130px;object-fit:cover}
+.front-card input{width:100%;padding:6px;margin:2px 0;font-size:12px;border:1px solid #ccc;border-radius:5px}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px;background:linear-gradient(#e74c3c,#ff6a00);min-height:60vh}
+.card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;flex-direction:column}
+.card img{width:100%;height:160px;object-fit:cover}
+.card-body{padding:8px;flex:1;display:flex;flex-direction:column}
+.card h4{font-size:12px;min-height:34px;overflow:hidden;line-height:1.3;margin:4px 0}
+.price{color:#000;font-weight:bold;font-size:13px}
+.seller-box{background:#FFCC02;padding:6px;border-radius:8px;font-size:10px;margin:5px 0;line-height:1.4;word-break:break-word}
 .card-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
-.card-btns button{padding:6px;font-size:10px;border:none;border-radius:15px;cursor:pointer;font-weight:bold}
+.card-btns button{padding:8px 4px;font-size:10px;border:none;border-radius:15px;cursor:pointer;font-weight:bold}
 .view-btn{background:#ff6a00;color:white}.cart-btn{background:#c0392b;color:white}.wa-btn{background:#25D366;color:white}.msg-btn{background:#000;color:white}.bargain-btn{background:#9c27b0;color:white}
-.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100;padding:10px}
-.popup-content{background:white;padding:15px;border-radius:12px;max-width:700px;width:98%;max-height:92vh;overflow:auto}
+.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:10px;overflow-y:auto}
+.popup-content{background:white;padding:14px;border-radius:12px;max-width:700px;width:98%;max-height:96vh;overflow:auto;margin:15px auto}
 .sub-table{width:100%;border-collapse:collapse;margin:10px 0}
-.sub-table td,.sub-table th{border:1px solid #ccc;padding:8px;font-size:12px;text-align:left}
+.sub-table td,.sub-table th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}
 .new-badge{background:#00e676;color:#000;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:bold}
 .verified-badge{background:#1976d2;color:white;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold}
 .follow-btn{background:#000;color:#FFCC02;border:1px solid #FFCC02}
-.tracking-line{border-left:3px solid #2e7d32;padding-left:10px;margin:8px 0}
-.auth-box{background:white;color:black;padding:15px;border-radius:12px;max-width:500px;margin:10px auto}
-.auth-box input,.auth-box select{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:8px}
+.tracking-line{border-left:3px solid #2e7d32;padding-left:10px;margin:8px 0;font-size:12px}
+.auth-box{background:white;color:black;padding:12px;border-radius:12px;max-width:500px;margin:10px auto;width:100%}
+.auth-box input,.auth-box select,.auth-box textarea{width:100%;padding:11px;margin:4px 0;border:1px solid #ccc;border-radius:8px;font-size:14px}
+.auth-box h3{font-size:15px;margin-bottom:6px}
+#bodaMap{width:100%;border-radius:12px}
+
+/* MOBILE CLEAR VIEW */
+@media(max-width:768px){
+ .navbar{padding:8px 8px}
+ .navbar h3{font-size:16px}
+ .btn{padding:9px 11px;font-size:11px}
+ .hero{padding:10px 8px}
+ .hero h1{font-size:18px}
+ .hero p{font-size:11px}
+ .search-bar{top:50px;padding:8px;gap:5px}
+ .search-bar input{flex:1 1 100%;max-width:100%;font-size:14px}
+ .search-bar select{flex:1 1 48%;max-width:49%;min-width:48%}
+  #frontPreview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px;max-height:68vh}
+ .front-card img{height:110px}
+ .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
+ .card img{height:140px}
+ .card-body{padding:6px}
+ .card h4{font-size:11px;min-height:30px}
+ .seller-box{font-size:9px;padding:5px}
+ .card-btns{gap:4px}
+ .card-btns button{font-size:9px;padding:8px 3px}
+ .popup{padding:6px}
+ .popup-content{width:97%;padding:10px;margin:10px auto}
+  #bodaMap{height:280px!important}
+ .front-upload{width:98%;padding:10px}
+}
+@media(max-width:480px){
+ .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}
+ .card img{height:125px}
+  #frontPreview{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .navbar div{justify-content:flex-end}
+ .search-bar input{font-size:15px}
+}
+@media(min-width:1024px){
+ .products{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;padding:15px}
+  #frontPreview{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+ .card img{height:190px}
+}
 </style>
 </head>
 <body>
@@ -203,7 +245,6 @@ body{font-family:Arial;background:#c0392b}
 <button onclick="closePop('termsPop')" style="width:100%;background:#8B0000;color:white;border:none;padding:12px;border-radius:8px;margin-top:12px;font-weight:bold">Close Terms</button>
 </div></div>
 
-<!-- BOTTOM FOOTER WITH JOBS, APPLICATIONS, ORDERS, SUBSCRIPTION, ADMIN -->
 <div style="background:#000;color:white;padding:25px 15px;text-align:center;margin-top:40px;border-top:5px solid #FFCC02">
 <h3 style="color:#FFCC02;margin-bottom:15px">📌 SANNLAS MORE SERVICES</h3>
 <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:900px;margin:0 auto">
@@ -306,8 +347,6 @@ function makeBargain(id){let p=allProducts.find(x=>x.id==id);let offer=prompt(`B
 function fetchJobs(){fetch('/api/jobs').then(r=>r.json()).then(jobs=>{let list=document.getElementById('jobsList');if(!list)return;list.innerHTML=jobs.map(j=>`<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0"><b>${j.title}</b> - ${j.company}<br>${j.desc||''}<br><button class="btn btn-blue" onclick="document.getElementById('applyJobSelect').innerHTML='<option value=${j.id}>${j.title}</option>';openPopup('applyPop')">Apply</button></div>`).join('');let sel=document.getElementById('applyJobSelect');if(sel){sel.innerHTML=jobs.map(j=>`<option value="${j.id}">${j.title} - ${j.company}</option>`).join('');}}).catch(()=>{});}
 function postJob(e){e.preventDefault();let data={title:document.getElementById('jobTitle').value,company:document.getElementById('jobCompany').value,desc:document.getElementById('jobDesc').value,salary:document.getElementById('jobSalary').value};fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>{alert('Job posted!');fetchJobs();});}
 function applyJob(e){e.preventDefault();let fd=new FormData(e.target);let data=Object.fromEntries(fd);fetch(`/api/jobs/${data.job_id}/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(()=>alert('Application sent!')); }
-
-// === GPS MAP FOR BUYER + SELLER + ADMIN ONLY ===
 let bodaMap=null, bodaMarker=null, buyerMarker=null, routeLine=null, buyerLatLng=null;
 function isAdminUser(){ if(!currentUser) return false; return currentUser.role==='admin' || currentUser.email==='natelieabigali@gmail.com'; }
 function isBuyerOfOrder(order){ if(!currentUser) return false; let myPhone=(currentUser.phone||'').replace(/\D/g,'').slice(-9); let oPhone=(order.buyer?.phone1||'').replace(/\D/g,'').slice(-9); return myPhone && oPhone && myPhone===oPhone; }
@@ -316,16 +355,16 @@ function canSeeGPSMap(order){ if(!currentUser) return false; return isAdminUser(
 function initBodaMap(lat,lng){ document.getElementById('bodaMap').style.display='block'; document.getElementById('mapInfo').style.display='block'; if(bodaMap){ bodaMap.setView([lat,lng],14); return; } bodaMap=L.map('bodaMap').setView([lat,lng],14); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(bodaMap); setTimeout(()=>bodaMap.invalidateSize(),300); }
 function showBodaGPS(orderId, buyerName){
  let order=window._lastOrders?.find(o=>o.id==orderId);
- if(order &&!canSeeGPSMap(order)){ alert('❌ GPS Tracking only for Buyer + Seller + Admin. Please login as buyer/seller.'); return; }
+ if(order &&!canSeeGPSMap(order)){ alert('❌ GPS only for Buyer+Seller+Admin'); return; }
  if(navigator.geolocation){
    navigator.geolocation.getCurrentPosition(pos=>{
      buyerLatLng=[pos.coords.latitude,pos.coords.longitude];
      initBodaMap(buyerLatLng[0],buyerLatLng[1]);
      if(buyerMarker) bodaMap.removeLayer(buyerMarker);
-     buyerMarker=L.marker(buyerLatLng).addTo(bodaMap).bindPopup(`📍 Buyer: ${buyerName}<br>Delivery Point`).openPopup();
+     buyerMarker=L.marker(buyerLatLng).addTo(bodaMap).bindPopup(`📍 Buyer: ${buyerName}`).openPopup();
      document.getElementById('mapInfo').innerHTML=`📍 Buyer: ${buyerLatLng[0].toFixed(5)},${buyerLatLng[1].toFixed(5)} | Waiting Boda... | <a href="https://www.google.com/maps/dir/?api=1&destination=${buyerLatLng[0]},${buyerLatLng[1]}" target="_blank" class="btn" style="background:#1976d2;padding:4px 8px">🧭 Navigate</a>`;
      trackBodaLive(orderId);
-   },()=>{ alert('Allow GPS to show map'); initBodaMap(0.3476,32.5825); });
+   },()=>{ alert('Allow GPS'); initBodaMap(0.3476,32.5825); });
  }
 }
 function trackBodaLive(orderId){
@@ -333,13 +372,13 @@ function trackBodaLive(orderId){
    navigator.geolocation.watchPosition(pos=>{
      let bodaLL=[pos.coords.latitude,pos.coords.longitude];
      if(bodaMarker) bodaMap.removeLayer(bodaMarker);
-     bodaMarker=L.marker(bodaLL,{icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',iconSize:[35,35]})}).addTo(bodaMap).bindPopup('🏍️ Boda Boda Live');
+     bodaMarker=L.marker(bodaLL,{icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',iconSize:[35,35]})}).addTo(bodaMap).bindPopup('🏍️ Boda Live');
      if(routeLine) bodaMap.removeLayer(routeLine);
      if(buyerLatLng){
        routeLine=L.polyline([bodaLL,buyerLatLng],{color:'red',weight:4,dashArray:'10,10'}).addTo(bodaMap);
        let dist=bodaMap.distance(bodaLL,buyerLatLng)/1000;
        let eta=Math.round(dist/30*60);
-       document.getElementById('mapInfo').innerHTML=`🏍️ Boda to Buyer: ${dist.toFixed(2)} km | ETA: ${eta} mins | <a href="https://www.google.com/maps/dir/${bodaLL[0]},${bodaLL[1]}/${buyerLatLng[0]},${buyerLatLng[1]}" target="_blank" class="btn btn-blue" style="padding:4px 8px">🧭 Navigate Now</a> <button class="btn" style="background:#25D366" onclick="window.open('https://wa.me/?text='+encodeURIComponent('🏍️ Track Boda Order ${orderId}: https://www.google.com/maps/dir/${bodaLL[0]},${bodaLL[1]}/${buyerLatLng[0]},${buyerLatLng[1]}'))">Share WhatsApp</button>`;
+       document.getElementById('mapInfo').innerHTML=`🏍️ Boda to Buyer: ${dist.toFixed(2)} km | ETA: ${eta} mins | <a href="https://www.google.com/maps/dir/${bodaLL[0]},${bodaLL[1]}/${buyerLatLng[0]},${buyerLatLng[1]}" target="_blank" class="btn btn-blue" style="padding:4px 8px">🧭 Navigate Now</a>`;
        fetch('/api/update-order-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId,boda_lat:bodaLL[0],boda_lng:bodaLL[1],buyer_lat:buyerLatLng[0],buyer_lng:buyerLatLng[1]})});
      }
    },null,{enableHighAccuracy:true});
@@ -350,7 +389,7 @@ function loadOrders(){fetch('/api/orders').then(r=>r.json()).then(orders=>{
  document.getElementById('ordersList').innerHTML=orders.map(o=>{
  let tracking=(o.tracking||[]).map(t=>`<div class="tracking-line">📦 ${t.status} - ${new Date(t.time*1000).toLocaleString()} ${t.boda_name?` | Boda: ${t.boda_name} ${t.boda_phone}`:''}</div>`).join('');
  let canSee = canSeeGPSMap(o);
- let gpsBtn = canSee? `<button class="btn btn-blue" onclick="showBodaGPS(${o.id}, '${(o.buyer?.names||'Buyer').replace(/'/g,'')}')">🗺️ GPS Map + Navigation</button>` : `<span style="font-size:10px;color:gray">🔒 GPS hidden - Login as Buyer/Seller/Admin to view live map</span>`;
+ let gpsBtn = canSee? `<button class="btn btn-blue" onclick="showBodaGPS(${o.id}, '${(o.buyer?.names||'Buyer').replace(/'/g,'')}')">🗺️ GPS Map + Navigation</button>` : `<span style="font-size:10px;color:gray">🔒 GPS hidden - Login as Buyer/Seller/Admin</span>`;
  let updateBox = currentUser? `<div style="margin-top:6px;background:#FFCC02;padding:6px;border-radius:8px"><input id="bodaName_${o.id}" placeholder="Boda Name" style="width:90px"><input id="bodaPhone_${o.id}" placeholder="Boda Phone" style="width:90px"><select id="newStatus_${o.id}"><option>Packed</option><option>Given to Boda</option><option>On the way</option><option>Delivered</option></select><button class="btn btn-green" onclick="updateBodaStatus(${o.id})">Update</button> ${gpsBtn}</div>` : `<div>${gpsBtn}</div>`;
  return `<div style="border:2px solid #2e7d32;padding:8px;border-radius:8px;margin:5px 0"><b>Order ${o.id}</b> - UGX ${o.total||0} - Status: <b>${o.status}</b><br>Buyer:${o.buyer?.names||''} ${o.buyer?.phone1||''}<br>Items:${(o.cart||[]).map(i=>i.name).join(', ')}<br>${tracking}${updateBox}<br><a href="https://wa.me/${o.buyer?.phone1}" target="_blank" class="btn" style="background:#25D366">WhatsApp Buyer</a></div>`;
 }).join('')||'No orders';});}
