@@ -43,43 +43,41 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 .auth-box input,.auth-box select,.auth-box textarea{width:100%;padding:11px;margin:4px 0;border:1px solid #ccc;border-radius:8px;font-size:14px}
 .auth-box h3{font-size:15px;margin-bottom:6px}
 #bodaMap{width:100%;border-radius:12px}
-
-/* MOBILE CLEAR VIEW */
 @media(max-width:768px){
- .navbar{padding:8px 8px}
- .navbar h3{font-size:16px}
- .btn{padding:9px 11px;font-size:11px}
- .hero{padding:10px 8px}
- .hero h1{font-size:18px}
- .hero p{font-size:11px}
- .search-bar{top:50px;padding:8px;gap:5px}
- .search-bar input{flex:1 1 100%;max-width:100%;font-size:14px}
- .search-bar select{flex:1 1 48%;max-width:49%;min-width:48%}
-  #frontPreview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px;max-height:68vh}
- .front-card img{height:110px}
- .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
- .card img{height:140px}
- .card-body{padding:6px}
- .card h4{font-size:11px;min-height:30px}
- .seller-box{font-size:9px;padding:5px}
- .card-btns{gap:4px}
- .card-btns button{font-size:9px;padding:8px 3px}
- .popup{padding:6px}
- .popup-content{width:97%;padding:10px;margin:10px auto}
-  #bodaMap{height:280px!important}
- .front-upload{width:98%;padding:10px}
+.navbar{padding:8px 8px}
+.navbar h3{font-size:16px}
+.btn{padding:9px 11px;font-size:11px}
+.hero{padding:10px 8px}
+.hero h1{font-size:18px}
+.hero p{font-size:11px}
+.search-bar{top:50px;padding:8px;gap:5px}
+.search-bar input{flex:1 1 100%;max-width:100%;font-size:14px}
+.search-bar select{flex:1 1 48%;max-width:49%;min-width:48%}
+ #frontPreview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px;max-height:68vh}
+.front-card img{height:110px}
+.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
+.card img{height:140px}
+.card-body{padding:6px}
+.card h4{font-size:11px;min-height:30px}
+.seller-box{font-size:9px;padding:5px}
+.card-btns{gap:4px}
+.card-btns button{font-size:9px;padding:8px 3px}
+.popup{padding:6px}
+.popup-content{width:97%;padding:10px;margin:10px auto}
+ #bodaMap{height:280px!important}
+.front-upload{width:98%;padding:10px}
 }
 @media(max-width:480px){
- .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}
- .card img{height:125px}
-  #frontPreview{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
- .navbar div{justify-content:flex-end}
- .search-bar input{font-size:15px}
+.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}
+.card img{height:125px}
+ #frontPreview{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.navbar div{justify-content:flex-end}
+.search-bar input{font-size:15px}
 }
 @media(min-width:1024px){
- .products{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;padding:15px}
-  #frontPreview{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
- .card img{height:190px}
+.products{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;padding:15px}
+ #frontPreview{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.card img{height:190px}
 }
 </style>
 </head>
@@ -135,7 +133,7 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 
 <div class="popup" id="authPop"><div class="popup-content" style="max-width:900px">
 <h2 style="text-align:center;color:#8B0000">🔐 Login / Register + Blue Tick Verification</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:10px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-top:10px">
 <div class="auth-box" style="border:2px solid #2e7d32">
 <h3>📝 Register - Get 14 Days FREE</h3>
 <input id="regEmail" placeholder="Email">
@@ -154,7 +152,7 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <div id="loginStatus" style="background:#f0f0f0;padding:8px;border-radius:8px;margin-top:8px;font-size:11px">Not logged in</div>
 </div>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-top:15px">
 <div class="auth-box" style="border:2px solid #1976d2;background:#e3f2fd">
 <h3>✅ Get Verified Blue Tick ✓ + NIN</h3>
 <p style="font-size:11px">Upload NIN to get <span class="verified-badge">✓ Verified</span> - More trust = more sales</p>
@@ -179,7 +177,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 </div>
 <button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;border:none;padding:10px;border-radius:8px;margin-top:10px">Close Login</button>
 </div></div>
-
 <div class="popup" id="subPop"><div class="popup-content">
 <h2 style="color:green">💳 Seller Subscription</h2>
 <table class="sub-table">
@@ -226,7 +223,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <div id="ordersList">Loading...</div>
 <button onclick="closePop('ordersPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
-
 <div class="popup" id="termsPop"><div class="popup-content" style="max-width:800px">
 <h2 style="color:#8B0000;text-align:center">📜 Terms and Conditions of SANNLASS</h2>
 <div style="font-size:13px;line-height:1.7;text-align:left;margin-top:15px;max-height:70vh;overflow-y:auto;padding:12px;background:#fff9f0;border-radius:10px">
@@ -244,7 +240,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 </div>
 <button onclick="closePop('termsPop')" style="width:100%;background:#8B0000;color:white;border:none;padding:12px;border-radius:8px;margin-top:12px;font-weight:bold">Close Terms</button>
 </div></div>
-
 <div style="background:#000;color:white;padding:25px 15px;text-align:center;margin-top:40px;border-top:5px solid #FFCC02">
 <h3 style="color:#FFCC02;margin-bottom:15px">📌 SANNLAS MORE SERVICES</h3>
 <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:900px;margin:0 auto">
@@ -260,7 +255,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <p style="margin-top:18px;font-size:11px;color:#aaa">MoMo: 0795712326 | Email: natelieabigali@gmail.com | Products stay until seller deletes | 14 Days FREE then paid</p>
 <p style="font-size:10px;color:#666;margin-top:6px">© 2024 SANNLAS UGANDA - Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers</p>
 </div>
-
 <script>
 let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], currentUser=null, selectedPayPlan='30';
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
