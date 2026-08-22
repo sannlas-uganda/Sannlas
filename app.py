@@ -21,7 +21,6 @@ PLANS = {
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# --- UPGRADED FOR PYTHON 3.14 - supports psycopg v3 and v2 ---
 def get_conn():
     if not DATABASE_URL:
         raise Exception("No DATABASE_URL")
@@ -49,25 +48,35 @@ def load_db(file, default):
             ensure_tables()
             conn = get_conn()
             try:
-                # Try psycopg v3 style
-                import psycopg
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
-            except:
-                import psycopg2.extras
-                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            if file == 'products.json':
-                cur.execute("SELECT data FROM products ORDER BY id ASC")
-                rows = cur.fetchall()
-                cur.close(); conn.close()
-                return [r['data'] if isinstance(r, dict) else r[0] for r in rows]
-            else:
-                cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                row = cur.fetchone()
-                cur.close(); conn.close()
-                if row:
-                    return row['data'] if isinstance(row, dict) else row[0]
-                return default
+                if file == 'products.json':
+                    cur.execute("SELECT data FROM products ORDER BY id ASC")
+                    rows = cur.fetchall()
+                    cur.close(); conn.close()
+                    return [r['data'] for r in rows]
+                else:
+                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
+                    row = cur.fetchone()
+                    cur.close(); conn.close()
+                    return row['data'] if row else default
+            except Exception as e1:
+                try:
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    if file == 'products.json':
+                        cur.execute("SELECT data FROM products ORDER BY id ASC")
+                        rows = cur.fetchall()
+                        cur.close(); conn.close()
+                        return [r['data'] for r in rows]
+                    else:
+                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
+                        row = cur.fetchone()
+                        cur.close(); conn.close()
+                        return row['data'] if row else default
+                except Exception as e2:
+                    print(f"load_db {file} error v2 {e2} / v3 {e1}")
+                    return default
         except Exception as e:
             print(f"load_db {file} error: {e}")
             return default
@@ -81,15 +90,24 @@ def save_db(file, data):
     if DATABASE_URL:
         try:
             ensure_tables()
-            import json as js
             conn = get_conn()
             cur = conn.cursor()
-            if file == 'products.json':
-                cur.execute("DELETE FROM products")
-                for item in data:
-                    cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(item)])
-            else:
-                cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, js.dumps(data)))
+            try:
+                from psycopg.types.json import Jsonb
+                if file == 'products.json':
+                    cur.execute("DELETE FROM products")
+                    for item in data:
+                        cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(item)])
+                else:
+                    cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, Jsonb(data)))
+            except ImportError:
+                import json as js
+                if file == 'products.json':
+                    cur.execute("DELETE FROM products")
+                    for item in data:
+                        cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(item)])
+                else:
+                    cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, js.dumps(data)))
             conn.commit(); cur.close(); conn.close()
             return
         except Exception as e:
@@ -207,7 +225,11 @@ def sell():
             ensure_tables()
             import json as js
             conn=get_conn(); cur=conn.cursor()
-            cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
+            try:
+                from psycopg.types.json import Jsonb
+                cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(prod)])
+            except:
+                cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
             conn.commit(); cur.close(); conn.close()
         except Exception as e:
             print(e); return jsonify({'success':False,'message':'Upload failed - try again'}),500
@@ -251,7 +273,11 @@ def delete_prod(pid):
             cur.execute("SELECT id, data FROM products")
             rows=cur.fetchall()
             for row in rows:
-                r_id, r_data = row[0], row[1]
+                # row can be tuple or dict_row
+                if isinstance(row, dict):
+                    r_id, r_data = row['id'], row['data']
+                else:
+                    r_id, r_data = row[0], row[1]
                 if isinstance(r_data, str): r_data=json.loads(r_data)
                 if r_data.get('id')==pid:
                     cur.execute("DELETE FROM products WHERE id=%s", (r_id,))
