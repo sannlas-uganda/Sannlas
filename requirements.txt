@@ -2,5 +2,4 @@ Flask==3.0.3
 Flask-Cors==5.0.0
 gunicorn==22.0.0
 Werkzeug==3.0.3
-psycopg==3.2.9
-psycopg-binary==3.2.9
+psycopg2-binary==2.9.9
