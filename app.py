@@ -139,7 +139,7 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/plans')
 def get_plans(): return jsonify(PLANS)
 
-# === PWA ROUTES - FREE APP INSTALL - ADDED ONLY ===
+# === PWA ROUTES - FIXED TO SERVE FROM ROOT WHERE YOU UPLOADED ===
 @app.route('/manifest.json')
 def manifest():
     return jsonify({
@@ -174,21 +174,32 @@ self.addEventListener("fetch", e => {
 """
     return Response(js, mimetype='application/javascript')
 
+@app.route('/sw.js')
+def sw2():
+    return sw()
+
 @app.route('/icon-192.png')
 def icon192():
-    # serve if you upload icons to static, else fallback placeholder
-    try:
+    # CHECK ROOT FIRST - WHERE YOU UPLOADED
+    if os.path.exists('icon-192.png'):
+        return send_from_directory('.', 'icon-192.png')
+    if os.path.exists('static/icon-192.png'):
         return send_from_directory('static', 'icon-192.png')
-    except:
-        return send_from_directory('static/uploads', 'icon-192.png') if os.path.exists('static/uploads/icon-192.png') else ("", 204)
+    if os.path.exists('static/uploads/icon-192.png'):
+        return send_from_directory('static/uploads', 'icon-192.png')
+    return ("", 204)
 
 @app.route('/icon-512.png')
 def icon512():
-    try:
+    # CHECK ROOT FIRST - WHERE YOU UPLOADED
+    if os.path.exists('icon-512.png'):
+        return send_from_directory('.', 'icon-512.png')
+    if os.path.exists('static/icon-512.png'):
         return send_from_directory('static', 'icon-512.png')
-    except:
-        return send_from_directory('static/uploads', 'icon-512.png') if os.path.exists('static/uploads/icon-512.png') else ("", 204)
-# === END PWA ROUTES ===
+    if os.path.exists('static/uploads/icon-512.png'):
+        return send_from_directory('static/uploads', 'icon-512.png')
+    return ("", 204)
+# === END PWA ROUTES - FIXED ===
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -533,4 +544,6 @@ def admin_generic(filetype):
     return jsonify(load_db(f'{filetype}.json', []))
 
 if __name__=='__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
