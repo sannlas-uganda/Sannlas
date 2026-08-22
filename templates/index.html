@@ -6,6 +6,7 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#000000">
 <link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -259,13 +260,38 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <p style="font-size:10px;color:#666;margin-top:6px">© 2024 SANNLAS UGANDA - Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers</p>
 </div>
 
-<!-- FREE APP INSTALL - ONLY ADDED CODE - NO OTHER CHANGES -->
-<button id="installBtn" style="display:none;position:fixed;bottom:15px;right:15px;z-index:9999;padding:14px 20px;border-radius:30px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.4)" class="btn btn-yellow">📲 Install App</button>
+<!-- FREE APP INSTALL - KEPT YOUR CODE + IMPROVED -->
+<button id="installBtn" style="display:none;position:fixed;bottom:15px;right:15px;z-index:9999;padding:14px 20px;border-radius:30px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.4);animation: pulse 2s infinite;" class="btn btn-yellow">📲 Install SANNLAS App - FREE</button>
+<style>@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}</style>
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/service-worker.js').then(()=>console.log('SW Registered - FREE APP READY'));
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='block';});
-document.getElementById('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();let c=await deferredPrompt.userChoice;if(c.outcome==='accepted')document.getElementById('installBtn').style.display='none';deferredPrompt=null;}});
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  document.getElementById('installBtn').style.display='block';
+  console.log('Install ready');
+});
+document.getElementById('installBtn').addEventListener('click',async()=>{
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    let c=await deferredPrompt.userChoice;
+    if(c.outcome==='accepted'){
+      document.getElementById('installBtn').style.display='none';
+      alert('✅ Thanks! SANNLAS App installed on your phone!');
+    }
+    deferredPrompt=null;
+  } else {
+    alert('📲 To install: On Android Chrome tap menu ⋮ > Install App / Add to Home screen. On iPhone Safari tap Share button > Add to Home Screen');
+  }
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('installBtn').style.display='none';
+  console.log('App installed');
+});
 </script>
 
 <script>
