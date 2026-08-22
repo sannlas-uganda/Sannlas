@@ -42,17 +42,12 @@ body{font-family:Arial;background:#c0392b}
 <body>
 <div class="navbar">
 <h3>🛍️ SANNLAS</h3>
-<div style="display:flex;flex-wrap:wrap;gap:3px">
+<div style="display:flex;flex-wrap:wrap;gap:5px">
 <button class="btn btn-yellow" onclick="showNew()">🆕 New</button>
-<button class="btn" onclick="openPopup('jobsPop')">💼 Jobs</button>
-<button class="btn" onclick="openPopup('applyPop')">📝 Applications</button>
-<button class="btn btn-blue" onclick="openPopup('ordersPop')">📦 Orders + Boda Tracking</button>
 <button class="btn" style="background:#9c27b0" onclick="showBargains()">🤝 Bargains</button>
-<button class="btn btn-green" onclick="openPopup('subPop')">💳 Subscription</button>
 <button class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button>
 <button class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button>
-<button class="btn btn-yellow" onclick="openPopup('authPop')">🔐 Login / Register</button>
-<a href="/admin" class="btn" style="text-decoration:none;background:#333">Admin</a>
+<button class="btn btn-yellow" onclick="openPopup('authPop')">🔐 Login</button>
 </div>
 </div>
 <div class="search-bar">
@@ -60,8 +55,6 @@ body{font-family:Arial;background:#c0392b}
 <select id="mainFilter" onchange="onMainChange()"><option value="">All</option></select>
 <select id="subFilter" onchange="doFilter()"><option value="">Sub</option></select>
 <button class="btn" onclick="clearFilter()">Clear</button>
-<a href="https://wa.me/256795712326?text=Hello SANNLAS Owner" target="_blank" class="btn" style="background:#25D366;text-decoration:none">💬 WhatsApp Owner</a>
-<a href="mailto:natelieabigali@gmail.com?subject=SANNLAS Inquiry" class="btn" style="background:#000;text-decoration:none">✉️ Owner Email</a>
 </div>
 <div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers • Followers • MoMo 0795712326</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none"></p></div>
 <div id="frontUpload" class="front-upload">
@@ -93,12 +86,9 @@ body{font-family:Arial;background:#c0392b}
 <div class="products" id="products"></div>
 <div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn btn-green" style="display:none;padding:12px 25px" onclick="loadMore()">Load More</button></div>
 
-<!-- REMOVED FROM HOME - NOW ONLY IN LOGIN POPUP -->
-
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Your Phone" required><input name="district" placeholder="District" required><button class="btn btn-green" style="width:100%">Confirm Order</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
 
-<!-- NEW LOGIN POPUP WITH REGISTER + NIN INSIDE -->
 <div class="popup" id="authPop"><div class="popup-content" style="max-width:900px">
 <h2 style="text-align:center;color:#8B0000">🔐 Login / Register + Blue Tick Verification</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:10px">
@@ -120,7 +110,6 @@ body{font-family:Arial;background:#c0392b}
 <div id="loginStatus" style="background:#f0f0f0;padding:8px;border-radius:8px;margin-top:8px;font-size:11px">Not logged in</div>
 </div>
 </div>
-
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px">
 <div class="auth-box" style="border:2px solid #1976d2;background:#e3f2fd">
 <h3>✅ Get Verified Blue Tick ✓ + NIN</h3>
@@ -144,7 +133,6 @@ body{font-family:Arial;background:#c0392b}
 <div id="myFollowersContent"></div>
 </div>
 </div>
-
 <button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;border:none;padding:10px;border-radius:8px;margin-top:10px">Close Login</button>
 </div></div>
 
@@ -192,6 +180,23 @@ body{font-family:Arial;background:#c0392b}
 <div id="ordersList">Loading...</div>
 <button onclick="closePop('ordersPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
+
+<!-- BOTTOM FOOTER WITH JOBS, APPLICATIONS, ORDERS, SUBSCRIPTION, ADMIN -->
+<div style="background:#000;color:white;padding:25px 15px;text-align:center;margin-top:40px;border-top:5px solid #FFCC02">
+<h3 style="color:#FFCC02;margin-bottom:15px">📌 SANNLAS MORE SERVICES</h3>
+<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:900px;margin:0 auto">
+<button class="btn" onclick="openPopup('jobsPop')">💼 Jobs</button>
+<button class="btn" onclick="openPopup('applyPop')">📝 Job Applications</button>
+<button class="btn btn-blue" onclick="openPopup('ordersPop')">📦 Orders + Boda Tracking</button>
+<button class="btn btn-green" onclick="openPopup('subPop')">💳 Subscription Plans</button>
+<a href="/admin" class="btn" style="text-decoration:none;background:#444">🔧 Admin Panel</a>
+<a href="https://wa.me/256795712326?text=Hello SANNLAS Owner" target="_blank" class="btn" style="background:#25D366;text-decoration:none">💬 WhatsApp Owner</a>
+<a href="mailto:natelieabigali@gmail.com?subject=SANNLAS Inquiry" class="btn" style="background:#222;text-decoration:none">✉️ Email Owner</a>
+</div>
+<p style="margin-top:18px;font-size:11px;color:#aaa">MoMo: 0795712326 | Email: natelieabigali@gmail.com | Products stay until seller deletes | 14 Days FREE then paid</p>
+<p style="font-size:10px;color:#666;margin-top:6px">© 2024 SANNLAS UGANDA - Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers</p>
+</div>
+
 <script>
 let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], currentUser=null, selectedPayPlan='30';
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
