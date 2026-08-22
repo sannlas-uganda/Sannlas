@@ -3,6 +3,9 @@
 <head>
 <title>SANNLAS UGANDA - All Features</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -255,6 +258,16 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <p style="margin-top:18px;font-size:11px;color:#aaa">MoMo: 0795712326 | Email: natelieabigali@gmail.com | Products stay until seller deletes | 14 Days FREE then paid</p>
 <p style="font-size:10px;color:#666;margin-top:6px">© 2024 SANNLAS UGANDA - Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers</p>
 </div>
+
+<!-- FREE APP INSTALL - ONLY ADDED CODE - NO OTHER CHANGES -->
+<button id="installBtn" style="display:none;position:fixed;bottom:15px;right:15px;z-index:9999;padding:14px 20px;border-radius:30px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.4)" class="btn btn-yellow">📲 Install App</button>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='block';});
+document.getElementById('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();let c=await deferredPrompt.userChoice;if(c.outcome==='accepted')document.getElementById('installBtn').style.display='none';deferredPrompt=null;}});
+</script>
+
 <script>
 let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], currentUser=null, selectedPayPlan='30';
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
