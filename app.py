@@ -8,8 +8,8 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
 
 OWNER_EMAIL = "natelieabigali@gmail.com"
-OWNER_PHONE = "0795712328"
-OWNER_MOMO = "0795712328"
+OWNER_PHONE = "0795712326"
+OWNER_MOMO = "0795712326"
 
 PLANS = {
     "free14": {"days": 14, "price": 0, "name": "14 Days FREE", "requires_payment": False},
@@ -118,7 +118,7 @@ def register():
     users=load_db('users.json',[])
     if any(u['email']==email for u in users):
         return jsonify({'success':False,'message':'Email already registered - Login'}),400
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':False}
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True}
     users.append(user); save_db('users.json',users)
     safe={k:v for k,v in user.items() if k!='password'}
     return jsonify({'success':True,'message':'Registered! 14 Days FREE active - Login now','user':safe})
@@ -167,16 +167,21 @@ def sell():
     users=load_db('users.json',[]); products=load_db('products.json',[])
     seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     plan_info=PLANS.get(plan,PLANS['free14'])
-    if plan_info.get('requires_payment'):
+
+    # --- FIXED: 14 Days FREE should NEVER ask for payment ---
+    if plan == "free14" or not plan_info.get('requires_payment'):
+        if seller and seller.get('free_used') and seller['subscription_expires'] < time.time():
+            return jsonify({'success':False,'message':'14 Days FREE already used & expired. Choose paid plan and PAY BEFORE UPLOAD'}),402
+        if not seller and any(p.get('phone')==phone for p in products):
+            existing_free = any(p.get('phone')==phone and p.get('plan')=='free14' for p in products)
+            if existing_free:
+                return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
+    else:
         if not seller:
             return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Register & Pay UGX {plan_info["price"]} for {plan_info["name"]} to MoMo {OWNER_MOMO} first. Then admin activates.'}),402
         if seller['subscription_expires'] < time.time() or not seller.get('paid') or seller.get('plan')!= plan:
             return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD: Your subscription expired or not paid for {plan_info["name"]}. Pay UGX {plan_info["price"]} to MoMo {OWNER_MOMO}. Submit code in Subscription popup. Wait admin activation.'}),402
-    else:
-        if seller and seller.get('free_used') and seller['subscription_expires'] < time.time():
-            return jsonify({'success':False,'message':'14 Days FREE already used & expired. Choose paid plan and PAY BEFORE UPLOAD'}),402
-        if not seller and any(p.get('phone')==phone for p in products):
-            return jsonify({'success':False,'message':'Phone already used FREE trial. Register & pay before upload'}),402
+
     images=[]
     for key in request.files:
         f=request.files[key]
