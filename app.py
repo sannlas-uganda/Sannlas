@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory
-import os, json, uuid, time, hashlib
+import os, json, uuid, time, hashlib, base64
 from werkzeug.utils import secure_filename
 # --- SANNLAS FIREWALL START - ONLY ADDED ---
 from flask_talisman import Talisman
@@ -322,9 +322,13 @@ def sell():
     for key in request.files:
         f=request.files[key]
         if f and f.filename and 'nin' not in key.lower() and 'review' not in key.lower():
-            fn=str(uuid.uuid4())[:8]+'_'+secure_filename(f.filename)
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
-            images.append('/static/uploads/'+fn)
+            # --- PERMANENT IMAGE FIX - Saves inside Database ---
+            file_bytes = f.read()
+            mime = f.mimetype or 'image/jpeg'
+            b64 = base64.b64encode(file_bytes).decode('utf-8')
+            data_uri = f"data:{mime};base64,{b64}"
+            images.append(data_uri)
+            # --- END FIX ---
     img_url=request.form.get('image_url')
     if img_url and not images: images=[img_url]
     if not images: images=['https://via.placeholder.com/300']
@@ -399,17 +403,6 @@ def upload_nin():
             u['nin_number']=nin_number; u['nin_front']=front_url; u['nin_back']=back_url; u['nin_status']='pending'; u['verified']=False
     save_db('users.json',users)
     return jsonify({'success':True,'message':'NIN uploaded! Wait admin verification for blue tick ✓'})
-
-@app.route('/api/admin/verify-seller', methods=['POST'])
-def admin_verify():
-    data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); action=data.get('action','approve')
-    users=load_db('users.json',[])
-    for u in users:
-        if u['phone']==phone or u['email']==email:
-            if action=='approve': u['verified']=True; u['nin_status']='verified'
-            else: u['verified']=False; u['nin_status']='rejected'
-    save_db('users.json',users)
-    return jsonify({'success':True,'message':f'Seller {action}d - blue tick updated'})
 
 @app.route('/api/update-order-status', methods=['POST'])
 def update_order():
