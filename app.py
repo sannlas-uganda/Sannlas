@@ -1,11 +1,28 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory
 import os, json, uuid, time, hashlib
 from werkzeug.utils import secure_filename
+# --- SANNLAS FIREWALL START - ONLY ADDED ---
+from flask_talisman import Talisman
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_cors import CORS
+# --- FIREWALL END ---
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER']='static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
+
+# --- SANNLAS FIREWALL PROTECTION - ONLY ADDED ---
+Talisman(app, content_security_policy=None, force_https=False)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per 15 minutes"],
+    storage_uri="memory://",
+)
+CORS(app, origins=["https://sannlas.onrender.com"])
+# --- END PROTECTION ---
 
 OWNER_EMAIL = "natelieabigali@gmail.com"
 OWNER_PHONE = "0795712326"
