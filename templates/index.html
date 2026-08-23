@@ -47,6 +47,14 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 .auth-box input,.auth-box select,.auth-box textarea{width:100%;padding:11px;margin:4px 0;border:1px solid #ccc;border-radius:8px;font-size:14px}
 .auth-box h3{font-size:15px;margin-bottom:6px}
 #bodaMap{width:100%;border-radius:12px}
+/* --- NEW GATE STYLE - ONLY ADDED --- */
+#authGate{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.97);z-index:99999;display:none;align-items:center;justify-content:center;padding:15px;overflow-y:auto}
+.gate-box{background:white;padding:18px;border-radius:15px;max-width:450px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.gate-box h2{color:#8B0000;text-align:center;margin-bottom:10px}
+.gate-box input,.gate-box select{width:100%;padding:12px;margin:6px 0;border:2px solid #ccc;border-radius:8px;font-size:14px}
+.gate-step{display:none}
+.gate-step.active{display:block}
+/* --- END GATE STYLE --- */
 @media(max-width:768px){
 .navbar{padding:8px 8px}
 .navbar h3{font-size:16px}
@@ -86,6 +94,58 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 </style>
 </head>
 <body>
+
+<!-- --- NEW AUTH GATE - ONLY ADDED - ONE TIME REGISTRATION --- -->
+<div id="authGate">
+<div class="gate-box">
+<h2>🛍️ SANNLAS UGANDA</h2>
+<p style="text-align:center;font-size:12px;margin-bottom:10px">One-Time Registration Required</p>
+
+<!-- STEP 1: REGISTER -->
+<div id="gateRegister" class="gate-step active">
+<h3>📝 Register - One Time Only</h3>
+<input id="gateRegEmail" placeholder="Email">
+<input id="gateRegPhone" placeholder="Phone 2567...">
+<input id="gateRegPass" type="password" placeholder="Password">
+<input id="gateRegBiz" placeholder="Business Name">
+<select id="gateRegRole"><option value="seller">I am Seller</option><option value="buyer">I am Buyer</option></select>
+<button class="btn btn-green" style="width:100%;padding:12px" onclick="gateDoRegister()">Register FREE - Continue to NIN</button>
+<p style="text-align:center;margin-top:10px;font-size:12px">Already registered? <a href="#" onclick="switchGate('login');return false" style="color:#1976d2;font-weight:bold">Login here</a></p>
+</div>
+
+<!-- STEP 2: LOGIN -->
+<div id="gateLogin" class="gate-step">
+<h3>🔑 Login to Sannlas</h3>
+<input id="gateLogEmail" placeholder="Email">
+<input id="gateLogPass" type="password" placeholder="Password">
+<div style="display:flex;align-items:center;gap:8px;margin:8px 0;background:#FFF9C4;padding:8px;border-radius:8px">
+<input type="checkbox" id="stayLogged" style="width:18px;height:18px">
+<label for="stayLogged" style="font-size:12px;font-weight:bold">Stay logged in this device</label>
+</div>
+<button class="btn" style="width:100%;padding:12px;background:#000" onclick="gateDoLogin()">Login & Open App</button>
+<p style="text-align:center;margin-top:10px;font-size:12px">New here? <a href="#" onclick="switchGate('register');return false" style="color:#2e7d32;font-weight:bold">Register here</a></p>
+</div>
+
+<!-- STEP 3: NIN VERIFICATION - MUST BEFORE ENTERING -->
+<div id="gateNIN" class="gate-step">
+<h3>✅ NIN Verification Required</h3>
+<p style="font-size:11px;background:#e3f2fd;padding:8px;border-radius:8px">For security, upload NIN to get <span class="verified-badge">✓ Verified</span> - One time only before entering app</p>
+<input id="gateNinNumber" placeholder="NIN Number e.g. CM123...">
+<label style="font-size:11px">NIN Front Photo *</label><input type="file" id="gateNinFront" accept="image/*">
+<label style="font-size:11px">NIN Back Photo</label><input type="file" id="gateNinBack" accept="image/*">
+<button class="btn btn-blue" style="width:100%;padding:12px" onclick="gateUploadNIN()">Submit NIN & Enter Sannlas</button>
+<div id="gateNinStatus" style="font-size:11px;margin-top:8px;text-align:center"></div>
+</div>
+
+<div id="gateLoading" class="gate-step">
+<h3 style="text-align:center">⏳ Please wait...</h3>
+<p style="text-align:center;font-size:12px" id="gateLoadingText">Processing...</p>
+</div>
+
+</div>
+</div>
+<!-- --- END GATE --- -->
+
 <div class="navbar">
 <h3>🛍️ SANNLAS</h3>
 <div style="display:flex;flex-wrap:wrap;gap:5px">
@@ -297,6 +357,131 @@ window.addEventListener('appinstalled',()=>{
 <script>
 let products=[], cart=[], categories={}, frontFiles=[], visibleCount=50, allProducts=[], currentUser=null, selectedPayPlan='30';
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"].sort();
+
+// --- NEW GATE LOGIC - ONLY ADDED ---
+function switchGate(step){
+ document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));
+ if(step==='register') document.getElementById('gateRegister').classList.add('active');
+ if(step==='login') document.getElementById('gateLogin').classList.add('active');
+ if(step==='nin') document.getElementById('gateNIN').classList.add('active');
+ if(step==='loading') document.getElementById('gateLoading').classList.add('active');
+}
+function showGate(){document.getElementById('authGate').style.display='flex';}
+function hideGate(){document.getElementById('authGate').style.display='none';}
+function gateCheck(){
+ let stay = localStorage.getItem('sannlas_stay')==='yes';
+ let userStr = localStorage.getItem('sannlas_user');
+ let ninDone = localStorage.getItem('sannlas_nin_done')==='yes';
+ if(stay && userStr){
+   // Stay logged in -> open directly
+   currentUser=JSON.parse(userStr);
+   hideGate();
+   updateLoginUI();
+   return;
+ }
+ if(!userStr){
+   // No account -> must register
+   showGate();
+   switchGate('register');
+   return;
+ }
+ // Has account but not stay logged
+ let u = JSON.parse(userStr);
+ currentUser=u;
+ if(!ninDone && (u.nin_status==='not_uploaded' ||!u.nin_status)){
+   showGate();
+   switchGate('nin');
+ } else {
+   showGate();
+   switchGate('login');
+ }
+}
+function gateDoRegister(){
+ let email=document.getElementById('gateRegEmail').value.trim();
+ let phone=document.getElementById('gateRegPhone').value.trim();
+ let pass=document.getElementById('gateRegPass').value;
+ let biz=document.getElementById('gateRegBiz').value;
+ let role=document.getElementById('gateRegRole').value;
+ if(!email||!phone||!pass){alert('Fill email, phone, password');return;}
+ switchGate('loading');
+ document.getElementById('gateLoadingText').innerText='Registering...';
+ fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz,role})}).then(r=>r.json()).then(d=>{
+   if(d.success){
+     // Save temp user for NIN step
+     localStorage.setItem('sannlas_user',JSON.stringify(d.user));
+     currentUser=d.user;
+     localStorage.setItem('sannlas_temp_email',email);
+     switchGate('nin');
+     document.getElementById('gateNinStatus').innerText='✅ Registered! Now upload NIN to enter';
+   } else {
+     alert(d.message);
+     switchGate('register');
+   }
+ }).catch(()=>{alert('Error');switchGate('register');});
+}
+function gateDoLogin(){
+ let email=document.getElementById('gateLogEmail').value.trim();
+ let pass=document.getElementById('gateLogPass').value;
+ let stay=document.getElementById('stayLogged').checked;
+ if(!email||!pass){alert('Fill email & password');return;}
+ switchGate('loading');
+ document.getElementById('gateLoadingText').innerText='Logging in...';
+ fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{
+   if(d.success){
+     currentUser=d.user;
+     localStorage.setItem('sannlas_user',JSON.stringify(d.user));
+     if(stay){
+       localStorage.setItem('sannlas_stay','yes');
+     } else {
+       localStorage.removeItem('sannlas_stay');
+     }
+     // Check if NIN done
+     let ninDone=localStorage.getItem('sannlas_nin_done');
+     if(!ninDone){
+       // If user has no NIN status, ask NIN
+       if(d.user.nin_status==='not_uploaded' ||!d.user.nin_status){
+         switchGate('nin');
+         return;
+       }
+     }
+     hideGate();
+     updateLoginUI();
+     loadMySales();
+   } else {
+     alert(d.message);
+     switchGate('login');
+   }
+ }).catch(()=>{alert('Error');switchGate('login');});
+}
+function gateUploadNIN(){
+ if(!currentUser){alert('Register first');switchGate('register');return;}
+ let ninNum=document.getElementById('gateNinNumber').value;
+ let front=document.getElementById('gateNinFront').files[0];
+ let back=document.getElementById('gateNinBack').files[0];
+ if(!ninNum){alert('Enter NIN number');return;}
+ if(!front){alert('Select NIN front photo');return;}
+ switchGate('loading');
+ document.getElementById('gateLoadingText').innerText='Uploading NIN...';
+ let fd=new FormData();
+ fd.append('phone',currentUser.phone);
+ fd.append('email',currentUser.email);
+ fd.append('nin_number',ninNum);
+ fd.append('nin_front',front);
+ if(back) fd.append('nin_back',back);
+ fetch('/api/verify-nin',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+   localStorage.setItem('sannlas_nin_done','yes');
+   // Update user nin_status
+   currentUser.nin_status='pending';
+   localStorage.setItem('sannlas_user',JSON.stringify(currentUser));
+   alert('✅ NIN uploaded! Welcome to Sannlas!');
+   hideGate();
+   updateLoginUI();
+ }).catch(()=>{alert('Upload failed');switchGate('nin');});
+}
+// Run gate on page load BEFORE other stuff
+setTimeout(gateCheck,500);
+// --- END GATE LOGIC ---
+
 fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});initFrontCat();});
 function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
 function doFilter(){let q=document.getElementById('searchInput').value;let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=50;render();});}
@@ -476,7 +661,7 @@ function checkLogin(){let s=localStorage.getItem('sannlas_user');if(s){currentUs
 function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | ${currentUser.business||currentUser.role} | Plan: ${currentUser.plan_name} | Followers: ${currentUser.followers||0} ${currentUser.verified?'| <span class="verified-badge">✓ Verified</span>':''} | Expires: ${new Date(currentUser.subscription_expires*1000).toLocaleDateString()}`;document.getElementById('loginStatus').innerHTML=`Logged as ${currentUser.email}<br>Phone: ${currentUser.phone}<br>Plan: ${currentUser.plan_name}<br>${currentUser.verified?'<span class="verified-badge">✓ Verified</span>':'Not verified - Upload NIN below'}<br>Followers: ${currentUser.followers||0}`;document.getElementById('ninStatus').innerText=`Status: ${currentUser.nin_status||'not_uploaded'} ${currentUser.verified?'✓ Verified':''}`;} else {document.getElementById('userInfo').style.display='none';document.getElementById('loginStatus').innerHTML='Not logged in';}}
 function doRegister(){let email=document.getElementById('regEmail').value,phone=document.getElementById('regPhone').value,pass=document.getElementById('regPass').value,biz=document.getElementById('regBiz').value,role=document.getElementById('regRole').value;if(!email||!phone||!pass){alert('Fill all');return;}fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz,role})}).then(r=>r.json()).then(d=>{alert(d.message);if(d.success){document.getElementById('logEmail').value=email;}});}
 function doLogin(){let email=document.getElementById('logEmail').value,pass=document.getElementById('logPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));updateLoginUI();loadMySales();alert('Welcome '+d.user.email);}else alert(d.message);});}
-function doLogout(){localStorage.removeItem('sannlas_user');currentUser=null;updateLoginUI();document.getElementById('mySalesContent').innerHTML='Logged out';}
+function doLogout(){localStorage.removeItem('sannlas_user');localStorage.removeItem('sannlas_stay');localStorage.removeItem('sannlas_nin_done');currentUser=null;updateLoginUI();document.getElementById('mySalesContent').innerHTML='Logged out';showGate();switchGate('login');}
 function loadMySales(){
  if(!currentUser){let s=localStorage.getItem('sannlas_user');if(s) currentUser=JSON.parse(s); else {document.getElementById('mySalesContent').innerHTML='Login to see sales';return;}}
  let period=document.getElementById('salesPeriod').value;
