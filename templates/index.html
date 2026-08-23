@@ -774,5 +774,20 @@ function myUploadNIN(){
 
 setTimeout(initFrontCat,800);
 </script>
+ <script>
+function popup(id){
+  var el=document.getElementById(id);
+  if(el){el.style.display='flex'; el.classList.add('show')}
+}
+function closePop(id){
+  var el=document.getElementById(id);
+  if(el){el.style.display='none'; el.classList.remove('show')}
+}
+function openGatePop(){
+  var el=document.getElementById('gatePop');
+  if(!el) el=document.getElementById('authPop');
+  if(el){el.style.display='flex'; el.classList.add('show')}
+}
+</script>
 </body>
 </html>
