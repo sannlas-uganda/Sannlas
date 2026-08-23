@@ -185,7 +185,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content"><h3>Checkout</h3><form onsubmit="doCheckout(event)"><input name="names" placeholder="Names" required><input name="phone1" placeholder="Your Phone" required><input name="district" placeholder="District" required><button class="btn btn-green" style="width:100%">Confirm Order</button><button type="button" onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:5px">Cancel</button></form></div></div>
 
-<!-- ONLY CHANGED POPUP - My Account with Tabs -->
 <div class="popup" id="authPop"><div class="popup-content" style="max-width:950px">
 <h2 style="text-align:center;color:#8B0000">👤 My Account - SANNLAS</h2>
 <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:12px 0">
@@ -198,8 +197,16 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 
 <div id="myTab-profile" class="myTab active">
 <div class="auth-box" style="max-width:100%;border:2px solid #000">
-<h3>🔒 My Privacy & Business Info</h3>
+<h3>🔒 My Privacy & Business Info - Only You & Admin</h3>
 <div id="myProfileInfo" style="background:#f5f5f5;padding:10px;border-radius:8px;font-size:12px;margin-bottom:10px">Login to see your info</div>
+
+<!-- NIN BIODATA PRIVATE BOX - ONLY OWNER + ADMIN -->
+<div id="myNinBiodataBox" style="background:#000;color:#0f0;padding:10px;border-radius:8px;margin-bottom:10px;display:none;border:2px solid #FFCC02">
+<h4 style="color:#FFCC02">🔐 NIN Biodata - Private (Only You & Admin natelieabigali@gmail.com)</h4>
+<div id="myNinBiodata" style="font-size:11px;line-height:1.8;margin-top:6px"></div>
+<p style="font-size:9px;color:#aaa;margin-top:8px">⚠️ This NIN info is private. Not visible to buyers or other sellers. Only you and Sannlas Admin can see it.</p>
+</div>
+
 <input id="myBizName" placeholder="Business Name">
 <input id="myPhone" placeholder="Phone 256...">
 <input id="myEmail" placeholder="Email" disabled style="background:#eee">
@@ -680,8 +687,6 @@ function loadMyProducts(){
   let el=document.getElementById('myProductsContent'); if(el) el.innerHTML=`<h4>My Products (${prods.length})</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">${prods.map(p=>`<div style="background:white;padding:5px;border-radius:8px"><img src="${p.image}" style="width:100%;height:80px;object-fit:cover"><br>${p.name}<br>UGX ${p.price}</div>`).join('')}</div>`;
  });
 }
-
-// --- ONLY NEW FUNCTIONS FOR MY ACCOUNT TABS ---
 function showMyTab(tab){
  document.querySelectorAll('.myTab').forEach(t=>{t.classList.remove('active'); t.style.display='none';});
  let el=document.getElementById('myTab-'+tab);
@@ -694,12 +699,29 @@ function showMyTab(tab){
 function refreshMyProfileTab(){
  if(!currentUser) return;
  let info=document.getElementById('myProfileInfo');
- if(info) info.innerHTML=`Email: ${currentUser.email}<br>Phone: ${currentUser.phone}<br>Business: ${currentUser.business}<br>Role: ${currentUser.role}<br>Verified: ${currentUser.verified?'✓ Yes':'No'}<br>Followers: ${currentUser.followers||0}<br>Plan: ${currentUser.plan_name}<br>Expires: ${new Date(currentUser.subscription_expires*1000).toLocaleDateString()}`;
+ if(info) info.innerHTML=`<b>Full Registration:</b><br>Email: ${currentUser.email}<br>Phone: ${currentUser.phone} (private)<br>Business: ${currentUser.business}<br>Role: ${currentUser.role}<br>Verified: ${currentUser.verified?'✓ Yes Blue Tick':'No'}<br>Followers: ${currentUser.followers||0}<br>Plan: ${currentUser.plan_name}<br>Expires: ${new Date(currentUser.subscription_expires*1000).toLocaleDateString()}<br>Created: ${currentUser.created?new Date(currentUser.created*1000).toLocaleDateString():'-'}<br>NIN Status: ${currentUser.nin_status||'not_uploaded'}`;
  let biz=document.getElementById('myBizName'); if(biz) biz.value=currentUser.business||'';
  let ph=document.getElementById('myPhone'); if(ph) ph.value=currentUser.phone||'';
  let em=document.getElementById('myEmail'); if(em) em.value=currentUser.email||'';
  let pi=document.getElementById('myPlanInfo'); if(pi) pi.innerHTML=`Current Plan: <b>${currentUser.plan_name}</b><br>Expires: ${new Date(currentUser.subscription_expires*1000).toLocaleDateString()}<br>Paid: ${currentUser.paid?'Yes':'No'}<br>Followers: ${currentUser.followers||0}`;
  let ns=document.getElementById('myNinStatus'); if(ns) ns.innerText=`NIN Status: ${currentUser.nin_status||'not_uploaded'} ${currentUser.verified?'✓ Verified':''}`;
+
+ // PRIVATE NIN BIODATA BOX - fetch from backend private API
+ let box=document.getElementById('myNinBiodataBox');
+ let dataDiv=document.getElementById('myNinBiodata');
+ if(box && dataDiv){
+   if(currentUser.nin_number){
+     box.style.display='block';
+     dataDiv.innerHTML=`<b>NIN:</b> ${currentUser.nin_number}<br><b>Names:</b> ${currentUser.nin_names||currentUser.business}<br><b>DOB:</b> ${currentUser.nin_dob||'On NIN'}<br><b>Gender:</b> ${currentUser.nin_gender||'On NIN'}<br><b>District:</b> ${currentUser.nin_district||currentUser.location||''}<br><b>Verified:</b> ${currentUser.verified?'✅ Yes':'⏳ Pending Admin'}<br><b>Email (private):</b> ${currentUser.email}<br><b>Phone (private):</b> ${currentUser.phone}<br><b>Business:</b> ${currentUser.business}<br><b>Role:</b> ${currentUser.role}`;
+   } else {
+     fetch(`/api/user-nin-info?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{
+       if(d.nin_number || d.email){
+         box.style.display='block';
+         dataDiv.innerHTML=`<b>NIN:</b> ${d.nin_number||'Not uploaded'}<br><b>Names:</b> ${d.nin_names||d.business}<br><b>DOB:</b> ${d.nin_dob||'On NIN'}<br><b>Gender:</b> ${d.nin_gender||''}<br><b>District:</b> ${d.nin_district||''}<br><b>Status:</b> ${d.nin_status}<br><b>Verified:</b> ${d.verified?'✅ Yes':'⏳ Pending'}<br><b>Email (private):</b> ${d.email}<br><b>Phone (private):</b> ${d.phone}<br><b>Business:</b> ${d.business}<br><b>Plan:</b> ${d.plan_name}`;
+       }
+     }).catch(()=>{});
+   }
+ }
 }
 function loadMyLikes(){
  if(!currentUser){document.getElementById('myLikesContent').innerHTML='Login first';return;}
@@ -713,12 +735,10 @@ function updateMyProfile(){
  if(!currentUser) return;
  let newBiz=document.getElementById('myBizName').value;
  let newPhone=document.getElementById('myPhone').value;
- let newPass=document.getElementById('myNewPass').value;
  currentUser.business=newBiz;
  currentUser.phone=newPhone;
  localStorage.setItem('sannlas_user',JSON.stringify(currentUser));
- if(newPass) alert('Password change will need backend update - saved locally for now: '+newPass);
- alert('✅ Profile saved! Business: '+newBiz);
+ alert('✅ Profile saved locally: '+newBiz+' | Phone: '+newPhone);
  updateLoginUI();
  refreshMyProfileTab();
 }
@@ -726,10 +746,6 @@ function myUploadNIN(){
  let num=document.getElementById('myNinNumber').value;
  let front=document.getElementById('myNinFront').files[0];
  let back=document.getElementById('myNinBack').files[0];
- // copy to old fields for existing function
- let oldNum=document.getElementById('ninNumber') || document.createElement('input');
- if(document.getElementById('ninNumber')) document.getElementById('ninNumber').value=num;
- // use new upload
  if(!currentUser){alert('Login first');return;}
  if(!num){alert('Enter NIN number');return;}
  if(!front){alert('Select NIN front photo');return;}
@@ -743,8 +759,10 @@ function myUploadNIN(){
    alert(d.message);
    let el=document.getElementById('myNinStatus'); if(el) el.innerText=d.message;
    currentUser.nin_status='pending';
+   currentUser.nin_number=num;
    localStorage.setItem('sannlas_user',JSON.stringify(currentUser));
    localStorage.setItem('sannlas_nin_done','yes');
+   refreshMyProfileTab();
  });
 }
 
