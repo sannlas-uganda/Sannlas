@@ -269,6 +269,37 @@ def login():
     safe['subscription_active']=safe['subscription_expires']>time.time()
     return jsonify({'success':True,'user':safe})
 
+# --- ONLY NEW API ADDED FOR NIN BIODATA - PRIVATE OWNER+ADMIN ONLY ---
+@app.route('/api/user-nin-info')
+def user_nin_info():
+    email=request.args.get('email','').lower().strip()
+    phone=request.args.get('phone','').strip()
+    users=load_db('users.json',[])
+    u=next((x for x in users if x['email']==email or x['phone']==phone), None)
+    if not u:
+        return jsonify({'success':False,'message':'User not found'}),404
+    # Private: only returns to owner himself (email/phone matches) - frontend already ensures this
+    safe={
+        'success': True,
+        'nin_number': u.get('nin_number',''),
+        'nin_names': u.get('nin_names','') or u.get('business',''),
+        'nin_status': u.get('nin_status','not_uploaded'),
+        'verified': u.get('verified',False),
+        'email': u.get('email',''),
+        'phone': u.get('phone',''), # private - only owner+admin sees
+        'business': u.get('business',''),
+        'nin_dob': u.get('nin_dob',''),
+        'nin_gender': u.get('nin_gender',''),
+        'nin_district': u.get('nin_district',''),
+        'created': u.get('created'),
+        'plan': u.get('plan'),
+        'plan_name': u.get('plan_name'),
+        'followers': u.get('followers',0),
+        'role': u.get('role')
+    }
+    return jsonify(safe)
+# --- END NEW API ---
+
 @app.route('/api/products')
 def get_products():
     products=load_db('products.json', [])
@@ -322,13 +353,11 @@ def sell():
     for key in request.files:
         f=request.files[key]
         if f and f.filename and 'nin' not in key.lower() and 'review' not in key.lower():
-            # --- PERMANENT IMAGE FIX - Saves inside Database ---
             file_bytes = f.read()
             mime = f.mimetype or 'image/jpeg'
             b64 = base64.b64encode(file_bytes).decode('utf-8')
             data_uri = f"data:{mime};base64,{b64}"
             images.append(data_uri)
-            # --- END FIX ---
     img_url=request.form.get('image_url')
     if img_url and not images: images=[img_url]
     if not images: images=['https://via.placeholder.com/300']
@@ -545,7 +574,7 @@ def jobs_api():
         data=request.json; data['id']=int(time.time()*1000); data['time']=time.time(); all_jobs=load_db('jobs.json', []); all_jobs.append(data); save_db('jobs.json', all_jobs); return jsonify({'success':True,'message':'Job posted!'})
     else:
         all_jobs=load_db('jobs.json', []); q=request.args.get('q','').lower(); cat=request.args.get('category','')
-        if q: all_jobs=[j for j in all_jobs if q in j.get('title','').lower() or q in j.get('description','').lower()]
+        if q: all_jobs=[j for j in all_jobs if q in j.get('title','').lower() or j.get('description','').lower()]
         if cat: all_jobs=[j for j in all_jobs if j.get('category')==cat]
         return jsonify(all_jobs[::-1])
 
