@@ -176,6 +176,7 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <div style="background:#000;color:#0f0;padding:5px;border-radius:6px;text-align:center">Selected: <b><span id="frontCount">0</span></b> | Continuous Down | Own Price Each</div>
 </div>
 <div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">Select photos - They appear continuously DOWN - 5 per row</p></div>
+ <textarea id="frontDesc" placeholder="Description about product" style="width:100%;padding:10px;border-radius:8px;border:2px solid #8B0000;margin:6px 0"></textarea>
 <div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready - No phone text on front</div>
 <button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> TO FRONT</button>
 </div>
@@ -508,8 +509,7 @@ function render(isNew=false){
   let newTag = isNew?'<span class="new-badge">NEW</span>':'';
   let verTag = p.seller_verified?'<span class="verified-badge">✓ Verified</span>':'';
   let followers = p.seller_followers?`👥 ${p.seller_followers} followers`:'';
-  return `<div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> ${newTag} ${verTag}</div><h4>${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div class="seller-box"><b>🏪 ${p.business||'Seller'}</b> ${verTag}<br>📍 ${p.location||'Kampala'}<br>${followers}<br>Stock:${p.stock||10}</div><div class="card-btns"><button class="view-btn" onclick="viewProd(${p.id})">View</button><button class="cart-btn" onclick="addCart(${p.id})">Cart</button><button class="follow-btn" onclick="doFollow('${p.business}')">+ Follow</button><button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button></div><a href="https://wa.me/256795712326?text=Hi want ${encodeURIComponent(p.name)}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%;margin-top:5px">WhatsApp Seller</button></a></div></div>`;
- }).join('');
+return `<div class="card"><img src="${p.image}" onclick="viewProd(${p.id})"><div class="card-body"><div style="font-size:9px"><span style="background:#ff6a00;color:white;padding:2px 5px;border-radius:8px">${p.main_category||''}</span> ${newTag} ${verTag}</div><h4>${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div class="seller-box"><b>🏪 ${p.business||'Seller'}</b> ${p.seller_verified?'✓':''}<br>📍 ${p.location||'Kampala'}<br>👥 ${p.seller_followers||0} followers | ⭐ ${p.avg_stars||p.rating||5} stars | ❤️ ${p.total_likes||0} likes<br>Stock:${p.stock||10}<br><small style="color:#555">${(p.description||'No description').slice(0,70)}</small></div><div style="display:flex;gap:4px;margin:4px 0"><button class="btn" style="background:#FF9800;flex:1;font-size:9px" onclick="doLike(${p.id},5)">⭐ Star</button><button class="btn" style="background:#e91e63;flex:1;font-size:9px" onclick="doLike(${p.id},5)">❤️ Like</button><button class="btn follow-btn" style="flex:1;font-size:9px" onclick="doFollow('${p.business}')">+ Follow</button></div><div class="card-btns"><button class="view-btn" onclick="viewProd(${p.id})">View</button><button class="cart-btn" onclick="addCart(${p.id})">Cart</button><button class="bargain-btn" onclick="makeBargain(${p.id})">Bargain</button></div><a href="https://wa.me/256795712326?text=Hi want ${encodeURIComponent(p.name)}" target="_blank" style="text-decoration:none"><button class="wa-btn" style="width:100%;margin-top:5px">WhatsApp Seller</button></a></div></div>`; }).join('');
  document.getElementById('loadMoreBtn').style.display=products.length>visibleCount?'inline-block':'none';
  if(products.length>visibleCount) document.getElementById('loadMoreBtn').innerText=`Load More ${Math.min(50,products.length-visibleCount)} - ${visibleCount}/${products.length}`;
 }
@@ -535,6 +535,7 @@ function submitPay(){
 }
 function initFrontCat(){let sel=document.getElementById('frontLocation');if(sel){sel.innerHTML='<option value="">Select District</option>';ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});}let main=document.getElementById('frontMain');if(main&&categories){main.innerHTML='';Object.keys(categories).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;main.appendChild(o);});}}
 function frontSubLoad(){let m=document.getElementById('frontMain').value;let s=document.getElementById('frontSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;s.appendChild(o);});}}
+ <textarea id="fdesc_${i}" placeholder="Desc for this product" style="width:100%;padding:4px;font-size:10px;border:1px solid #ccc;border-radius:5px;min-height:40px"></textarea>
 function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="OWN PRICE" style="border:2px solid #c0392b"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}" placeholder="Business"><input id="fstock_${i}" type="number" value="10"></div></div>`;}}
 async function frontUploadAll(){
  if(frontFiles.length==0){alert('Select photos');return;}
@@ -636,6 +637,10 @@ function doFollow(business){
 function doUnfollow(business){
  if(!currentUser){alert('Login first');return;}
  fetch('/api/unfollow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business,follower_phone:currentUser.phone,follower_email:currentUser.email})}).then(()=>{alert('Unfollowed');doFilter();});
+}
+ function doLike(id,s){
+ if(!currentUser){alert('Login first');return;}
+ fetch('/api/like',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,stars:s})}).then(r=>r.json()).then(d=>{alert(d.message||'Done!');});
 }
 function loadMyFollowers(){
  if(!currentUser){alert('Login first');return;}
