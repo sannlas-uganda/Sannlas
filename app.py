@@ -196,7 +196,7 @@ def manifest():
         "display": "standalone",
         "background_color": "#c0392b",
         "theme_color": "#000000",
-        "orientation": "any",
+        "orientation": "portrait",
         "description": "Shop • Sell • Jobs • Bargains • Boda Tracking • Verified Sellers - Uganda",
         "icons": [
             {"src": "/icon-192.png","sizes": "192x192","type": "image/png","purpose": "any maskable"},
