@@ -37,11 +37,9 @@ PLANS = {
 }
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
-# --- FIXED THIS PART ONLY - 3 LINES ADDED ---
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 print(f"DATABASE_URL connected: {bool(DATABASE_URL)}")
-# --- END FIX ---
 
 def get_conn():
     if not DATABASE_URL:
@@ -269,7 +267,6 @@ def login():
     safe['subscription_active']=safe['subscription_expires']>time.time()
     return jsonify({'success':True,'user':safe})
 
-# --- ONLY NEW API ADDED FOR NIN BIODATA - PRIVATE OWNER+ADMIN ONLY ---
 @app.route('/api/user-nin-info')
 def user_nin_info():
     email=request.args.get('email','').lower().strip()
@@ -278,7 +275,6 @@ def user_nin_info():
     u=next((x for x in users if x['email']==email or x['phone']==phone), None)
     if not u:
         return jsonify({'success':False,'message':'User not found'}),404
-    # Private: only returns to owner himself (email/phone matches) - frontend already ensures this
     safe={
         'success': True,
         'nin_number': u.get('nin_number',''),
@@ -286,7 +282,7 @@ def user_nin_info():
         'nin_status': u.get('nin_status','not_uploaded'),
         'verified': u.get('verified',False),
         'email': u.get('email',''),
-        'phone': u.get('phone',''), # private - only owner+admin sees
+        'phone': u.get('phone',''),
         'business': u.get('business',''),
         'nin_dob': u.get('nin_dob',''),
         'nin_gender': u.get('nin_gender',''),
@@ -298,7 +294,46 @@ def user_nin_info():
         'role': u.get('role')
     }
     return jsonify(safe)
-# --- END NEW API ---
+
+# --- NEW: LIKE / STAR API - VISIBLE TO ALL ---
+@app.route('/api/like', methods=['POST'])
+def like_product():
+    data=request.json
+    pid=data.get('id')
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','').strip()
+    stars=int(data.get('stars',5))
+    if not pid: return jsonify({'success':False,'message':'Product ID required'}),400
+    if stars<1: stars=1
+    if stars>5: stars=5
+    products=load_db('products.json', [])
+    updated=False
+    for p in products:
+        if p['id']==pid:
+            if 'likes' not in p: p['likes']=[]
+            if 'stars' not in p: p['stars']=[]
+            # check duplicate
+            if email and any(l.get('email')==email for l in p['likes']):
+                return jsonify({'success':False,'message':'You already liked/stared this product'}),400
+            p['likes'].append({'email':email,'phone':phone,'time':time.time(),'stars':stars})
+            p['stars'].append(stars)
+            p['total_likes']=len(p['likes'])
+            p['avg_stars']=round(sum(p['stars'])/len(p['stars']),1) if p['stars'] else 5.0
+            p['rating']=p['avg_stars']
+            updated=True
+            break
+    if updated:
+        save_db('products.json', products)
+        return jsonify({'success':True,'message':f'Thanks! You gave {stars} stars!'})
+    return jsonify({'success':False,'message':'Product not found'}),404
+
+@app.route('/api/product-likes/<int:pid>')
+def get_likes(pid):
+    products=load_db('products.json', [])
+    p=next((x for x in products if x['id']==pid),None)
+    if not p: return jsonify({'likes':0,'avg_stars':5.0})
+    return jsonify({'likes':len(p.get('likes',[])),'avg_stars':p.get('avg_stars',5.0),'total_likes':p.get('total_likes',0),'stars_list':p.get('stars',[])})
+# --- END NEW LIKE API ---
 
 @app.route('/api/products')
 def get_products():
@@ -325,6 +360,11 @@ def get_products():
         seller=next((u for u in users if u.get('phone')==p.get('phone') or u.get('business')==p.get('business')),None)
         pp['seller_verified']=seller.get('verified',False) if seller else False
         pp['seller_followers']=seller.get('followers',0) if seller else 0
+        # Keep likes/stars visible to all
+        pp['total_likes']=p.get('total_likes', len(p.get('likes',[])))
+        pp['avg_stars']=p.get('avg_stars', p.get('rating',5.0))
+        pp['likes']=p.get('likes',[])
+        pp['stars']=p.get('stars',[])
         public.append(pp)
     return jsonify(public)
 
@@ -362,7 +402,7 @@ def sell():
     if img_url and not images: images=[img_url]
     if not images: images=['https://via.placeholder.com/300']
     exp_time = seller['subscription_expires'] if seller and seller['subscription_expires']>time.time() else time.time()+plan_info['days']*86400
-    prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time}
+    prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'avg_stars':5.0,'total_likes':0,'likes':[],'stars':[],'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time}
     if DATABASE_URL:
         try:
             ensure_tables()
@@ -509,6 +549,7 @@ def rate():
             if p['id']==pid:
                 p['reviews'].append({'rating':rating,'comment':comment,'photo':photo_url,'time':time.time(),'verified_purchase':True})
                 p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews'])
+                p['avg_stars']=p['rating']
         save_db('products.json', products)
         return jsonify({'success':True,'message':'Review with photo added!'})
     else:
@@ -517,6 +558,7 @@ def rate():
             if p['id']==pid:
                 p['reviews'].append({'rating':data['rating'],'comment':data.get('comment',''),'photo':data.get('photo',''),'time':time.time(),'verified_purchase':True})
                 p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews'])
+                p['avg_stars']=p['rating']
         save_db('products.json', products); return jsonify({'success':True})
 
 @app.route('/api/bargain', methods=['POST'])
@@ -574,7 +616,7 @@ def jobs_api():
         data=request.json; data['id']=int(time.time()*1000); data['time']=time.time(); all_jobs=load_db('jobs.json', []); all_jobs.append(data); save_db('jobs.json', all_jobs); return jsonify({'success':True,'message':'Job posted!'})
     else:
         all_jobs=load_db('jobs.json', []); q=request.args.get('q','').lower(); cat=request.args.get('category','')
-        if q: all_jobs=[j for j in all_jobs if q in j.get('title','').lower() or j.get('description','').lower()]
+        if q: all_jobs=[j for j in all_jobs if q in j.get('title','').lower() or q in j.get('description','').lower()]
         if cat: all_jobs=[j for j in all_jobs if j.get('category')==cat]
         return jsonify(all_jobs[::-1])
 
