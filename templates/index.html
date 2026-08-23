@@ -272,8 +272,9 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 </div>
 </div>
 
-<button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;border:none;padding:10px;border-radius:8px;margin-top:10px">Close My Account</button>
-</div></div>
+<button onclick="document.getElementById('authPop').style.display='none'; document.getElementById('authPop').classList.remove('show')" style="width:100%;background:gray;color:white;border:none;padding:10px;border-radius:8px;margin-top:10px;cursor:pointer">Close My Account</button>
+</div>
+</div>
 
 <div class="popup" id="subPop"><div class="popup-content">
 <h2 style="color:green">💳 Seller Subscription</h2>
