@@ -37,6 +37,11 @@ PLANS = {
 }
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
+# --- FIXED THIS PART ONLY - 3 LINES ADDED ---
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+print(f"DATABASE_URL connected: {bool(DATABASE_URL)}")
+# --- END FIX ---
 
 def get_conn():
     if not DATABASE_URL:
@@ -56,6 +61,7 @@ def ensure_tables():
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
         conn.commit(); cur.close(); conn.close()
+        print("Tables OK")
     except Exception as e:
         print(f"ensure_tables error: {e}")
 
@@ -71,12 +77,24 @@ def load_db(file, default):
                     cur.execute("SELECT data FROM products ORDER BY id ASC")
                     rows = cur.fetchall()
                     cur.close(); conn.close()
-                    return [r['data'] for r in rows]
+                    result = []
+                    for r in rows:
+                        d = r['data']
+                        if isinstance(d, str):
+                            try: d = json.loads(d)
+                            except: pass
+                        result.append(d)
+                    return result
                 else:
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
                     row = cur.fetchone()
                     cur.close(); conn.close()
-                    return row['data'] if row else default
+                    if not row: return default
+                    d = row['data']
+                    if isinstance(d, str):
+                        try: d = json.loads(d)
+                        except: pass
+                    return d
             except Exception as e1:
                 try:
                     import psycopg2.extras
@@ -85,12 +103,24 @@ def load_db(file, default):
                         cur.execute("SELECT data FROM products ORDER BY id ASC")
                         rows = cur.fetchall()
                         cur.close(); conn.close()
-                        return [r['data'] for r in rows]
+                        result = []
+                        for r in rows:
+                            d = r['data']
+                            if isinstance(d, str):
+                                try: d = json.loads(d)
+                                except: pass
+                            result.append(d)
+                        return result
                     else:
                         cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
                         row = cur.fetchone()
                         cur.close(); conn.close()
-                        return row['data'] if row else default
+                        if not row: return default
+                        d = row['data']
+                        if isinstance(d, str):
+                            try: d = json.loads(d)
+                            except: pass
+                        return d
                 except Exception as e2:
                     print(f"load_db {file} error v2 {e2} / v3 {e1}")
                     return default
@@ -156,7 +186,6 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/plans')
 def get_plans(): return jsonify(PLANS)
 
-# === PWA ROUTES - FIXED TO SERVE FROM ROOT WHERE YOU UPLOADED ===
 @app.route('/manifest.json')
 def manifest():
     return jsonify({
@@ -197,7 +226,6 @@ def sw2():
 
 @app.route('/icon-192.png')
 def icon192():
-    # CHECK ROOT FIRST - WHERE YOU UPLOADED
     if os.path.exists('icon-192.png'):
         return send_from_directory('.', 'icon-192.png')
     if os.path.exists('static/icon-192.png'):
@@ -208,7 +236,6 @@ def icon192():
 
 @app.route('/icon-512.png')
 def icon512():
-    # CHECK ROOT FIRST - WHERE YOU UPLOADED
     if os.path.exists('icon-512.png'):
         return send_from_directory('.', 'icon-512.png')
     if os.path.exists('static/icon-512.png'):
@@ -216,7 +243,6 @@ def icon512():
     if os.path.exists('static/uploads/icon-512.png'):
         return send_from_directory('static/uploads', 'icon-512.png')
     return ("", 204)
-# === END PWA ROUTES - FIXED ===
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -316,7 +342,8 @@ def sell():
                 cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
             conn.commit(); cur.close(); conn.close()
         except Exception as e:
-            print(e); return jsonify({'success':False,'message':'Upload failed - try again'}),500
+            print(f"sell error: {e}")
+            return jsonify({'success':False,'message':f'Upload failed: {str(e)}'}),500
     else:
         products.append(prod); save_db('products.json', products)
     return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - Continuous Down'})
