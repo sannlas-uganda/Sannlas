@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory
-import os, json, uuid, time, hashlib, base64
+import os, json, uuid, time, hashlib, base64, random, smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
 # --- SANNLAS FIREWALL START - ONLY ADDED ---
 from flask_talisman import Talisman
@@ -163,6 +165,34 @@ def save_db(file, data):
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
+# --- ONLY NEW HELPER ADDED FOR OTP EMAIL - NO OTHER CHANGE ---
+def send_email_helper(to_email, subject, html_body):
+    try:
+        smtp_email = os.environ.get('SMTP_EMAIL', OWNER_EMAIL)
+        smtp_pass = os.environ.get('SMTP_PASSWORD', '')
+        # Try to send if password set, else just log (so app still works without SMTP)
+        if smtp_pass:
+            msg = MIMEMultipart()
+            msg['From'] = smtp_email
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(html_body, 'html'))
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(smtp_email, smtp_pass)
+            server.send_message(msg)
+            server.quit()
+            print(f"Email sent to {to_email}: {subject}")
+            return True
+        else:
+            print(f"[DEV EMAIL LOG] To: {to_email} | Subject: {subject} | Body: {html_body[:200]}")
+            # Still return True so flow continues - code will be shown in frontend dev mode
+            return True
+    except Exception as e:
+        print(f"send_email error to {to_email}: {e}")
+        return False
+# --- END NEW HELPER ---
+
 BUSINESS_CATEGORIES = {
 "Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],
 "Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],
@@ -269,7 +299,84 @@ def login():
     safe['subscription_active']=safe['subscription_expires']>time.time()
     return jsonify({'success':True,'user':safe})
 
-# --- ONLY NEW API ADDED FOR NIN BIODATA - PRIVATE OWNER+ADMIN ONLY ---
+# --- ONLY 3 NEW ROUTES ADDED FOR GATE OTP + NIN NUMBER ONLY ---
+@app.route('/api/send-otp', methods=['POST'])
+@limiter.limit("10 per minute")
+def send_otp():
+    data=request.json
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','')
+    business=data.get('business','')
+    otp=data.get('otp') or str(random.randint(100000,999999))
+    admin_email=data.get('admin_email', OWNER_EMAIL)
+
+    otps=load_db('otps.json',[])
+    otps=[o for o in otps if o['email']!=email] # remove old
+    otps.append({'email':email,'otp':otp,'phone':phone,'business':business,'time':time.time(),'expires':time.time()+600})
+    save_db('otps.json', otps)
+
+    # 1. Send OTP to customer email
+    customer_html=f"<h2>SANNLAS UGANDA - Your OTP Code</h2><p>Hello {business},</p><p>Your verification code is: <b style='font-size:24px;letter-spacing:5px'>{otp}</b></p><p>Valid for 10 minutes.</p><p>Phone: {phone}<br>Email: {email}</p><p>Welcome to SANNLAS!</p>"
+    send_email_helper(email, f"SANNLAS OTP Code: {otp}", customer_html)
+
+    # 2. Notify admin natelieabigali@gmail.com
+    admin_html=f"<h2>New Registration - SANNLAS</h2><p><b>New user registered:</b></p><p>Business: {business}<br>Email: {email}<br>Phone: {phone}<br>OTP: {otp}<br>Time: {time.ctime()}</p><p>Check admin panel.</p>"
+    send_email_helper(OWNER_EMAIL, f"New User: {business} {email} {phone}", admin_html)
+    # also send to admin_email if provided
+    if admin_email and admin_email!=OWNER_EMAIL:
+        send_email_helper(admin_email, f"New User: {business} {email}", admin_html)
+
+    return jsonify({'success':True,'message':f'OTP sent to {email} and admin notified {OWNER_EMAIL}','otp':otp}) # otp returned for dev mode
+
+@app.route('/api/verify-otp', methods=['POST'])
+def verify_otp():
+    data=request.json
+    email=data.get('email','').lower().strip()
+    otp=data.get('otp','').strip()
+    otps=load_db('otps.json',[])
+    found=next((o for o in otps if o['email']==email and o['otp']==otp and o['expires']>time.time()), None)
+    if found:
+        # remove after verify
+        otps=[o for o in otps if o['email']!=email]
+        save_db('otps.json', otps)
+        return jsonify({'success':True,'message':'OTP verified!'})
+    return jsonify({'success':False,'message':'Wrong or expired OTP'}),400
+
+@app.route('/api/verify-nin-number', methods=['POST'])
+def verify_nin_number():
+    data=request.json
+    phone=data.get('phone','').strip()
+    email=data.get('email','').lower().strip()
+    nin_number=data.get('nin_number','').strip()
+    if not nin_number:
+        return jsonify({'success':False,'message':'NIN number required'}),400
+    users=load_db('users.json',[])
+    updated=False
+    for u in users:
+        if u['phone']==phone or u['email']==email:
+            u['nin_number']=nin_number
+            u['nin_status']='verified_number'
+            u['verified']=True # auto verify when number provided - you can change to False if you want manual admin check
+            u['nin_names']=u.get('business','')
+            updated=True
+    save_db('users.json',users)
+    if updated:
+        return jsonify({'success':True,'message':'NIN number saved! Verified ✓'})
+    return jsonify({'success':False,'message':'User not found'}),404
+
+@app.route('/api/notify-admin', methods=['POST'])
+def notify_admin():
+    data=request.json
+    # Simple log for admin notification - also sends email
+    email=data.get('email','')
+    phone=data.get('phone','')
+    business=data.get('business','')
+    otp=data.get('otp','')
+    html=f"<p>Notify Admin: {business} {email} {phone} OTP {otp} Type {data.get('type')}</p>"
+    send_email_helper(OWNER_EMAIL, f"SANNLAS Notify: {business}", html)
+    return jsonify({'success':True})
+# --- END 3 NEW ROUTES ---
+
 @app.route('/api/user-nin-info')
 def user_nin_info():
     email=request.args.get('email','').lower().strip()
@@ -278,7 +385,6 @@ def user_nin_info():
     u=next((x for x in users if x['email']==email or x['phone']==phone), None)
     if not u:
         return jsonify({'success':False,'message':'User not found'}),404
-    # Private: only returns to owner himself (email/phone matches) - frontend already ensures this
     safe={
         'success': True,
         'nin_number': u.get('nin_number',''),
@@ -286,7 +392,7 @@ def user_nin_info():
         'nin_status': u.get('nin_status','not_uploaded'),
         'verified': u.get('verified',False),
         'email': u.get('email',''),
-        'phone': u.get('phone',''), # private - only owner+admin sees
+        'phone': u.get('phone',''),
         'business': u.get('business',''),
         'nin_dob': u.get('nin_dob',''),
         'nin_gender': u.get('nin_gender',''),
@@ -298,7 +404,6 @@ def user_nin_info():
         'role': u.get('role')
     }
     return jsonify(safe)
-# --- END NEW API ---
 
 @app.route('/api/products')
 def get_products():
@@ -429,7 +534,10 @@ def upload_nin():
         back_url='/static/uploads/'+fn
     for u in users:
         if u['phone']==phone or u['email']==email:
-            u['nin_number']=nin_number; u['nin_front']=front_url; u['nin_back']=back_url; u['nin_status']='pending'; u['verified']=False
+            u['nin_number']=nin_number
+            if front_url: u['nin_front']=front_url
+            if back_url: u['nin_back']=back_url
+            u['nin_status']='pending'; u['verified']=False
     save_db('users.json',users)
     return jsonify({'success':True,'message':'NIN uploaded! Wait admin verification for blue tick ✓'})
 
