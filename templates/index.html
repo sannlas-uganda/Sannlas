@@ -201,18 +201,15 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <button class="btn" style="background:#FF9800" onclick="showMyTab('likes')">⭐ Gifts / Stars / Likes</button>
 <button class="btn" style="background:#9c27b0" onclick="showMyTab('plans')">💳 Subscription</button>
 </div>
-
 <div id="myTab-profile" class="myTab active">
 <div class="auth-box" style="max-width:100%;border:2px solid #000">
 <h3>🔒 My Privacy & Business Info - Only You & Admin</h3>
 <div id="myProfileInfo" style="background:#f5f5f5;padding:10px;border-radius:8px;font-size:12px;margin-bottom:10px">Login to see your info</div>
-
 <div id="myNinBiodataBox" style="background:#000;color:#0f0;padding:10px;border-radius:8px;margin-bottom:10px;display:none;border:2px solid #FFCC02">
 <h4 style="color:#FFCC02">🔐 NIN Biodata - Private (Only You & Admin natelieabigali@gmail.com)</h4>
 <div id="myNinBiodata" style="font-size:11px;line-height:1.8;margin-top:6px"></div>
 <p style="font-size:9px;color:#aaa;margin-top:8px">⚠️ This NIN info is private. Not visible to buyers or other sellers. Only you and Sannlas Admin can see it.</p>
 </div>
-
 <input id="myBizName" placeholder="Business Name">
 <input id="myPhone" placeholder="Phone 256...">
 <input id="myEmail" placeholder="Email" disabled style="background:#eee">
@@ -229,7 +226,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 </div>
 </div>
 </div>
-
 <div id="myTab-sales" class="myTab">
 <div class="auth-box" style="max-width:100%;border:2px solid #2e7d32">
 <h3>📊 My Sales + Boda Tracking</h3>
@@ -240,7 +236,6 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <div id="myProductsContent"></div>
 </div>
 </div>
-
 <div id="myTab-followers" class="myTab">
 <div class="auth-box" style="max-width:100%;border:2px solid #FFCC02">
 <h3>👥 My Followers</h3>
@@ -248,14 +243,12 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 <div id="myFollowersContent" style="margin-top:10px"></div>
 </div>
 </div>
-
 <div id="myTab-likes" class="myTab">
 <div class="auth-box" style="max-width:100%;border:2px solid #FF9800">
 <h3>⭐ Gifts / Stars / Likes on My Products</h3>
 <div id="myLikesContent" style="margin-top:10px">Click to load...</div>
 </div>
 </div>
-
 <div id="myTab-plans" class="myTab">
 <div class="auth-box" style="max-width:100%;border:2px solid #9c27b0">
 <h3>💳 My Subscription Plans</h3>
@@ -274,10 +267,8 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 </div>
 </div>
 </div>
-
 <button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;border:none;padding:10px;border-radius:8px;margin-top:10px">Close My Account</button>
 </div></div>
-
 <div class="popup" id="subPop"><div class="popup-content">
 <h2 style="color:green">💳 Seller Subscription</h2>
 <table class="sub-table">
@@ -451,9 +442,7 @@ function gateDoRegister(){
      localStorage.setItem('sannlas_otp_code',otp);
      localStorage.setItem('sannlas_otp_email',email);
      document.getElementById('otpEmailShow').innerText=email;
-     // Send OTP to customer + notify admin natelieabigali@gmail.com via backend
      fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,phone:phone,business:biz,otp:otp,admin_email:'natelieabigali@gmail.com'})}).catch(()=>{});
-     // Fallback: also try notify endpoint
      fetch('/api/notify-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'new_registration',email:email,phone:phone,business:biz,otp:otp})}).catch(()=>{});
      document.getElementById('gateOtpStatus').innerText='✅ Code sent! If email not received, code is: '+otp+' (dev mode). Check inbox natelieabigali@gmail.com also notified.';
      switchGate('otp');
@@ -485,7 +474,6 @@ function gateVerifyOTP(){
      document.getElementById('gateNinStatus').innerText='✅ OTP verified! Now enter NIN number only';
      switchGate('nin');
    } else {
-     // allow local check
      if(entered===real){
        localStorage.setItem('sannlas_otp_done','yes');
        switchGate('nin');
@@ -547,7 +535,6 @@ function gateUploadNIN(){
  if(!ninNum){alert('Enter NIN number');return;}
  switchGate('loading');
  document.getElementById('gateLoadingText').innerText='Saving NIN number...';
- // ONLY NIN number - no photo
  fetch('/api/verify-nin-number',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:currentUser.phone,email:currentUser.email,nin_number:ninNum})}).then(r=>r.json()).then(d=>{
    localStorage.setItem('sannlas_nin_done','yes');
    currentUser.nin_status='verified_number';
@@ -557,7 +544,6 @@ function gateUploadNIN(){
    hideGate();
    updateLoginUI();
  }).catch(()=>{
-   // fallback to old endpoint with just number
    let fd=new FormData();
    fd.append('phone',currentUser.phone);
    fd.append('email',currentUser.email);
@@ -602,11 +588,83 @@ function viewProd(id){
  document.getElementById('viewContent').innerHTML=`<h3>${p.name} ${verTag}</h3><img src="${p.image}" style="width:100%;border-radius:10px"><p><b>UGX ${Number(p.price).toLocaleString()}</b> | 👥 ${p.seller_followers||0} followers</p><div class="seller-box">Shop: ${p.business}<br>${p.location}<br>Stock:${p.stock} | <button class="btn follow-btn" onclick="doFollow('${p.business}')">+ Follow Shop</button> <button class="btn" style="background:#333" onclick="doUnfollow('${p.business}')">Unfollow</button></div><p>${p.description||''}</p><div style="background:#f5f5f5;padding:10px;border-radius:8px;margin-top:10px"><h4>⭐ Reviews + Buyer Photo Proof</h4>${reviewsHtml}<hr><h5>Leave Review with Photo of product you received</h5><input id="revRating_${p.id}" type="number" min="1" max="5" value="5" style="width:60px"><input id="revComment_${p.id}" placeholder="Comment - product was fresh"><input type="file" id="revPhoto_${p.id}" accept="image/*"><button class="btn btn-green" onclick="submitReviewPhoto(${p.id})">Submit Review + Photo</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px"><button class="btn" onclick="addCart(${p.id});closePop('viewPop')">Add Cart</button><a href="https://wa.me/256795712326?text=Inquiry ${encodeURIComponent(p.name)}" target="_blank" class="btn" style="background:#25D366;text-align:center;text-decoration:none">WhatsApp</a><a href="mailto:natelieabigali@gmail.com?subject=${encodeURIComponent(p.name)}" class="btn" style="background:#000;text-align:center;text-decoration:none">Email Owner</a><button class="btn" style="background:#9c27b0" onclick="makeBargain(${p.id})">Bargain</button></div><button style="width:100%;background:gray;color:white;border:none;padding:8px;border-radius:8px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;
  document.getElementById('viewPop').style.display='flex';
 }
-function addCart(id){let p=allProducts.find(x=>x.id==id);cart.push(p);document.getElementById('cartN').innerText=cart.length;}
-function openCart(){if(cart.length==0){alert('Cart empty');return;}document.getElementById('cartPop').style.display='flex';}
+// === ORDERING FIX - Quantity + Cancel - ONLY CHANGE ===
+let cartQuantities = {};
+function addCart(id){
+  let p=allProducts.find(x=>x.id==id);
+  if(!p) return;
+  let existing = cart.find(x=>x.id==id);
+  if(existing){
+    cartQuantities[id] = (cartQuantities[id]||1)+1;
+  } else {
+    cart.push(p);
+    cartQuantities[id]=1;
+  }
+  document.getElementById('cartN').innerText = cart.reduce((s, item)=> s + (cartQuantities[item.id]||1), 0);
+}
+function openCart(){
+  if(cart.length==0){alert('Cart empty');return;}
+  let itemsHtml = cart.map(item=>{
+    let qty = cartQuantities[item.id]||1;
+    return `<div style="border:1px solid #ccc;padding:8px;border-radius:8px;margin:5px 0;display:flex;gap:8px;align-items:center">
+      <img src="${item.image}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">
+      <div style="flex:1">
+        <b>${item.name}</b><br>UGX ${Number(item.price).toLocaleString()} x ${qty} = <b>UGX ${(item.price*qty).toLocaleString()}</b><br>
+        <button class="btn" style="padding:4px 8px" onclick="changeQty(${item.id},-1)">-</button>
+        <span style="padding:0 10px;font-weight:bold">${qty}</span>
+        <button class="btn btn-green" style="padding:4px 8px" onclick="changeQty(${item.id},1)">+</button>
+        <button class="btn" style="background:#c0392b;padding:4px 8px;margin-left:8px" onclick="removeCartItem(${item.id})">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+  let total = cart.reduce((s,i)=> s + (Number(i.price)*(cartQuantities[i.id]||1)),0);
+  document.getElementById('cartPop').innerHTML = `
+  <div class="popup-content">
+    <h3>🛒 Checkout - ${cart.length} items</h3>
+    <div style="max-height:40vh;overflow:auto">${itemsHtml}</div>
+    <div style="background:#FFCC02;padding:10px;border-radius:8px;margin:10px 0;font-weight:bold">TOTAL: UGX ${total.toLocaleString()}</div>
+    <form onsubmit="doCheckout(event)">
+      <input name="names" placeholder="Your Full Names" required style="width:100%;padding:10px;margin:4px 0;border:1px solid #ccc;border-radius:8px">
+      <input name="phone1" placeholder="Your Phone 07..." required style="width:100%;padding:10px;margin:4px 0;border:1px solid #ccc;border-radius:8px">
+      <input name="district" placeholder="District" required style="width:100%;padding:10px;margin:4px 0;border:1px solid #ccc;border-radius:8px">
+      <button class="btn btn-green" style="width:100%;padding:12px">✅ Confirm Order - UGX ${total.toLocaleString()}</button>
+      <button type="button" onclick="closePop('cartPop')" style="width:100%;background:#666;color:white;border:none;padding:10px;border-radius:8px;margin-top:8px">❌ Cancel - Continue Shopping</button>
+    </form>
+  </div>`;
+  document.getElementById('cartPop').style.display='flex';
+}
+function changeQty(id, delta){
+  let qty = (cartQuantities[id]||1)+delta;
+  if(qty<1) qty=1;
+  cartQuantities[id]=qty;
+  openCart();
+}
+function removeCartItem(id){
+  cart = cart.filter(x=>x.id!=id);
+  delete cartQuantities[id];
+  document.getElementById('cartN').innerText = cart.reduce((s, item)=> s + (cartQuantities[item.id]||1), 0);
+  if(cart.length==0) closePop('cartPop');
+  else openCart();
+}
 function openPopup(id){document.getElementById(id).style.display='flex';if(id=='ordersPop') loadOrders(); if(id=='jobsPop') fetchJobs(); if(id==='authPop') setTimeout(refreshMyProfileTab,300);}
 function closePop(id){document.getElementById(id).style.display='none';}
-function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};let total=cart.reduce((s,i)=>s+Number(i.price),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(d=>{alert('Order placed! Boda tracking starts at Packed. ID:'+d.message);cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');});}
+function doCheckout(e){
+  e.preventDefault();
+  let fd=new FormData(e.target);
+  let buyer={names:fd.get('names'),phone1:fd.get('phone1'),district:fd.get('district')};
+  let expandedCart=[];
+  cart.forEach(item=>{
+    let qty = cartQuantities[item.id]||1;
+    for(let i=0;i<qty;i++) expandedCart.push(item);
+  });
+  let total=expandedCart.reduce((s,i)=>s+Number(i.price),0);
+  fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart:expandedCart,total})}).then(r=>r.json()).then(d=>{
+    alert('✅ Order placed! Tracking ID:'+d.message+' - Boda tracking starts at Packed.');
+    cart=[]; cartQuantities={};
+    document.getElementById('cartN').innerText=0;
+    closePop('cartPop');
+  });
+}
 function selectPlan(plan){document.getElementById('sellerPlan').value=plan;closePop('subPop');alert('Plan '+plan+' selected');}
 function payPlan(plan){selectedPayPlan=plan;document.getElementById('sellerPlan').value=plan;document.getElementById('payBox').style.display='block';alert('Pay UGX for '+plan+' to MoMo 0795712326 then enter code');}
 function submitPay(){
@@ -819,7 +877,6 @@ function myUploadNIN(){
    localStorage.setItem('sannlas_nin_done','yes');
    refreshMyProfileTab();
  }).catch(()=>{
-   // fallback old way
    let fd=new FormData();
    fd.append('phone',currentUser.phone);
    fd.append('email',currentUser.email);
@@ -833,7 +890,6 @@ function myUploadNIN(){
    });
  });
 }
-
 setTimeout(initFrontCat,800);
 </script>
 </body>
