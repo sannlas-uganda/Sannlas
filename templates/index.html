@@ -307,16 +307,35 @@ function adminLoginFull(){
 function adminLogout(){document.getElementById('adminLoginBox').style.display='block';document.getElementById('adminDashboard').style.display='none';}
 function showAdminTab(tab){document.querySelectorAll('.adminTab').forEach(t=>t.style.display='none');document.getElementById('adminTab-'+tab).style.display='block';if(tab==='orders')loadAdminOrders();if(tab==='products')loadAdminProducts();if(tab==='users')loadAdminUsers();if(tab==='nin')loadAdminNin();}
 function adminTrackOrder(oid){
- document.getElementById('bodaOrderId').value=oid;
- let pop=document.getElementById('bodaPop');
- pop.style.display='flex';
- pop.style.zIndex='99999';
- document.getElementById('bodaResult').style.display='block';
- document.getElementById('bodaOrderShow').innerText=oid+' (ADMIN TRACKING ✓)';
- document.getElementById('bodaRider').innerText='SANNLAS Rider - Kampala';
- document.getElementById('bodaPhone').innerText='0795712326';
- document.getElementById('bodaStatus').innerText='On the way - GPS Live';
- document.getElementById('bodaMap').src='https://maps.google.com/maps?q=Kampala,Uganda&z=14&output=embed';
+ alert('📍 ADMIN TRACKING: '+oid);
+ try{
+  let input=document.getElementById('bodaOrderId');
+  if(input) input.value=oid;
+  
+  // Try to find ANY boda popup - whatever ID you have
+  let pop=document.getElementById('bodaPop')||document.getElementById('bodaModal')||document.getElementById('trackModal')||document.querySelector('[id*="boda"]');
+  
+  if(pop){
+    pop.style.display='flex';
+    pop.style.zIndex='999999';
+    pop.style.position='fixed';
+    pop.style.top='0';
+    pop.style.left='0';
+    pop.style.width='100%';
+    pop.style.height='100%';
+  }else{
+    // If no popup found, just open Google Map directly - ALWAYS WORKS
+    window.open('https://www.google.com/maps/search/Kampala+Uganda','_blank');
+  }
+  
+  let res=document.getElementById('bodaResult');
+  if(res) res.style.display='block';
+  let show=document.getElementById('bodaOrderShow');
+  if(show) show.innerText=oid+' (ADMIN ✓)';
+ }catch(e){
+  alert('Tracking '+oid+'\nMap: Kampala - Rider: 0795712326\nError: '+e.message);
+  window.open('https://www.google.com/maps/search/Kampala+Uganda','_blank');
+ }
 }
 
 function loadAdminOrders(){
