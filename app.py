@@ -19,6 +19,7 @@ CORS(app, origins=["https://sannlas.onrender.com"])
 
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
+
 @app.after_request
 def clarity_headers(response):
     response.headers['X-Clarity'] = 'HD-Enabled'
@@ -138,6 +139,7 @@ def save_db(file, data):
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
+
 def send_email_helper(to_email, subject, html_body):
     try:
         smtp_email = os.environ.get('SMTP_EMAIL', OWNER_EMAIL); smtp_pass = os.environ.get('SMTP_PASSWORD', '')
@@ -148,37 +150,49 @@ def send_email_helper(to_email, subject, html_body):
     except: return False
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
-
 @app.route('/')
 def home(): return render_template('index.html')
+
 @app.route('/admin')
 def admin_page(): return render_template('admin.html')
+
 @app.route('/googleac311007501ff6bc.html')
 def google_verify(): return send_from_directory('.', 'googleac311007501ff6bc.html')
+
 @app.route('/robots.txt')
 def robots_txt(): return Response("User-agent: *\nAllow: /\nSitemap: https://sannlas.onrender.com/sitemap.xml\n", mimetype='text/plain')
+
 @app.route('/sitemap.xml')
 def sitemap_xml():
-    products = load_db('products.json', []); urls=[]
+    products = load_db('products.json', [])
+    urls=[]
     urls.append('<url><loc>https://sannlas.onrender.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>')
-    for p in products[:500]: urls.append(f'<url><loc>https://sannlas.onrender.com/?product={p.get("id","")}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>')
+    for p in products[:500]:
+        urls.append(f'<url><loc>https://sannlas.onrender.com/?product={p.get("id","")}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>')
     xml = f"""<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{''.join(urls)}</urlset>"""
     return Response(xml, mimetype='application/xml')
+
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
+
 @app.route('/api/plans')
 def get_plans(): return jsonify(PLANS)
+
 @app.route('/manifest.json')
 def manifest():
     return jsonify({"name": "SANNLAS UGANDA-Buy & sell Everything","short_name": "SANNLAS","start_url": "/","scope": "/","display": "standalone","background_color": "#c0392b","theme_color": "#000000","description": "The best online shop in Uganda SN","icons": [{"src": "/icon-192.png","sizes": "192x192","type": "image/png"},{"src": "/icon-512.png","sizes": "512x512","type": "image/png"}]})
+
 @app.route('/service-worker.js')
 def sw(): return Response('const CACHE="sannlas-v1";self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(["/","/manifest.json"])))});self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});', mimetype='application/javascript')
+
 @app.route('/sw.js')
 def sw2(): return sw()
+
 @app.route('/icon-192.png')
 def icon192():
     if os.path.exists('icon-192.png'): return send_from_directory('.', 'icon-192.png')
     return ("", 204)
+
 @app.route('/icon-512.png')
 def icon512():
     if os.path.exists('icon-512.png'): return send_from_directory('.', 'icon-512.png')
@@ -232,7 +246,6 @@ def user_nin_info():
     if not u: return jsonify({'success':False,'message':'User not found'}),404
     return jsonify({'success': True,'nin_number': u.get('nin_number',''),'nin_names': u.get('nin_names','') or u.get('business',''),'nin_status': u.get('nin_status','not_uploaded'),'verified': u.get('verified',False),'email': u.get('email',''),'phone': u.get('phone',''),'business': u.get('business',''),'followers': u.get('followers',0),'total_likes': u.get('total_likes',0),'total_stars': u.get('total_stars',0)})
 
-# --- NEW LOGIC: PRODUCTS WITH STARS COUNT + SELLER TOTAL LIKES ---
 @app.route('/api/products')
 def get_products():
     products=load_db('products.json', []); users=load_db('users.json',[]); main=request.args.get('main'); sub=request.args.get('sub'); q=request.args.get('q','').lower(); business=request.args.get('business')
@@ -399,21 +412,29 @@ def rate():
 @app.route('/api/bargain', methods=['POST'])
 def bargain(): data=request.json; bargains=load_db('bargains.json', []); data['id']=int(time.time()); data['status']='pending'; data['time']=time.time(); bargains.append(data); save_db('bargains.json', bargains); orders=load_db('orders.json', []); orders.append({'id':data['id'],'type':'bargain','bargain':data,'total':data.get('offer'),'buyer':{'names':data.get('buyer_name','Bargain'),'phone1':data.get('buyer_phone','')},'cart':[{'name':data.get('product_name')}],'time':time.time(),'seller_phone':data.get('seller_phone')}); save_db('orders.json', orders); return jsonify({'success':True,'message':"Bargain sent!"})
 
+# --- FIXED BOOST FUNCTION - NO INDENT ERROR ---
 @app.route('/api/boost', methods=['POST'])
-def boost(): data=request.json; pid=data['id']; products=load_db('products.json', []);
+def boost():
+    data = request.json
+    pid = data['id']
+    products = load_db('products.json', [])
     for p in products:
-        if p['id']==pid: p['boosted']=time.time()+86400*int(data.get('days',1))
-    save_db('products.json', products); return jsonify({'success':True,'message':'Boosted!'})
+        if p['id'] == pid:
+            p['boosted'] = time.time() + 86400 * int(data.get('days', 1))
+    save_db('products.json', products)
+    return jsonify({'success': True, 'message': 'Boosted!'})
 
 @app.route('/api/subscribe', methods=['POST'])
-def sub(): data=request.json; sellers=load_db('sellers.json', []); users=load_db('users.json', []); plan=data.get('plan','30'); email=data.get('email','').lower(); phone=data.get('phone',''); momo=data.get('momo_code',''); plan_info=PLANS.get(plan,PLANS['30'])
+def sub():
+    data=request.json; sellers=load_db('sellers.json', []); users=load_db('users.json', []); plan=data.get('plan','30'); email=data.get('email','').lower(); phone=data.get('phone',''); momo=data.get('momo_code',''); plan_info=PLANS.get(plan,PLANS['30'])
     for u in users:
         if u['email']==email or u['phone']==phone: u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=False if plan_info['requires_payment'] else True; u['momo_transaction']=momo
         if not plan_info['requires_payment']: u['subscription_expires']=time.time()+plan_info['days']*86400
     save_db('users.json',users); data['id']=int(time.time()); data['plan_name']=plan_info['name']; data['plan_price']=plan_info['price']; data['time']=time.time(); sellers.append(data); save_db('sellers.json',sellers); return jsonify({'success':True,'message':f'Request {plan_info["name"]} UGX {plan_info["price"]} received'})
 
 @app.route('/api/admin/activate-subscription', methods=['POST'])
-def activate_sub(): data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); plan=data.get('plan'); users=load_db('users.json',[]); products=load_db('products.json',[]); plan_info=PLANS.get(plan,PLANS['30'])
+def activate_sub():
+    data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); plan=data.get('plan'); users=load_db('users.json',[]); products=load_db('products.json',[]); plan_info=PLANS.get(plan,PLANS['30'])
     for u in users:
         if u['phone']==phone or u['email']==email: u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=True; u['subscription_expires']=time.time()+plan_info['days']*86400
     save_db('users.json',users)
@@ -422,7 +443,8 @@ def activate_sub(): data=request.json; phone=data.get('phone'); email=data.get('
     save_db('products.json',products); return jsonify({'success':True,'message':f'Activated {plan_info["name"]} for {phone}'})
 
 @app.route('/api/checkout', methods=['POST'])
-def checkout(): data=request.json; orders=load_db('orders.json', []); data['id']=int(time.time()); data['status']='Packed'; data['tracking']=[{'status':'Packed','time':time.time()}]; data['time']=time.time(); orders.append(data); save_db('orders.json', orders); products=load_db('products.json', [])
+def checkout():
+    data=request.json; orders=load_db('orders.json', []); data['id']=int(time.time()); data['status']='Packed'; data['tracking']=[{'status':'Packed','time':time.time()}]; data['time']=time.time(); orders.append(data); save_db('orders.json', orders); products=load_db('products.json', [])
     for item in data['cart']:
         for p in products:
             if p['id']==item['id']: p['stock']=max(0,p.get('stock',10)-1); p['sold']=p.get('sold',0)+1
@@ -438,12 +460,13 @@ def apply_job(jid): data=request.json; apps=load_db('applications.json', []); da
 
 @app.route('/api/job-applications')
 def get_applications(): return jsonify(load_db('applications.json', [])[::-1])
+
 @app.route('/api/orders')
 def get_orders(): orders=load_db('orders.json', [])[::-1]; return jsonify(orders)
+
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True,'message':'Message sent!'})
 
-# === NEW: ADMIN SEND MESSAGE TO USER ===
 @app.route('/api/admin/send-message', methods=['POST'])
 def admin_send_message():
     data=request.json; to_email=data.get('to_email','').lower().strip(); to_phone=data.get('to_phone','').strip(); title=data.get('title','Message from SANNLAS Admin'); message=data.get('message','')
