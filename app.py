@@ -170,7 +170,6 @@ def send_email_helper(to_email, subject, html_body):
     try:
         smtp_email = os.environ.get('SMTP_EMAIL', OWNER_EMAIL)
         smtp_pass = os.environ.get('SMTP_PASSWORD', '')
-        # Try to send if password set, else just log (so app still works without SMTP)
         if smtp_pass:
             msg = MIMEMultipart()
             msg['From'] = smtp_email
@@ -186,7 +185,6 @@ def send_email_helper(to_email, subject, html_body):
             return True
         else:
             print(f"[DEV EMAIL LOG] To: {to_email} | Subject: {subject} | Body: {html_body[:200]}")
-            # Still return True so flow continues - code will be shown in frontend dev mode
             return True
     except Exception as e:
         print(f"send_email error to {to_email}: {e}")
@@ -217,6 +215,28 @@ def admin_page(): return render_template('admin.html')
 def google_verify():
     return send_from_directory('.', 'googleac311007501ff6bc.html')
 # --- END GOOGLE VERIFICATION ---
+
+# --- NEW: SANN SEO FOR KEYWORD SANN - ONLY 2 ROUTES ADDED ---
+@app.route('/robots.txt')
+def robots_txt():
+    txt = "User-agent: *\nAllow: /\nSitemap: https://sannlas.onrender.com/sitemap.xml\n"
+    return Response(txt, mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    products = load_db('products.json', [])
+    urls = []
+    urls.append('<url><loc>https://sannlas.onrender.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>')
+    urls.append('<url><loc>https://sannlas.onrender.com/admin</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>')
+    for p in products[:500]:
+        pid = p.get('id','')
+        urls.append(f'<url><loc>https://sannlas.onrender.com/?product={pid}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>')
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(urls)}
+</urlset>"""
+    return Response(xml, mimetype='application/xml')
+# --- END SEO ---
 
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
@@ -306,7 +326,6 @@ def login():
     safe['subscription_active']=safe['subscription_expires']>time.time()
     return jsonify({'success':True,'user':safe})
 
-# --- ONLY 3 NEW ROUTES ADDED FOR GATE OTP + NIN NUMBER ONLY ---
 @app.route('/api/send-otp', methods=['POST'])
 @limiter.limit("10 per minute")
 def send_otp():
@@ -316,24 +335,17 @@ def send_otp():
     business=data.get('business','')
     otp=data.get('otp') or str(random.randint(100000,999999))
     admin_email=data.get('admin_email', OWNER_EMAIL)
-
     otps=load_db('otps.json',[])
-    otps=[o for o in otps if o['email']!=email] # remove old
+    otps=[o for o in otps if o['email']!=email]
     otps.append({'email':email,'otp':otp,'phone':phone,'business':business,'time':time.time(),'expires':time.time()+600})
     save_db('otps.json', otps)
-
-    # 1. Send OTP to customer email
     customer_html=f"<h2>SANNLAS UGANDA - Your OTP Code</h2><p>Hello {business},</p><p>Your verification code is: <b style='font-size:24px;letter-spacing:5px'>{otp}</b></p><p>Valid for 10 minutes.</p><p>Phone: {phone}<br>Email: {email}</p><p>Welcome to SANNLAS!</p>"
     send_email_helper(email, f"SANNLAS OTP Code: {otp}", customer_html)
-
-    # 2. Notify admin natelieabigali@gmail.com
     admin_html=f"<h2>New Registration - SANNLAS</h2><p><b>New user registered:</b></p><p>Business: {business}<br>Email: {email}<br>Phone: {phone}<br>OTP: {otp}<br>Time: {time.ctime()}</p><p>Check admin panel.</p>"
     send_email_helper(OWNER_EMAIL, f"New User: {business} {email} {phone}", admin_html)
-    # also send to admin_email if provided
     if admin_email and admin_email!=OWNER_EMAIL:
         send_email_helper(admin_email, f"New User: {business} {email}", admin_html)
-
-    return jsonify({'success':True,'message':f'OTP sent to {email} and admin notified {OWNER_EMAIL}','otp':otp}) # otp returned for dev mode
+    return jsonify({'success':True,'message':f'OTP sent to {email} and admin notified {OWNER_EMAIL}','otp':otp})
 
 @app.route('/api/verify-otp', methods=['POST'])
 def verify_otp():
@@ -343,7 +355,6 @@ def verify_otp():
     otps=load_db('otps.json',[])
     found=next((o for o in otps if o['email']==email and o['otp']==otp and o['expires']>time.time()), None)
     if found:
-        # remove after verify
         otps=[o for o in otps if o['email']!=email]
         save_db('otps.json', otps)
         return jsonify({'success':True,'message':'OTP verified!'})
@@ -363,7 +374,7 @@ def verify_nin_number():
         if u['phone']==phone or u['email']==email:
             u['nin_number']=nin_number
             u['nin_status']='verified_number'
-            u['verified']=True # auto verify when number provided - you can change to False if you want manual admin check
+            u['verified']=True
             u['nin_names']=u.get('business','')
             updated=True
     save_db('users.json',users)
@@ -374,7 +385,6 @@ def verify_nin_number():
 @app.route('/api/notify-admin', methods=['POST'])
 def notify_admin():
     data=request.json
-    # Simple log for admin notification - also sends email
     email=data.get('email','')
     phone=data.get('phone','')
     business=data.get('business','')
@@ -382,7 +392,6 @@ def notify_admin():
     html=f"<p>Notify Admin: {business} {email} {phone} OTP {otp} Type {data.get('type')}</p>"
     send_email_helper(OWNER_EMAIL, f"SANNLAS Notify: {business}", html)
     return jsonify({'success':True})
-# --- END 3 NEW ROUTES ---
 
 @app.route('/api/user-nin-info')
 def user_nin_info():
