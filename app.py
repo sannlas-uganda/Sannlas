@@ -26,6 +26,20 @@ limiter = Limiter(
 CORS(app, origins=["https://sannlas.onrender.com"])
 # --- END PROTECTION ---
 
+# === CHANGE 4: CLARITY - MOBILE HD SHARP - ONLY ADDED ===
+# Force high quality, no compression blur
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # Keep HD quality 20MB
+# Tell browser to use sharp rendering
+@app.after_request
+def clarity_headers(response):
+    response.headers['X-Clarity'] = 'HD-Enabled'
+    response.headers['Cache-Control'] = 'public, max-age=0'
+    # Allow high-res images
+    response.headers['Accept-CH'] = 'DPR, Viewport-Width, Width'
+    return response
+# === END CHANGE 4 BACKEND ===
+
 OWNER_EMAIL = "natelieabigali@gmail.com"
 OWNER_PHONE = "0795712326"
 OWNER_MOMO = "0795712326"
@@ -165,7 +179,6 @@ def save_db(file, data):
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
-# --- ONLY NEW HELPER ADDED FOR OTP EMAIL - NO OTHER CHANGE ---
 def send_email_helper(to_email, subject, html_body):
     try:
         smtp_email = os.environ.get('SMTP_EMAIL', OWNER_EMAIL)
@@ -189,9 +202,7 @@ def send_email_helper(to_email, subject, html_body):
     except Exception as e:
         print(f"send_email error to {to_email}: {e}")
         return False
-# --- END NEW HELPER ---
-
-BUSINESS_CATEGORIES = {
+        BUSINESS_CATEGORIES = {
 "Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],
 "Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],
 "Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],
@@ -210,13 +221,10 @@ def home(): return render_template('index.html')
 @app.route('/admin')
 def admin_page(): return render_template('admin.html')
 
-# --- GOOGLE VERIFICATION - ONLY ADDED ROUTE ---
 @app.route('/googleac311007501ff6bc.html')
 def google_verify():
     return send_from_directory('.', 'googleac311007501ff6bc.html')
-# --- END GOOGLE VERIFICATION ---
 
-# --- NEW: SANN SEO FOR KEYWORD SANN - ONLY 2 ROUTES ADDED ---
 @app.route('/robots.txt')
 def robots_txt():
     txt = "User-agent: *\nAllow: /\nSitemap: https://sannlas.onrender.com/sitemap.xml\n"
@@ -236,7 +244,6 @@ def sitemap_xml():
 {''.join(urls)}
 </urlset>"""
     return Response(xml, mimetype='application/xml')
-# --- END SEO ---
 
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
@@ -582,6 +589,7 @@ def seller_sales():
         if period=='week' and now-o.get('time',0)>7*86400: continue
         if period=='month' and now-o.get('time',0)>30*86400: continue
         if period=='year' and now-o.get('time',0)>365*86400: continue
+        if o.get('type')=='bargain': continue
         cart=o.get('cart',[]); mine=[i for i in cart if i.get('id') in my_ids]
         if mine:
             oc=o.copy(); oc['my_items']=mine; oc['my_total']=sum(i.get('price',0) for i in mine); my_orders.append(oc)
