@@ -150,6 +150,7 @@ def send_email_helper(to_email, subject, html_body):
     except: return False
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+
 @app.route('/')
 def home(): return render_template('index.html')
 
@@ -157,7 +158,7 @@ def home(): return render_template('index.html')
 def admin_page(): return render_template('admin.html')
 
 @app.route('/googleac311007501ff6bc.html')
-def google_verify(): return send_from_directory('.', 'googleac311007501ff6bc.html')
+def google_verify_bc(): return send_from_directory('.', 'googleac311007501ff6bc.html')
 
 @app.route('/robots.txt')
 def robots_txt(): return Response("User-agent: *\nAllow: /\nSitemap: https://sannlas.onrender.com/sitemap.xml\n", mimetype='text/plain')
@@ -179,7 +180,7 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 def get_plans(): return jsonify(PLANS)
 
 @app.route('/manifest.json')
-def manifest():
+def manifest_json():
     return jsonify({"name": "SANNLAS UGANDA-Buy & sell Everything","short_name": "SANNLAS","start_url": "/","scope": "/","display": "standalone","background_color": "#c0392b","theme_color": "#000000","description": "The best online shop in Uganda SN","icons": [{"src": "/icon-192.png","sizes": "192x192","type": "image/png"},{"src": "/icon-512.png","sizes": "512x512","type": "image/png"}]})
 
 @app.route('/service-worker.js')
@@ -189,16 +190,15 @@ def sw(): return Response('const CACHE="sannlas-v1";self.addEventListener("insta
 def sw2(): return sw()
 
 @app.route('/icon-192.png')
-def icon192():
+def icon192_json():
     if os.path.exists('icon-192.png'): return send_from_directory('.', 'icon-192.png')
     return ("", 204)
 
 @app.route('/icon-512.png')
-def icon512():
+def icon512_json():
     if os.path.exists('icon-512.png'): return send_from_directory('.', 'icon-512.png')
     return ("", 204)
-
-@app.route('/api/register', methods=['POST'])
+    @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); role=data.get('role','seller'); biz=data.get('business','')
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Email, phone, password required'}),400
@@ -412,7 +412,6 @@ def rate():
 @app.route('/api/bargain', methods=['POST'])
 def bargain(): data=request.json; bargains=load_db('bargains.json', []); data['id']=int(time.time()); data['status']='pending'; data['time']=time.time(); bargains.append(data); save_db('bargains.json', bargains); orders=load_db('orders.json', []); orders.append({'id':data['id'],'type':'bargain','bargain':data,'total':data.get('offer'),'buyer':{'names':data.get('buyer_name','Bargain'),'phone1':data.get('buyer_phone','')},'cart':[{'name':data.get('product_name')}],'time':time.time(),'seller_phone':data.get('seller_phone')}); save_db('orders.json', orders); return jsonify({'success':True,'message':"Bargain sent!"})
 
-# --- FIXED BOOST FUNCTION - NO INDENT ERROR ---
 @app.route('/api/boost', methods=['POST'])
 def boost():
     data = request.json
@@ -489,25 +488,12 @@ def admin_generic(filetype):
     allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications']
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
-
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('.', 'manifest.json')
-
-@app.route('/icon-192.png')
-def icon192():
-    return send_from_directory('.', 'icon-192.png')
-
-@app.route('/icon-512.png')
-def icon512():
-    return send_from_directory('.', 'icon-512.png')
-
-@app.route('/icon.png')
-def icon():
+    @app.route('/icon.png')
+def icon_file():
     return send_from_directory('.', 'icon-512.png')
 
 @app.route('/googleac311007501ff6b1a.html')
-def google_verify():
+def google_verify_b1a():
     return send_from_directory('.', 'googleac311007501ff6b1a.html')
 
 if __name__=='__main__':
