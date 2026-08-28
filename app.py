@@ -489,7 +489,8 @@ def admin_generic(filetype):
     allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications']
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
-    @app.route('/icon.png')
+    
+@app.route('/icon.png')
 def icon_file():
     return send_from_directory('.', 'icon-512.png')
 
