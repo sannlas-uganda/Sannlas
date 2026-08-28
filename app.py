@@ -198,6 +198,7 @@ def icon192_json():
 def icon512_json():
     if os.path.exists('icon-512.png'): return send_from_directory('.', 'icon-512.png')
     return ("", 204)
+    
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); role=data.get('role','seller'); biz=data.get('business','')
