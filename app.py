@@ -185,12 +185,21 @@ def manifest_json():
 
 @app.route('/service-worker.js')
 def sw():
-    return Response('const CACHE="sannlas-v3";self.addEventListener("install",e=>{self.skipWaiting();});self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.map(n=>{if(n!="sannlas-v3") return caches.delete(n)}))));});self.addEventListener("fetch",e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});', mimetype='application/javascript')
+    js = """
+const CACHE="sannlas-v3";
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(fetch(e.request));
+});
+"""
+    return Response(js, mimetype='application/javascript')
 
 @app.route('/sw.js')
 def sw2():
     return sw()
-
 @app.route('/icon-192.png')
 def icon192_json():
     if os.path.exists('icon-192.png'): return send_from_directory('.', 'icon-192.png')
