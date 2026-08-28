@@ -173,7 +173,7 @@
 <div style="background:#111;padding:12px;border-radius:10px;border:1px solid #ff6a00">
 <h4 style="color:#ff6a00">🏍️ Boda Tracking - GPS Map</h4>
 <p style="font-size:11px;line-height:1.6">Track rider live on GPS map<br>Same day Kampala/Wakiso<br>Rider Phone: 0795712326<br>ETA 15-30 mins<br>WhatsApp rider anytime</p>
-<button class="btn" style="background:#ff6a00;width:100%;margin-top:8px" onclick="openPopup('bodaPop')">📍 Track Boda GPS</button>
+<button class="btn" style="background:#ff6a00;width:100%;margin-top:8px" onclick="openBodaSecure()">📍 Track Boda GPS</button>
 </div>
 <div style="background:#111;padding:12px;border-radius:10px;border:1px solid #2e7d32">
 <h4 style="color:#2e7d32">📄 Terms & Conditions</h4>
@@ -242,7 +242,23 @@ function openPopup(id){
   }
 }
 function closePop(id){document.getElementById(id).style.display='none';}
-function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),location:fd.get('location')};let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total})}).then(r=>r.json()).then(()=>{alert('Order placed!');cart=[];updateCartCount();closePop('cartPop');});}
+function doCheckout(e){
+ e.preventDefault();
+ let fd=new FormData(e.target);
+ let buyer={names:fd.get('names'),phone1:fd.get('phone1'),location:fd.get('location')};
+ let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
+ let orderId='SANN-'+Date.now()+'-'+Math.floor(Math.random()*9000+1000);
+ let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');
+ myOrders.push(orderId);
+ localStorage.setItem('sannlas_my_orders',JSON.stringify(myOrders));
+ localStorage.setItem('sannlas_last_order',orderId);
+ fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total,order_id:orderId,buyer_email:currentUser?currentUser.email:''})}).then(r=>r.json()).then(d=>{
+  let oid=d.order_id||orderId;
+  alert('✅ Order placed!\nOrder ID: '+oid+'\n\nSave this ID to track your Boda GPS.\nBoda: 0795712326');
+  document.getElementById('bodaOrderId').value=oid;
+  cart=[];updateCartCount();closePop('cartPop');openBodaSecure();
+ });
+}
 function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="PRICE UGX"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',plan=document.getElementById('sellerPlan').value,main=document.getElementById('frontMain').value||'General',sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Price for '+(i+1));return;}}let status=document.getElementById('frontStatus');for(let i=0;i<frontFiles.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('user_email',currentUser?currentUser.email:'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`⏳ ${i+1}/${frontFiles.length}`;}status.innerHTML=`✅ DONE ${frontFiles.length}`;doFilter();}
 function makeBargain(id){let p=allProducts.find(x=>x.id==id),offer=prompt(`Bargain ${p.name} ${p.price} - Your offer:`);if(offer)fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer,buyer_name:currentUser?.business||'Buyer',buyer_phone:currentUser?.phone||''})}).then(()=>alert('Sent'));}
@@ -253,7 +269,24 @@ function showMyTab(tab){document.querySelectorAll('.myTab').forEach(t=>{t.style.
 function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | ${currentUser.business||''}`;let profile=document.getElementById('myProfileInfo');if(profile)profile.innerHTML=`<p><b>Email:</b> ${currentUser.email}</p><p><b>Business:</b> ${currentUser.business}</p><p><b>Phone:</b> ${currentUser.phone}</p><p><b>NIN:</b> ${currentUser.nin_verified?'Yes ✓':'No'}</p><p><b>Products:</b> ${allProducts.filter(p=>p.business===currentUser.business).length}</p>`;}}
 function doLogout(){localStorage.clear();location.reload();}
 function showNew(){fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;visibleCount=50;render();});}
-function trackBoda(){let orderId=document.getElementById('bodaOrderId').value.trim();if(!orderId){alert('Enter Order ID');return;}document.getElementById('bodaResult').style.display='block';document.getElementById('bodaOrderShow').innerText=orderId;}
+function openBodaSecure(){
+ let last=localStorage.getItem('sannlas_last_order')||'';
+ document.getElementById('bodaOrderId').value=last;
+ openPopup('bodaPop');
+ if(last) setTimeout(()=>{trackBoda();},300);
+}
+function trackBoda(){
+ let orderId=document.getElementById('bodaOrderId').value.trim();
+ if(!orderId){alert('Enter Order ID');return;}
+ let isAdmin=currentUser && (currentUser.email==='natelieabigali@gmail.com' || currentUser.email==='admin@sannlas.com');
+ let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');
+ if(!isAdmin &&!myOrders.includes(orderId)){
+   alert('⛔ Access Denied!\nYou can only track YOUR OWN orders.\n\nYour orders: '+(myOrders.length?myOrders.join(', '):'None yet - Place order first')+'\n\nAdmin natelieabigali@gmail.com can track all.');
+   return;
+ }
+ document.getElementById('bodaResult').style.display='block';
+ document.getElementById('bodaOrderShow').innerText=orderId+(isAdmin?' (ADMIN VIEW - ALL ACCESS)':' (YOUR ORDER ✓)');
+}
 function adminLoginFull(){
   let e=document.getElementById('adminEmail').value.trim();
   let p=document.getElementById('adminPass').value;
