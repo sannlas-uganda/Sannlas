@@ -211,6 +211,13 @@ BUSINESS_CATEGORIES = {
 def home(): return render_template('index.html')
 @app.route('/admin')
 def admin_page(): return render_template('admin.html')
+
+# --- GOOGLE VERIFICATION - ONLY ADDED ROUTE ---
+@app.route('/googleac311007501ff6bc.html')
+def google_verify():
+    return send_from_directory('.', 'googleac311007501ff6bc.html')
+# --- END GOOGLE VERIFICATION ---
+
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/plans')
