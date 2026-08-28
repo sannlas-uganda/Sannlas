@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://sannlas.onrender.com">
 <link rel="canonical" href="https://sannlas.onrender.com">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"SANNLAS","alternateName":["SANN","SAN","SANNL","SANNLA","SANNLAS UGANDA","SANN UGANDA","SANN SHOP","SAN SHOP","SANNLAS.COM"],"url":"https://sannlas.onrender.com","description":"SANN is short for SANNLAS. Type SANN, SAN to find SANNLAS UGANDA online shopping in all browsers"}</script>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#000000">
 <link rel="apple-touch-icon" href="/icon-192.png">
@@ -20,6 +20,21 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+*{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+html{
+  -webkit-text-size-adjust: 100%;
+}
+img{
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+  will-change: transform;
+}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 .navbar{background:#000;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:12;gap:8px}
@@ -65,6 +80,15 @@ body{font-family:Arial;background:#c0392b;overflow-x:hidden}
 .gate-step.active{display:block}
 .myTab{display:none}
 .myTab.active{display:block}
+@media(max-width:768px){
+  body{-webkit-font-smoothing: antialiased;}
+  img{image-rendering: high-quality!important;filter: contrast(1.05) saturate(1.08)!important;}
+ .card img,.front-card img{image-rendering: -webkit-optimize-contrast!important;image-rendering: crisp-edges!important;}
+ .card{box-shadow: 0 2px 10px rgba(0,0,0,0.25)!important;}
+}
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi){
+  img{image-rendering: -webkit-optimize-contrast!important;}
+}
 @media(max-width:768px){
 .navbar{padding:8px 8px}
 .navbar h3{font-size:16px}
@@ -147,7 +171,61 @@ function gateVerifyOTP(){let entered=document.getElementById('gateOtpCode').valu
 function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim();let pass=document.getElementById('gateLogPass').value;let stay=document.getElementById('stayLogged').checked;if(!email||!pass){alert('Fill email & password');return;}switchGate('loading');document.getElementById('gateLoadingText').innerText='Logging in...';fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));if(stay)localStorage.setItem('sannlas_stay','yes');else localStorage.removeItem('sannlas_stay');let otpDone=localStorage.getItem('sannlas_otp_done');if(!otpDone){let otp=generateOTP();localStorage.setItem('sannlas_otp_code',otp);localStorage.setItem('sannlas_otp_email',d.user.email);document.getElementById('otpEmailShow').innerText=d.user.email;fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.user.email,phone:d.user.phone,business:d.user.business,otp:otp,admin_email:'natelieabigali@gmail.com'})}).catch(()=>{});document.getElementById('gateOtpStatus').innerText='OTP required - code: '+otp;switchGate('otp');return;}let ninDone=localStorage.getItem('sannlas_nin_done');if(!ninDone&&(d.user.nin_status==='not_uploaded'||!d.user.nin_status)){switchGate('nin');return;}hideGate();updateLoginUI();}else{alert(d.message);switchGate('login');}}).catch(()=>{alert('Error');switchGate('login');});}
 function gateUploadNIN(){if(!currentUser){alert('Register first');switchGate('register');return;}let ninNum=document.getElementById('gateNinNumber').value.trim();if(!ninNum){alert('Enter NIN');return;}switchGate('loading');document.getElementById('gateLoadingText').innerText='Saving NIN...';fetch('/api/verify-nin-number',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:currentUser.phone,email:currentUser.email,nin_number:ninNum})}).then(r=>r.json()).then(d=>{localStorage.setItem('sannlas_nin_done','yes');currentUser.nin_status='verified_number';currentUser.nin_number=ninNum;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));alert('✅ NIN saved! Welcome!');hideGate();updateLoginUI();}).catch(()=>{let fd=new FormData();fd.append('phone',currentUser.phone);fd.append('email',currentUser.email);fd.append('nin_number',ninNum);fetch('/api/verify-nin',{method:'POST',body:fd}).then(()=>{localStorage.setItem('sannlas_nin_done','yes');currentUser.nin_status='pending';currentUser.nin_number=ninNum;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));alert('✅ NIN saved!');hideGate();updateLoginUI();}).catch(()=>{alert('Save failed');switchGate('nin');});});}
 setTimeout(gateCheck,500);
-fetch('/api/categories').then(r=>r.json()).then(d=>{categories=d;let m=document.getElementById('mainFilter');Object.keys(d).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;m.appendChild(o);});initFrontCat();});
+function initFrontCat(){
+  let sel=document.getElementById('frontLocation');
+  if(sel){
+    sel.innerHTML='<option value="">Select District</option>';
+    ALL_DISTRICTS.forEach(d=>{
+      let o=document.createElement('option');
+      o.value=d;o.textContent=d;
+      sel.appendChild(o);
+    });
+  }
+  let main=document.getElementById('frontMain');
+  if(main){
+    main.innerHTML='<option value="">Main Category</option>';
+    if(Object.keys(categories).length>0){
+      Object.keys(categories).forEach(c=>{
+        let o=document.createElement('option');
+        o.value=c;o.textContent=c;
+        main.appendChild(o);
+      });
+    }
+  }
+  let sub=document.getElementById('frontSub');
+  if(sub) sub.innerHTML='<option value="">Sub Category</option>';
+}
+function frontSubLoad(){
+  let m=document.getElementById('frontMain').value;
+  let s=document.getElementById('frontSub');
+  if(!s) return;
+  s.innerHTML='<option value="">Sub Category</option>';
+  if(m && categories[m]){
+    categories[m].forEach(sub=>{
+      let o=document.createElement('option');
+      o.value=sub;o.textContent=sub;
+      s.appendChild(o);
+    });
+  }
+}
+fetch('/api/categories').then(r=>r.json()).then(d=>{
+  categories=d;
+  initFrontCat();
+  let mf=document.getElementById('mainFilter');
+  if(mf){
+    mf.innerHTML='<option value="">All</option>';
+    Object.keys(d).forEach(c=>{
+      let o=document.createElement('option');o.value=c;o.textContent=c;mf.appendChild(o);
+    });
+  }
+  let frontMain=document.getElementById('frontMain');
+  if(frontMain){
+    frontMain.innerHTML='<option value="">Main Category</option>';
+    Object.keys(d).forEach(c=>{
+      let o=document.createElement('option');o.value=c;o.textContent=c;frontMain.appendChild(o);
+    });
+  }
+});
 function onMainChange(){let mv=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter');sub.innerHTML='<option value="">Sub</option>';if(mv&&categories[mv]){categories[mv].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o);});}doFilter();}
 function doFilter(){let q=document.getElementById('searchInput').value.trim();let lower=q.toLowerCase();if(lower && ('sannlas'.startsWith(lower) || lower.includes('sann') || lower==='san' || lower==='sann' || lower.startsWith('san'))){if(allProducts.length>0){products=allProducts;visibleCount=50;render();}fetch('/api/products').then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=50;render();});return;}let main=document.getElementById('mainFilter').value;let sub=document.getElementById('subFilter').value;let url='/api/products?';if(main)url+=`main=${encodeURIComponent(main)}&`;if(sub)url+=`sub=${encodeURIComponent(sub)}&`;if(q)url+=`q=${encodeURIComponent(q)}&`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=50;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';document.getElementById('mainFilter').value='';document.getElementById('subFilter').innerHTML='<option value="">Sub</option>';doFilter();}
@@ -168,8 +246,6 @@ function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buye
 function selectPlan(plan){document.getElementById('sellerPlan').value=plan;closePop('subPop');}
 function payPlan(plan){selectedPayPlan=plan;document.getElementById('payBox').style.display='block';}
 function submitPay(){let code=document.getElementById('momoCode').value;if(!code){alert('Enter code');return;}if(!currentUser){alert('Login first');return;}fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,plan:selectedPayPlan,momo_code:code})}).then(r=>r.json()).then(d=>{alert(d.message);closePop('subPop');});}
-function initFrontCat(){let sel=document.getElementById('frontLocation');if(sel){sel.innerHTML='<option value="">Select District</option>';ALL_DISTRICTS.forEach(d=>{let o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});}let main=document.getElementById('frontMain');if(main&&categories){main.innerHTML='';Object.keys(categories).forEach(c=>{let o=document.createElement('option');o.value=c;o.textContent=c;main.appendChild(o);});}}
-function frontSubLoad(){let m=document.getElementById('frontMain').value;let s=document.getElementById('frontSub');s.innerHTML='';if(categories[m]){categories[m].forEach(sub=>{let o=document.createElement('option');o.value=sub;o.textContent=sub;s.appendChild(o);});}}
 function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="OWN PRICE" style="border:2px solid #c0392b"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}" placeholder="Business"><input id="fstock_${i}" type="number" value="10"></div></div>`;}}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value;if(!biz){alert('Business Name required');return;}let loc=document.getElementById('frontLocation').value||'Kampala';let phone=document.getElementById('frontPhoneReal').value;if(!phone){alert('Phone required');return;}let plan=document.getElementById('sellerPlan').value;let main=document.getElementById('frontMain').value||'General';let sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert(`Enter price for item ${i+1}`);return;}}let status=document.getElementById('frontStatus');let total=frontFiles.length;let uploaded=0;let BATCH=10;status.innerHTML=`⏳ Checking...`;let userEmail=currentUser?currentUser.email:'';for(let b=0;b<total;b+=BATCH){let proms=[];for(let i=b;i<Math.min(b+BATCH,total);i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock',document.getElementById(`fstock_${i}`).value);fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('user_email',userEmail);fd.append('desc','');proms.push(fetch('/api/sell',{method:'POST',body:fd}).then(async r=>{let data=await r.json();if(!r.ok){throw new Error(data.message||'Required');}uploaded++;status.innerHTML=`⏳ ${uploaded}/${total}`;}).catch(err=>{throw err;}));}try{await Promise.all(proms);}catch(e){status.innerHTML=`❌ ${e.message}`;alert(`❌ ${e.message}`);return;}}status.innerHTML=`✅ DONE! ${total} live`;doFilter();}
 function makeBargain(id){let p=allProducts.find(x=>x.id==id);let offer=prompt(`Bargain for ${p.name} UGX ${p.price} - Your offer:`);if(offer){fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer:offer,buyer_name:currentUser?.business||'Buyer',buyer_phone:currentUser?.phone||'',seller_phone:p.phone||''})}).then(()=>alert('Bargain sent!'));}}
@@ -185,7 +261,6 @@ function loadMyFollowers(){}
 function loadMyLikes(){}
 function updateMyProfile(){if(!currentUser)return;let newBiz=document.getElementById('myBizName').value;let newPhone=document.getElementById('myPhone').value;currentUser.business=newBiz;currentUser.phone=newPhone;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));alert('Saved');}
 function myUploadNIN(){let num=document.getElementById('myNinNumber').value.trim();if(!currentUser){alert('Login first');return;}if(!num){alert('Enter NIN');return;}fetch('/api/verify-nin-number',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:currentUser.phone,email:currentUser.email,nin_number:num})}).then(r=>r.json()).then(d=>{alert(d.message||'Saved');currentUser.nin_number=num;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));});}
-setTimeout(initFrontCat,800);
 </script>
 </body>
 </html>
