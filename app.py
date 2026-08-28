@@ -490,6 +490,26 @@ def admin_generic(filetype):
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
 
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('.', 'manifest.json')
+
+@app.route('/icon-192.png')
+def icon192():
+    return send_from_directory('.', 'icon-192.png')
+
+@app.route('/icon-512.png')
+def icon512():
+    return send_from_directory('.', 'icon-512.png')
+
+@app.route('/icon.png')
+def icon():
+    return send_from_directory('.', 'icon-512.png')
+
+@app.route('/googleac311007501ff6b1a.html')
+def google_verify():
+    return send_from_directory('.', 'googleac311007501ff6b1a.html')
+
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
