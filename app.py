@@ -184,10 +184,12 @@ def manifest_json():
     return jsonify({"name": "SANNLAS UGANDA-Buy & sell Everything","short_name": "SANNLAS","start_url": "/","scope": "/","display": "standalone","background_color": "#c0392b","theme_color": "#000000","description": "The best online shop in Uganda SN","icons": [{"src": "/icon-192.png","sizes": "192x192","type": "image/png"},{"src": "/icon-512.png","sizes": "512x512","type": "image/png"}]})
 
 @app.route('/service-worker.js')
-def sw(): return Response('const CACHE="sannlas-v1";self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(["/","/manifest.json"])))});self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});', mimetype='application/javascript')
+def sw():
+    return Response('const CACHE="sannlas-v3";self.addEventListener("install",e=>{self.skipWaiting();});self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.map(n=>{if(n!="sannlas-v3") return caches.delete(n)}))));});self.addEventListener("fetch",e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});', mimetype='application/javascript')
 
 @app.route('/sw.js')
-def sw2(): return sw()
+def sw2():
+    return sw()
 
 @app.route('/icon-192.png')
 def icon192_json():
