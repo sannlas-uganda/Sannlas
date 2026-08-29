@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#ff6a00">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;overflow-x:hidden}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;overflow-x:hidden;padding-bottom:80px}
 .navbar{background:#000;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:12}
 .btn{background:#8B0000;color:white;border:none;padding:9px 14px;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-size:12px}
 .btn-green{background:#2e7d32}.btn-yellow{background:#FFCC02;color:#000}.btn-blue{background:#1976d2}
@@ -46,6 +46,8 @@
 .sub-cat-btn{display:block;width:100%;text-align:left;padding:9px 10px;margin:3px 0;background:white;border:1px solid #ddd;border-radius:8px;font-size:12px;cursor:pointer}
 .adminTab{padding:10px;background:#f9f9f9;border-radius:10px;margin-top:10px}
 .side-item-btn{display:block;width:100%;text-align:left;padding:12px;border:none;border-radius:10px;margin:3px 0;font-weight:bold;cursor:pointer}
+.fixed-bottom{position:fixed;bottom:0;left:0;right:0;background:black;color:white;display:flex;justify-content:space-around;padding:14px;z-index:9999999;border-top:3px solid #FFCC02}
+.fixed-bottom span{cursor:pointer;font-weight:bold}
 </style>
 </head>
 <body>
@@ -83,9 +85,12 @@
 <button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
 </div>
 <div class="products" id="products"></div><div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn btn-green" style="display:none" onclick="loadMore()">Load More</button></div>
+
+<!-- POPUPS - SINGLE COPY ONLY -->
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content" id="cartContent"></div></div>
 <div class="popup" id="notifPop"><div class="popup-content"><h2>🔔 Messages</h2><div id="notifList"></div><button onclick="closePop('notifPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button></div></div>
+
 <div class="popup" id="authPop"><div class="popup-content" style="max-width:900px">
 <h2 style="text-align:center;color:#8B0000">👤 My Account - Full</h2>
 <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center">
@@ -104,6 +109,7 @@
 <div id="myTab-bargains" class="myTab"><div id="myBargainsContent"></div></div>
 <button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;padding:12px;border:none;border-radius:8px;margin-top:10px">Close</button>
 </div></div>
+
 <div class="popup" id="bodaPop"><div class="popup-content" style="max-width:600px">
 <h2 style="text-align:center;color:#ff6a00">🏍️ Boda Tracker - GPS Map</h2>
 <input id="bodaOrderId" placeholder="Order ID" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ff6a00;border-radius:8px">
@@ -123,6 +129,7 @@
 </div>
 <button onclick="closePop('bodaPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Close</button>
 </div></div>
+
 <div class="popup" id="termsPop"><div class="popup-content" style="max-width:600px">
 <h2 style="text-align:center">📄 Terms & Conditions</h2>
 <div style="font-size:12px;line-height:1.6;background:#f9f9f9;padding:12px;border-radius:10px;max-height:50vh;overflow-y:auto">
@@ -139,22 +146,14 @@
 </div>
 <button onclick="closePop('termsPop')" style="width:100%;background:#000;color:#FFCC02;padding:10px;border:none;border-radius:8px;margin-top:10px">I Agree</button>
 </div></div>
-<div class="popup" id="adminPop"><div class="popup-content" style="max-width:900px;max-height:90vh;overflow-y:auto">
-<h2 style="color:red;text-align:center">🔐 Admin Panel - Full Control</h2>
-<div class="popup" id="adminPop"><div class="popup-content" style="max-width:900px;max-height:90vh;overflow-y:auto">
-<h2 style="color:red;text-align:center">🔐 Admin Panel - Full Control</h2>
-<div id="adminLoginBox">
-<input id="adminEmail" placeholder="Email" value="" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
-<input id="adminPass" type="password" placeholder="Password" value="" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
-<button class="btn" style="width:100%;background:red;padding:12px" onclick="adminLoginFull()">🔓 Open Admin</button>
-<div style="font-size:10px;text-align:center;margin-top:5px"><a href="#" onclick="if(prompt('🔐 Password:')==='ThE,RISE'){location.href='/admin'}else{alert('❌ Wrong!')}">Go to Full Admin Page /admin →</a></div>
-</div>
 
-<div id="adminDashboard" style="display:none">
+<!-- ADMIN POPUP - FIXED SINGLE COPY -->
+<div class="popup" id="adminPop"><div class="popup-content" style="max-width:900px;max-height:90vh;overflow-y:auto">
+<h2 style="color:red;text-align:center">🔐 Admin Panel - Full Control</h2>
 <div id="adminLoginBox">
-<input id="adminEmail" placeholder="Email" value="" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
-<input id="adminPass" type="password" placeholder="Password" value="" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
-<button class="btn" style="width:100%;background:red;padding:12px" onclick="adminLoginFull()">🔓 Login to Admin</button>
+<input id="adminEmail" placeholder="Email" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
+<input id="adminPass" type="password" placeholder="Password" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
+<button class="btn" style="width:100%;background:red;padding:12px" onclick="adminLoginFull()">🔓 Open Admin</button>
 <div style="font-size:10px;text-align:center;margin-top:5px"><a href="#" onclick="if(prompt('🔐 Password:')==='ThE,RISE'){location.href='/admin'}else{alert('❌ Wrong!')}" style="color:red;font-weight:bold">Go to Full Admin Page /admin →</a></div>
 </div>
 <div id="adminDashboard" style="display:none">
@@ -172,28 +171,30 @@
 </div>
 <button onclick="closePop('adminPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close Admin</button>
 </div></div>
+
+<!-- BIG FOOTER -->
 <div style="background:#000;color:white;padding:25px 15px;text-align:center;margin-top:40px;border-top:5px solid #FFCC02">
 <h3 style="color:#FFCC02;font-size:18px">📌 SANNLAS UGANDA - Buy & Sell Everything</h3>
 <p style="font-size:11px;color:#ccc">Best Online Shop Uganda SN - Type SANN to find us</p>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:20px 0;text-align:left">
 <div style="background:#111;padding:12px;border-radius:10px;border:1px solid #FFCC02">
 <h4 style="color:#FFCC02">🔐 Admin - Full Details</h4>
-<p style="font-size:11px;line-height:1.6">Owner: Steven<br>Email: natelieabigali@gmail.com<br>Email2: ndyomugishasteven@gmail.com<br>MoMo: 0795712326<br>Location: Kampala, Uganda<br>Manage: Products, Users, NIN, Orders</p>
+<p style="font-size:11px;line-height:1.6">Owner: Steven<br>Email: natelieabigali@gmail.com<br>MoMo: 0795712326<br>Manage: Products, Users, NIN, Orders</p>
 <button class="btn" style="background:red;width:100%;margin-top:8px" onclick="openPopup('adminPop')">🔐 Open Admin</button>
 </div>
 <div style="background:#111;padding:12px;border-radius:10px;border:1px solid #ff6a00">
 <h4 style="color:#ff6a00">🏍️ Boda Tracking - GPS Map</h4>
-<p style="font-size:11px;line-height:1.6">Track rider live on GPS map<br>Same day Kampala/Wakiso<br>Rider Phone: 0795712326<br>ETA 15-30 mins<br>WhatsApp rider anytime</p>
+<p style="font-size:11px;line-height:1.6">Track rider live on GPS map<br>Same day Kampala/Wakiso<br>Rider Phone: 0795712326<br>ETA 15-30 mins</p>
 <button class="btn" style="background:#ff6a00;width:100%;margin-top:8px" onclick="openBodaSecure()">📍 Track Boda GPS</button>
 </div>
 <div style="background:#111;padding:12px;border-radius:10px;border:1px solid #2e7d32">
 <h4 style="color:#2e7d32">📄 Terms & Conditions</h4>
-<p style="font-size:11px;line-height:1.6">14 Days FREE then pay<br>No drugs guns stolen goods<br>NIN verification required<br>Cash & MoMo accepted<br>Followers & Likes system</p>
+<p style="font-size:11px;line-height:1.6">14 Days FREE then pay<br>No drugs guns stolen goods<br>NIN verification required</p>
 <button class="btn btn-green" style="width:100%;margin-top:8px" onclick="openPopup('termsPop')">📄 Read Terms</button>
 </div>
 <div style="background:#111;padding:12px;border-radius:10px;border:1px solid #1976d2">
 <h4 style="color:#1976d2">💳 Subscription Plans</h4>
-<p style="font-size:11px;line-height:1.6">14 Days FREE - 0 UGX<br>30 Days - 6,540 UGX<br>60 Days - 13,090 UGX<br>6 Months - 39,500 UGX<br>1 Year - 80,000 BEST<br>Pay MoMo 0795712326</p>
+<p style="font-size:11px;line-height:1.6">14 Days FREE - 0 UGX<br>30 Days - 6,540 UGX<br>60 Days - 13,090 UGX<br>6 Months - 39,500 UGX<br>1 Year - 80,000 BEST</p>
 <button class="btn btn-blue" style="width:100%;margin-top:8px" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">💳 Subscribe</button>
 </div>
 </div>
@@ -205,6 +206,14 @@
 <p style="font-size:11px;color:#aaa">📍 Kampala | MoMo 0795712326 | 45 Districts | Boda GPS Available</p>
 <p style="margin-top:8px;font-weight:bold;color:#FFCC02">© 2026 SANNLAS UGANDA</p>
 </div>
+
+<!-- FIXED BOTTOM BAR - ALWAYS VISIBLE -->
+<div class="fixed-bottom">
+  <span onclick="openBodaSecure()" style="color:#FFCC02">🏍️ Boda GPS</span>
+  <span onclick="openPopup('adminPop')" style="color:red">🔐 Admin</span>
+  <span onclick="openPopup('termsPop')" style="color:white">📄 Terms</span>
+</div>
+
 <script>
 const FULL_CATEGORIES={"Fashion & Clothing":["Men's Fashion","Women's Fashion","Children's Fashion"],"Shoes & Footwear":["Men Shoes","Women Shoes","Kids Shoes"],"Bags & Luggage":["Handbags","Backpacks","Travel Bags"],"Watches & Jewelry":["Wrist Watches","Necklaces","Rings"],"Beauty & Cosmetics":["Makeup","Skin Care","Lipstick"],"Hair & Wigs":["Human Hair Wigs","Braids","Weaves"],"Electronics & Gadgets":["Speakers","Headphones","Power Banks"],"Phones & Tablets":["Tecno Phones","Samsung Phones","iPhone","Infinix","Itel"],"Computers & Laptops":["Laptops","Desktops","Monitors"],"TVs & Audio":["Smart TVs","Home Theaters","Woofers"],"Home Appliances":["Fridges","Cookers","Blenders"],"Furniture & Decor":["Sofas","Beds","Tables"],"Kitchen & Dining":["Pots","Plates","Cups"],"Groceries & Food":["Rice","Cooking Oil","Sugar"],"Drinks & Beverages":["Sodas","Juices","Water"],"Fresh Farm Produce":["Tomatoes","Onions","Matooke"],"Babies & Kids":["Baby Clothes","Diapers"],"Toys & Games":["Dolls","Cars Toys"],"Books & Stationery":["Text Books","Pens"],"Sports & Fitness":["Football","Gym Equipment"],"Cars & Vehicles":["Toyota","Nissan","Subaru"],"Motorcycles & Boda Boda":["Bajaj","TVS","Yamaha"],"Car Spare Parts":["Brakes","Engine Parts","Tyres"],"Motorcycle Spare Parts":["Boda Tyres","Engine Oil"],"Building Materials":["Cement","Iron Sheets"],"Tools & Hardware":["Hammers","Drills"],"Electrical & Plumbing":["Wires","Switches"],"Agriculture & Farming":["Hoes","Seeds"],"Livestock & Poultry":["Chickens","Goats","Cows"],"Health & Medicine":["Painkillers","Vitamins"],"Medical Equipment":["Thermometers","Gloves"],"School Supplies":["Uniforms","School Bags"],"Office Furniture":["Office Chairs","Desks"],"Arts & Crafts":["Paintings","Beads"],"Music Instruments":["Guitars","Keyboards"],"Photography & Video":["Cameras","Tripods"],"Pets & Animals":["Dogs","Cats"],"Cleaning & Detergent":["Soap","Jik"],"Safety & Security":["CCTV","Padlocks"],"Solar & Power":["Solar Panels","Batteries"],"Industrial Machines":["Welding Machines"],"Party & Events":["Tents","Chairs for Hire"],"Wedding & Bridal":["Wedding Gowns","Suits"],"Traditional Wear":["Gomesi","Kanzu"],"Fabrics & Textiles":["Ankara","Lace"],"Curtains & Beddings":["Curtains","Bedsheets"],"Mats & Carpets":["Carpets","Mats"],"Cosmetics Wholesale":["Wholesale Makeup"],"Undergarments & Lingerie":["Boxers","Panties","Bras"],"Men's Fashion":["Men Shirts","Men Trousers"],"Women's Fashion":["Dresses","Skirts"],"Children's Fashion":["Kids Dresses"],"Phone Accessories":["Phone Covers","Chargers"],"Computer Accessories":["Laptop Bags","Mouse"],"Gaming & Consoles":["PS5","PS4","Xbox"],"Internet & Networking":["Routers","Modems"],"Water Tanks & Pumps":["Water Tanks","Pumps"],"Plumbing & Sanitary":["Toilets","Sinks"],"Paints & Colors":["Emulsion Paint","Gloss"],"Doors & Windows":["Wooden Doors","Metal Doors"],"Tiles & Ceramics":["Floor Tiles","Wall Tiles"],"Livestock Feeds":["Chicken Feeds"],"Seeds & Seedlings":["Maize Seeds"],"Jobs & Services":["Plumbing Jobs","Electrical"],"Real Estate & Rentals":["Plots for Sale","Houses for Rent"],"Sannlas Specials":["SANN Deals","SAN Offers","New Arrivals","SANNLAS Choice"]};
 let products=[],cart=[],categories=FULL_CATEGORIES,frontFiles=[],visibleCount=50,allProducts=[],currentUser=null;
@@ -239,160 +248,32 @@ function addCart(id){let p=allProducts.find(x=>x.id==id);let exist=cart.find(x=>
 function updateCartCount(){let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);document.getElementById('cartN').innerText=totalQty;document.getElementById('notifCountTop').innerText=totalQty;}
 function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<=0){cart=cart.filter(x=>x.id!=id);}updateCartCount();openCart();}
 function openCart(){if(cart.length==0){alert('Cart empty');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);document.getElementById('cartContent').innerHTML=`<h3>🛒 My Cart - ${cart.length} items</h3>${cart.map(i=>`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:8px 0;align-items:center"><img src="${i.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b>${i.name}</b><br>UGX ${Number(i.price).toLocaleString()} x ${i.qty||1} = UGX ${(Number(i.price)*(i.qty||1)).toLocaleString()}</div><div style="display:flex;gap:4px;align-items:center"><button onclick="changeQty(${i.id},-1)" style="padding:5px 10px;background:red;color:white;border:none;border-radius:5px">-</button><span style="padding:5px 10px;background:#FFCC02;border-radius:5px">${i.qty||1}</span><button onclick="changeQty(${i.id},1)" style="padding:5px 10px;background:green;color:white;border:none;border-radius:5px">+</button></div></div>`).join('')}<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;font-weight:bold;text-align:center">TOTAL: UGX ${total.toLocaleString()}</div><form onsubmit="doCheckout(event)"><input name="names" placeholder="Your Full Names" required style="width:100%;padding:12px;margin:5px 0;border-radius:8px;border:2px solid #000"><input name="phone1" placeholder="Phone e.g. 0700123456" required style="width:100%;padding:12px;margin:5px 0;border-radius:8px;border:2px solid #000"><input name="location" placeholder="Delivery Location e.g. Kampala" required style="width:100%;padding:12px;margin:5px 0;border-radius:8px"><button class="btn btn-green" style="width:100%;padding:14px;font-size:16px">✅ Confirm Order - UGX ${total.toLocaleString()}</button></form><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;document.getElementById('cartPop').style.display='flex';}
-function openPopup(id){
-  closeSideMenu();
-  let el=document.getElementById(id);
-  if(!el){alert('Popup '+id+' not found');return;}
-  el.style.display='flex';
-  el.style.zIndex='99999';
-  if(id==='adminPop'){
-    let lb=document.getElementById('adminLoginBox');
-    let db=document.getElementById('adminDashboard');
-    if(lb)lb.style.display='block';
-    if(db)db.style.display='none';
-  }
-}
+function openPopup(id){closeSideMenu();let el=document.getElementById(id);if(!el){alert('Popup '+id+' not found');return;}el.style.display='flex';el.style.zIndex='99999';if(id==='adminPop'){let lb=document.getElementById('adminLoginBox');let db=document.getElementById('adminDashboard');if(lb)lb.style.display='block';if(db)db.style.display='none';}}
 function closePop(id){document.getElementById(id).style.display='none';}
-function doCheckout(e){
- e.preventDefault();
- let fd=new FormData(e.target);
- let buyer={names:fd.get('names'),phone1:fd.get('phone1'),location:fd.get('location')};
- let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
- let orderId='SANN-'+Date.now()+'-'+Math.floor(Math.random()*9000+1000);
- let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');
- myOrders.push(orderId);
- localStorage.setItem('sannlas_my_orders',JSON.stringify(myOrders));
- localStorage.setItem('sannlas_last_order',orderId);
- fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total,order_id:orderId,buyer_email:currentUser?currentUser.email:''})}).then(r=>r.json()).then(d=>{
-  let oid=d.order_id||orderId;
-  alert('✅ Order placed!\nOrder ID: '+oid+'\n\nSave this ID to track your Boda GPS.\nBoda: 0795712326');
-  document.getElementById('bodaOrderId').value=oid;
-  cart=[];updateCartCount();closePop('cartPop');openBodaSecure();
- });
-}
+function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),location:fd.get('location')};let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let orderId='SANN-'+Date.now()+'-'+Math.floor(Math.random()*9000+1000);let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');myOrders.push(orderId);localStorage.setItem('sannlas_my_orders',JSON.stringify(myOrders));localStorage.setItem('sannlas_last_order',orderId);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total,order_id:orderId,buyer_email:currentUser?currentUser.email:''})}).then(r=>r.json()).then(d=>{let oid=d.order_id||orderId;alert('✅ Order placed! Order ID: '+oid+' Save this ID to track your Boda GPS. Boda: 0795712326');document.getElementById('bodaOrderId').value=oid;cart=[];updateCartCount();closePop('cartPop');openBodaSecure();});}
 function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="PRICE UGX"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',plan=document.getElementById('sellerPlan').value,main=document.getElementById('frontMain').value||'General',sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Price for '+(i+1));return;}}let status=document.getElementById('frontStatus');for(let i=0;i<frontFiles.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',frontFiles[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('user_email',currentUser?currentUser.email:'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`⏳ ${i+1}/${frontFiles.length}`;}status.innerHTML=`✅ DONE ${frontFiles.length}`;doFilter();}
 function makeBargain(id){let p=allProducts.find(x=>x.id==id),offer=prompt(`Bargain ${p.name} ${p.price} - Your offer:`);if(offer)fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer,buyer_name:currentUser?.business||'Buyer',buyer_phone:currentUser?.phone||''})}).then(()=>alert('Sent'));}
 function doFollow(b){if(!currentUser){alert('Login first');return;}fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,follower_phone:currentUser.phone,follower_email:currentUser.email})}).then(r=>r.json()).then(d=>{alert(d.message);doFilter();});}
 function respondBargain(id,action){fetch('/api/bargain/respond',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bargain_id:id,action})}).then(()=>{alert('Bargain '+action+'ed');showMyTab('bargains');});}
-function loadMySales(){if(!currentUser)return;let period=document.getElementById('salesPeriod')?document.getElementById('salesPeriod').value:'all';fetch(`/api/seller/sales?phone=${currentUser.phone}&email=${currentUser.email}&period=${period}`).then(r=>r.json()).then(d=>{document.getElementById('mySalesContent').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center"><div>TOTAL SALES</div><div style="font-size:18px;font-weight:bold">UGX ${(d.total_sales||0).toLocaleString()}</div></div><div style="background:#2e7d32;color:white;padding:12px;border-radius:10px;text-align:center"><div>ORDERS</div><div style="font-size:18px;font-weight:bold">${d.total_orders||0}</div></div></div><div style="background:#f5f5f5;padding:8px;border-radius:8px">${(d.orders||[]).slice(0,20).map(o=>`<div style="border-bottom:1px solid #ddd;padding:5px 0;font-size:11px">${o.buyer_name||'Buyer'} - UGX ${Number(o.total||0).toLocaleString()} - ${o.status||'pending'}</div>`).join('')||'No orders yet'}</div>`;}).catch(()=>{document.getElementById('mySalesContent').innerHTML='<p>Sales data loading...</p>';});}
-function showMyTab(tab){document.querySelectorAll('.myTab').forEach(t=>{t.style.display='none';t.classList.remove('active');});let el=document.getElementById('myTab-'+tab);if(!el)return;el.style.display='block';el.classList.add('active');if(tab==='myproducts'&&currentUser){let cont=document.getElementById('myProductsContent');let my=allProducts.filter(p=>p.business===currentUser.business);cont.innerHTML=my.length?my.map(p=>`<div style="display:flex;gap:8px;border-bottom:1px solid #eee;padding:6px 0"><img src="${p.image}" style="width:60px;height:60px;border-radius:8px"><div style="flex:1"><b>${p.name}</b><br>UGX ${Number(p.price).toLocaleString()}<br><button onclick="deleteProduct(${p.id})" style="background:red;color:white;border:none;padding:4px 8px;border-radius:5px">Delete</button></div></div>`).join(''):'<p>No products yet. <button class="btn btn-yellow" onclick="document.getElementById(\'frontUpload\').scrollIntoView({behavior:\'smooth\'});closePop(\'authPop\')">+ Sell Now</button></p>';}if(tab==='followers'&&currentUser){fetch(`/api/seller/followers?business=${encodeURIComponent(currentUser.business)}`).then(r=>r.json()).then(d=>{document.getElementById('myFollowersContent').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center"><b>Followers</b><br><span style="font-size:20px">${d.followers||0}</span></div><div style="background:#1976d2;color:white;padding:12px;border-radius:10px;text-align:center"><b>Total Likes</b><br><span style="font-size:20px">${(d.total_likes||0).toLocaleString()}</span></div></div><div style="margin-top:10px">${(d.followers_list||[]).map(f=>`<div style="border-bottom:1px solid #eee;padding:5px 0">👤 ${f.follower_phone||f.email}</div>`).join('')||'No followers yet'}</div>`;}).catch(()=>{document.getElementById('myFollowersContent').innerHTML='<p>Followers ready - API connected</p>';});}if(tab==='bargains'&&currentUser){fetch(`/api/bargains?business=${encodeURIComponent(currentUser.business)}`).then(r=>r.json()).then(d=>{document.getElementById('myBargainsContent').innerHTML=d.length?d.map(b=>`<div style="border:2px solid #9c27b0;padding:8px;margin:5px 0;border-radius:8px"><b>${b.product_name}</b><br>Offer: UGX ${Number(b.offer||0).toLocaleString()}<br>Buyer: ${b.buyer_name} ${b.buyer_phone}<br><div style="display:flex;gap:5px;margin-top:5px"><button style="background:green;color:white;padding:5px 10px;border:none;border-radius:5px" onclick="respondBargain('${b.id}','accept')">Accept</button><button style="background:red;color:white;padding:5px 10px;border:none;border-radius:5px" onclick="respondBargain('${b.id}','reject')">Reject</button></div></div>`).join(''):'<p>No bargain requests yet</p>';});}if(tab==='sales'&&currentUser)loadMySales();}
-function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | ${currentUser.business||''}`;let profile=document.getElementById('myProfileInfo');if(profile)profile.innerHTML=`<p><b>Email:</b> ${currentUser.email}</p><p><b>Business:</b> ${currentUser.business}</p><p><b>Phone:</b> ${currentUser.phone}</p><p><b>NIN:</b> ${currentUser.nin_verified?'Yes ✓':'No'}</p><p><b>Products:</b> ${allProducts.filter(p=>p.business===currentUser.business).length}</p>`;}}
+function loadMySales(){if(!currentUser)return;let period=document.getElementById('salesPeriod')?document.getElementById('salesPeriod').value:'all';fetch(`/api/seller/sales?phone=${currentUser.phone}&email=${currentUser.email}&period=${period}`).then(r=>r.json()).then(d=>{document.getElementById('mySalesContent').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center"><div>TOTAL SALES</div><div style="font-size:18px;font-weight:bold">UGX ${(d.total_sales||0).toLocaleString()}</div></div><div style="background:#2e7d32;color:white;padding:12px;border-radius:10px;text-align:center"><div>ORDERS</div><div style="font-size:18px;font-weight:bold">${d.total_orders||0}</div></div></div><div style="background:#f5f5f5;padding:8px;border-radius:8px">${(d.orders||[]).slice(0,20).map(o=>`<div style="border-bottom:1px solid #ddd;padding:5px 0;font-size:11px">${o.buyer_name||'Buyer'} - UGX ${Number(o.total||0).toLocaleString()} - ${o.status||'pending'}</div>`).join('')||'No orders yet'}</div>`;});}
+function showMyTab(tab){document.querySelectorAll('.myTab').forEach(t=>{t.style.display='none';t.classList.remove('active');});let el=document.getElementById('myTab-'+tab);if(!el)return;el.style.display='block';el.classList.add('active');if(tab==='myproducts'&&currentUser){let cont=document.getElementById('myProductsContent');let my=allProducts.filter(p=>p.business===currentUser.business);cont.innerHTML=my.length?my.map(p=>`<div style="display:flex;gap:8px;border-bottom:1px solid #eee;padding:6px 0"><img src="${p.image}" style="width:60px;height:60px;border-radius:8px"><div style="flex:1"><b>${p.name}</b><br>UGX ${Number(p.price).toLocaleString()}<br><button onclick="deleteProduct(${p.id})" style="background:red;color:white;border:none;padding:4px 8px;border-radius:5px">Delete</button></div></div>`).join(''):'<p>No products yet.</p>';}if(tab==='followers'&&currentUser){fetch(`/api/seller/followers?business=${encodeURIComponent(currentUser.business)}`).then(r=>r.json()).then(d=>{document.getElementById('myFollowersContent').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center"><b>Followers</b><br><span style="font-size:20px">${d.followers||0}</span></div><div style="background:#1976d2;color:white;padding:12px;border-radius:10px;text-align:center"><b>Total Likes</b><br><span style="font-size:20px">${(d.total_likes||0).toLocaleString()}</span></div></div>`;});}if(tab==='bargains'&&currentUser){fetch(`/api/bargains?business=${encodeURIComponent(currentUser.business)}`).then(r=>r.json()).then(d=>{document.getElementById('myBargainsContent').innerHTML=d.length?d.map(b=>`<div style="border:2px solid #9c27b0;padding:8px;margin:5px 0;border-radius:8px"><b>${b.product_name}</b><br>Offer: UGX ${Number(b.offer||0).toLocaleString()}<br><button style="background:green;color:white;padding:5px 10px;border:none;border-radius:5px" onclick="respondBargain('${b.id}','accept')">Accept</button><button style="background:red;color:white;padding:5px 10px;border:none;border-radius:5px" onclick="respondBargain('${b.id}','reject')">Reject</button></div>`).join(''):'<p>No bargain requests yet</p>';});}if(tab==='sales'&&currentUser)loadMySales();}
+function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | ${currentUser.business||''}`;let profile=document.getElementById('myProfileInfo');if(profile)profile.innerHTML=`<p><b>Email:</b> ${currentUser.email}</p><p><b>Business:</b> ${currentUser.business}</p><p><b>Phone:</b> ${currentUser.phone}</p>`;}}
 function doLogout(){localStorage.clear();location.reload();}
 function showNew(){fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;visibleCount=50;render();});}
-function openBodaSecure(){
- let last=localStorage.getItem('sannlas_last_order')||'';
- document.getElementById('bodaOrderId').value=last;
- openPopup('bodaPop');
- if(last) setTimeout(()=>{trackBoda();},300);
-}
-function trackBoda(){
- let orderId=document.getElementById('bodaOrderId').value.trim();
- if(!orderId){alert('Enter Order ID');return;}
- let isAdmin=currentUser && (currentUser.email==='natelieabigali@gmail.com' || currentUser.email==='admin@sannlas.com');
- let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');
- if(!isAdmin &&!myOrders.includes(orderId)){
-   alert('⛔ Access Denied!\nYou can only track YOUR OWN orders.\n\nYour orders: '+(myOrders.length?myOrders.join(', '):'None yet - Place order first')+'\n\nAdmin natelieabigali@gmail.com can track all.');
-   return;
- }
- document.getElementById('bodaResult').style.display='block';
- document.getElementById('bodaOrderShow').innerText=orderId+(isAdmin?' (ADMIN VIEW - ALL ACCESS)':' (YOUR ORDER ✓)');
-}
-function adminLoginFull(){
-  let e=document.getElementById('adminEmail').value.trim();
-  let p=document.getElementById('adminPass').value;
-  if((e==='natelieabigali@gmail.com' || e==='admin@sannlas.com') && (p==='ThE,RISE' || p==='sannlas2026')){
-    document.getElementById('adminLoginBox').style.display='none';
-    document.getElementById('adminDashboard').style.display='block';
-    loadAdminOrders();loadAdminProducts();
-  }else{
-    fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})}).then(r=>r.json()).then(d=>{
-      if(d.success||d.token){
-        document.getElementById('adminLoginBox').style.display='none';
-        document.getElementById('adminDashboard').style.display='block';
-        loadAdminOrders();loadAdminProducts();
-      }else alert('Wrong - Use natelieabigali@gmail.com / ThE,RISE');
-    });
-  }
-}
+function openBodaSecure(){let last=localStorage.getItem('sannlas_last_order')||'';document.getElementById('bodaOrderId').value=last;openPopup('bodaPop');if(last)setTimeout(()=>{trackBoda();},300);}
+function trackBoda(){let orderId=document.getElementById('bodaOrderId').value.trim();if(!orderId){alert('Enter Order ID');return;}let isAdmin=currentUser && (currentUser.email==='natelieabigali@gmail.com' || currentUser.email==='admin@sannlas.com');let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');if(!isAdmin &&!myOrders.includes(orderId)){alert('⛔ Access Denied! You can only track YOUR OWN orders. Your orders: '+(myOrders.length?myOrders.join(', '):'None yet'));return;}document.getElementById('bodaResult').style.display='block';document.getElementById('bodaOrderShow').innerText=orderId;}
+function adminLoginFull(){let e=document.getElementById('adminEmail').value.trim();let p=document.getElementById('adminPass').value;if((e==='natelieabigali@gmail.com' || e==='admin@sannlas.com') && (p==='ThE,RISE' || p==='sannlas2026')){document.getElementById('adminLoginBox').style.display='none';document.getElementById('adminDashboard').style.display='block';loadAdminOrders();loadAdminProducts();}else{fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})}).then(r=>r.json()).then(d=>{if(d.success||d.token){document.getElementById('adminLoginBox').style.display='none';document.getElementById('adminDashboard').style.display='block';loadAdminOrders();loadAdminProducts();}else alert('Wrong - Use natelieabigali@gmail.com / ThE,RISE');});}}
 function adminLogout(){document.getElementById('adminLoginBox').style.display='block';document.getElementById('adminDashboard').style.display='none';}
 function showAdminTab(tab){document.querySelectorAll('.adminTab').forEach(t=>t.style.display='none');document.getElementById('adminTab-'+tab).style.display='block';if(tab==='orders')loadAdminOrders();if(tab==='products')loadAdminProducts();if(tab==='users')loadAdminUsers();if(tab==='nin')loadAdminNin();}
-function adminTrackOrder(oid){
- alert('📍 ADMIN TRACKING: '+oid);
- try{
-  let input=document.getElementById('bodaOrderId');
-  if(input) input.value=oid;
-  
-  // Try to find ANY boda popup - whatever ID you have
-  let pop=document.getElementById('bodaPop')||document.getElementById('bodaModal')||document.getElementById('trackModal')||document.querySelector('[id*="boda"]');
-  
-  if(pop){
-    pop.style.display='flex';
-    pop.style.zIndex='999999';
-    pop.style.position='fixed';
-    pop.style.top='0';
-    pop.style.left='0';
-    pop.style.width='100%';
-    pop.style.height='100%';
-  }else{
-    // If no popup found, just open Google Map directly - ALWAYS WORKS
-    window.open('https://www.google.com/maps/search/Kampala+Uganda','_blank');
-  }
-  
-  let res=document.getElementById('bodaResult');
-  if(res) res.style.display='block';
-  let show=document.getElementById('bodaOrderShow');
-  if(show) show.innerText=oid+' (ADMIN ✓)';
- }catch(e){
-  alert('Tracking '+oid+'\nMap: Kampala - Rider: 0795712326\nError: '+e.message);
-  window.open('https://www.google.com/maps/search/Kampala+Uganda','_blank');
- }
-}
-
-function loadAdminOrders(){
- fetch('/api/admin/orders').then(r=>r.json()).then(d=>{
-  let list=document.getElementById('adminOrdersList');
-  if(!d||d.length==0){list.innerHTML='<p>No orders yet</p>';return;}
-  list.innerHTML=d.map(o=>{
-   let oid=o.id||o.order_id||'SANN-'+Date.now();
-   return `<div style="border:2px solid #000;padding:12px;margin:8px 0;border-radius:12px;background:#fff9c4">
-   <b>📦 Order #${oid}</b><br>
-   👤 ${o.buyer_name||'Buyer'} - ${o.buyer_phone||''}<br>
-   📍 ${o.location||o.buyer_location||''}<br>
-   💰 UGX ${Number(o.total||0).toLocaleString()} - ${o.status||'pending'}<br>
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-   <button onclick="adminTrackOrder('${oid}')" style="background:#ff6a00;color:white;padding:10px;border:none;border-radius:10px;font-weight:bold;font-size:13px">📍 AUTO TRACK GPS</button>
-   <button onclick="cancelOrder('${oid}')" style="background:red;color:white;padding:10px;border:none;border-radius:10px;font-weight:bold">❌ Cancel</button>
-   </div>
-   <div style="margin-top:6px;display:flex;gap:5px">
-   <button onclick="window.open('https://wa.me/${(o.buyer_phone||'256795712326').replace(/[^0-9]/g,'')}','_blank')" style="background:#25D366;color:white;padding:6px 10px;border:none;border-radius:6px;font-size:11px">💬 WhatsApp Buyer</button>
-   <button onclick="window.open('tel:${o.buyer_phone||'0795712326'}')" style="background:#000;color:white;padding:6px 10px;border:none;border-radius:6px;font-size:11px">📞 Call Buyer</button>
-   </div>
-   </div>`;
-  }).join('');
- }).catch(()=>{
-  document.getElementById('adminOrdersList').innerHTML='<p>Orders API ready</p>';
- });
-}function cancelOrder(orderId){if(!confirm('Cancel order '+orderId+'?'))return;fetch('/api/admin/cancel-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId})}).then(r=>r.json()).then(d=>{alert(d.message||'Cancelled');loadAdminOrders();}).catch(()=>{alert('Cancelled locally');});}
-function loadAdminProducts(){fetch('/api/products').then(r=>r.json()).then(d=>{document.getElementById('adminProductsList').innerHTML=d.slice(0,30).map(p=>`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:6px 0;align-items:center"><img src="${p.image}" style="width:45px;height:45px;border-radius:6px"><div style="flex:1;font-size:11px"><b>${p.name}</b><br>UGX ${Number(p.price).toLocaleString()}</div><button onclick="deleteProduct(${p.id})" style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px">Delete</button></div>`).join('');});}
-function loadAdminUsers(){fetch('/api/admin/users').then(r=>r.json()).then(d=>{document.getElementById('adminUsersList').innerHTML=(d||[]).map(u=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${u.email} - ${u.business}</div>`).join('')||'No users';}).catch(()=>{document.getElementById('adminUsersList').innerHTML='Users loading...';});}
-function loadAdminNin(){fetch('/api/admin/nin').then(r=>r.json()).then(d=>{document.getElementById('adminNinList').innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${n.email} - ${n.nin_number}</div>`).join('')||'No NIN';}).catch(()=>{document.getElementById('adminNinList').innerHTML='NIN loading...';});}
+function adminTrackOrder(oid){let input=document.getElementById('bodaOrderId');if(input)input.value=oid;let pop=document.getElementById('bodaPop');if(pop){pop.style.display='flex';pop.style.zIndex='999999';}let res=document.getElementById('bodaResult');if(res)res.style.display='block';let show=document.getElementById('bodaOrderShow');if(show)show.innerText=oid+' (ADMIN ✓)';}
+function loadAdminOrders(){fetch('/api/admin/orders').then(r=>r.json()).then(d=>{let list=document.getElementById('adminOrdersList');if(!d||d.length==0){list.innerHTML='<p>No orders yet</p>';return;}list.innerHTML=d.map(o=>{let oid=o.id||o.order_id||'SANN-'+Date.now();return `<div style="border:2px solid #000;padding:12px;margin:8px 0;border-radius:12px;background:#fff9c4"><b>📦 Order #${oid}</b><br>👤 ${o.buyer_name||'Buyer'} - ${o.buyer_phone||''}<br>📍 ${o.location||o.buyer_location||''}<br>💰 UGX ${Number(o.total||0).toLocaleString()}<br><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button onclick="adminTrackOrder('${oid}')" style="background:#ff6a00;color:white;padding:10px;border:none;border-radius:10px;font-weight:bold">📍 TRACK GPS</button><button onclick="cancelOrder('${oid}')" style="background:red;color:white;padding:10px;border:none;border-radius:10px">❌ Cancel</button></div></div>`;}).join('');});}
+function cancelOrder(orderId){if(!confirm('Cancel '+orderId+'?'))return;fetch('/api/admin/cancel-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId})}).then(r=>r.json()).then(d=>{alert(d.message||'Cancelled');loadAdminOrders();});}
+function loadAdminProducts(){fetch('/api/products').then(r=>r.json()).then(d=>{document.getElementById('adminProductsList').innerHTML=d.slice(0,30).map(p=>`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:6px 0"><img src="${p.image}" style="width:45px;height:45px"><div style="flex:1"><b>${p.name}</b></div><button onclick="deleteProduct(${p.id})" style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px">Delete</button></div>`).join('');});}
+function loadAdminUsers(){fetch('/api/admin/users').then(r=>r.json()).then(d=>{document.getElementById('adminUsersList').innerHTML=(d||[]).map(u=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${u.email} - ${u.business}</div>`).join('')||'No users';});}
+function loadAdminNin(){fetch('/api/admin/nin').then(r=>r.json()).then(d=>{document.getElementById('adminNinList').innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${n.email} - ${n.nin_number}</div>`).join('')||'No NIN';});}
 function deleteProduct(id){if(!confirm('Delete '+id+'?'))return;fetch(`/api/admin/delete-product/${id}`,{method:'DELETE'}).then(()=>{alert('Deleted');doFilter();});}
-fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;render();});
-function openPop(id){var el=document.getElementById(id);if(el)el.style.display='flex'}
-function closePop(id){var el=document.getElementById(id);if(el)el.style.display='none'}
+initFrontCat();doFilter();gateCheck();
 </script>
-
-<div style="position:fixed;bottom:0;left:0;right:0;background:black;color:white;display:flex;justify-content:space-around;padding:15px;z-index:9999999;border-top:3px solid red">
-  <span onclick="document.getElementById('bodaPop').style.display='flex'" style="color:#FFCC02;font-weight:bold">🏍️ Boda</span>
-  <span onclick="if(prompt('Password:')==='ThE,RISE'){location.href='/admin'}" style="color:red;font-weight:bold">🔐 Admin</span>
-  <span onclick="document.getElementById('termsPop').style.display='flex'" style="color:white">📄 Terms</span>
-</div>
-
-<div id="bodaPop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999999;justify-content:center;align-items:center"><div style="background:white;padding:20px;border-radius:15px"><h3>Boda Tracking</h3><button onclick="document.getElementById('bodaPop').style.display='none'">Close</button></div></div>
-
-<div id="termsPop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999999;justify-content:center;align-items:center"><div style="background:white;padding:20px;border-radius:15px"><h3>Terms</h3><p>All orders via WhatsApp</p><button onclick="document.getElementById('termsPop').style.display='none'">Close</button></div></div>
-
-<div style="height:80px"></div>
 </body>
 </html>
