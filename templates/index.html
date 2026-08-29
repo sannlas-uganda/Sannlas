@@ -302,6 +302,18 @@ fetch('/api/admin/nin').then(r=>r.json()).then(d=>{
 list.innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:6px 0">${n.email} - NIN: ${n.nin_number||''} - ${n.status||'pending'}</div>`).join('')||'No NIN submissions yet';
 }).catch(()=>{list.innerHTML='⚠️ /api/admin/nin backend missing';});
 }
+function loadAdminProducts(){
+document.getElementById('adminProductsList').innerHTML=allProducts.map(p=>`<div style="display:flex;gap:6px;padding:5px;border-bottom:1px solid #ddd"><img src="${p.image}" style="width:40px;height:40px"><span>${p.name}</span></div>`).join('')||'No products';
+}
+function loadAdminOrders(){
+document.getElementById('adminOrdersList').innerHTML='<p>No orders - backend /api/admin/orders missing - Use popup admin only</p>';
+}
+function loadAdminUsers(){
+document.getElementById('adminUsersList').innerHTML='Users API missing - no change needed';
+}
+function loadAdminNin(){
+document.getElementById('adminNinList').innerHTML='NIN API missing - no change needed';
+}
 </script>
 </body>
 </html>
