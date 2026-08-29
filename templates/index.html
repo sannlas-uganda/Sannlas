@@ -146,11 +146,11 @@
 </div>
 <div id="adminLoginBox">
 <input id="adminEmail" placeholder="Email" value="" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
-
 <input id="adminPass" type="password" placeholder="Password" value="" autocomplete="off" style="width:100%;padding:12px;margin:5px 0;border-radius:8px">
 <button class="btn" style="width:100%;background:red;padding:12px" onclick="adminLoginFull()">🔓 Login to Admin</button>
+<div style="font-size:10px;text-align:center;margin-top:5px"><a href="#" onclick="if(prompt('🔐 Password:')==='ThE,RISE'){location.href='/admin'}else{alert('❌ Wrong!')}" style="color:red;font-weight:bold">Go to Full Admin Page /admin →</a></div>
+</div>
 <div id="adminDashboard" style="display:none">
-<div style="font-size:10px;text-align:center;margin-top:5px"><a href="/admin" style="color:red;font-weight:bold">Go to Full Admin Page /admin →</a></div>
 <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin:10px 0">
 <button class="btn btn-blue" onclick="showAdminTab('products')">📦 Products</button>
 <button class="btn btn-green" onclick="showAdminTab('orders')">📋 Orders - Cancel Any</button>
