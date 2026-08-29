@@ -303,16 +303,15 @@ list.innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:
 }).catch(()=>{list.innerHTML='⚠️ /api/admin/nin backend missing';});
 }
 function loadAdminProducts(){
-document.getElementById('adminProductsList').innerHTML=allProducts.map(p=>`<div style="display:flex;gap:6px;padding:5px;border-bottom:1px solid #ddd"><img src="${p.image}" style="width:40px;height:40px"><span>${p.name}</span></div>`).join('')||'No products';
+let el=document.getElementById('adminProductsList');
+if(!el)return;
+let list = (typeof allProducts!=='undefined' && allProducts.length>0) ? allProducts : [];
+if(list.length==0){
+el.innerHTML='<p style="color:red">⚠️ Products not loaded yet<br>1. Close Admin<br>2. Scroll down homepage so products show<br>3. Open Admin again</p>'; 
+fetch('/api/products').then(r=>r.json()).then(d=>{ el.innerHTML=d.map(p=>`<div style="display:flex;gap:6px;padding:6px;border-bottom:1px solid #ccc"><img src="${p.image}" style="width:40px;height:40px;object-fit:cover"><b>${p.name}</b> - UGX ${p.price}</div>`).join(''); }).catch(()=>{});
+return;
 }
-function loadAdminOrders(){
-document.getElementById('adminOrdersList').innerHTML='<p>No orders - backend /api/admin/orders missing - Use popup admin only</p>';
-}
-function loadAdminUsers(){
-document.getElementById('adminUsersList').innerHTML='Users API missing - no change needed';
-}
-function loadAdminNin(){
-document.getElementById('adminNinList').innerHTML='NIN API missing - no change needed';
+el.innerHTML=list.map(p=>`<div style="display:flex;gap:6px;padding:6px;border-bottom:1px solid #ccc;align-items:center"><img src="${p.image}" style="width:40px;height:40px;object-fit:cover"><div><b>${p.name}</b><br>UGX ${Number(p.price).toLocaleString()}</div></div>`).join('');
 }
 </script>
 </body>
