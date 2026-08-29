@@ -379,7 +379,11 @@ function loadAdminUsers(){fetch('/api/admin/users').then(r=>r.json()).then(d=>{d
 function loadAdminNin(){fetch('/api/admin/nin').then(r=>r.json()).then(d=>{document.getElementById('adminNinList').innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${n.email} - ${n.nin_number}</div>`).join('')||'No NIN';}).catch(()=>{document.getElementById('adminNinList').innerHTML='NIN loading...';});}
 function deleteProduct(id){if(!confirm('Delete '+id+'?'))return;fetch(`/api/admin/delete-product/${id}`,{method:'DELETE'}).then(()=>{alert('Deleted');doFilter();});}
 fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;render();});
-setTimeout(()=>{initFrontCat();gateCheck();},800);
+setTimeout(()=>{try{initFrontCat();}catch(e){} try{gateCheck();}catch(e){} 
+var f=document.createElement('div');
+f.innerHTML='<div style="position:fixed;bottom:0;left:0;right:0;background:#000;color:#fff;display:flex;justify-content:space-around;padding:15px;border-top:4px solid red;z-index:2147483647;width:100%"><span onclick="alert(\'🏍️ Boda Tracking\')" style="color:#FFCC02;font-weight:bold">🏍️ Boda</span><span onclick="if(prompt(\'Password:\')===\'ThE,RISE\'){location.href=\'/admin\'}else{alert(\'Wrong!\')}" style="color:red;font-weight:bold">🔐 Admin</span><span onclick="openPop(\'termsPop\')" style="color:white">📄 Terms</span></div><div style="height:80px"></div>';
+document.body.appendChild(f);
+},800);
 </script>
 <div style="position:fixed; bottom:0; left:0; right:0; background:#000; color:#fff; display:flex; justify-content:space-around; padding:15px; border-top:4px solid red; z-index:2147483647; width:100%;">
   <span onclick="alert('🏍️ Boda Tracking')" style="color:#FFCC02; font-weight:bold; cursor:pointer;">🏍️ Boda</span>
