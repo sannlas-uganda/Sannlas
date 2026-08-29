@@ -379,17 +379,37 @@ function loadAdminUsers(){fetch('/api/admin/users').then(r=>r.json()).then(d=>{d
 function loadAdminNin(){fetch('/api/admin/nin').then(r=>r.json()).then(d=>{document.getElementById('adminNinList').innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${n.email} - ${n.nin_number}</div>`).join('')||'No NIN';}).catch(()=>{document.getElementById('adminNinList').innerHTML='NIN loading...';});}
 function deleteProduct(id){if(!confirm('Delete '+id+'?'))return;fetch(`/api/admin/delete-product/${id}`,{method:'DELETE'}).then(()=>{alert('Deleted');doFilter();});}
 fetch('/api/products').then(r=>r.json()).then(d=>{products=d;allProducts=d;render();});
-setTimeout(()=>{try{initFrontCat();}catch(e){} try{gateCheck();}catch(e){} 
-var f=document.createElement('div');
-f.innerHTML='<div style="position:fixed;bottom:0;left:0;right:0;background:#000;color:#fff;display:flex;justify-content:space-around;padding:15px;border-top:4px solid red;z-index:2147483647;width:100%"><span onclick="alert(\'🏍️ Boda Tracking\')" style="color:#FFCC02;font-weight:bold">🏍️ Boda</span><span onclick="if(prompt(\'Password:\')===\'ThE,RISE\'){location.href=\'/admin\'}else{alert(\'Wrong!\')}" style="color:red;font-weight:bold">🔐 Admin</span><span onclick="openPop(\'termsPop\')" style="color:white">📄 Terms</span></div><div style="height:80px"></div>';
-document.body.appendChild(f);
-},800);
+function openPop(id){var el=document.getElementById(id);if(el)el.style.display='flex'}
+function closePop(id){var el=document.getElementById(id);if(el)el.style.display='none'}
 </script>
-<div style="position:fixed; bottom:0; left:0; right:0; background:#000; color:#fff; display:flex; justify-content:space-around; padding:15px; border-top:4px solid red; z-index:2147483647; width:100%;">
-  <span onclick="alert('🏍️ Boda Tracking')" style="color:#FFCC02; font-weight:bold; cursor:pointer;">🏍️ Boda</span>
-  <span onclick="if(prompt('🔐 Password:')==='ThE,RISE'){location.href='/admin'}else{alert('❌ Wrong!')}" style="color:red; font-weight:bold; cursor:pointer;">🔐 Admin</span>
-  <span onclick="openPop('termsPop')" style="color:white; cursor:pointer;">📄 Terms</span>
+
+<div id="bodaPop" onclick="if(event.target==this)closePop('bodaPop')" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999999;justify-content:center;align-items:center">
+  <div style="background:white;padding:20px;border-radius:15px;width:90%;max-width:400px;text-align:center">
+    <h2>🏍️ Boda Tracking</h2>
+    <input id="bodaInput" placeholder="Order ID" style="width:100%;padding:12px;border:2px solid #FFCC02;border-radius:8px;margin:10px 0">
+    <button onclick="alert('Tracking Order: '+document.getElementById('bodaInput').value)" style="background:#FFCC02;padding:12px;width:100%;border:none;border-radius:8px;font-weight:bold">TRACK NOW</button>
+    <br><br>
+    <button onclick="closePop('bodaPop')" style="background:red;color:white;padding:8px 20px;border:none;border-radius:5px">Close</button>
+  </div>
 </div>
-<div style="height:80px;"></div>
+
+<div id="termsPop" onclick="if(event.target==this)closePop('termsPop')" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999999;justify-content:center;align-items:center">
+  <div style="background:white;padding:20px;border-radius:15px;width:90%;max-width:500px">
+    <h2>📄 Terms & Conditions</h2>
+    <p>1. Orders confirmed via WhatsApp</p>
+    <p>2. Delivery fee depends on location</p>
+    <p>3. No refund after boda dispatched</p>
+    <br>
+    <button onclick="closePop('termsPop')" style="background:black;color:white;padding:10px 20px;border:none;border-radius:5px;width:100%">I AGREE</button>
+  </div>
+</div>
+
+<div style="position:fixed;bottom:0;left:0;right:0;background:#000;color:#fff;display:flex;justify-content:space-around;padding:15px;border-top:4px solid red;z-index:2147483647">
+  <span onclick="openPop('bodaPop')" style="color:#FFCC02;font-weight:bold;cursor:pointer">🏍️ Boda</span>
+  <span onclick="if(prompt('Password:')==='ThE,RISE'){location.href='/admin'}else{alert('Wrong!')}" style="color:red;font-weight:bold;cursor:pointer">🔐 Admin</span>
+  <span onclick="openPop('termsPop')" style="color:white;cursor:pointer">📄 Terms</span>
+</div>
+<div style="height:80px"></div>
+
 </body>
 </html>
