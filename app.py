@@ -31,7 +31,6 @@ OWNER_EMAIL = "natelieabigali@gmail.com"
 OWNER_PHONE = "0795712326"
 OWNER_MOMO = "0795712326"
 
-# YOUR EXACT PLANS FROM CODE - NO CHANGE
 PLANS = {
     "free14": {"days": 14, "price": 0, "name": "14 Days FREE", "requires_payment": False},
     "30": {"days": 30, "price": 6540, "name": "30 Days", "requires_payment": True},
@@ -289,23 +288,16 @@ def get_products():
         public.append(pp)
     return jsonify(public)
 
-# ============ FIXED SELL - CHECK SUBSCRIPTION BEFORE UPLOAD ============
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name'); price=int(request.form.get('price',0)); business=request.form.get('business'); location=request.form.get('location'); phone=request.form.get('phone'); desc=request.form.get('desc',''); main_cat=request.form.get('main_category'); sub_cat=request.form.get('sub_category'); stock=int(request.form.get('stock',10)); plan=request.form.get('plan','free14'); user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); products=load_db('products.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None); plan_info=PLANS.get(plan,PLANS['free14'])
-
-    # NEW CHECK: Seller must have active subscription
     if not seller:
         return jsonify({'success':False,'message':'Register first as seller'}),402
-
-    # If seller subscription expired - BLOCK UPLOAD
     if seller.get('subscription_expires',0) < time.time():
         return jsonify({'success':False,'message':f'Subscription expired! Renew: Pay to {OWNER_MOMO} and enter Transaction ID','needs_subscription':True,'plans':PLANS}),402
-
     if not seller.get('paid', False) and plan_info.get('requires_payment'):
         return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD! Pay UGX {plan_info["price"]} to {OWNER_MOMO}','needs_subscription':True}),402
-
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -444,75 +436,88 @@ def boost():
     save_db('products.json', products)
     return jsonify({'success': True, 'message': 'Boosted!'})
 
-# ============ FIXED SUBSCRIBE - ONE TIME TRANS ID + AUTO UNHIDE ============
+# ============ CHANGE 2 + CHANGE 3 COMBINED: SUBSCRIBE WITH ANTI-FAKE ============
 @app.route('/api/subscribe', methods=['POST'])
 def sub():
     data=request.json
     sellers=load_db('sellers.json', [])
     users=load_db('users.json', [])
-    transactions=load_db('transactions.json', []) # For one-time ID check
+    transactions=load_db('transactions.json', [])
     plan=data.get('plan','30')
     email=data.get('email','').lower().strip()
     phone=data.get('phone','').strip()
-    business_phone=data.get('business_phone','').strip() or phone # Must be same as payment phone
-    momo_code=data.get('momo_code','').strip() # Transaction ID
-    momo_phone=data.get('momo_phone','').strip() or phone # Number that sent money
+    business_phone=data.get('business_phone','').strip() or phone
+    momo_code=data.get('momo_code','').strip().upper()
+    momo_phone=data.get('momo_phone','').strip() or phone
 
     plan_info=PLANS.get(plan,PLANS['30'])
 
-    # CHECK 1: Business number must be same as payment number
-    if business_phone!= momo_phone:
-        return jsonify({'success':False,'message':f'Business number {business_phone} must be same as MoMo number {momo_phone} that paid! Use same number!'}),400
+    # CHANGE 3 ANTI-FAKE 1: Business = Payer Phone
+    if business_phone.replace(" ","")!= momo_phone.replace(" ",""):
+        return jsonify({'success':False,'message':f'BLOCKED: Business {business_phone} must SAME as MoMo payer {momo_phone} that sent to 0795712326!'}),400
 
-    # CHECK 2: Transaction ID one-time use
+    # CHANGE 3 ANTI-FAKE 2: One-time Trans ID
     if plan_info.get('requires_payment'):
         if not momo_code:
-            return jsonify({'success':False,'message':'Enter Transaction ID from MoMo SMS'}),400
-        # Check if ID already used
-        if any(t['transaction_id']==momo_code for t in transactions):
-            return jsonify({'success':False,'message':f'Transaction ID {momo_code} already used! Each ID one-time only.'}),400
-        # Save transaction as used
+            return jsonify({'success':False,'message':'Enter Transaction ID from MoMo SMS after sending to 0795712326'}),400
+        if any(t.get('transaction_id','').upper()==momo_code for t in transactions):
+            return jsonify({'success':False,'message':f'BLOCKED FAKE! Trans ID {momo_code} already used! One-time only. Pay again to 0795712326 for new ID'}),400
+
         transactions.append({
             'transaction_id': momo_code,
             'phone': phone,
             'business_phone': business_phone,
             'momo_phone': momo_phone,
+            'payer_phone': momo_phone,
             'plan': plan,
+            'plan_name': plan_info['name'],
             'amount': plan_info['price'],
+            'paid_amount': plan_info['price'],
             'time': time.time(),
-            'to_number': OWNER_MOMO
+            'timestamp': time.time(),
+            'to_number': OWNER_MOMO,
+            'to_momo': OWNER_MOMO,
+            'status': 'pending_owner_verify',
+            'email': email,
+            'business': data.get('business','')
         })
         save_db('transactions.json', transactions)
 
-    # ACTIVATE SUBSCRIPTION AUTOMATICALLY
     found=False
     for u in users:
         if u['email']==email or u['phone']==phone or u['phone']==business_phone:
             u['plan']=plan
             u['plan_name']=plan_info['name']
-            u['paid']=True # Auto paid because Trans ID entered
+            u['paid']=True
+            u['momo_code']=momo_code
             u['momo_transaction']=momo_code
             u['business_phone']=business_phone
             u['momo_phone']=momo_phone
+            u['payer_phone']=momo_phone
+            u['paid_amount']=plan_info['price']
             u['subscription_expires']=time.time()+plan_info['days']*86400
             u['subscription_active']=True
+            u['payment_status']='pending_owner_verify'
+            u['owner_verified']=False
             found=True
 
     if not found:
         return jsonify({'success':False,'message':'Seller not found - Register first'}),404
 
     save_db('users.json',users)
-
-    # Log seller request
     data['id']=int(time.time())
     data['plan_name']=plan_info['name']
     data['plan_price']=plan_info['price']
+    data['paid_amount']=plan_info['price']
+    data['transaction_id']=momo_code
+    data['payer_phone']=momo_phone
+    data['business_phone']=business_phone
     data['time']=time.time()
-    data['status']='active' # Auto active
+    data['status']='pending_owner_verify'
     sellers.append(data)
     save_db('sellers.json',sellers)
 
-    return jsonify({'success':True,'message':f'Payment verified! {plan_info["name"]} active for {plan_info["days"]} days. You can now upload unlimited products until expiry!','expires': time.time()+plan_info['days']*86400})
+    return jsonify({'success':True,'message':f'Payment OK! {plan_info["name"]} active {plan_info["days"]} days. Owner will verify Trans ID {momo_code} via *165# - You can upload now!','expires': time.time()+plan_info['days']*86400})
 
 @app.route('/api/check-subscription')
 def check_sub():
@@ -538,7 +543,7 @@ def check_sub():
 def activate_sub():
     data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); plan=data.get('plan'); users=load_db('users.json',[]); products=load_db('products.json',[]); plan_info=PLANS.get(plan,PLANS['30'])
     for u in users:
-        if u['phone']==phone or u['email']==email: u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=True; u['subscription_expires']=time.time()+plan_info['days']*86400
+        if u['phone']==phone or u['email']==email: u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=True; u['subscription_expires']=time.time()+plan_info['days']*86400; u['payment_status']='verified_by_owner'; u['owner_verified']=True
     save_db('users.json',users)
     for p in products:
         if p.get('phone')==phone or p.get('seller_email')==email: p['subscription_expires']=time.time()+plan_info['days']*86400; p['plan']=plan
@@ -591,6 +596,45 @@ def admin_generic(filetype):
     allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications','transactions']
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
+
+# ===== CHANGE 3 NEW ROUTES - ANTI-FAKE =====
+@app.route('/api/admin/transactions')
+def admin_transactions():
+    transactions=load_db('transactions.json', [])
+    return jsonify(transactions[::-1])
+
+@app.route('/api/admin/verify-transaction', methods=['POST'])
+def verify_transaction():
+    data=request.json
+    trans_id=data.get('transaction_id','').strip().upper()
+    action=data.get('action','verify')
+    transactions=load_db('transactions.json', [])
+    users=load_db('users.json', [])
+    for t in transactions:
+        if t.get('transaction_id','').upper()==trans_id:
+            if action=='verify':
+                t['status']='verified_by_owner'
+                t['owner_verified']=True
+                t['verified_time']=time.time()
+                for u in users:
+                    if u.get('momo_code','').upper()==trans_id or u.get('momo_transaction','').upper()==trans_id:
+                        u['payment_status']='verified_by_owner'
+                        u['owner_verified']=True
+            elif action=='block_fake':
+                t['status']='blocked_fake'
+                t['owner_verified']=False
+                for u in users:
+                    if u.get('momo_code','').upper()==trans_id or u.get('momo_transaction','').upper()==trans_id:
+                        u['paid']=False
+                        u['subscription_expires']=0
+                        u['payment_status']='blocked_fake'
+    save_db('transactions.json', transactions)
+    save_db('users.json', users)
+    return jsonify({'success':True,'message':f'Transaction {trans_id} {action} done'})
+
+@app.route('/api/admin/block-fake', methods=['POST'])
+def block_fake():
+    return verify_transaction()
 
 @app.route('/icon.png')
 def icon_file():
