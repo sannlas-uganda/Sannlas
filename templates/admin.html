@@ -48,6 +48,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="tabs">
 <div class="t active" onclick="tab('overview',this)">📊 Overview</div>
 <div class="t" onclick="tab('users',this)">🔐 Users <span id="cUsers" class="badge">0</span></div>
+<div class="t" onclick="tab('payments',this)">💳 Payments NEW</div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div>
 <div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
 <div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
@@ -71,18 +72,22 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="overviewData"></div>
 </div>
 
-<div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users - Pay Before Upload</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Pending</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
+<div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users - Pay Before Upload - WITH PAID AMOUNT + TRANS ID + PAYER PHONE</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Pending</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
+
+<!-- ===== NEW TAB: PAYMENTS - CHANGE 2 ===== -->
+<div id="payments" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>💳 All MoMo Payments - Verify on *165# - Business Phone = Payer Phone</h2>
+<p style="font-size:12px;color:#aaa">This shows all Transaction IDs paid to 0795712326. Check each Trans ID on your MTN MoMo to confirm it's real. Business Phone must equal Payer Phone.</p>
+<div id="paymentsBox">Loading payments...</div></div></div>
+
 <div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages</h2><div id="contactsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products - With Stars Count + Seller Total Likes</h2><div id="productsBox">Loading...</div></div></div>
 <div id="bargains" class="tabPane" style="display:none"><div class="card"><h2>💰 Bargains</h2><div id="bargainsBox">Loading...</div></div></div>
-<div id="sellers" class="tabPane" style="display:none"><div class="card"><h2>👥 Sellers Subs</h2><div id="sellersBox">Loading...</div></div></div>
+<div id="sellers" class="tabPane" style="display:none"><div class="card"><h2>👥 Sellers Subs - WITH PAID AMOUNT + TRANS ID</h2><div id="sellersBox">Loading...</div></div></div>
 <div id="sales" class="tabPane" style="display:none"><div class="card"><h2>💵 Seller Sales Per Period</h2><div style="display:flex;gap:5px;flex-wrap:wrap"><input id="salesPhone" placeholder="Enter Seller Phone 256..."><select id="salesPeriod"><option value="today">Today</option><option value="week">Week</option><option value="month" selected>Month</option><option value="year">Year</option><option value="all">All</option></select><button onclick="loadSellerSales()">Load Sales</button></div><div id="salesBox" style="margin-top:10px">Enter seller phone</div></div></div>
 
-<!-- NEW: TOP SELLERS BY LIKES -->
 <div id="topSellers" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>⭐ Top Sellers - Most Likes = Best Seller (Automatic)</h2><p style="font-size:12px;color:#aaa">This sorts sellers by total product likes (stars). Product with more likes → Seller gets more likes automatically (from app.py).</p><div id="topSellersBox">Loading...</div></div></div>
 
-<!-- NEW: ADMIN SEND MESSAGE TO USER -->
 <div id="notif" class="tabPane" style="display:none"><div class="card" style="border:2px solid #00FF00"><h2>🔔 Send Message / Notification to User</h2>
 <div style="background:#111;padding:10px;border-radius:8px">
 <input id="notifEmail" placeholder="User Email (e.g. buyer@gmail.com)">
@@ -103,26 +108,67 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 const MY_PASSWORD="ThE,RISE";
 const BUSINESS_CATEGORIES={"Agriculture & Farming":["Crop Farming","Livestock"],"Food & Beverages":["Restaurants","Bakeries"],"Construction & Building":["Cement","Hardware"],"Real Estate":["Land","Houses"],"Fashion & Clothing":["Men's Clothing","Women's Clothing"],"Electronics & Technology":["Mobile Phones","Laptops"],"Automotive":["Cars","Motorcycles"],"Health & Medical":["Hospitals","Pharmacies"],"Beauty & Personal Care":["Cosmetics","Hair Salons"],"Education":["Schools"],"Financial Services":["Banking"],"Transport & Logistics":["Taxi Services"],"Travel & Tourism":["Hotels"],"Entertainment & Media":["Music"],"Sports & Fitness":["Gyms"],"Home & Furniture":["Sofas","Beds"],"Energy & Utilities":["Solar Energy"],"Manufacturing":["Textile"],"Professional Services":["Lawyers"],"Information Technology":["Website Development"],"Telecommunications":["Mobile Networks"],"Home & Property Services":["Cleaning"],"Security Services":["Security Guards"],"Pets & Animals":["Pet Food"],"Events & Weddings":["Wedding Planning"],"Printing & Stationery":["Printing"],"Repair & Maintenance Services":["Phone Repair"],"Business & Consulting Services":["Business Consulting"]};
 let ALL={}; let USER_FILTER='all';
+
+function getPlanAmount(plan){
+  const map={"free14":0,"30":6540,"60":13090,"180":39500,"365":80000,"30d":6540,"2mo":13090,"6mo":39500,"1yr":80000};
+  return map[plan]||map[plan?.toLowerCase()]||0;
+}
+
 function initCats(){let m=document.getElementById('mainCat');Object.keys(BUSINESS_CATEGORIES).forEach(c=>{let o=document.createElement('option');o.value=c;o.text=c;m.appendChild(o);});renderCats(BUSINESS_CATEGORIES);document.getElementById('catsBox').innerHTML=Object.entries(BUSINESS_CATEGORIES).map(([k,v])=>`<div class="cat-item"><b>${k}</b><div class="sub">${v.join(' • ')}</div></div>`).join('');}
 function loadSub(){let mv=document.getElementById('mainCat').value;let s=document.getElementById('subCat');s.innerHTML='<option value="">Select Subcategory</option>';if(BUSINESS_CATEGORIES[mv])BUSINESS_CATEGORIES[mv].forEach(x=>{let o=document.createElement('option');o.value=x;o.text=x;s.appendChild(o);});}
 function renderCats(data){let h='';Object.entries(data).forEach(([main,subs])=>{h+=`<div class="cat-item"><b>${main}</b><div class="sub">${subs.join(' • ')}</div></div>`});document.getElementById('catList').innerHTML=h||'No match';}
 function filterCats(){let q=document.getElementById('catSearch').value.toLowerCase();if(!q){renderCats(BUSINESS_CATEGORIES);return;}let f={};Object.entries(BUSINESS_CATEGORIES).forEach(([main,subs])=>{if(main.toLowerCase().includes(q))f[main]=subs;else{let ms=subs.filter(s=>s.toLowerCase().includes(q));if(ms.length)f[main]=ms;}});renderCats(f);}
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='payments') loadPayments();}
 function login(){if(document.getElementById('pass').value===MY_PASSWORD){localStorage.setItem('sannlas_admin','ok');showAdmin();}else document.getElementById('msg').innerText='Wrong password!';}
 function showAdmin(){document.getElementById('loginBox').style.display='none';document.getElementById('adminContent').style.display='block';initCats();loadData();}
 function logout(){localStorage.removeItem('sannlas_admin');location.reload();}
 function filterUsers(f){USER_FILTER=f; renderUsers();}
+
 function renderUsers(){
   let users=ALL.users||[];
   let filtered=users;
   if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000);
   if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000);
-  document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Phone</th><th>Business</th><th>Plan</th><th>Followers</th><th>👍 Total Likes</th><th>⭐ Total Stars</th><th>Status</th><th>Action</th></tr>'+filtered.map(u=>{
+  document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Phone (Business)</th><th>Business</th><th>Plan</th><th>💰 Paid Amount</th><th>📱 Payer Phone</th><th>🔢 Transaction ID</th><th>Biz = Payer?</th><th>Followers</th><th>👍 Likes</th><th>⭐ Stars</th><th>Status</th><th>Action</th></tr>'+filtered.map(u=>{
    let isExpired = u.subscription_expires < Date.now()/1000;
    let statusBadge = (!u.paid || isExpired)?'<span style="background:red;color:white;padding:4px 8px;border-radius:8px">⛔ BLOCKED</span>':'<span style="background:green;color:white;padding:4px 8px;border-radius:8px">✅ CAN UPLOAD</span>';
-   return `<tr><td>${u.email}</td><td><span class="green-box">${u.phone}</span></td><td><span class="yellow-box">${u.business||''}</span></td><td>${u.plan_name} ${u.paid?'✅':'⏳'}<br>${u.momo_transaction||''}</td><td>${u.followers||0}</td><td><b style="color:#FFCC02">👍 ${u.total_likes||0}</b></td><td><b style="color:#00FF00">⭐ ${u.total_stars||0}</b></td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d 6540</option><option value="60">2mo 13090</option><option value="180">6mo 39500</option><option value="365">1yr 80000</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button><br><button style="background:#FFCC02;color:#000;margin-top:3px" onclick="document.getElementById('notifEmail').value='${u.email}';document.getElementById('notifPhone').value='${u.phone}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message</button></td></tr>`
+   let amount = getPlanAmount(u.plan);
+   let payerPhone = u.momo_phone || u.phone;
+   let transId = u.momo_code || u.momo_transaction || '';
+   let match = (u.phone && payerPhone && u.phone.replace(/\\s/g,'')===payerPhone.replace(/\\s/g,''))? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ DIFFERENT</span>';
+   return `<tr><td>${u.email}</td><td><span class="green-box">${u.phone}</span></td><td><span class="yellow-box">${u.business||''}</span></td><td>${u.plan_name||u.plan} ${u.paid?'✅':'⏳'}</td><td><b style="color:#FFCC02">UGX ${amount.toLocaleString()}</b></td><td><span class="green-box">${payerPhone}</span></td><td><b style="color:#00FF00">${transId||'- FREE -'}</b></td><td>${match}</td><td>${u.followers||0}</td><td><b style="color:#FFCC02">👍 ${u.total_likes||0}</b></td><td><b style="color:#00FF00">⭐ ${u.total_stars||0}</b></td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d 6540</option><option value="60">2mo 13090</option><option value="180">6mo 39500</option><option value="365">1yr 80000</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button></td></tr>`
   }).join('')+'</table>':'No users';
 }
+
+function loadPayments(){
+  // Payments from users + sellers
+  let users=ALL.users||[];
+  let sellers=ALL.sellers||[];
+  let allPayments=[...users.filter(u=>u.momo_code||u.momo_transaction),...sellers];
+  // Also try fetch transactions endpoint if exists
+  fetch('/api/admin/transactions').then(r=>r.json()).then(trans=>{
+    let box=document.getElementById('paymentsBox');
+    let list = trans.length? trans : allPayments;
+    if(!list.length){box.innerHTML='<p>No payments yet - Users are still in 14 Days FREE trial</p>';return;}
+    box.innerHTML='<table><tr><th>Business</th><th>Business Phone</th><th>Payer Phone</th><th>Biz = Payer?</th><th>💰 Amount</th><th>🔢 Trans ID</th><th>Plan</th><th>Time</th><th>Verify *165#</th></tr>'+list.map(t=>{
+      let biz=t.business||t.email||'Seller';
+      let bPhone=t.business_phone||t.phone||'';
+      let pPhone=t.momo_phone||t.payer_phone||bPhone;
+      let transId=t.momo_code||t.transaction_id||t.momo_transaction||'';
+      let amount=getPlanAmount(t.plan)||t.amount||0;
+      let same = bPhone && pPhone && bPhone.replace(/\\s/g,'')===pPhone.replace(/\\s/g,'')? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME - OK</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ CHECK</span>';
+      let time = t.timestamp? new Date(t.timestamp*1000).toLocaleString() : (t.time? new Date(t.time*1000).toLocaleString() : 'N/A');
+      return `<tr><td><span class="yellow-box">${biz}</span></td><td><span class="green-box">${bPhone}</span></td><td><span class="green-box">${pPhone}</span></td><td>${same}</td><td><b style="color:#FFCC02">UGX ${Number(amount).toLocaleString()}</b></td><td><b style="color:#00FF00;font-size:14px">${transId}</b></td><td>${t.plan_name||t.plan||''}</td><td>${time}</td><td><a href="tel:*165%23"><button style="background:#FFCC02;color:#000">Check *165#</button></a></td></tr>`;
+    }).join('')+'</table>';
+  }).catch(()=>{
+    // fallback to users
+    let box=document.getElementById('paymentsBox');
+    let list=allPayments;
+    if(!list.length){box.innerHTML='<p>No payments yet - Users in FREE trial (14 days)</p>';return;}
+    box.innerHTML='<table><tr><th>Business</th><th>Phone</th><th>Amount</th><th>Trans ID</th></tr>'+list.map(t=>`<tr><td>${t.business||t.email}</td><td>${t.phone}</td><td>UGX ${getPlanAmount(t.plan).toLocaleString()}</td><td>${t.momo_code||t.momo_transaction||''}</td></tr>`).join('')+'</table>';
+  });
+}
+
 function loadData(){
  fetch('/api/admin/data').then(r=>r.json()).then(d=>{
   ALL=d;
@@ -132,20 +178,26 @@ function loadData(){
   document.getElementById('cOrders').innerText=orders.length;
   document.getElementById('cProds').innerText=prods.length;
   document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat">Revenue<br><b>UGX ${(d.total_revenue||0).toLocaleString()}</b></div><div class="stat">Top Likes<br><b>👍 ${Math.max(...users.map(u=>u.total_likes||0),0)}</b></div>`;
-  document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner natelieabigali@gmail.com | MoMo 0795712328</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p></div>`;
+  document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner natelieabigali@gmail.com | MoMo 0795712326</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">💰 Check Payments tab to see Paid Amount + Transaction ID + Payer Phone - Verify with *165#</p></div>`;
   renderUsers();
   renderTopSellers();
+  loadPayments();
   document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}<br><a href="mailto:${c.email}"><button>Reply Email</button></a></div>`).join(''):'No messages';
   document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>Order ID</th><th>Buyer</th><th>Phone</th><th>Total</th><th>Action</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td><span class="green-box">${o.buyer?.phone1||''}</span></td><td>UGX ${o.total||0}</td><td><a href="https://wa.me/${o.buyer?.phone1}" target="_blank"><button style="background:green">WhatsApp</button></a> <button onclick="document.getElementById('notifEmail').value='';document.getElementById('notifPhone').value='${o.buyer?.phone1||''}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message Buyer</button></td></tr>`).join('')+'</table>':'No orders';
   document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()} - Stock ${p.stock} ${p.expired?'<b style="color:red">EXPIRED</b>':''}<br><span class="yellow-box">🏪 ${p.business||''}</span> <span class="green-box">📞 ${p.phone||''}</span> <span style="background:#222;padding:4px 8px;border-radius:5px">⭐ ${(p.rating||0).toFixed(1)} (${(p.reviews||[]).length} likes) | Seller total likes: auto-calc</span><br><button style="background:#900" onclick="delProd(${p.id})">Delete</button> <button style="background:#FFCC02;color:#000" onclick="document.getElementById('notifEmail').value='';document.getElementById('notifPhone').value='${p.phone||''}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message Seller</button></div></div>`).join(''):'No products';
   document.getElementById('bargainsBox').innerHTML=bargains.length?bargains.map(b=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${b.product_name}</b> - Offer ${b.offer} by ${b.buyer_name||''} ${b.buyer_phone||''}</div>`).join(''):'No bargains';
-  document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone</th><th>Plan</th><th>MoMo Code</th><th>Action</th></tr>'+sellers.map(s=>`<tr><td><span class="yellow-box">${s.business||s.email||''}</span></td><td><span class="green-box">${s.phone}</span></td><td>${s.plan_name||s.plan}</td><td><b style="color:#FFCC02">${s.momo_code||''}</b></td><td><button style="background:green" onclick="activateSub('${s.phone}','${s.email||''}')">Activate</button></td></tr>`).join('')+'</table>':'No sellers';
+  document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone (Biz)</th><th>Payer Phone</th><th>Biz = Payer?</th><th>💰 Paid Amount</th><th>🔢 Trans ID / MoMo Code</th><th>Plan</th><th>Action</th></tr>'+sellers.map(s=>{
+    let bPhone=s.phone||s.business_phone||'';
+    let pPhone=s.momo_phone||s.payer_phone||bPhone;
+    let same = bPhone && pPhone && bPhone.replace(/\\s/g,'')===pPhone.replace(/\\s/g,'')? '✅ SAME' : '❌ DIFFERENT';
+    let amount = getPlanAmount(s.plan)||s.amount||0;
+    return `<tr><td><span class="yellow-box">${s.business||s.email||''}</span></td><td><span class="green-box">${bPhone}</span></td><td><span class="green-box">${pPhone}</span></td><td>${same}</td><td><b style="color:#FFCC02">UGX ${Number(amount).toLocaleString()}</b></td><td><b style="color:#00FF00">${s.momo_code||s.transaction_id||''}</b></td><td>${s.plan_name||s.plan}</td><td><button style="background:green" onclick="activateSub('${s.phone}','${s.email||''}')">Activate</button></td></tr>`;
+  }).join('')+'</table>':'No sellers - Users still in FREE trial (14 days) so no payments yet';
   loadNotifHistory();
  }).catch(e=>alert('Load error '+e));
 }
 function renderTopSellers(){
  let users=ALL.users||[]; let prods=ALL.products||[];
- // Calculate seller stats from products if users total_likes not yet updated
  let stats={};
  prods.forEach(p=>{
    let biz=p.business;
@@ -155,13 +207,12 @@ function renderTopSellers(){
    stats[biz].stars+=(p.reviews||[]).reduce((s,r)=>s+Number(r.rating||0),0);
    stats[biz].products+=1;
  });
- // Merge with users
  let merged=Object.values(stats).map(s=>{
    let u=users.find(x=>x.business===s.business);
    return {...s, email:u?.email||'', followers:u?.followers||0, verified:u?.verified||false, paid:u?.paid||false, total_likes_db:u?.total_likes||0};
  });
  merged.sort((a,b)=>b.likes-a.likes);
- document.getElementById('topSellersBox').innerHTML=merged.length?'<table><tr><th>Rank</th><th>Business</th><th>Phone</th><th>👍 Total Likes (from products)</th><th>⭐ Total Stars</th><th>Products</th><th>Followers</th><th>Action</th></tr>'+merged.map((s,i)=>`<tr style="${i<3?'background:#222':''}"><td>${i==0?'🥇':i==1?'🥈':i==2?'🥉':i+1}</td><td><span class="yellow-box">${s.business}</span> ${s.verified?'✓':''}</td><td><span class="green-box">${s.phone}</span></td><td><b style="color:#FFCC02;font-size:16px">👍 ${s.likes}</b></td><td><b style="color:#00FF00">⭐ ${s.stars}</b></td><td>${s.products}</td><td>👥 ${s.followers}</td><td><button style="background:#FFCC02;color:#000" onclick="document.getElementById('notifPhone').value='${s.phone}';document.getElementById('notifEmail').value='${s.email}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message Top Seller</button></td></tr>`).join('')+'</table>':'No sellers yet';
+ document.getElementById('topSellersBox').innerHTML=merged.length?'<table><tr><th>Rank</th><th>Business</th><th>Phone</th><th>👍 Total Likes</th><th>⭐ Total Stars</th><th>Products</th><th>Followers</th><th>Action</th></tr>'+merged.map((s,i)=>`<tr style="${i<3?'background:#222':''}"><td>${i==0?'🥇':i==1?'🥈':i==2?'🥉':i+1}</td><td><span class="yellow-box">${s.business}</span> ${s.verified?'✓':''}</td><td><span class="green-box">${s.phone}</span></td><td><b style="color:#FFCC02;font-size:16px">👍 ${s.likes}</b></td><td><b style="color:#00FF00">⭐ ${s.stars}</b></td><td>${s.products}</td><td>👥 ${s.followers}</td><td><button style="background:#FFCC02;color:#000" onclick="document.getElementById('notifPhone').value='${s.phone}';document.getElementById('notifEmail').value='${s.email}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message Top Seller</button></td></tr>`).join('')+'</table>':'No sellers yet';
 }
 function sendAdminMessage(){
  let email=document.getElementById('notifEmail').value.trim();
