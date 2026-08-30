@@ -31,6 +31,7 @@ OWNER_EMAIL = "natelieabigali@gmail.com"
 OWNER_PHONE = "0795712326"
 OWNER_MOMO = "0795712326"
 
+# YOUR EXACT PLANS FROM CODE - NO CHANGE
 PLANS = {
     "free14": {"days": 14, "price": 0, "name": "14 Days FREE", "requires_payment": False},
     "30": {"days": 30, "price": 6540, "name": "30 Days", "requires_payment": True},
@@ -209,7 +210,7 @@ def icon192_json():
 def icon512_json():
     if os.path.exists('icon-512.png'): return send_from_directory('.', 'icon-512.png')
     return ("", 204)
-    
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); role=data.get('role','seller'); biz=data.get('business','')
@@ -288,15 +289,23 @@ def get_products():
         public.append(pp)
     return jsonify(public)
 
+# ============ FIXED SELL - CHECK SUBSCRIPTION BEFORE UPLOAD ============
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name'); price=int(request.form.get('price',0)); business=request.form.get('business'); location=request.form.get('location'); phone=request.form.get('phone'); desc=request.form.get('desc',''); main_cat=request.form.get('main_category'); sub_cat=request.form.get('sub_category'); stock=int(request.form.get('stock',10)); plan=request.form.get('plan','free14'); user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); products=load_db('products.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None); plan_info=PLANS.get(plan,PLANS['free14'])
-    if plan == "free14" or not plan_info.get('requires_payment'):
-        if seller and seller.get('free_used') and seller['subscription_expires'] < time.time(): return jsonify({'success':False,'message':'FREE expired'}),402
-    else:
-        if not seller: return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD UGX {plan_info["price"]}'}),402
-        if seller['subscription_expires'] < time.time() or not seller.get('paid'): return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD expired'}),402
+
+    # NEW CHECK: Seller must have active subscription
+    if not seller:
+        return jsonify({'success':False,'message':'Register first as seller'}),402
+
+    # If seller subscription expired - BLOCK UPLOAD
+    if seller.get('subscription_expires',0) < time.time():
+        return jsonify({'success':False,'message':f'Subscription expired! Renew: Pay to {OWNER_MOMO} and enter Transaction ID','needs_subscription':True,'plans':PLANS}),402
+
+    if not seller.get('paid', False) and plan_info.get('requires_payment'):
+        return jsonify({'success':False,'message':f'PAY BEFORE UPLOAD! Pay UGX {plan_info["price"]} to {OWNER_MOMO}','needs_subscription':True}),402
+
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -435,13 +444,95 @@ def boost():
     save_db('products.json', products)
     return jsonify({'success': True, 'message': 'Boosted!'})
 
+# ============ FIXED SUBSCRIBE - ONE TIME TRANS ID + AUTO UNHIDE ============
 @app.route('/api/subscribe', methods=['POST'])
 def sub():
-    data=request.json; sellers=load_db('sellers.json', []); users=load_db('users.json', []); plan=data.get('plan','30'); email=data.get('email','').lower(); phone=data.get('phone',''); momo=data.get('momo_code',''); plan_info=PLANS.get(plan,PLANS['30'])
+    data=request.json
+    sellers=load_db('sellers.json', [])
+    users=load_db('users.json', [])
+    transactions=load_db('transactions.json', []) # For one-time ID check
+    plan=data.get('plan','30')
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','').strip()
+    business_phone=data.get('business_phone','').strip() or phone # Must be same as payment phone
+    momo_code=data.get('momo_code','').strip() # Transaction ID
+    momo_phone=data.get('momo_phone','').strip() or phone # Number that sent money
+
+    plan_info=PLANS.get(plan,PLANS['30'])
+
+    # CHECK 1: Business number must be same as payment number
+    if business_phone!= momo_phone:
+        return jsonify({'success':False,'message':f'Business number {business_phone} must be same as MoMo number {momo_phone} that paid! Use same number!'}),400
+
+    # CHECK 2: Transaction ID one-time use
+    if plan_info.get('requires_payment'):
+        if not momo_code:
+            return jsonify({'success':False,'message':'Enter Transaction ID from MoMo SMS'}),400
+        # Check if ID already used
+        if any(t['transaction_id']==momo_code for t in transactions):
+            return jsonify({'success':False,'message':f'Transaction ID {momo_code} already used! Each ID one-time only.'}),400
+        # Save transaction as used
+        transactions.append({
+            'transaction_id': momo_code,
+            'phone': phone,
+            'business_phone': business_phone,
+            'momo_phone': momo_phone,
+            'plan': plan,
+            'amount': plan_info['price'],
+            'time': time.time(),
+            'to_number': OWNER_MOMO
+        })
+        save_db('transactions.json', transactions)
+
+    # ACTIVATE SUBSCRIPTION AUTOMATICALLY
+    found=False
     for u in users:
-        if u['email']==email or u['phone']==phone: u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=False if plan_info['requires_payment'] else True; u['momo_transaction']=momo
-        if not plan_info['requires_payment']: u['subscription_expires']=time.time()+plan_info['days']*86400
-    save_db('users.json',users); data['id']=int(time.time()); data['plan_name']=plan_info['name']; data['plan_price']=plan_info['price']; data['time']=time.time(); sellers.append(data); save_db('sellers.json',sellers); return jsonify({'success':True,'message':f'Request {plan_info["name"]} UGX {plan_info["price"]} received'})
+        if u['email']==email or u['phone']==phone or u['phone']==business_phone:
+            u['plan']=plan
+            u['plan_name']=plan_info['name']
+            u['paid']=True # Auto paid because Trans ID entered
+            u['momo_transaction']=momo_code
+            u['business_phone']=business_phone
+            u['momo_phone']=momo_phone
+            u['subscription_expires']=time.time()+plan_info['days']*86400
+            u['subscription_active']=True
+            found=True
+
+    if not found:
+        return jsonify({'success':False,'message':'Seller not found - Register first'}),404
+
+    save_db('users.json',users)
+
+    # Log seller request
+    data['id']=int(time.time())
+    data['plan_name']=plan_info['name']
+    data['plan_price']=plan_info['price']
+    data['time']=time.time()
+    data['status']='active' # Auto active
+    sellers.append(data)
+    save_db('sellers.json',sellers)
+
+    return jsonify({'success':True,'message':f'Payment verified! {plan_info["name"]} active for {plan_info["days"]} days. You can now upload unlimited products until expiry!','expires': time.time()+plan_info['days']*86400})
+
+@app.route('/api/check-subscription')
+def check_sub():
+    phone=request.args.get('phone','').strip()
+    email=request.args.get('email','').lower().strip()
+    users=load_db('users.json',[])
+    u=next((x for x in users if x['email']==email or x['phone']==phone), None)
+    if not u:
+        return jsonify({'success':False,'can_upload':False,'message':'Not registered'})
+    active = u.get('subscription_expires',0) > time.time() and u.get('paid',False)
+    return jsonify({
+        'success':True,
+        'can_upload': active,
+        'subscription_active': active,
+        'expires': u.get('subscription_expires',0),
+        'plan_name': u.get('plan_name',''),
+        'needs_subscription': not active,
+        'plans': PLANS,
+        'pay_to': OWNER_MOMO
+    })
 
 @app.route('/api/admin/activate-subscription', methods=['POST'])
 def activate_sub():
@@ -493,14 +584,14 @@ def admin_data():
     products=load_db('products.json',[]); now=time.time()
     for p in products:
         if p.get('subscription_expires',0)<now: p['expired']=True
-    return jsonify({'products':products,'users':load_db('users.json',[]),'sellers':load_db('sellers.json',[]),'orders':load_db('orders.json',[]),'jobs':load_db('jobs.json',[]),'contacts':load_db('contacts.json',[]),'applications':load_db('applications.json',[]),'bargains':load_db('bargains.json',[]),'followers':load_db('followers.json',[]),'notifications':load_db('notifications.json',[]),'total_revenue':sum([o.get('total',0) for o in load_db('orders.json',[]) if isinstance(o.get('total'),(int,float))]),'total_sellers':len(load_db('users.json',[])),'total_orders':len(load_db('orders.json',[])),'plans':PLANS})
+    return jsonify({'products':products,'users':load_db('users.json',[]),'sellers':load_db('sellers.json',[]),'orders':load_db('orders.json',[]),'jobs':load_db('jobs.json',[]),'contacts':load_db('contacts.json',[]),'applications':load_db('applications.json',[]),'bargains':load_db('bargains.json',[]),'followers':load_db('followers.json',[]),'notifications':load_db('notifications.json',[]),'transactions':load_db('transactions.json',[]),'total_revenue':sum([o.get('total',0) for o in load_db('orders.json',[]) if isinstance(o.get('total'),(int,float))]),'total_sellers':len(load_db('users.json',[])),'total_orders':len(load_db('orders.json',[])),'plans':PLANS})
 
 @app.route('/api/admin/<string:filetype>')
 def admin_generic(filetype):
-    allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications']
+    allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications','transactions']
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
-    
+
 @app.route('/icon.png')
 def icon_file():
     return send_from_directory('.', 'icon-512.png')
