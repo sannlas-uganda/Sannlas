@@ -73,7 +73,7 @@
 <div id="frontUpload" class="front-upload"><h2 style="color:#8B0000;text-align:center">📦 SELL YOUR PRODUCTS - 14 Days FREE Trial</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="frontBiz" placeholder="Business Name" style="padding:10px;border-radius:8px;border:1px solid #ccc"><select id="frontLocation" style="padding:10px;border-radius:8px;border:1px solid #ccc"><option value="">Select District (45 Districts)</option></select></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><select id="frontMain" onchange="frontSubLoad()" style="padding:10px;border-radius:8px;border:1px solid #ccc"><option value="">Main Category (66 Categories)</option></select><select id="frontSub" style="padding:10px;border-radius:8px;border:1px solid #ccc"><option value="">Sub Category</option></select></div>
-<input id="frontPhoneReal" placeholder="Your Phone - ADMIN ONLY - Will NOT show public - 256..." style="background:#FFCC02;border:2px solid #000;width:100%;padding:10px;margin:5px 0;border-radius:8px;font-weight:bold">
+<input id="frontPhoneReal" placeholder="Your Phone - ADMIN ONLY - Business Number - 256..." style="background:#FFCC02;border:2px solid #000;width:100%;padding:10px;margin:5px 0;border-radius:8px;font-weight:bold">
 <div style="background:#FFF9C4;border:2px solid green;border-radius:10px;padding:8px;margin:8px 0">
 <label style="font-weight:bold;font-size:12px">📅 Choose Subscription Plan (Where it was before):</label>
 <select id="sellerPlan" style="border:2px solid green;font-weight:bold;width:100%;padding:10px;border-radius:8px;margin-top:5px"><option value="free14">14 Days FREE Trial - 0 UGX</option><option value="30">30 Days - UGX 6,540 - MoMo 0795712326</option><option value="60">2 Months - UGX 13,090</option><option value="180">6 Months - UGX 39,500</option><option value="365">1 Year - UGX 80,000 - BEST VALUE</option></select>
@@ -84,6 +84,33 @@
 <div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready to upload</div>
 <button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
 </div>
+
+<!-- ====== NEW: SUBSCRIPTION PAYMENT POPUP - BEFORE UPLOAD ====== -->
+<div class="popup" id="subPayPop"><div class="popup-content" style="max-width:500px;border:3px solid #c0392b">
+<h2 style="text-align:center;color:#c0392b">💳 Subscription Required</h2>
+<p id="subPayMsg" style="background:#FFF9C4;padding:8px;border-radius:8px;font-size:12px;text-align:center;margin:10px 0">Your FREE trial expired or not active. Pay to unlock upload till expiry!</p>
+<div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;margin:10px 0">
+<div style="font-size:18px;font-weight:bold">Pay To: 0795712326</div>
+<div style="font-size:11px">Name: SANNLAS UGANDA</div>
+<div id="subPayAmountShow" style="font-size:14px;margin-top:6px;background:#FFCC02;color:#000;padding:6px;border-radius:8px">Amount: UGX 6,540</div>
+</div>
+<label style="font-size:12px;font-weight:bold">📅 Choose Plan (from your code):</label>
+<select id="subPlanSelect" onchange="updateSubAmount()" style="width:100%;padding:12px;margin:5px 0;border-radius:8px;border:2px solid green;font-weight:bold">
+<option value="free14">14 Days FREE - 0 UGX</option>
+<option value="30" selected>30 Days - UGX 6,540</option>
+<option value="60">2 Months - UGX 13,090</option>
+<option value="180">6 Months - UGX 39,500</option>
+<option value="365">1 Year - UGX 80,000</option>
+</select>
+<input id="subBizPhone" placeholder="Business Phone (must be same as MoMo that paid) - e.g. 0771234567" style="width:100%;padding:12px;margin:5px 0;border-radius:8px;border:2px solid #000;font-weight:bold;background:#FFCC02">
+<input id="subMomoPhone" placeholder="MoMo Phone that sent money - MUST SAME as Business Phone" style="width:100%;padding:12px;margin:5px 0;border-radius:8px;border:2px solid #000">
+<input id="subTransId" placeholder="Enter Transaction ID from MoMo SMS (one-time use only)" style="width:100%;padding:12px;margin:5px 0;border-radius:8px;border:2px solid #1976d2;font-weight:bold">
+<div style="font-size:10px;color:red;background:#FFE0E0;padding:6px;border-radius:6px;margin:5px 0">⚠️ ID can be used only ONE time! Business Number must = Payment Number</div>
+<button class="btn btn-green" style="width:100%;padding:14px;font-size:15px" onclick="verifySubPayment()">✅ Verify Payment & Unlock Upload</button>
+<button onclick="closePop('subPayPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Cancel</button>
+<div id="subPayStatus" style="margin-top:10px;text-align:center;font-weight:bold"></div>
+</div></div>
+
 <div class="products" id="products"></div><div style="text-align:center;padding:10px"><button id="loadMoreBtn" class="btn btn-green" style="display:none" onclick="loadMore()">Load More</button></div>
 <div class="popup" id="viewPop"><div class="popup-content" id="viewContent"></div></div>
 <div class="popup" id="cartPop"><div class="popup-content" id="cartContent"></div></div>
@@ -201,6 +228,57 @@
 const FULL_CATEGORIES={"Fashion & Clothing":["Men's Fashion","Women's Fashion","Children's Fashion"],"Shoes & Footwear":["Men Shoes","Women Shoes","Kids Shoes"],"Bags & Luggage":["Handbags","Backpacks","Travel Bags"],"Watches & Jewelry":["Wrist Watches","Necklaces","Rings"],"Beauty & Cosmetics":["Makeup","Skin Care","Lipstick"],"Hair & Wigs":["Human Hair Wigs","Braids","Weaves"],"Electronics & Gadgets":["Speakers","Headphones","Power Banks"],"Phones & Tablets":["Tecno Phones","Samsung Phones","iPhone","Infinix","Itel"],"Computers & Laptops":["Laptops","Desktops","Monitors"],"TVs & Audio":["Smart TVs","Home Theaters","Woofers"],"Home Appliances":["Fridges","Cookers","Blenders"],"Furniture & Decor":["Sofas","Beds","Tables"],"Kitchen & Dining":["Pots","Plates","Cups"],"Groceries & Food":["Rice","Cooking Oil","Sugar"],"Drinks & Beverages":["Sodas","Juices","Water"],"Fresh Farm Produce":["Tomatoes","Onions","Matooke"],"Babies & Kids":["Baby Clothes","Diapers"],"Toys & Games":["Dolls","Cars Toys"],"Books & Stationery":["Text Books","Pens"],"Sports & Fitness":["Football","Gym Equipment"],"Cars & Vehicles":["Toyota","Nissan","Subaru"],"Motorcycles & Boda Boda":["Bajaj","TVS","Yamaha"],"Car Spare Parts":["Brakes","Engine Parts","Tyres"],"Motorcycle Spare Parts":["Boda Tyres","Engine Oil"],"Building Materials":["Cement","Iron Sheets"],"Tools & Hardware":["Hammers","Drills"],"Electrical & Plumbing":["Wires","Switches"],"Agriculture & Farming":["Hoes","Seeds"],"Livestock & Poultry":["Chickens","Goats","Cows"],"Health & Medicine":["Painkillers","Vitamins"],"Medical Equipment":["Thermometers","Gloves"],"School Supplies":["Uniforms","School Bags"],"Office Furniture":["Office Chairs","Desks"],"Arts & Crafts":["Paintings","Beads"],"Music Instruments":["Guitars","Keyboards"],"Photography & Video":["Cameras","Tripods"],"Pets & Animals":["Dogs","Cats"],"Cleaning & Detergent":["Soap","Jik"],"Safety & Security":["CCTV","Padlocks"],"Solar & Power":["Solar Panels","Batteries"],"Industrial Machines":["Welding Machines"],"Party & Events":["Tents","Chairs for Hire"],"Wedding & Bridal":["Wedding Gowns","Suits"],"Traditional Wear":["Gomesi","Kanzu"],"Fabrics & Textiles":["Ankara","Lace"],"Curtains & Beddings":["Curtains","Bedsheets"],"Mats & Carpets":["Carpets","Mats"],"Cosmetics Wholesale":["Wholesale Makeup"],"Undergarments & Lingerie":["Boxers","Panties","Bras"],"Men's Fashion":["Men Shirts","Men Trousers"],"Women's Fashion":["Dresses","Skirts"],"Children's Fashion":["Kids Dresses"],"Phone Accessories":["Phone Covers","Chargers"],"Computer Accessories":["Laptop Bags","Mouse"],"Gaming & Consoles":["PS5","PS4","Xbox"],"Internet & Networking":["Routers","Modems"],"Water Tanks & Pumps":["Water Tanks","Pumps"],"Plumbing & Sanitary":["Toilets","Sinks"],"Paints & Colors":["Emulsion Paint","Gloss"],"Doors & Windows":["Wooden Doors","Metal Doors"],"Tiles & Ceramics":["Floor Tiles","Wall Tiles"],"Livestock Feeds":["Chicken Feeds"],"Seeds & Seedlings":["Maize Seeds"],"Jobs & Services":["Plumbing Jobs","Electrical"],"Real Estate & Rentals":["Plots for Sale","Houses for Rent"],"Sannlas Specials":["SANN Deals","SAN Offers","New Arrivals","SANNLAS Choice"]};
 let products=[],cart=[],categories=FULL_CATEGORIES,frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
 const ALL_DISTRICTS=["Kampala","Wakiso","Mukono","Mpigi","Mubende","Luwero","Masaka","Mityana","Buikwe","Gomba","Butambala","Kalangala","Kalungu","Kyankwanzi","Lwengo","Lyantonde","Nakaseke","Nakasongola","Rakai","Sembabule","Kyotera","Bukomansimbi","Kassanda","Kiboga","Buvuma","Kayunga","Mbale","Jinja","Soroti","Tororo","Iganga","Busia","Bugiri","Kumi","Pallisa","Gulu","Lira","Arua","Kitgum","Mbarara","Kabale","Fort Portal","Kasese","Hoima","Masindi"];
+
+function updateSubAmount(){
+let plan=document.getElementById('subPlanSelect').value;
+let amounts={"free14":"0 UGX - FREE","30":"6,540 UGX","60":"13,090 UGX","180":"39,500 UGX","365":"80,000 UGX"};
+document.getElementById('subPayAmountShow').innerText='Amount: UGX '+ (amounts[plan]||'6,540');
+}
+
+async function verifySubPayment(){
+let plan=document.getElementById('subPlanSelect').value;
+let bizPhone=document.getElementById('subBizPhone').value.trim();
+let momoPhone=document.getElementById('subMomoPhone').value.trim();
+let transId=document.getElementById('subTransId').value.trim();
+let status=document.getElementById('subPayStatus');
+if(!bizPhone ||!momoPhone ||!transId){
+status.innerHTML='<span style="color:red">Fill all fields Boss!</span>';return;
+}
+if(bizPhone!==momoPhone){
+status.innerHTML='<span style="color:red">❌ Business Phone must = MoMo Phone! Use same number that paid to 0795712326</span>';return;
+}
+status.innerHTML='⏳ Verifying...';
+let payload={
+plan:plan,
+email: currentUser?currentUser.email:'',
+phone: bizPhone,
+business_phone: bizPhone,
+momo_phone: momoPhone,
+momo_code: transId
+};
+let r=await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+let d=await r.json();
+if(!r.ok){
+status.innerHTML='<span style="color:red">❌ '+d.message+'</span>';return;
+}
+status.innerHTML='<span style="color:green">✅ '+d.message+'</span>';
+setTimeout(()=>{closePop('subPayPop'); frontUploadAllProceed();},1500);
+}
+
+async function frontUploadAllProceed(){
+if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',plan=document.getElementById('sellerPlan').value,main=document.getElementById('frontMain').value||'General',sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing FAST...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);status.innerHTML=`⏳ Compressed ${i+1}/${frontFiles.length}`;}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('user_email',currentUser?currentUser.email:'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.needs_subscription){openSubPayPopup(plan);}return;}status.innerHTML=`⏳ Uploading ${i+1}/${comp.length} FAST`;}status.innerHTML=`✅ DONE ${comp.length} - SUPER FAST!`;doFilter();
+}
+
+function openSubPayPopup(prefPlan){
+let bizPhoneReal=document.getElementById('frontPhoneReal').value.trim();
+document.getElementById('subBizPhone').value=bizPhoneReal;
+document.getElementById('subMomoPhone').value=bizPhoneReal;
+if(prefPlan) document.getElementById('subPlanSelect').value=prefPlan;
+updateSubAmount();
+document.getElementById('subPayPop').style.display='flex';
+document.getElementById('subPayPop').style.zIndex='99999';
+}
+
 function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function toggleSideSection(id){let el=document.getElementById(id),ar=document.getElementById('arrow-'+id);el.classList.toggle('open');if(ar)ar.innerText=el.classList.contains('open')?'▼':'▶';}
@@ -237,7 +315,26 @@ function closePop(id){document.getElementById(id).style.display='none';}
 function doCheckout(e){e.preventDefault();let fd=new FormData(e.target);let buyer={names:fd.get('names'),phone1:fd.get('phone1'),location:fd.get('location')};let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let orderId='SANN-'+Date.now()+'-'+Math.floor(Math.random()*9000+1000);let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');myOrders.push(orderId);localStorage.setItem('sannlas_my_orders',JSON.stringify(myOrders));localStorage.setItem('sannlas_last_order',orderId);fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer,cart,total,order_id:orderId,buyer_email:currentUser?currentUser.email:''})}).then(r=>r.json()).then(d=>{let oid=d.order_id||orderId;alert('✅ Order: '+oid);document.getElementById('bodaOrderId').value=oid;cart=[];updateCartCount();closePop('cartPop');openBodaSecure();});}
 function frontPreview(input){frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img loading="lazy" src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="PRICE UGX"><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=800;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.6);};img.src=URL.createObjectURL(file);});}
-async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos');return;}let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',plan=document.getElementById('sellerPlan').value,main=document.getElementById('frontMain').value||'General',sub=document.getElementById('frontSub').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing FAST...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);status.innerHTML=`⏳ Compressed ${i+1}/${frontFiles.length}`;}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('plan',plan);fd.append('main_category',main);fd.append('sub_category',sub);fd.append('user_email',currentUser?currentUser.email:'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`⏳ Uploading ${i+1}/${comp.length} FAST`;}status.innerHTML=`✅ DONE ${comp.length} - SUPER FAST!`;doFilter();}
+
+// ==== FIXED: CHECK SUBSCRIPTION BEFORE UPLOAD ====
+async function frontUploadAll(){
+if(frontFiles.length==0){alert('Select photos');return;}
+if(!currentUser){alert('Login first Boss!');showGate();return;}
+let phone=document.getElementById('frontPhoneReal').value.trim();
+if(!phone){alert('Enter Business Phone Boss - Must be same as MoMo payment number!');return;}
+// Check subscription status
+try{
+let r=await fetch(`/api/check-subscription?phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(currentUser.email||'')}`);
+let d=await r.json();
+if(!d.success ||!d.can_upload){
+openSubPayPopup(document.getElementById('sellerPlan').value);
+return;
+}
+}catch(e){ console.log(e); }
+// If active, proceed to upload
+frontUploadAllProceed();
+}
+
 function makeBargain(id){let p=allProducts.find(x=>x.id==id),offer=prompt(`Bargain ${p.name} - Your offer:`);if(offer)fetch('/api/bargain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,product_name:p.name,offer,buyer_name:currentUser?.business||'Buyer',buyer_phone:currentUser?.phone||''})}).then(()=>alert('Sent'));}
 function doFollow(b){if(!currentUser){alert('Login first');return;}fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:b,follower_phone:currentUser.phone,follower_email:currentUser.email})}).then(r=>r.json()).then(d=>{alert(d.message);doFilter();});}
 function respondBargain(id,action){fetch('/api/bargain/respond',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bargain_id:id,action})}).then(()=>{alert('Bargain '+action);showMyTab('bargains');});}
@@ -259,60 +356,6 @@ function loadAdminUsers(){fetch('/api/admin/users').then(r=>r.json()).then(d=>{d
 function loadAdminNin(){fetch('/api/admin/nin').then(r=>r.json()).then(d=>{document.getElementById('adminNinList').innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:5px 0">${n.email} - ${n.nin_number}</div>`).join('')||'No NIN';});}
 function deleteProduct(id){if(!confirm('Delete '+id+'?'))return;fetch(`/api/admin/delete-product/${id}`,{method:'DELETE'}).then(()=>{alert('Deleted');doFilter();});}
 initFrontCat();doFilter();gateCheck();
-  // --- FIXED ADMIN LOADER - BOSS ---
-function loadAdminProducts(){
-let list=document.getElementById('adminProductsList');
-if(!list)return;
-if(allProducts && allProducts.length>0){
-list.innerHTML=allProducts.slice(0,50).map(p=>`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:6px 0;align-items:center"><img src="${p.image}" style="width:45px;height:45px;object-fit:cover;border-radius:6px"><div style="flex:1"><b>${p.name}</b><br>UGX ${Number(p.price).toLocaleString()}</div><button onclick="deleteProduct(${p.id})" style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px">Delete</button></div>`).join('');
-return;
-}
-list.innerHTML='⏳ Loading products...';
-fetch('/api/products').then(r=>r.json()).then(d=>{
-allProducts=d;
-list.innerHTML=d.slice(0,50).map(p=>`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:6px 0;align-items:center"><img src="${p.image}" style="width:45px;height:45px;object-fit:cover"><div style="flex:1"><b>${p.name}</b></div><button onclick="deleteProduct(${p.id})" style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px">Delete</button></div>`).join('');
-}).catch(()=>{list.innerHTML='<p style="color:red">❌ API failed - but your products are visible on homepage. This is Render backend issue.</p>';});
-}
-function loadAdminOrders(){
-let list=document.getElementById('adminOrdersList');
-if(!list)return;
-list.innerHTML='⏳ Loading orders...';
-fetch('/api/admin/orders').then(r=>r.json()).then(d=>{
-if(!d||d.length==0){list.innerHTML='<p>No orders yet - When customer orders, it will show here</p>';return;}
-list.innerHTML=d.map(o=>{
-let oid=o.id||o.order_id||'SANN-'+Date.now();
-return `<div style="border:2px solid #000;padding:12px;margin:8px 0;border-radius:12px;background:#fff9c4"><b>📦 Order #${oid}</b><br>👤 ${o.buyer_name||o.buyer||'Buyer'} - ${o.buyer_phone||''}<br>📍 ${o.location||o.buyer_location||''}<br>💰 UGX ${Number(o.total||0).toLocaleString()}<br><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button onclick="adminTrackOrder('${oid}')" style="background:#ff6a00;color:white;padding:10px;border:none;border-radius:10px;font-weight:bold">📍 TRACK GPS</button><button onclick="cancelOrder('${oid}')" style="background:red;color:white;padding:10px;border:none;border-radius:10px">❌ Cancel</button></div></div>`;
-}).join('');
-}).catch(()=>{
-let myOrders=JSON.parse(localStorage.getItem('sannlas_my_orders')||'[]');
-list.innerHTML=`<p style="color:orange">⚠️ Backend /api/admin/orders not found on Render. This needs backend fix.</p><p>Your Local Test Orders: ${myOrders.join(', ')||'None'}</p><p style="font-size:11px">Boss tell me - I give you backend code for Render!</p>`;
-});
-}
-function loadAdminUsers(){
-let list=document.getElementById('adminUsersList');
-list.innerHTML='⏳ Loading...';
-fetch('/api/admin/users').then(r=>r.json()).then(d=>{
-list.innerHTML=(d||[]).map(u=>`<div style="border-bottom:1px solid #ddd;padding:6px 0">${u.email} - ${u.business||''} - ${u.phone||''}</div>`).join('')||'No users found (backend needs fix)';
-}).catch(()=>{list.innerHTML='⚠️ /api/admin/users backend missing - I can give you backend code Boss';});
-}
-function loadAdminNin(){
-let list=document.getElementById('adminNinList');
-list.innerHTML='⏳ Loading...';
-fetch('/api/admin/nin').then(r=>r.json()).then(d=>{
-list.innerHTML=(d||[]).map(n=>`<div style="border-bottom:1px solid #ddd;padding:6px 0">${n.email} - NIN: ${n.nin_number||''} - ${n.status||'pending'}</div>`).join('')||'No NIN submissions yet';
-}).catch(()=>{list.innerHTML='⚠️ /api/admin/nin backend missing';});
-}
-function loadAdminProducts(){
-let el=document.getElementById('adminProductsList');
-if(!el)return;
-let list = (typeof allProducts!=='undefined' && allProducts.length>0) ? allProducts : [];
-if(list.length==0){
-el.innerHTML='<p style="color:red">⚠️ Products not loaded yet<br>1. Close Admin<br>2. Scroll down homepage so products show<br>3. Open Admin again</p>'; 
-fetch('/api/products').then(r=>r.json()).then(d=>{ el.innerHTML=d.map(p=>`<div style="display:flex;gap:6px;padding:6px;border-bottom:1px solid #ccc"><img src="${p.image}" style="width:40px;height:40px;object-fit:cover"><b>${p.name}</b> - UGX ${p.price}</div>`).join(''); }).catch(()=>{});
-return;
-}
-el.innerHTML=list.map(p=>`<div style="display:flex;gap:6px;padding:6px;border-bottom:1px solid #ccc;align-items:center"><img src="${p.image}" style="width:40px;height:40px;object-fit:cover"><div><b>${p.name}</b><br>UGX ${Number(p.price).toLocaleString()}</div></div>`).join('');
-}
 </script>
 </body>
 </html>
