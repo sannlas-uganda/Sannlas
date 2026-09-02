@@ -74,7 +74,6 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 
 <div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users - Pay Before Upload - WITH PAID AMOUNT + TRANS ID + PAYER PHONE</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Pending</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
 
-<!-- ===== NEW TAB: PAYMENTS - CHANGE 2 ===== -->
 <div id="payments" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>💳 All MoMo Payments - Verify on *165# - Business Phone = Payer Phone</h2>
 <p style="font-size:12px;color:#aaa">This shows all Transaction IDs paid to 0795712326. Check each Trans ID on your MTN MoMo to confirm it's real. Business Phone must equal Payer Phone.</p>
 <div id="paymentsBox">Loading payments...</div></div></div>
@@ -135,18 +134,19 @@ function renderUsers(){
    let amount = getPlanAmount(u.plan);
    let payerPhone = u.momo_phone || u.phone;
    let transId = u.momo_code || u.momo_transaction || '';
-   let match = (u.phone && payerPhone && u.phone.replace(/\\s/g,'')===payerPhone.replace(/\\s/g,''))? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ DIFFERENT</span>';
+   let match = (u.phone && payerPhone && u.phone.replace(/\s/g,'')===payerPhone.replace(/\s/g,''))? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ DIFFERENT</span>';
    return `<tr><td>${u.email}</td><td><span class="green-box">${u.phone}</span></td><td><span class="yellow-box">${u.business||''}</span></td><td>${u.plan_name||u.plan} ${u.paid?'✅':'⏳'}</td><td><b style="color:#FFCC02">UGX ${amount.toLocaleString()}</b></td><td><span class="green-box">${payerPhone}</span></td><td><b style="color:#00FF00">${transId||'- FREE -'}</b></td><td>${match}</td><td>${u.followers||0}</td><td><b style="color:#FFCC02">👍 ${u.total_likes||0}</b></td><td><b style="color:#00FF00">⭐ ${u.total_stars||0}</b></td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d 6540</option><option value="60">2mo 13090</option><option value="180">6mo 39500</option><option value="365">1yr 80000</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button></td></tr>`
   }).join('')+'</table>':'No users';
 }
 
 function loadPayments(){
-  // Payments from users + sellers
   let users=ALL.users||[];
   let sellers=ALL.sellers||[];
   let allPayments=[...users.filter(u=>u.momo_code||u.momo_transaction),...sellers];
-  // Also try fetch transactions endpoint if exists
-  fetch('/api/admin/transactions').then(r=>r.json()).then(trans=>{
+  fetch('/api/admin/transactions').then(async r=>{
+    let txt=await r.text();
+    let trans=[];
+    try{ trans=JSON.parse(txt)||[]; }catch{ trans=[]; }
     let box=document.getElementById('paymentsBox');
     let list = trans.length? trans : allPayments;
     if(!list.length){box.innerHTML='<p>No payments yet - Users are still in 14 Days FREE trial</p>';return;}
@@ -156,12 +156,11 @@ function loadPayments(){
       let pPhone=t.momo_phone||t.payer_phone||bPhone;
       let transId=t.momo_code||t.transaction_id||t.momo_transaction||'';
       let amount=getPlanAmount(t.plan)||t.amount||0;
-      let same = bPhone && pPhone && bPhone.replace(/\\s/g,'')===pPhone.replace(/\\s/g,'')? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME - OK</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ CHECK</span>';
+      let same = bPhone && pPhone && bPhone.replace(/\s/g,'')===pPhone.replace(/\s/g,'')? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME - OK</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ CHECK</span>';
       let time = t.timestamp? new Date(t.timestamp*1000).toLocaleString() : (t.time? new Date(t.time*1000).toLocaleString() : 'N/A');
       return `<tr><td><span class="yellow-box">${biz}</span></td><td><span class="green-box">${bPhone}</span></td><td><span class="green-box">${pPhone}</span></td><td>${same}</td><td><b style="color:#FFCC02">UGX ${Number(amount).toLocaleString()}</b></td><td><b style="color:#00FF00;font-size:14px">${transId}</b></td><td>${t.plan_name||t.plan||''}</td><td>${time}</td><td><a href="tel:*165%23"><button style="background:#FFCC02;color:#000">Check *165#</button></a></td></tr>`;
     }).join('')+'</table>';
   }).catch(()=>{
-    // fallback to users
     let box=document.getElementById('paymentsBox');
     let list=allPayments;
     if(!list.length){box.innerHTML='<p>No payments yet - Users in FREE trial (14 days)</p>';return;}
@@ -170,7 +169,19 @@ function loadPayments(){
 }
 
 function loadData(){
- fetch('/api/admin/data').then(r=>r.json()).then(d=>{
+ document.getElementById('stats').innerHTML='<div class="card">Loading data... Please wait 5 sec</div>';
+ fetch('/api/admin/data').then(async r=>{
+   let text = await r.text();
+   if(!text || text.trim()===''){
+     throw new Error('Empty response - Database waking up, click Retry in 10 seconds');
+   }
+   try{
+     return JSON.parse(text);
+   }catch(err){
+     console.error('RAW SERVER RESPONSE:', text);
+     throw new Error('Server returned invalid JSON - ' + text.substring(0,150));
+   }
+ }).then(d=>{
   ALL=d;
   let prods=d.products||[], users=d.users||[], orders=d.orders||[], jobs=d.jobs||[], contacts=d.contacts||[], bargains=d.bargains||[], sellers=d.sellers||[];
   document.getElementById('cUsers').innerText=users.length;
@@ -189,12 +200,16 @@ function loadData(){
   document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone (Biz)</th><th>Payer Phone</th><th>Biz = Payer?</th><th>💰 Paid Amount</th><th>🔢 Trans ID / MoMo Code</th><th>Plan</th><th>Action</th></tr>'+sellers.map(s=>{
     let bPhone=s.phone||s.business_phone||'';
     let pPhone=s.momo_phone||s.payer_phone||bPhone;
-    let same = bPhone && pPhone && bPhone.replace(/\\s/g,'')===pPhone.replace(/\\s/g,'')? '✅ SAME' : '❌ DIFFERENT';
+    let same = bPhone && pPhone && bPhone.replace(/\s/g,'')===pPhone.replace(/\s/g,'')? '✅ SAME' : '❌ DIFFERENT';
     let amount = getPlanAmount(s.plan)||s.amount||0;
     return `<tr><td><span class="yellow-box">${s.business||s.email||''}</span></td><td><span class="green-box">${bPhone}</span></td><td><span class="green-box">${pPhone}</span></td><td>${same}</td><td><b style="color:#FFCC02">UGX ${Number(amount).toLocaleString()}</b></td><td><b style="color:#00FF00">${s.momo_code||s.transaction_id||''}</b></td><td>${s.plan_name||s.plan}</td><td><button style="background:green" onclick="activateSub('${s.phone}','${s.email||''}')">Activate</button></td></tr>`;
   }).join('')+'</table>':'No sellers - Users still in FREE trial (14 days) so no payments yet';
   loadNotifHistory();
- }).catch(e=>alert('Load error '+e));
+ }).catch(e=>{
+   console.error(e);
+   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red;padding:20px"><h3 style="color:red">⚠️ Load Failed</h3><p>${e.message}</p><p style="font-size:12px;color:#aaa">This happens when Render database is waking up (cold start). Wait 15 sec then retry.</p><button onclick="loadData()" style="background:#FFCC02;color:#000;width:100%;padding:15px;font-size:16px">🔄 Retry Load Data</button></div>`;
+   // NO ALERT POPUP Boss! Just show Retry button!
+ });
 }
 function renderTopSellers(){
  let users=ALL.users||[]; let prods=ALL.products||[];
@@ -224,7 +239,10 @@ function sendAdminMessage(){
  fetch('/api/admin/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to_email:email,to_phone:phone,title,message})}).then(r=>r.json()).then(d=>{document.getElementById('notifStatus').innerHTML=`<span style="color:#00FF00">✅ ${d.message}</span>`;document.getElementById('notifMessage').value='';loadNotifHistory();}).catch(()=>{document.getElementById('notifStatus').innerHTML='<span style="color:red">Failed</span>';});
 }
 function loadNotifHistory(){
- fetch('/api/admin/notifications').then(r=>r.json()).then(d=>{
+ fetch('/api/admin/notifications').then(async r=>{
+   let txt=await r.text();
+   try{return JSON.parse(txt)}catch{return []}
+ }).then(d=>{
    let arr=d||[];
    document.getElementById('notifHistory').innerHTML=arr.length?arr.slice().reverse().slice(0,20).map(n=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${n.title}</b> → ${n.to_email||''} ${n.to_phone||''}<br><span style="font-size:11px;color:#aaa">${new Date(n.time*1000).toLocaleString()}</span><br>${n.message}</div>`).join(''):'No messages sent yet';
  }).catch(()=>{});
@@ -239,7 +257,10 @@ function activateSub(phone,email){
 function loadSellerSales(){
  let phone=document.getElementById('salesPhone').value; let period=document.getElementById('salesPeriod').value;
  if(!phone){alert('Enter seller phone');return;}
- fetch(`/api/seller/sales?phone=${phone}&period=${period}`).then(r=>r.json()).then(d=>{
+ fetch(`/api/seller/sales?phone=${phone}&period=${period}`).then(async r=>{
+   let txt=await r.text();
+   try{return JSON.parse(txt)}catch{return {orders:[], total_sales:0, period, total_orders:0}}
+ }).then(d=>{
   document.getElementById('salesBox').innerHTML=`<h3>Seller ${phone} - Period ${d.period} - Total UGX ${d.total_sales.toLocaleString()} - Orders ${d.total_orders}</h3><table><tr><th>Order ID</th><th>Buyer</th><th>Phone</th><th>Total</th></tr>${d.orders.map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td><span class="green-box">${o.buyer?.phone1||''}</span></td><td>UGX ${o.my_total}</td></tr>`).join('')||'No sales'}</table>`;
  });
 }
