@@ -436,7 +436,7 @@ def boost():
     save_db('products.json', products)
     return jsonify({'success': True, 'message': 'Boosted!'})
 
-# ============ CHANGE 2 + CHANGE 3 COMBINED: SUBSCRIBE WITH ANTI-FAKE ============
+# ============ FIXED SUBSCRIBE - FREE 14 DAYS WORKS FOR ALL USERS ============
 @app.route('/api/subscribe', methods=['POST'])
 def sub():
     data=request.json
@@ -452,11 +452,75 @@ def sub():
 
     plan_info=PLANS.get(plan,PLANS['30'])
 
-    # CHANGE 3 ANTI-FAKE 1: Business = Payer Phone
+    # ✅✅✅ FIX FOR FREE 14 DAYS - WORKS FOR ALL USERS Boss!
+    if plan == 'free14':
+        found=False
+        for u in users:
+            if u['email']==email or u['phone']==phone or u['phone']==business_phone:
+                u['plan']=plan
+                u['plan_name']=plan_info['name']
+                u['paid']=True
+                u['momo_code']=momo_code
+                u['momo_transaction']=momo_code
+                u['business_phone']=business_phone
+                u['momo_phone']=business_phone
+                u['payer_phone']=business_phone
+                u['paid_amount']=0
+                u['subscription_expires']=time.time()+plan_info['days']*86400
+                u['subscription_active']=True
+                u['payment_status']='verified_free'
+                u['owner_verified']=True
+                u['free_used']=True
+                found=True
+
+        if not found:
+            new_user={
+                'id':int(time.time()*1000),
+                'email':email,
+                'phone':business_phone or phone,
+                'password':hash_pwd('free14user'),
+                'business': data.get('business', business_phone) or 'SANNLAS Seller',
+                'role':'seller',
+                'created':time.time(),
+                'plan':plan,
+                'plan_name':plan_info['name'],
+                'paid':True,
+                'paid_amount':0,
+                'subscription_expires':time.time()+plan_info['days']*86400,
+                'subscription_active':True,
+                'payment_status':'verified_free',
+                'owner_verified':True,
+                'verified':False,
+                'free_used':True,
+                'followers':0,
+                'total_likes':0,
+                'total_stars':0,
+                'momo_code':momo_code
+            }
+            users.append(new_user)
+
+        save_db('users.json',users)
+        sellers.append({
+            'id':int(time.time()),
+            'email':email,
+            'phone':phone,
+            'business_phone':business_phone,
+            'momo_phone':business_phone,
+            'plan':plan,
+            'plan_name':plan_info['name'],
+            'plan_price':0,
+            'paid_amount':0,
+            'transaction_id':momo_code,
+            'time':time.time(),
+            'status':'verified_free'
+        })
+        save_db('sellers.json',sellers)
+        return jsonify({'success':True,'message':f'FREE 14 Days Activated Boss! Upload now!','expires': time.time()+plan_info['days']*86400})
+
+    # PAID PLANS - ANTI-FAKE
     if business_phone.replace(" ","")!= momo_phone.replace(" ",""):
         return jsonify({'success':False,'message':f'BLOCKED: Business {business_phone} must SAME as MoMo payer {momo_phone} that sent to 0795712326!'}),400
 
-    # CHANGE 3 ANTI-FAKE 2: One-time Trans ID
     if plan_info.get('requires_payment'):
         if not momo_code:
             return jsonify({'success':False,'message':'Enter Transaction ID from MoMo SMS after sending to 0795712326'}),400
@@ -597,7 +661,6 @@ def admin_generic(filetype):
     if filetype not in allowed: return jsonify([])
     return jsonify(load_db(f'{filetype}.json', []))
 
-# ===== CHANGE 3 NEW ROUTES - ANTI-FAKE =====
 @app.route('/api/admin/transactions')
 def admin_transactions():
     transactions=load_db('transactions.json', [])
