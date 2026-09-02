@@ -27,7 +27,7 @@ def clarity_headers(response):
     response.headers['Accept-CH'] = 'DPR, Viewport-Width, Width'
     return response
 
-OWNER_EMAIL = "natelieabigali@gmail.com"
+OWNER_EMAIL = "natelieabigail@gmail.com"
 OWNER_PHONE = "0795712326"
 OWNER_MOMO = "0795712326"
 
