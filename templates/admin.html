@@ -49,6 +49,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="t active" onclick="tab('overview',this)">📊 Overview</div>
 <div class="t" onclick="tab('users',this)">🔐 Users <span id="cUsers" class="badge">0</span></div>
 <div class="t" onclick="tab('payments',this)">💳 Payments NEW</div>
+<div class="t" onclick="tab('coins',this)" style="background:#FFCC02;color:#000;border:2px solid #000">🪙 Coins <span id="cCoins" class="badge" style="background:#000;color:#FFCC02">0</span></div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div>
 <div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
 <div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
@@ -77,6 +78,24 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="payments" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>💳 All MoMo Payments - Verify on *165# - Business Phone = Payer Phone</h2>
 <p style="font-size:12px;color:#aaa">This shows all Transaction IDs paid to 0795712326. Check each Trans ID on your MTN MoMo to confirm it's real. Business Phone must equal Payer Phone.</p>
 <div id="paymentsBox">Loading payments...</div></div></div>
+
+<!-- ===== NEW COINS TAB - ONLY ADDITION Boss! ===== -->
+<div id="coins" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02">
+<h2>🪙 Coins System - 1B Coins @ 599 UGX = 599B UGX Potential!</h2>
+<div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center">
+<div style="font-size:14px;color:#FFCC02">🔴 LIVE COINS REMAINING</div>
+<div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div>
+<div style="font-size:12px">/ 1,000,000,000 Total</div>
+<div style="width:100%;height:15px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+<div style="background:#222;padding:10px;border-radius:8px"><div>SOLD</div><b style="color:#FFCC02" id="coinsSoldShow">0</b></div>
+<div style="background:#222;padding:10px;border-radius:8px"><div>PRICE</div><b style="color:#00FF00">599 UGX</b></div>
+<div style="background:#222;padding:10px;border-radius:8px"><div>REVENUE</div><b style="color:#FFCC02" id="coinsRevShow">0 UGX</b></div>
+</div>
+</div>
+<h3>💰 Coin Transactions - Verify MoMo *165#</h3>
+<div id="coinsBox">Loading coin transactions...</div>
+</div></div>
 
 <div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages</h2><div id="contactsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
@@ -117,7 +136,7 @@ function initCats(){let m=document.getElementById('mainCat');Object.keys(BUSINES
 function loadSub(){let mv=document.getElementById('mainCat').value;let s=document.getElementById('subCat');s.innerHTML='<option value="">Select Subcategory</option>';if(BUSINESS_CATEGORIES[mv])BUSINESS_CATEGORIES[mv].forEach(x=>{let o=document.createElement('option');o.value=x;o.text=x;s.appendChild(o);});}
 function renderCats(data){let h='';Object.entries(data).forEach(([main,subs])=>{h+=`<div class="cat-item"><b>${main}</b><div class="sub">${subs.join(' • ')}</div></div>`});document.getElementById('catList').innerHTML=h||'No match';}
 function filterCats(){let q=document.getElementById('catSearch').value.toLowerCase();if(!q){renderCats(BUSINESS_CATEGORIES);return;}let f={};Object.entries(BUSINESS_CATEGORIES).forEach(([main,subs])=>{if(main.toLowerCase().includes(q))f[main]=subs;else{let ms=subs.filter(s=>s.toLowerCase().includes(q));if(ms.length)f[main]=ms;}});renderCats(f);}
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='payments') loadPayments();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='payments') loadPayments(); if(id==='coins') loadCoinsTab();}
 function login(){if(document.getElementById('pass').value===MY_PASSWORD){localStorage.setItem('sannlas_admin','ok');showAdmin();}else document.getElementById('msg').innerText='Wrong password!';}
 function showAdmin(){document.getElementById('loginBox').style.display='none';document.getElementById('adminContent').style.display='block';initCats();loadData();}
 function logout(){localStorage.removeItem('sannlas_admin');location.reload();}
@@ -128,14 +147,14 @@ function renderUsers(){
   let filtered=users;
   if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000);
   if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000);
-  document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Phone (Business)</th><th>Business</th><th>Plan</th><th>💰 Paid Amount</th><th>📱 Payer Phone</th><th>🔢 Transaction ID</th><th>Biz = Payer?</th><th>Followers</th><th>👍 Likes</th><th>⭐ Stars</th><th>Status</th><th>Action</th></tr>'+filtered.map(u=>{
+  document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Phone (Business)</th><th>Business</th><th>Plan</th><th>💰 Paid Amount</th><th>📱 Payer Phone</th><th>🔢 Transaction ID</th><th>Biz = Payer?</th><th>Followers</th><th>👍 Likes</th><th>⭐ Stars</th><th>🪙 Coins</th><th>Status</th><th>Action</th></tr>'+filtered.map(u=>{
    let isExpired = u.subscription_expires < Date.now()/1000;
    let statusBadge = (!u.paid || isExpired)?'<span style="background:red;color:white;padding:4px 8px;border-radius:8px">⛔ BLOCKED</span>':'<span style="background:green;color:white;padding:4px 8px;border-radius:8px">✅ CAN UPLOAD</span>';
    let amount = getPlanAmount(u.plan);
    let payerPhone = u.momo_phone || u.phone;
    let transId = u.momo_code || u.momo_transaction || '';
    let match = (u.phone && payerPhone && u.phone.replace(/\s/g,'')===payerPhone.replace(/\s/g,''))? '<span style="background:#00FF00;color:#000;padding:3px 6px;border-radius:5px">✅ SAME</span>' : '<span style="background:red;color:white;padding:3px 6px;border-radius:5px">❌ DIFFERENT</span>';
-   return `<tr><td>${u.email}</td><td><span class="green-box">${u.phone}</span></td><td><span class="yellow-box">${u.business||''}</span></td><td>${u.plan_name||u.plan} ${u.paid?'✅':'⏳'}</td><td><b style="color:#FFCC02">UGX ${amount.toLocaleString()}</b></td><td><span class="green-box">${payerPhone}</span></td><td><b style="color:#00FF00">${transId||'- FREE -'}</b></td><td>${match}</td><td>${u.followers||0}</td><td><b style="color:#FFCC02">👍 ${u.total_likes||0}</b></td><td><b style="color:#00FF00">⭐ ${u.total_stars||0}</b></td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d 6540</option><option value="60">2mo 13090</option><option value="180">6mo 39500</option><option value="365">1yr 80000</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button></td></tr>`
+   return `<tr><td>${u.email}</td><td><span class="green-box">${u.phone}</span></td><td><span class="yellow-box">${u.business||''}</span></td><td>${u.plan_name||u.plan} ${u.paid?'✅':'⏳'}</td><td><b style="color:#FFCC02">UGX ${amount.toLocaleString()}</b></td><td><span class="green-box">${payerPhone}</span></td><td><b style="color:#00FF00">${transId||'- FREE -'}</b></td><td>${match}</td><td>${u.followers||0}</td><td><b style="color:#FFCC02">👍 ${u.total_likes||0}</b></td><td><b style="color:#00FF00">⭐ ${u.total_stars||0}</b></td><td><b style="color:#FFCC02">🪙 ${u.coins||0}</b></td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d 6540</option><option value="60">2mo 13090</option><option value="180">6mo 39500</option><option value="365">1yr 80000</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button></td></tr>`
   }).join('')+'</table>':'No users';
 }
 
@@ -168,6 +187,29 @@ function loadPayments(){
   });
 }
 
+// ===== NEW COINS TAB FUNCTION - Boss! =====
+function loadCoinsTab(){
+  let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0, price:599};
+  let txs = ALL.coin_transactions || [];
+  let rev = ALL.coin_revenue || txs.reduce((s,t)=> t.status!='blocked_fake'? s+(t.price||0) : s, 0);
+  document.getElementById('cCoins').innerText=txs.length;
+  document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString();
+  document.getElementById('coinsSoldShow').innerText=Number(cfg.sold||0).toLocaleString();
+  document.getElementById('coinsRevShow').innerText='UGX '+Number(rev).toLocaleString();
+  document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%';
+  let box=document.getElementById('coinsBox');
+  if(!txs.length){box.innerHTML='<p>No coin sales yet - Promote 599 UGX coins!</p>';return;}
+  box.innerHTML='<table><tr><th>Business</th><th>Email</th><th>Phone</th><th>🪙 Coins</th><th>💰 UGX Paid</th><th>🔢 Trans ID</th><th>Payer Phone</th><th>Time</th><th>Status</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>{
+    let time = t.time? new Date(t.time*1000).toLocaleString() : 'N/A';
+    let statusColor = t.status=='verified_by_owner'?'#00FF00': t.status=='blocked_fake'?'red':'#FFCC02';
+    return `<tr><td><span class="yellow-box">${t.business||''}</span></td><td>${t.email||''}</td><td><span class="green-box">${t.phone||''}</span></td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00">UGX ${Number(t.price||0).toLocaleString()}</b></td><td><b style="color:#00FF00">${t.momo_code||''}</b></td><td>${t.momo_phone||''}</td><td style="font-size:10px">${time}</td><td><span style="background:${statusColor};color:#000;padding:3px 6px;border-radius:5px">${t.status||'pending'}</span></td><td><button style="background:green" onclick="verifyCoin('${t.momo_code}','verify')">✅ Verify</button><button style="background:red" onclick="verifyCoin('${t.momo_code}','block_fake')">❌ Block Fake</button></td></tr>`;
+  }).join('')+'</table>';
+}
+function verifyCoin(code, action){
+  if(!confirm(`${action} ${code}?`)) return;
+  fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(r=>r.json()).then(d=>{alert(d.message||'Done'); loadData();});
+}
+
 function loadData(){
  document.getElementById('stats').innerHTML='<div class="card">Loading data... Please wait 5 sec</div>';
  fetch('/api/admin/data').then(async r=>{
@@ -184,15 +226,18 @@ function loadData(){
  }).then(d=>{
   ALL=d;
   let prods=d.products||[], users=d.users||[], orders=d.orders||[], jobs=d.jobs||[], contacts=d.contacts||[], bargains=d.bargains||[], sellers=d.sellers||[];
+  let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let coinRev=d.coin_revenue||0;
   document.getElementById('cUsers').innerText=users.length;
   document.getElementById('cContacts').innerText=contacts.length;
   document.getElementById('cOrders').innerText=orders.length;
   document.getElementById('cProds').innerText=prods.length;
-  document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat">Revenue<br><b>UGX ${(d.total_revenue||0).toLocaleString()}</b></div><div class="stat">Top Likes<br><b>👍 ${Math.max(...users.map(u=>u.total_likes||0),0)}</b></div>`;
-  document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner natelieabigali@gmail.com | MoMo 0795712326</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">💰 Check Payments tab to see Paid Amount + Transaction ID + Payer Phone - Verify with *165#</p></div>`;
+  document.getElementById('cCoins').innerText=coinTxs.length;
+  document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat">Revenue<br><b>UGX ${(d.total_revenue||0).toLocaleString()}</b></div><div class="stat" style="background:#FFCC02;color:#000;border:2px solid #000">🪙 Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div><div class="stat" style="background:#000;color:#FFCC02;border:2px solid #FFCC02">🪙 Coin Revenue<br><b>UGX ${Number(coinRev).toLocaleString()}</b></div><div class="stat">Top Likes<br><b>👍 ${Math.max(...users.map(u=>u.total_likes||0),0)}</b></div>`;
+  document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner natelieabigali@gmail.com | MoMo 0795712326</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">🪙 Coins: ${coinCfg.sold} sold, ${coinCfg.remaining} left - Revenue UGX ${Number(coinRev).toLocaleString()} - Price 599 UGX</p><p style="color:#FFCC02">💰 Check Payments tab to see Paid Amount + Transaction ID + Payer Phone - Verify with *165#</p></div>`;
   renderUsers();
   renderTopSellers();
   loadPayments();
+  loadCoinsTab();
   document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}<br><a href="mailto:${c.email}"><button>Reply Email</button></a></div>`).join(''):'No messages';
   document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>Order ID</th><th>Buyer</th><th>Phone</th><th>Total</th><th>Action</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td><span class="green-box">${o.buyer?.phone1||''}</span></td><td>UGX ${o.total||0}</td><td><a href="https://wa.me/${o.buyer?.phone1}" target="_blank"><button style="background:green">WhatsApp</button></a> <button onclick="document.getElementById('notifEmail').value='';document.getElementById('notifPhone').value='${o.buyer?.phone1||''}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message Buyer</button></td></tr>`).join('')+'</table>':'No orders';
   document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()} - Stock ${p.stock} ${p.expired?'<b style="color:red">EXPIRED</b>':''}<br><span class="yellow-box">🏪 ${p.business||''}</span> <span class="green-box">📞 ${p.phone||''}</span> <span style="background:#222;padding:4px 8px;border-radius:5px">⭐ ${(p.rating||0).toFixed(1)} (${(p.reviews||[]).length} likes) | Seller total likes: auto-calc</span><br><button style="background:#900" onclick="delProd(${p.id})">Delete</button> <button style="background:#FFCC02;color:#000" onclick="document.getElementById('notifEmail').value='';document.getElementById('notifPhone').value='${p.phone||''}';tab('notif',document.querySelectorAll('.t')[8])">📩 Message Seller</button></div></div>`).join(''):'No products';
@@ -208,7 +253,6 @@ function loadData(){
  }).catch(e=>{
    console.error(e);
    document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red;padding:20px"><h3 style="color:red">⚠️ Load Failed</h3><p>${e.message}</p><p style="font-size:12px;color:#aaa">This happens when Render database is waking up (cold start). Wait 15 sec then retry.</p><button onclick="loadData()" style="background:#FFCC02;color:#000;width:100%;padding:15px;font-size:16px">🔄 Retry Load Data</button></div>`;
-   // NO ALERT POPUP Boss! Just show Retry button!
  });
 }
 function renderTopSellers(){
