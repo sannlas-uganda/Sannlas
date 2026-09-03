@@ -469,7 +469,7 @@ def sell():
         shop_id = None
         shop_slug = None
         exp_time = seller['subscription_expires'] if seller and seller['subscription_expires'] > time.time() else time.time() + plan_info['days'] * 86400
-    prod = {
+        prod = {
         'id': int(time.time() * 1000),
         'name': name,
         'price': price,
