@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>My Wallet - SANNLAS Coins 599 UGX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;padding-bottom:80px}
+.navbar{background:#000;color:white;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.btn{padding:10px 15px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;margin:3px}
+.btn-yellow{background:#FFCC02;color:#000}.btn-green{background:#2e7d32;color:white}.btn-blue{background:#1976d2;color:white}
+.coin-live{background:#000;color:#FFCC02;padding:12px;text-align:center;font-weight:bold;border-bottom:3px solid #FFCC02;position:sticky;top:0;z-index:10}
+.card{background:white;margin:12px;border-radius:15px;padding:15px}
+.pack{border:3px solid #000;border-radius:12px;padding:12px;margin:10px 0;background:linear-gradient(#FFF9C4,#FFCC02);cursor:pointer;position:relative}
+.pack.popular{border-color:red;transform:scale(1.02)}.pack.popular::before{content:"🔥 MOST POPULAR";position:absolute;top:-10px;left:10px;background:red;color:white;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:bold}
+.progress{width:100%;height:12px;background:#333;border-radius:10px;overflow:hidden;margin:5px 0}.fill{height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);transition:width 1s}
+</style>
+</head>
+<body>
+<div class="navbar">
+<b onclick="location.href='/'">🛍️ SANNLAS</b>
+<div><button class="btn" style="background:white;color:black" onclick="location.href='/'">🏠 Home</button><button class="btn" style="background:#FFCC02;color:#000" onclick="location.href='/balance'">💰 Balance</button></div>
+</div>
+
+<div class="coin-live" id="liveBar">🔴 LIVE: <span id="rem">1,000,000,000</span> / 1B Coins Left <div class="progress"><div class="fill" id="fill" style="width:100%"></div></div> 1 coin = 599 UGX | Upload 1 product = 3 coins</div>
+
+<div class="card" style="background:#000;color:#FFCC02;text-align:center;border:3px solid #FFCC02">
+<h2>🪙 MY WALLET</h2>
+<div style="font-size:40px;font-weight:bold;margin:10px 0" id="myBal">0 coins</div>
+<div style="font-size:12px">Can upload <span id="canUpload">0</span> products</div>
+<div style="background:#FFCC02;color:#000;padding:6px;border-radius:10px;margin-top:10px;font-size:11px">Email: <span id="myEmail">-</span> | Phone: <span id="myPhone">-</span></div>
+</div>
+
+<div class="card">
+<h3 style="text-align:center">💳 Buy Coins - MoMo 0795712326</h3>
+<p style="text-align:center;font-size:11px;color:red">⚠️ Coins burn after upload! No refund! 1B only - price will rise!</p>
+
+<div class="pack" onclick="selectPack('10')">
+<h3>10 Coins - Starter</h3><b style="font-size:20px">UGX 5,990</b><br><small>Upload 3 products - 1 coin left</small><br><small>1 coin = 599 UGX</small>
+</div>
+
+<div class="pack popular" onclick="selectPack('30')">
+<h3>30 Coins - POPULAR 🔥</h3><b style="font-size:22px;color:red">UGX 17,970</b><br><small>Upload 10 products - BEST VALUE</small><br><small>10 x 599 = 5,990 saved vs small</small>
+</div>
+
+<div class="pack" onclick="selectPack('60')">
+<h3>60 Coins - Business</h3><b style="font-size:20px">UGX 35,940</b><br><small>Upload 20 products</small>
+</div>
+
+<div class="pack" onclick="selectPack('150')">
+<h3>150 Coins - Boss Pro 👑</h3><b style="font-size:20px">UGX 89,850</b><br><small>Upload 50 products - Power seller</small>
+</div>
+
+<div style="background:#FFF9C4;padding:12px;border-radius:10px;margin-top:15px;border:2px solid green">
+<label style="font-weight:bold">Selected: <span id="selPackShow">30 coins - 17,970 UGX</span></label><br>
+<input id="momoPhone" placeholder="Your MoMo phone that paid" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:2px solid #000;background:#FFCC02;font-weight:bold">
+<input id="transId" placeholder="Transaction ID from SMS" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:2px solid #1976d2">
+<button class="btn btn-green" style="width:100%;padding:14px;font-size:16px" onclick="buyCoins()">✅ I PAID - VERIFY & GET COINS NOW</button>
+<div id="status" style="text-align:center;font-weight:bold;margin-top:10px"></div>
+<div style="background:#000;color:#FFCC02;padding:10px;border-radius:8px;margin-top:10px;font-size:11px;text-align:center">STEP 1: Send money to <b>0795712326</b><br>STEP 2: Copy Transaction ID from SMS<br>STEP 3: Enter above & click Verify</div>
+</div>
+</div>
+
+<div class="card">
+<h3>📜 My Coin History</h3>
+<div id="history">Loading...</div>
+</div>
+
+<script>
+let currentUser=null; let selectedPack='30';
+let packs={"10":{coins:10,price:5990},"30":{coins:30,price:17970},"60":{coins:60,price:35940},"150":{coins:150,price:89850}};
+function loadUser(){let s=localStorage.getItem('sannlas_user');if(!s){alert('Login first');location.href='/';return;} currentUser=JSON.parse(s); document.getElementById('myEmail').innerText=currentUser.email; document.getElementById('myPhone').innerText=currentUser.phone; document.getElementById('momoPhone').value=currentUser.phone; loadBal(); loadLive(); loadHistory();}
+function loadBal(){fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{document.getElementById('myBal').innerText=(d.coins||0)+' coins'; document.getElementById('canUpload').innerText=Math.floor((d.coins||0)/3);});}
+function loadLive(){fetch('/api/coins/config').then(r=>r.json()).then(cfg=>{document.getElementById('rem').innerText=Number(cfg.remaining).toLocaleString(); document.getElementById('fill').style.width=(cfg.remaining/1000000000*100)+'%';});}
+function selectPack(id){selectedPack=id; let p=packs[id]; document.getElementById('selPackShow').innerText=`${p.coins} coins - UGX ${p.price.toLocaleString()} - Upload ${Math.floor(p.coins/3)} products`; document.querySelectorAll('.pack').forEach(el=>el.style.border='3px solid #000'); event.currentTarget.style.border='3px solid red';}
+function buyCoins(){let momo=document.getElementById('momoPhone').value.trim(); let tid=document.getElementById('transId').value.trim(); let st=document.getElementById('status'); if(!momo||!tid){st.innerHTML='<span style="color:red">Enter MoMo & Trans ID Boss!</span>';return;} st.innerHTML='⏳ Verifying...'; fetch('/api/coins/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,pack:selectedPack,momo_code:tid,momo_phone:momo})}).then(r=>r.json()).then(d=>{if(!d.success&&d.message){st.innerHTML='<span style="color:red">❌ '+d.message+'</span>';return;} st.innerHTML='<span style="color:green">✅ '+d.message+' - '+d.coins+' coins added!</span>'; loadBal(); loadLive(); loadHistory(); document.getElementById('transId').value='';}).catch(e=>{st.innerHTML='<span style="color:red">Network error</span>';});}
+function loadHistory(){fetch(`/api/admin/coin_transactions`).then(r=>r.json()).then(list=>{let mine=list.filter(t=>t.email==currentUser.email||t.phone==currentUser.phone); document.getElementById('history').innerHTML=mine.length?mine.reverse().slice(0,10).map(t=>`<div style="border-bottom:1px solid #ddd;padding:6px 0;font-size:11px">🪙 ${t.coins} coins - UGX ${t.price} - ${t.status} - ${new Date(t.time*1000).toLocaleDateString()} - ${t.momo_code}</div>`).join(''):'No history yet';});}
+selectPack('30'); loadUser(); setInterval(loadLive,3000); setInterval(loadBal,3000);
+</script>
+</body>
+</html>
