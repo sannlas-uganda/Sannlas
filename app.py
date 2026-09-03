@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory
-import os, json, uuid, time, hashlib, base64, random, smtplib, threading
+import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
@@ -75,9 +75,7 @@ def ensure_tables():
         conn.commit(); cur.close(); conn.close()
     except Exception as e: print("ensure_tables:", e)
 
-# ===== FIXED load_db - RETRY 3x Boss! =====
 def load_db(file, default):
-    # try 3 times if DB waking up
     for attempt in range(3):
         try:
             if DATABASE_URL:
@@ -193,7 +191,38 @@ def send_email_helper(to_email, subject, html_body):
         else: return True
     except: return False
 
-BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+# ===== SHOP HELPER - ONLY NEW CODE =====
+def make_shop_slug(business):
+    base = re.sub(r'[^a-z0-9]+', '-', (business or 'shop').lower()).strip('-')
+    if not base: base='shop'
+    return base + '-' + uuid.uuid4().hex[:4]
+
+def ensure_shop_for_user(user):
+    shops = load_db('shops.json', [])
+    biz = user.get('business','')
+    existing = next((s for s in shops if s.get('user_id')==user.get('id') or s.get('business_name')==biz), None)
+    if existing: return existing
+    slug = make_shop_slug(biz)
+    while any(s.get('shop_slug')==slug for s in shops):
+        slug = make_shop_slug(biz)
+    shop = {
+        "id": int(time.time()*1000),
+        "user_id": user.get('id'),
+        "business_name": biz,
+        "shop_slug": slug,
+        "phone": user.get('phone',''),
+        "location": "Kampala",
+        "description": "Welcome to " + biz + " shop on SANNLAS UGANDA!",
+        "logo_url": "",
+        "banner_url": "",
+        "verified": False,
+        "total_products": 0,
+        "created_at": time.time()
+    }
+    shops.append(shop)
+    save_db('shops.json', shops)
+    return shop
+    BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
 @app.route('/')
 def home(): return render_template('index.html')
@@ -203,6 +232,16 @@ def admin_page(): return render_template('admin.html')
 def wallet_page(): return render_template('wallet.html')
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
+@app.route('/shop/<slug>')
+def shop_page_slug(slug):
+    try: return render_template('shop.html')
+    except:
+        html = "<script>localStorage.setItem('open_shop_slug','" + slug + "');location.href='/shop?slug=" + slug + "'</script>"
+        return Response(html, mimetype='text/html')
+@app.route('/shop')
+def shop_page():
+    try: return render_template('shop.html')
+    except: return Response("<h3>Please create templates/shop.html</h3>", mimetype='text/html')
 @app.route('/googleac311007501ff6bc.html')
 def google_verify_bc(): return send_from_directory('.', 'googleac311007501ff6bc.html')
 @app.route('/robots.txt')
@@ -314,15 +353,25 @@ def register():
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email already registered - Login'}),400
     user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True,'verified':False,'nin_status':'not_uploaded','followers':0,'total_likes':0,'total_stars':0,'coins':0}
     users.append(user); save_db('users.json',users)
+    try: shop = ensure_shop_for_user(user)
+    except: shop = None
     safe={k:v for k,v in user.items() if k!='password'}
+    if shop: safe['shop']=shop
     return jsonify({'success':True,'message':'Registered! 14 Days FREE active','user':safe})
 @app.route('/api/login', methods=['POST'])
 def login():
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
     users=load_db('users.json',[]); u=next((x for x in users if x['email']==email and x['password']==hash_pwd(pwd)),None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
+    try: ensure_shop_for_user(u)
+    except: pass
     safe={k:v for k,v in u.items() if k!='password'}; safe['subscription_active']=safe['subscription_expires']>time.time()
     if 'coins' not in safe: safe['coins']=0
+    try:
+        shops=load_db('shops.json',[])
+        sh=next((s for s in shops if s.get('user_id')==u.get('id') or s.get('business_name')==u.get('business')), None)
+        if sh: safe['shop']=sh
+    except: pass
     return jsonify({'success':True,'user':safe})
 @app.route('/api/send-otp', methods=['POST'])
 @limiter.limit("10 per minute")
@@ -357,7 +406,8 @@ def get_products():
     main = request.args.get('main')
     sub = request.args.get('sub')
     business = request.args.get('business')
-    if not q and not main and not sub and not business and PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < CACHE_TTL):
+    shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+    if not q and not main and not sub and not business and not shop_slug and PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < CACHE_TTL):
         return jsonify(PRODUCTS_CACHE["data"])
     products=load_db('products.json', []); users=load_db('users.json',[]);
     filtered=products
@@ -365,6 +415,7 @@ def get_products():
     if sub: filtered=[p for p in filtered if p.get('sub_category')==sub]
     if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('description','').lower() or q in p.get('business','').lower()]
     if business: filtered=[p for p in filtered if p.get('business')==business]
+    if shop_slug: filtered=[p for p in filtered if p.get('shop_slug')==shop_slug]
     filtered=sorted(filtered,key=lambda x:(x.get('boosted',0),x.get('created',0)),reverse=True)
     seller_stats={}
     for p in products:
@@ -385,7 +436,7 @@ def get_products():
         pp['stars_count']=len(p.get('reviews',[]))
         pp['stars_avg']=p.get('rating',0)
         public.append(pp)
-    if not q and not main and not sub and not business:
+    if not q and not main and not sub and not business and not shop_slug:
         PRODUCTS_CACHE["data"] = public
         PRODUCTS_CACHE["time"] = now
     return jsonify(public)
@@ -409,9 +460,17 @@ def sell():
     img_url=request.form.get('image_url')
     if img_url and not images: images=[img_url]
     if not images: images=['https://via.placeholder.com/300']
+    try:
+        shop = ensure_shop_for_user(seller)
+        shop_id = shop.get('id')
+        shop_slug = shop.get('shop_slug')
+    except Exception as e:
+        print("shop ensure failed", e)
+        shop_id = None
+        shop_slug = None
     exp_time = seller['subscription_expires'] if seller and seller['subscription_expires']>time.time() else time.time()+plan_info['days']*86400
-    prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time}
-    if DATABASE_URL:
+    prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time,'shop_id': shop_id,'shop_slug': shop_slug}
+        if DATABASE_URL:
         try:
             ensure_tables(); import json as js; conn=get_conn(); cur=conn.cursor()
             try:
@@ -420,11 +479,46 @@ def sell():
             conn.commit(); cur.close(); conn.close()
         except Exception as e: return jsonify({'success':False,'message':f'Upload failed: {str(e)}'}),500
     else: products.append(prod); save_db('products.json', products)
+    try:
+        shops = load_db('shops.json', [])
+        for s in shops:
+            if s.get('shop_slug')==shop_slug:
+                s['total_products']=s.get('total_products',0)+1
+        save_db('shops.json', shops)
+    except: pass
     for u in users:
         if u['phone']==phone or u['email']==user_email:
             u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
     save_db('users.json', users)
     return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - {UPLOAD_COST} coins used! {seller.get("coins",0)-UPLOAD_COST} left'})
+@app.route('/api/shops')
+def list_shops():
+    shops = load_db('shops.json', [])
+    try:
+        products = load_db('products.json', [])
+        counts={}
+        for p in products:
+            slug=p.get('shop_slug')
+            if slug: counts[slug]=counts.get(slug,0)+1
+        for s in shops:
+            s['total_products']=counts.get(s.get('shop_slug'), s.get('total_products',0))
+    except: pass
+    shops_sorted = sorted(shops, key=lambda x: x.get('total_products',0), reverse=True)
+    return jsonify(shops_sorted)
+@app.route('/api/shop/<slug>')
+def get_shop_by_slug(slug):
+    shops = load_db('shops.json', [])
+    shop = next((s for s in shops if s.get('shop_slug')==slug), None)
+    if not shop:
+        return jsonify({'success':False,'message':'Shop not found'}),404
+    products = load_db('products.json', [])
+    shop_products = [p for p in products if p.get('shop_slug')==slug]
+    public_products=[]
+    for p in shop_products:
+        pp=p.copy(); pp.pop('phone',None)
+        public_products.append(pp)
+    public_products = sorted(public_products, key=lambda x: x.get('created',0), reverse=True)
+    return jsonify({'success':True,'shop':shop,'products':public_products})
 @app.route('/api/follow', methods=['POST'])
 def follow_seller():
     data=request.json; business=data.get('business'); follower_phone=data.get('follower_phone'); follower_email=data.get('follower_email','').lower()
@@ -628,8 +722,6 @@ def admin_send_message():
     return jsonify({'success':True,'message':f'Message sent to {to_email or to_phone}'})
 @app.route('/api/notifications')
 def get_notifications(): email=request.args.get('email','').lower().strip(); phone=request.args.get('phone','').strip(); notifs=load_db('notifications.json', []); mine=[n for n in notifs if (email and n.get('to_email')==email) or (phone and n.get('to_phone')==phone)]; return jsonify(mine[::-1])
-
-# ===== FIXED admin_data - NEVER EMPTY Boss! =====
 @app.route('/api/admin/data')
 def admin_data():
     def safe_load(file, default):
@@ -639,7 +731,6 @@ def admin_data():
         except Exception as e:
             print(f"safe_load {file} error: {e}")
             return default
-
     try:
         products=safe_load('products.json',[]) or []
         users=safe_load('users.json',[]) or []
@@ -653,6 +744,7 @@ def admin_data():
         notifications=safe_load('notifications.json',[]) or []
         transactions=safe_load('transactions.json',[]) or []
         coin_transactions=safe_load('coin_transactions.json',[]) or []
+        shops=safe_load('shops.json',[]) or []
         coin_config=get_coin_config()
         now=time.time()
         for p in products:
@@ -667,18 +759,16 @@ def admin_data():
                     if isinstance(t,(int,float)): total_rev+=t
         except: total_rev=0
         coin_rev = sum(t.get('price',0) for t in coin_transactions if isinstance(t,dict) and t.get('status')!='blocked_fake')
-        # Always return 200 with data, never empty
-        return jsonify({'products':products,'users':users,'sellers':sellers,'orders':orders,'jobs':jobs,'contacts':contacts,'applications':applications,'bargains':bargains,'followers':followers,'notifications':notifications,'transactions':transactions,'coin_transactions':coin_transactions,'coin_config':coin_config,'total_revenue':total_rev,'coin_revenue':coin_rev,'total_sellers':len(users),'total_orders':len(orders),'plans':PLANS})
+        return jsonify({'products':products,'users':users,'sellers':sellers,'orders':orders,'jobs':jobs,'contacts':contacts,'applications':applications,'bargains':bargains,'followers':followers,'notifications':notifications,'transactions':transactions,'coin_transactions':coin_transactions,'shops':shops,'coin_config':coin_config,'total_revenue':total_rev,'coin_revenue':coin_rev,'total_sellers':len(users),'total_orders':len(orders),'plans':PLANS})
     except Exception as e:
         print("ADMIN DATA CRITICAL ERROR:", e)
         import traceback; traceback.print_exc()
-        # Return empty but valid JSON, not empty response
-        return jsonify({'products':[],'users':[],'sellers':[],'orders':[],'jobs':[],'contacts':[],'applications':[],'bargains':[],'followers':[],'notifications':[],'transactions':[],'coin_transactions':[],'coin_config':{"total":TOTAL_COINS,"remaining":TOTAL_COINS,"sold":0,"price":COIN_PRICE,"upload_cost":UPLOAD_COST},"total_revenue":0,'coin_revenue':0,'total_sellers':0,'total_orders':0,'plans':PLANS,'error': str(e)}), 200
+        return jsonify({'products':[],'users':[],'sellers':[],'orders':[],'jobs':[],'contacts':[],'applications':[],'bargains':[],'followers':[],'notifications':[],'transactions':[],'coin_transactions':[],'shops':[],'coin_config':{"total":TOTAL_COINS,"remaining":TOTAL_COINS,"sold":0,"price":COIN_PRICE,"upload_cost":UPLOAD_COST},"total_revenue":0,'coin_revenue':0,'total_sellers':0,'total_orders':0,'plans':PLANS,'error': str(e)}), 200
 
 @app.route('/api/admin/<string:filetype>')
 def admin_generic(filetype):
     try:
-        allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications','transactions','coin_transactions','coin_config']
+        allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications','transactions','coin_transactions','coin_config','shops']
         if filetype not in allowed: return jsonify([])
         if filetype=='coin_config':
             return jsonify(get_coin_config())
