@@ -130,7 +130,6 @@ function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>
 function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=20;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
 
-// --- CART + DESCRIPTION ADDED HERE ONLY ---
 function render(){
   if(products.length==0){
     document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';
@@ -192,25 +191,48 @@ function addCart(id){
   document.getElementById('cartN').innerText=totalQty;
   alert(`✅ ${p.name} added to cart! Cart: ${totalQty} items`);
 }
+
 function openCart(){
   if(cart.length==0){alert('Cart empty Boss!');return;}
   let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
+  let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);
   document.getElementById('cartContent').innerHTML=`
-    <h3>🛒 My Cart - ${cart.length} items</h3>
+    <h3>🛒 My Cart - ${totalQty} items</h3>
     ${cart.map(i=>`
-      <div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:8px 0;align-items:center">
+      <div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center">
         <img src="${i.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px">
-        <div style="flex:1"><b>${i.name}</b><br><small>${(i.description||'').substring(0,40)}</small><br>UGX ${Number(i.price).toLocaleString()} x ${i.qty||1}</div>
-        <button onclick="removeCart(${i.id})" style="background:red;color:white;border:none;padding:5px 8px;border-radius:5px">X</button>
+        <div style="flex:1">
+          <b style="font-size:13px">${i.name}</b><br>
+          <small style="font-size:10px">${(i.description||'').substring(0,30)}</small><br>
+          <b>UGX ${Number(i.price).toLocaleString()}</b> x ${i.qty||1} = <b style="color:green">UGX ${(Number(i.price)*(i.qty||1)).toLocaleString()}</b>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:4px">
+            <button onclick="changeQty(${i.id}, -1)" style="background:#000;color:#FFCC02;border:none;width:32px;height:32px;border-radius:50%;font-weight:bold;font-size:18px;cursor:pointer">−</button>
+            <span style="background:#FFCC02;color:#000;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:30px;text-align:center;font-size:14px">${i.qty||1}</span>
+            <button onclick="changeQty(${i.id}, 1)" style="background:#2e7d32;color:white;border:none;width:32px;height:32px;border-radius:50%;font-weight:bold;font-size:18px;cursor:pointer">+</button>
+          </div>
+          <button onclick="removeCart(${i.id})" style="background:red;color:white;border:none;padding:4px 12px;border-radius:5px;font-size:10px;margin-top:4px;width:100%">🗑️ Remove</button>
+        </div>
       </div>
     `).join('')}
-    <div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;font-weight:bold;text-align:center">TOTAL: UGX ${total.toLocaleString()}</div>
-    <button class="btn btn-green" style="width:100%;padding:14px" onclick="alert('Order placed Boss!');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop')">✅ Checkout</button>
+    <div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;font-weight:bold;text-align:center;font-size:16px">TOTAL (${totalQty} items): UGX ${total.toLocaleString()}</div>
+    <button class="btn btn-green" style="width:100%;padding:14px" onclick="alert('Order placed Boss! Total: UGX ${total.toLocaleString()}');cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop')">✅ Checkout</button>
     <button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>
   `;
   document.getElementById('cartPop').style.display='flex';
 }
-function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);openCart();}
+
+function changeQty(id, delta){
+  let item = cart.find(x=>x.id==id);
+  if(!item) return;
+  item.qty = (item.qty||1) + delta;
+  if(item.qty < 1) item.qty = 1;
+  document.getElementById('cartN').innerText = cart.reduce((s,i)=>s+(i.qty||1),0);
+  openCart();
+}
+
+function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
 
 function openPopup(id){document.getElementById(id).style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
