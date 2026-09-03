@@ -31,12 +31,24 @@ OWNER_EMAIL = "natelieabigail@gmail.com"
 OWNER_PHONE = "0795712326"
 OWNER_MOMO = "0795712326"
 
+# ===== COINS SYSTEM - NEW - 599 UGX Boss! =====
+COIN_PRICE = 599
+UPLOAD_COST = 3
+TOTAL_COINS = 1000000000
+
 PLANS = {
     "free14": {"days": 14, "price": 0, "name": "14 Days FREE", "requires_payment": False},
     "30": {"days": 30, "price": 6540, "name": "30 Days", "requires_payment": True},
     "60": {"days": 60, "price": 13090, "name": "2 Months", "requires_payment": True},
     "180": {"days": 180, "price": 39500, "name": "6 Months", "requires_payment": True},
     "365": {"days": 365, "price": 80000, "name": "1 Year", "requires_payment": True}
+}
+
+COIN_PACKS = {
+    "10": {"coins": 10, "price": 5990, "name": "Starter"},
+    "30": {"coins": 30, "price": 17970, "name": "Popular"},
+    "60": {"coins": 60, "price": 35940, "name": "Business"},
+    "150": {"coins": 150, "price": 89850, "name": "Boss Pro"}
 }
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -140,6 +152,17 @@ def save_db(file, data):
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
+# ===== COIN HELPERS - NEW =====
+def get_coin_config():
+    cfg = load_db('coin_config.json', None)
+    if not cfg:
+        cfg = {"total": TOTAL_COINS, "remaining": TOTAL_COINS, "sold": 0, "price": COIN_PRICE, "upload_cost": UPLOAD_COST}
+        save_db('coin_config.json', cfg)
+    return cfg
+
+def save_coin_config(cfg):
+    save_db('coin_config.json', cfg)
+
 def send_email_helper(to_email, subject, html_body):
     try:
         smtp_email = os.environ.get('SMTP_EMAIL', OWNER_EMAIL); smtp_pass = os.environ.get('SMTP_PASSWORD', '')
@@ -156,6 +179,12 @@ def home(): return render_template('index.html')
 
 @app.route('/admin')
 def admin_page(): return render_template('admin.html')
+
+@app.route('/wallet')
+def wallet_page(): return render_template('wallet.html')
+
+@app.route('/balance')
+def balance_page(): return render_template('balance.html')
 
 @app.route('/googleac311007501ff6bc.html')
 def google_verify_bc(): return send_from_directory('.', 'googleac311007501ff6bc.html')
@@ -178,6 +207,92 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 
 @app.route('/api/plans')
 def get_plans(): return jsonify(PLANS)
+
+# ===== NEW COIN APIS =====
+@app.route('/api/coins/config')
+def coins_config():
+    cfg = get_coin_config()
+    return jsonify(cfg)
+
+@app.route('/api/coins/packs')
+def coins_packs():
+    return jsonify(COIN_PACKS)
+
+@app.route('/api/coins/balance')
+def coins_balance():
+    email=request.args.get('email','').lower().strip()
+    phone=request.args.get('phone','').strip()
+    users=load_db('users.json',[])
+    u=next((x for x in users if x['email']==email or x['phone']==phone), None)
+    if not u:
+        return jsonify({'success':False,'coins':0})
+    return jsonify({'success':True,'coins': u.get('coins',0), 'email': u.get('email'), 'phone': u.get('phone')})
+
+@app.route('/api/coins/buy', methods=['POST'])
+def coins_buy():
+    data=request.json
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','').strip()
+    pack_id=data.get('pack','10')
+    momo_code=data.get('momo_code','').strip().upper()
+    momo_phone=data.get('momo_phone','').strip()
+
+    pack = COIN_PACKS.get(pack_id)
+    if not pack:
+        return jsonify({'success':False,'message':'Invalid pack'}),400
+
+    # check duplicate trans
+    txs = load_db('coin_transactions.json', [])
+    if any(t.get('momo_code','').upper()==momo_code for t in txs):
+        return jsonify({'success':False,'message':f'Trans ID {momo_code} already used!'}),400
+
+    cfg = get_coin_config()
+    if cfg['remaining'] < pack['coins']:
+        return jsonify({'success':False,'message':'Coins finished!'}),400
+
+    # save transaction pending
+    new_tx = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'pack': pack_id, 'coins': pack['coins'], 'price': pack['price'], 'momo_code': momo_code, 'momo_phone': momo_phone, 'time': time.time(), 'status': 'pending_owner_verify', 'to_momo': OWNER_MOMO}
+    txs.append(new_tx)
+    save_db('coin_transactions.json', txs)
+
+    # For now auto credit but pending verification - you will verify in admin
+    users=load_db('users.json',[])
+    for u in users:
+        if u['email']==email or u['phone']==phone:
+            u['coins'] = u.get('coins',0) + pack['coins']
+    save_db('users.json',users)
+
+    # deduct from global
+    cfg['remaining'] -= pack['coins']
+    cfg['sold'] += pack['coins']
+    save_coin_config(cfg)
+
+    return jsonify({'success':True,'message':f'Bought {pack["coins"]} coins! Now you can upload {pack["coins"]//3} products','coins': pack['coins'], 'config': cfg})
+
+@app.route('/api/coins/verify', methods=['POST'])
+def coins_verify():
+    data=request.json
+    trans_id=data.get('momo_code','').strip().upper()
+    action=data.get('action','verify')
+    txs=load_db('coin_transactions.json',[])
+    users=load_db('users.json',[])
+    cfg=get_coin_config()
+    for t in txs:
+        if t.get('momo_code','').upper()==trans_id:
+            if action=='block_fake':
+                t['status']='blocked_fake'
+                # take back coins
+                for u in users:
+                    if u['email']==t.get('email') or u['phone']==t.get('phone'):
+                        u['coins'] = max(0, u.get('coins',0) - t.get('coins',0))
+                cfg['remaining'] += t.get('coins',0)
+                cfg['sold'] -= t.get('coins',0)
+            else:
+                t['status']='verified_by_owner'
+    save_db('coin_transactions.json', txs)
+    save_db('users.json', users)
+    save_coin_config(cfg)
+    return jsonify({'success':True})
 
 @app.route('/manifest.json')
 def manifest_json():
@@ -216,7 +331,7 @@ def register():
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Email, phone, password required'}),400
     users=load_db('users.json',[])
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email already registered - Login'}),400
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True,'verified':False,'nin_status':'not_uploaded','followers':0,'total_likes':0,'total_stars':0}
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True,'verified':False,'nin_status':'not_uploaded','followers':0,'total_likes':0,'total_stars':0,'coins':0}
     users.append(user); save_db('users.json',users)
     safe={k:v for k,v in user.items() if k!='password'}
     return jsonify({'success':True,'message':'Registered! 14 Days FREE active','user':safe})
@@ -227,6 +342,7 @@ def login():
     users=load_db('users.json',[]); u=next((x for x in users if x['email']==email and x['password']==hash_pwd(pwd)),None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
     safe={k:v for k,v in u.items() if k!='password'}; safe['subscription_active']=safe['subscription_expires']>time.time()
+    if 'coins' not in safe: safe['coins']=0
     return jsonify({'success':True,'user':safe})
 
 @app.route('/api/send-otp', methods=['POST'])
@@ -294,6 +410,9 @@ def sell():
     users=load_db('users.json',[]); products=load_db('products.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None); plan_info=PLANS.get(plan,PLANS['free14'])
     if not seller:
         return jsonify({'success':False,'message':'Register first as seller'}),402
+    # ===== NEW COIN CHECK - ONLY ADDITION Boss! =====
+    if seller.get('coins',0) < UPLOAD_COST:
+        return jsonify({'success':False,'message':f'You need {UPLOAD_COST} coins to upload! Buy coins in My Wallet. You have {seller.get("coins",0)} coins.','needs_coins':True,'coins_needed':UPLOAD_COST,'my_coins':seller.get('coins',0)}),402
     if seller.get('subscription_expires',0) < time.time():
         return jsonify({'success':False,'message':f'Subscription expired! Renew: Pay to {OWNER_MOMO} and enter Transaction ID','needs_subscription':True,'plans':PLANS}),402
     if not seller.get('paid', False) and plan_info.get('requires_payment'):
@@ -317,7 +436,12 @@ def sell():
             conn.commit(); cur.close(); conn.close()
         except Exception as e: return jsonify({'success':False,'message':f'Upload failed: {str(e)}'}),500
     else: products.append(prod); save_db('products.json', products)
-    return jsonify({'success':True,'message':f'Added with {plan_info["name"]}'})
+    # ===== DEDUCT COINS AFTER SUCCESSFUL UPLOAD =====
+    for u in users:
+        if u['phone']==phone or u['email']==user_email:
+            u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
+    save_db('users.json', users)
+    return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - {UPLOAD_COST} coins used! {seller.get("coins",0)-UPLOAD_COST} left'})
 
 @app.route('/api/follow', methods=['POST'])
 def follow_seller():
@@ -461,7 +585,7 @@ def sub():
                 u['subscription_active']=True; u['payment_status']='verified_free'; u['owner_verified']=True; u['free_used']=True
                 found=True
         if not found:
-            new_user={'id':int(time.time()*1000),'email':email,'phone':business_phone or phone,'password':hash_pwd('free14user'),'business': data.get('business', business_phone) or 'SANNLAS Seller','role':'seller','created':time.time(),'plan':plan,'plan_name':plan_info['name'],'paid':True,'paid_amount':0,'subscription_expires':time.time()+plan_info['days']*86400,'subscription_active':True,'payment_status':'verified_free','owner_verified':True,'verified':False,'free_used':True,'followers':0,'total_likes':0,'total_stars':0,'momo_code':momo_code}
+            new_user={'id':int(time.time()*1000),'email':email,'phone':business_phone or phone,'password':hash_pwd('free14user'),'business': data.get('business', business_phone) or 'SANNLAS Seller','role':'seller','created':time.time(),'plan':plan,'plan_name':plan_info['name'],'paid':True,'paid_amount':0,'subscription_expires':time.time()+plan_info['days']*86400,'subscription_active':True,'payment_status':'verified_free','owner_verified':True,'verified':False,'free_used':True,'followers':0,'total_likes':0,'total_stars':0,'momo_code':momo_code,'coins':0}
             users.append(new_user)
         save_db('users.json',users)
         sellers.append({'id':int(time.time()),'email':email,'phone':phone,'business_phone':business_phone,'momo_phone':business_phone,'plan':plan,'plan_name':plan_info['name'],'plan_price':0,'paid_amount':0,'transaction_id':momo_code,'time':time.time(),'status':'verified_free'})
@@ -497,7 +621,7 @@ def check_sub():
     if not u:
         return jsonify({'success':False,'can_upload':False,'message':'Not registered'})
     active = u.get('subscription_expires',0) > time.time() and u.get('paid',False)
-    return jsonify({'success':True,'can_upload': active,'subscription_active': active,'expires': u.get('subscription_expires',0),'plan_name': u.get('plan_name',''),'needs_subscription': not active,'plans': PLANS,'pay_to': OWNER_MOMO})
+    return jsonify({'success':True,'can_upload': active,'subscription_active': active,'expires': u.get('subscription_expires',0),'plan_name': u.get('plan_name',''),'needs_subscription': not active,'plans': PLANS,'pay_to': OWNER_MOMO,'coins': u.get('coins',0),'coins_needed': UPLOAD_COST})
 
 @app.route('/api/admin/activate-subscription', methods=['POST'])
 def activate_sub():
@@ -544,7 +668,6 @@ def admin_send_message():
 @app.route('/api/notifications')
 def get_notifications(): email=request.args.get('email','').lower().strip(); phone=request.args.get('phone','').strip(); notifs=load_db('notifications.json', []); mine=[n for n in notifs if (email and n.get('to_email')==email) or (phone and n.get('to_phone')==phone)]; return jsonify(mine[::-1])
 
-# ===== FIXED ADMIN DATA - NEVER CRASHES Boss! =====
 @app.route('/api/admin/data')
 def admin_data():
     try:
@@ -559,6 +682,8 @@ def admin_data():
         followers=load_db('followers.json',[]) or []
         notifications=load_db('notifications.json',[]) or []
         transactions=load_db('transactions.json',[]) or []
+        coin_transactions=load_db('coin_transactions.json',[]) or []
+        coin_config=get_coin_config()
         now=time.time()
         for p in products:
             try:
@@ -571,16 +696,19 @@ def admin_data():
                     t=o.get('total',0)
                     if isinstance(t,(int,float)): total_rev+=t
         except: total_rev=0
-        return jsonify({'products':products,'users':users,'sellers':sellers,'orders':orders,'jobs':jobs,'contacts':contacts,'applications':applications,'bargains':bargains,'followers':followers,'notifications':notifications,'transactions':transactions,'total_revenue':total_rev,'total_sellers':len(users),'total_orders':len(orders),'plans':PLANS})
+        coin_rev = sum(t.get('price',0) for t in coin_transactions if t.get('status')!='blocked_fake')
+        return jsonify({'products':products,'users':users,'sellers':sellers,'orders':orders,'jobs':jobs,'contacts':contacts,'applications':applications,'bargains':bargains,'followers':followers,'notifications':notifications,'transactions':transactions,'coin_transactions':coin_transactions,'coin_config':coin_config,'total_revenue':total_rev,'coin_revenue':coin_rev,'total_sellers':len(users),'total_orders':len(orders),'plans':PLANS})
     except Exception as e:
         print("ADMIN DATA ERROR:", e)
-        return jsonify({'products':[],'users':[],'sellers':[],'orders':[],'jobs':[],'contacts':[],'applications':[],'bargains':[],'followers':[],'notifications':[],'transactions':[],'total_revenue':0,'total_sellers':0,'total_orders':0,'plans':PLANS,'error': str(e)})
+        return jsonify({'products':[],'users':[],'sellers':[],'orders':[],'jobs':[],'contacts':[],'applications':[],'bargains':[],'followers':[],'notifications':[],'transactions':[],'coin_transactions':[],'coin_config':{"total":TOTAL_COINS,"remaining":TOTAL_COINS,"sold":0},"total_revenue":0,'coin_revenue':0,'total_sellers':0,'total_orders':0,'plans':PLANS,'error': str(e)})
 
 @app.route('/api/admin/<string:filetype>')
 def admin_generic(filetype):
     try:
-        allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications','transactions']
+        allowed=['contacts','applications','orders','bargains','sellers','jobs','products','users','followers','notifications','transactions','coin_transactions','coin_config']
         if filetype not in allowed: return jsonify([])
+        if filetype=='coin_config':
+            return jsonify(get_coin_config())
         data = load_db(f'{filetype}.json', [])
         if data is None: return jsonify([])
         return jsonify(data)
