@@ -57,8 +57,8 @@
 <div style="margin-top:8px"><input id="frontMain" placeholder="Type Category - e.g. Shoes, Phones..." style="width:100%;padding:12px;border-radius:8px;border:1px solid #ccc"></div>
 <input id="frontPhoneReal" placeholder="Your Phone - Business Number - 256..." style="background:#FFCC02;border:2px solid #000;width:100%;padding:10px;margin:5px 0;border-radius:8px;font-weight:bold">
 <div style="background:#000;border:3px solid #FFCC02;border-radius:12px;padding:12px;margin:10px 0;text-align:center"><div style="color:#FFCC02;font-weight:bold;font-size:15px">🪙 UPLOAD COSTS 3 COINS PER PRODUCT</div><div style="color:white;font-size:12px;margin-top:5px">You have: <b><span id="myCoinsPlan">0</span> coins</b> | 1 coin = 599 UGX | <a href="#" onclick="goToWallet();return false" style="color:#FFCC02;font-weight:bold">BUY NOW 🔥</a></div></div>
-<div style="border:3px dashed #8B0000;padding:8px;border-radius:10px;margin:8px 0"><input type="file" id="frontInput" multiple accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#000;color:#0f0;padding:5px;border-radius:6px;text-align:center;margin-top:5px">Selected: <b><span id="frontCount">0</span></b></div></div>
-<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">👆 Select photos</p></div>
+<div style="border:3px dashed #8B0000;padding:8px;border-radius:10px;margin:8px 0"><input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#000;color:#0f0;padding:5px;border-radius:6px;text-align:center;margin-top:5px">Selected: <b><span id="frontCount">0</span></b></div></div>
+<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">👆 Select 1 photo</p></div>
 <div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready - 3 coins per product</div>
 <button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE (Costs 3 coins)</button>
 </div>
@@ -70,33 +70,17 @@
 <div class="fixed-bottom"><span onclick="goToWallet()" style="color:#FFCC02">🪙 Wallet</span><span onclick="location.href='/balance'" style="color:#FFCC02">💰 Balance</span></div>
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
+let _oldUrls=[];
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
 async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;}catch(e){}}
-setInterval(loadCoinLive,5000);setInterval(loadMyCoins,3000);
-async function frontUploadAllProceed(){
-  let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';
-  for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}
-  let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];
-  for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}
-  for(let i=0;i<comp.length;i++){
-    let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');
-    let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();
-    if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.my_coins!==undefined||d.needs_coins){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||frontFiles.length*3;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}
-    status.innerHTML=`Uploading ${i+1}/${comp.length}`;}
-  status.innerHTML=`✅ DONE!`;loadMyCoins();doFilter();
-}
-function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
-function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
-function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
-function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
-  // ===== ONLY NEW CHANGES - AUTH FOR WALLET AND CHECKOUT =====
+// SLOWNESS FIX: Only load live coins every 30 sec, and loadMyCoins ONLY when logged in and manually called
+setInterval(loadCoinLive,30000);
 function requireAuthForCoins(){
   if(!currentUser){
     let u = localStorage.getItem('sannlas_user');
     if(u){ try{ currentUser = JSON.parse(u); }catch(e){} }
   }
   if(!currentUser){
-    alert('🔐 Boss, Please Sign In to Buy Coins! FREE account!');
     showGate();
     switchGate('register');
     return false;
@@ -109,7 +93,6 @@ function requireAuthForCheckout(){
     if(u){ try{ currentUser = JSON.parse(u); }catch(e){} }
   }
   if(!currentUser){
-    alert('🛒 Boss, Please Sign In to Checkout! FREE!');
     showGate();
     switchGate('register');
     return false;
@@ -117,27 +100,48 @@ function requireAuthForCheckout(){
   return true;
 }
 function goToWallet(){
-  if(requireAuthForCoins()){
-    location.href='/wallet';
+  // INSTANT CHECK - no server call
+  let u = localStorage.getItem('sannlas_user');
+  if(!u &&!currentUser){
+    showGate();
+    switchGate('register');
+    return;
   }
+  if(!currentUser){ try{ currentUser = JSON.parse(u); }catch(e){} }
+  location.href='/wallet';
 }
 function doCheckout(){
   if(!requireAuthForCheckout()) return;
   let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
-  if(confirm(`✅ Boss Confirm Order?\nTotal: UGX ${total.toLocaleString()}\nWe will call you on ${currentUser.phone || 'your phone'}`)){
-    alert('🎉 Order Placed Boss! We will call you soon! Thank you!');
+  if(confirm(`✅ Boss Confirm Order?\nTotal: UGX ${total.toLocaleString()}`)){
     cart=[];
     document.getElementById('cartN').innerText=0;
     closePop('cartPop');
+    alert('🎉 Order Placed Boss! We will call you soon!');
   }
 }
-
+async function frontUploadAllProceed(){
+  let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';
+  for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}
+  let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];
+  for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}
+  for(let i=0;i<comp.length;i++){
+    let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');
+    let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();
+    if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.my_coins!==undefined||d.needs_coins){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||frontFiles.length*3;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}
+    status.innerHTML=`Uploading ${i+1}/${comp.length}`;}
+  status.innerHTML=`✅ DONE!`;loadMyCoins();doFilter();
+}
+  function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
+function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
+function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
+function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
 function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){currentUser=JSON.parse(u);updateLoginUI();loadMyCoins();}hideGate();loadCoinLive();doFilter();}
 function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;switchGate('otp');}else{alert(d.message);switchGate('register');}});}
 function gateVerifyOTP(){switchGate('nin');}
-function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();}else{alert(d.message);}});}
+function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();}
-function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),350);}
+function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
 function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=20;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
 function render(){
@@ -145,7 +149,7 @@ function render(){
   let toShow=products.slice(0,visibleCount);
   document.getElementById('products').innerHTML=toShow.map(p=>{
     let desc = p.description || p.desc || '';if(desc.length>65) desc = desc.substring(0,65)+'...';
-    return `<div class="card"><img src="${p.image}" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div style="font-size:10px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px;border:1px solid #eee">${desc || 'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;
+    return `<div class="card"><img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div style="font-size:10px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px;border:1px solid #eee">${desc || 'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;
   }).join('');
 }
 function viewProd(id){
@@ -207,11 +211,18 @@ function removeCart(id){
 function openPopup(id){document.getElementById(id).style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
 function frontPreview(input){
-  frontFiles=Array.from(input.files);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;
+  if(_oldUrls.length){ _oldUrls.forEach(u=>{ try{ URL.revokeObjectURL(u); }catch(e){} }); _oldUrls=[]; }
+  frontFiles=Array.from(input.files).slice(0,1);
+  document.getElementById('frontCount').innerText=frontFiles.length;
+  document.getElementById('frontCount2').innerText=frontFiles.length;
   let box=document.getElementById('frontPreview');box.innerHTML='';
-  for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="PRICE UGX"><textarea id="fdesc_${i}" placeholder="Description..." rows="2"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}
+  for(let i=0;i<frontFiles.length;i++){
+    let url=URL.createObjectURL(frontFiles[i]);
+    _oldUrls.push(url);
+    box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="PRICE UGX"><textarea id="fdesc_${i}" placeholder="Description..." rows="2"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;
+  }
 }
-function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=800;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.6);};img.src=URL.createObjectURL(file);});}
+function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
 function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||0}`;}}
 function doLogout(){localStorage.clear();location.reload();}
