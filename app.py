@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory
-import os, json, uuid, time, hashlib, base64, random, smtplib
+import os, json, uuid, time, hashlib, base64, random, smtplib, threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
@@ -19,6 +19,10 @@ CORS(app, origins=["https://sannlas.onrender.com"])
 
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
+
+# ===== FAST CACHE - NEW Boss! =====
+PRODUCTS_CACHE = {"data": None, "time": 0, "users_data": None}
+CACHE_TTL = 10 # 10 seconds cache = 10x faster
 
 @app.after_request
 def clarity_headers(response):
@@ -129,6 +133,11 @@ def load_db(file, default):
     return default
 
 def save_db(file, data):
+    global PRODUCTS_CACHE
+    # Clear cache when data changes
+    if file == 'products.json' or file == 'users.json':
+        PRODUCTS_CACHE["data"] = None
+        PRODUCTS_CACHE["time"] = 0
     if DATABASE_URL:
         try:
             ensure_tables(); conn = get_conn(); cur = conn.cursor()
@@ -241,7 +250,6 @@ def coins_buy():
     if not pack:
         return jsonify({'success':False,'message':'Invalid pack'}),400
 
-    # check duplicate trans
     txs = load_db('coin_transactions.json', [])
     if any(t.get('momo_code','').upper()==momo_code for t in txs):
         return jsonify({'success':False,'message':f'Trans ID {momo_code} already used!'}),400
@@ -250,19 +258,16 @@ def coins_buy():
     if cfg['remaining'] < pack['coins']:
         return jsonify({'success':False,'message':'Coins finished!'}),400
 
-    # save transaction pending
     new_tx = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'pack': pack_id, 'coins': pack['coins'], 'price': pack['price'], 'momo_code': momo_code, 'momo_phone': momo_phone, 'time': time.time(), 'status': 'pending_owner_verify', 'to_momo': OWNER_MOMO}
     txs.append(new_tx)
     save_db('coin_transactions.json', txs)
 
-    # For now auto credit but pending verification - you will verify in admin
     users=load_db('users.json',[])
     for u in users:
         if u['email']==email or u['phone']==phone:
             u['coins'] = u.get('coins',0) + pack['coins']
     save_db('users.json',users)
 
-    # deduct from global
     cfg['remaining'] -= pack['coins']
     cfg['sold'] += pack['coins']
     save_coin_config(cfg)
@@ -281,7 +286,6 @@ def coins_verify():
         if t.get('momo_code','').upper()==trans_id:
             if action=='block_fake':
                 t['status']='blocked_fake'
-                # take back coins
                 for u in users:
                     if u['email']==t.get('email') or u['phone']==t.get('phone'):
                         u['coins'] = max(0, u.get('coins',0) - t.get('coins',0))
@@ -376,7 +380,18 @@ def user_nin_info():
 
 @app.route('/api/products')
 def get_products():
-    products=load_db('products.json', []); users=load_db('users.json',[]); main=request.args.get('main'); sub=request.args.get('sub'); q=request.args.get('q','').lower(); business=request.args.get('business')
+    global PRODUCTS_CACHE
+    now = time.time()
+    q = request.args.get('q','').lower()
+    main = request.args.get('main')
+    sub = request.args.get('sub')
+    business = request.args.get('business')
+
+    # Use cache if no filter and cache fresh
+    if not q and not main and not sub and not business and PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < CACHE_TTL):
+        return jsonify(PRODUCTS_CACHE["data"])
+
+    products=load_db('products.json', []); users=load_db('users.json',[]);
     filtered=products
     if main: filtered=[p for p in filtered if p.get('main_category')==main]
     if sub: filtered=[p for p in filtered if p.get('sub_category')==sub]
@@ -402,6 +417,12 @@ def get_products():
         pp['stars_count']=len(p.get('reviews',[]))
         pp['stars_avg']=p.get('rating',0)
         public.append(pp)
+
+    # Save to cache if no filter
+    if not q and not main and not sub and not business:
+        PRODUCTS_CACHE["data"] = public
+        PRODUCTS_CACHE["time"] = now
+
     return jsonify(public)
 
 @app.route('/api/sell', methods=['POST'])
@@ -410,7 +431,6 @@ def sell():
     users=load_db('users.json',[]); products=load_db('products.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None); plan_info=PLANS.get(plan,PLANS['free14'])
     if not seller:
         return jsonify({'success':False,'message':'Register first as seller'}),402
-    # ===== NEW COIN CHECK - ONLY ADDITION Boss! =====
     if seller.get('coins',0) < UPLOAD_COST:
         return jsonify({'success':False,'message':f'You need {UPLOAD_COST} coins to upload! Buy coins in My Wallet. You have {seller.get("coins",0)} coins.','needs_coins':True,'coins_needed':UPLOAD_COST,'my_coins':seller.get('coins',0)}),402
     if seller.get('subscription_expires',0) < time.time():
@@ -436,7 +456,6 @@ def sell():
             conn.commit(); cur.close(); conn.close()
         except Exception as e: return jsonify({'success':False,'message':f'Upload failed: {str(e)}'}),500
     else: products.append(prod); save_db('products.json', products)
-    # ===== DEDUCT COINS AFTER SUCCESSFUL UPLOAD =====
     for u in users:
         if u['phone']==phone or u['email']==user_email:
             u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
@@ -517,6 +536,8 @@ def delete_prod(pid):
             conn.commit(); cur.close(); conn.close()
         except Exception as e: print(e)
     else: products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
+    global PRODUCTS_CACHE
+    PRODUCTS_CACHE["data"] = None
     return jsonify({'success':True})
 
 @app.route('/api/rate', methods=['POST'])
@@ -761,6 +782,20 @@ def icon_file():
 @app.route('/googleac311007501ff6b1a.html')
 def google_verify_b1a():
     return send_from_directory('.', 'googleac311007501ff6b1a.html')
+
+# ===== KEEP-ALIVE THREAD - NO SLEEP Boss! =====
+def keep_alive_worker():
+    import urllib.request
+    while True:
+        time.sleep(300) # every 5 mins
+        try:
+            url = os.environ.get('RENDER_EXTERNAL_URL', 'https://sannlas.onrender.com')
+            urllib.request.urlopen(f"{url}/api/coins/config", timeout=5).read()
+            print("Keep-alive ping OK")
+        except Exception as e:
+            print("Keep-alive failed:", e)
+
+threading.Thread(target=keep_alive_worker, daemon=True).start()
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
