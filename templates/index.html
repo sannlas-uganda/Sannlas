@@ -49,7 +49,7 @@
 </div>
 <div class="search-bar"><input id="searchInput" placeholder="Search..." oninput="debouncedFilter()"><button class="btn" onclick="clearFilter()" style="background:white;color:black">Clear</button></div>
 <div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>MoMo 0795712326</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none;font-size:12px"></p></div>
-<div id="frontUpload" class="front-upload"><h2 style="color:#8B0000;text-align:center">📦 SELL - UP TO 10,000 PHOTOS 🪙</h2>
+<div id="frontUpload" class="front-upload"><h2 style="color:#8B0000;text-align:center">📦 SELL YOUR PRODUCTS - 3 Coins Per Product 🪙</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <input id="frontBiz" placeholder="Business Name" style="padding:12px;border-radius:8px;border:1px solid #ccc">
 <input id="frontLocation" placeholder="Type Location - e.g. Kampala, Wakiso..." style="padding:12px;border-radius:8px;border:1px solid #ccc">
@@ -57,10 +57,10 @@
 <div style="margin-top:8px"><input id="frontMain" placeholder="Type Category - e.g. Shoes, Phones..." style="width:100%;padding:12px;border-radius:8px;border:1px solid #ccc"></div>
 <input id="frontPhoneReal" placeholder="Your Phone - Business Number - 256..." style="background:#FFCC02;border:2px solid #000;width:100%;padding:10px;margin:5px 0;border-radius:8px;font-weight:bold">
 <div style="background:#000;border:3px solid #FFCC02;border-radius:12px;padding:12px;margin:10px 0;text-align:center"><div style="color:#FFCC02;font-weight:bold;font-size:15px">🪙 UPLOAD COSTS 3 COINS PER PRODUCT</div><div style="color:white;font-size:12px;margin-top:5px">You have: <b><span id="myCoinsPlan">0</span> coins</b> | 1 coin = 599 UGX | <a href="#" onclick="goToWallet();return false" style="color:#FFCC02;font-weight:bold">BUY NOW 🔥</a></div></div>
-<div style="border:3px dashed #8B0000;padding:8px;border-radius:10px;margin:8px 0"><input type="file" id="frontInput" multiple accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#000;color:#0f0;padding:5px;border-radius:6px;text-align:center;margin-top:5px">Selected: <b><span id="frontCount">0</span></b> / 10,000</div></div>
-<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">👆 Select up to 10,000 photos - FAST!</p></div>
+<div style="border:3px dashed #8B0000;padding:8px;border-radius:10px;margin:8px 0"><input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#000;color:#0f0;padding:5px;border-radius:6px;text-align:center;margin-top:5px">Selected: <b><span id="frontCount">0</span></b></div></div>
+<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">👆 Select 1 photo</p></div>
 <div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready - 3 coins per product</div>
-<button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
+<button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE (Costs 3 coins)</button>
 </div>
 <div class="popup" id="coinsPop"><div class="popup-content" style="max-width:500px;border:3px solid #FFCC02"><h2 style="text-align:center;color:#c0392b">🪙 Not Enough Coins!</h2><div style="background:#000;color:#FFCC02;padding:15px;border-radius:10px;text-align:center;margin:10px 0"><div style="font-size:18px">You need <b><span id="coinsNeed">0</span> coins</b> for <span id="coinsProdCount">0</span> products!</div><div style="font-size:14px;margin-top:8px">You have: <b><span id="coinsMyBal">0</span> coins</b><br>Each product = 3 coins</div></div><button class="btn btn-yellow" style="width:100%;padding:14px;font-size:16px;font-weight:bold" onclick="goToWallet()">🪙 BUY COINS NOW</button><button onclick="closePop('coinsPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Cancel</button></div></div>
 <div class="products" id="products"></div>
@@ -72,13 +72,66 @@
 let products=[],cart=[],frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
 let _oldUrls=[];
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
-async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch('/api/coins/balance?email='+encodeURIComponent(currentUser.email)+'&phone='+encodeURIComponent(currentUser.phone));let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;}catch(e){}}
+async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;}catch(e){}}
+// SLOWNESS FIX: Only load live coins every 30 sec, and loadMyCoins ONLY when logged in and manually called
 setInterval(loadCoinLive,30000);
-function requireAuthForCoins(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}}}if(!currentUser){showGate();switchGate('register');return false;}return true;}
-function requireAuthForCheckout(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}}}if(!currentUser){showGate();switchGate('register');return false;}return true;}
-function goToWallet(){let u=localStorage.getItem('sannlas_user');if(!u &&!currentUser){showGate();switchGate('register');return;}if(!currentUser){try{currentUser=JSON.parse(u);}catch(e){}}location.href='/wallet';}
-function doCheckout(){if(!requireAuthForCheckout())return;let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);if(confirm('Confirm Order? Total: UGX '+total.toLocaleString())){cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');alert('Order Placed!');}}
-async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';let status=document.getElementById('frontStatus');status.innerHTML='⏳ Uploading...';for(let i=0;i<frontFiles.length;i++){let priceEl=document.getElementById('fprice_'+i);let price=priceEl?priceEl.value:document.getElementById('fprice_0')?.value||'10000';let nameEl=document.getElementById('fname_'+i);let name=nameEl?nameEl.value:'Product '+(i+1);let descEl=document.getElementById('fdesc_'+i);let desc=descEl?descEl.value:'';let bizEl=document.getElementById('fbiz_'+i);let b=bizEl?bizEl.value:biz;let cf=await compressImage(frontFiles[i]);let fd=new FormData();fd.append('name',name);fd.append('price',price);fd.append('stock','10');fd.append('image',cf);fd.append('business',b||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('description',desc);let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML='❌ '+d.message+' at '+(i+1);if(d.my_coins!==undefined){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||0;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}status.innerHTML='Uploading '+(i+1)+'/'+frontFiles.length+' ✅';}status.innerHTML='✅ DONE '+frontFiles.length+' Products!';loadMyCoins();doFilter();}
+function requireAuthForCoins(){
+  if(!currentUser){
+    let u = localStorage.getItem('sannlas_user');
+    if(u){ try{ currentUser = JSON.parse(u); }catch(e){} }
+  }
+  if(!currentUser){
+    showGate();
+    switchGate('register');
+    return false;
+  }
+  return true;
+}
+function requireAuthForCheckout(){
+  if(!currentUser){
+    let u = localStorage.getItem('sannlas_user');
+    if(u){ try{ currentUser = JSON.parse(u); }catch(e){} }
+  }
+  if(!currentUser){
+    showGate();
+    switchGate('register');
+    return false;
+  }
+  return true;
+}
+function goToWallet(){
+  // INSTANT CHECK - no server call
+  let u = localStorage.getItem('sannlas_user');
+  if(!u &&!currentUser){
+    showGate();
+    switchGate('register');
+    return;
+  }
+  if(!currentUser){ try{ currentUser = JSON.parse(u); }catch(e){} }
+  location.href='/wallet';
+}
+function doCheckout(){
+  if(!requireAuthForCheckout()) return;
+  let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
+  if(confirm(`✅ Boss Confirm Order?\nTotal: UGX ${total.toLocaleString()}`)){
+    cart=[];
+    document.getElementById('cartN').innerText=0;
+    closePop('cartPop');
+    alert('🎉 Order Placed Boss! We will call you soon!');
+  }
+}
+async function frontUploadAllProceed(){
+  let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';
+  for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}
+  let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];
+  for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}
+  for(let i=0;i<comp.length;i++){
+    let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');
+    let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();
+    if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.my_coins!==undefined||d.needs_coins){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||frontFiles.length*3;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}
+    status.innerHTML=`Uploading ${i+1}/${comp.length}`;}
+  status.innerHTML=`✅ DONE!`;loadMyCoins();doFilter();
+}
   function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
@@ -89,52 +142,89 @@ function gateVerifyOTP(){switchGate('nin');}
 function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
-function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+='?q='+encodeURIComponent(q);fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=20;render();});}
+function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=20;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
-function render(){if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';return;}let toShow=products.slice(0,visibleCount);document.getElementById('products').innerHTML=toShow.map(p=>{let desc=p.description||p.desc||'';if(desc.length>65)desc=desc.substring(0,65)+'...';return '<div class="card"><img src="'+p.image+'" loading="lazy" onclick="viewProd(\''+p.id+'\')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">'+p.name+'</h4><div class="price">UGX '+Number(p.price).toLocaleString()+'</div><div style="font-size:10px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px;border:1px solid #eee">'+(desc||'No description')+'</div><div class="seller-box">🏪 '+(p.business||'Seller')+' - 📍 '+(p.location||'Kampala')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd(\''+p.id+'\')">👁️ View</button><button class="cart-btn" onclick="addCart(\''+p.id+'\')">🛒 Cart</button></div></div></div>';}).join('');}
-function viewProd(id){let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p)return;let desc=p.description||p.desc||'No description';document.getElementById('viewContent').innerHTML='<h2 style="color:#8B0000">'+p.name+'</h2><img src="'+p.image+'" style="width:100%;border-radius:12px;margin:10px 0;max-height:400px;object-fit:contain;background:#f9f9f9"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">UGX '+Number(p.price).toLocaleString()+'</div><div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02;text-align:left"><b>Description:</b><br><div style="font-size:13px;line-height:1.6;margin-top:5px">'+desc+'</div><br><b>Business:</b> '+(p.business||'Seller')+'<br><b>Location:</b> '+(p.location||'Kampala')+'<br><b>Phone:</b> '+(p.phone||'')+'</div><button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin:5px 0" onclick="addCart(\''+p.id+'\');closePop(\'viewPop\');openCart()">🛒 Add to Cart</button><button class="btn" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop(\'viewPop\')">Close</button>';document.getElementById('viewPop').style.display='flex';}
-function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);document.getElementById('cartN').innerText=totalQty;}
-function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html='<h3>🛒 My Cart - '+totalQty+' items</h3>';cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+='<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center"><img src="'+it.image+'" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b style="font-size:13px">'+it.name+'</b><br>UGX '+Number(it.price).toLocaleString()+' x '+(it.qty||1)+'<br><b style="color:green">UGX '+sub.toLocaleString()+'</b></div><div style="display:flex;flex-direction:column;gap:5px;align-items:center"><div style="display:flex;gap:5px;align-items:center"><button onclick="changeQty(\''+it.id+'\', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button><span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">'+(it.qty||1)+'</span><button onclick="changeQty(\''+it.id+'\', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button></div><button onclick="removeCart(\''+it.id+'\')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button></div></div>';});html+='<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL ('+totalQty+'): UGX '+total.toLocaleString()+'</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX '+total.toLocaleString()+'</button><button onclick="closePop(\'cartPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>';document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
-function changeQty(id, delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1)item.qty=1;document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);openCart();}
-function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
+function render(){
+  if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';return;}
+  let toShow=products.slice(0,visibleCount);
+  document.getElementById('products').innerHTML=toShow.map(p=>{
+    let desc = p.description || p.desc || '';if(desc.length>65) desc = desc.substring(0,65)+'...';
+    return `<div class="card"><img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div style="font-size:10px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px;border:1px solid #eee">${desc || 'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;
+  }).join('');
+}
+function viewProd(id){
+  let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p) return;
+  let desc = p.description || p.desc || 'No description added by seller';
+  document.getElementById('viewContent').innerHTML=`
+    <h2 style="color:#8B0000">${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:12px;margin:10px 0;max-height:400px;object-fit:contain;background:#f9f9f9">
+    <div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">UGX ${Number(p.price).toLocaleString()}</div>
+    <div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02;text-align:left"><b>📝 Description:</b><br><div style="font-size:13px;line-height:1.6;margin-top:5px">${desc}</div><br><b>🏪 Business:</b> ${p.business||'Seller'}<br><b>📍 Location:</b> ${p.location||'Kampala'}<br><b>📞 Phone:</b> ${p.phone||''}</div>
+    <button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin:5px 0" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
+    <button class="btn" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;
+  document.getElementById('viewPop').style.display='flex';
+}
+function addCart(id){
+  let p=allProducts.find(x=>x.id==id);if(!p) return;
+  let exist=cart.find(x=>x.id==id);
+  if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}
+  let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);
+  document.getElementById('cartN').innerText=totalQty;
+}
+function openCart(){
+  if(cart.length==0){alert('Cart empty Boss!');return;}
+  let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
+  let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);
+  let html=`<h3>🛒 My Cart - ${totalQty} items</h3>`;
+  cart.forEach(it=>{
+    let sub=Number(it.price)*(it.qty||1);
+    html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center">
+      <img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px">
+      <div style="flex:1"><b style="font-size:13px">${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b style="color:green">UGX ${sub.toLocaleString()}</b></div>
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:center">
+        <div style="display:flex;gap:5px;align-items:center">
+          <button onclick="changeQty('${it.id}', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button>
+          <span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">${it.qty||1}</span>
+          <button onclick="changeQty('${it.id}', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button>
+        </div>
+        <button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button>
+      </div>
+    </div>`;
+  });
+  html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL (${totalQty}): UGX ${total.toLocaleString()}</div>
+  <button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX ${total.toLocaleString()}</button>
+  <button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;
+  document.getElementById('cartContent').innerHTML=html;
+  document.getElementById('cartPop').style.display='flex';
+}
+function changeQty(id, delta){
+  let item=cart.find(x=>x.id==id);if(!item) return;
+  item.qty=(item.qty||1)+delta;
+  if(item.qty<1) item.qty=1;
+  document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);
+  openCart();
+}
+function removeCart(id){
+  cart=cart.filter(x=>x.id!=id);
+  document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);
+  if(cart.length==0){closePop('cartPop');}else{openCart();}
+}
 function openPopup(id){document.getElementById(id).style.display='flex';}
 function closePop(id){document.getElementById(id).style.display='none';}
 function frontPreview(input){
-  if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}
-  frontFiles=Array.from(input.files).slice(0,10000);
+  if(_oldUrls.length){ _oldUrls.forEach(u=>{ try{ URL.revokeObjectURL(u); }catch(e){} }); _oldUrls=[]; }
+  frontFiles=Array.from(input.files).slice(0,1);
   document.getElementById('frontCount').innerText=frontFiles.length;
   document.getElementById('frontCount2').innerText=frontFiles.length;
-  let box=document.getElementById('frontPreview');
-  if(frontFiles.length>100){
-    box.innerHTML='<div style="grid-column:1/-1;background:#000;color:#FFCC02;padding:15px;border-radius:10px;text-align:center"><h3>✅ '+frontFiles.length+' Photos Selected!</h3><p>Showing first 100 for speed. All '+frontFiles.length+' will upload with same price!</p><div style="margin-top:10px"><label style="color:white">Set PRICE for ALL '+frontFiles.length+' products:</label><input id="fprice_0" type="number" placeholder="Price for ALL - e.g. 20000" style="width:100%;padding:12px;border-radius:8px;margin:5px 0;border:2px solid #FFCC02;font-size:16px"><label style="color:white">Description for ALL:</label><textarea id="fdesc_0" placeholder="Description for all products" style="width:100%;padding:8px;border-radius:8px"></textarea></div><div id="previewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:15px;max-height:600px;overflow:auto"></div></div>';
-    let grid=document.getElementById('previewGrid');
-    let show=Math.min(100, frontFiles.length);
-    for(let i=0;i<show;i++){
-      let url=URL.createObjectURL(frontFiles[i]);
-      _oldUrls.push(url);
-      let d=document.createElement('div');
-      d.className='front-card';
-      d.innerHTML='<img src="'+url+'" loading="lazy"><div style="padding:5px"><input id="fname_'+i+'" value="'+frontFiles[i].name.split('.')[0].slice(0,15)+'"><input id="fprice_'+i+'" type="number" style="display:none"><textarea id="fdesc_'+i+'" style="display:none"></textarea><input id="fbiz_'+i+'" value="'+document.getElementById('frontBiz').value+'" style="display:none"></div>';
-      grid.appendChild(d);
-    }
-    document.getElementById('fprice_0').addEventListener('input', function(){let v=this.value; for(let i=0;i<frontFiles.length;i++){let el=document.getElementById('fprice_'+i); if(el) el.value=v;}});
-    for(let i=100;i<frontFiles.length;i++){
-      let div=document.createElement('div'); div.style.display='none';
-      div.innerHTML='<input id="fname_'+i+'" value="'+frontFiles[i].name.split('.')[0].slice(0,20)+'"><input id="fprice_'+i+'" value="10000"><textarea id="fdesc_'+i+'"></textarea><input id="fbiz_'+i+'" value="'+document.getElementById('frontBiz').value+'">';
-      box.appendChild(div);
-    }
-  } else {
-    box.innerHTML='';
-    for(let i=0;i<frontFiles.length;i++){
-      let url=URL.createObjectURL(frontFiles[i]);
-      _oldUrls.push(url);
-      box.innerHTML+='<div class="front-card"><img src="'+url+'" loading="lazy"><div style="padding:5px"><input id="fname_'+i+'" value="'+frontFiles[i].name.split('.')[0].slice(0,20)+'"><input id="fprice_'+i+'" type="number" placeholder="PRICE UGX"><textarea id="fdesc_'+i+'" placeholder="Description..." rows="2"></textarea><input id="fbiz_'+i+'" value="'+document.getElementById('frontBiz').value+'"></div></div>';
-    }
+  let box=document.getElementById('frontPreview');box.innerHTML='';
+  for(let i=0;i<frontFiles.length;i++){
+    let url=URL.createObjectURL(frontFiles[i]);
+    _oldUrls.push(url);
+    box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="PRICE UGX"><textarea id="fdesc_${i}" placeholder="Description..." rows="2"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;
   }
 }
-function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);try{URL.revokeObjectURL(img.src);}catch(e){}};img.src=URL.createObjectURL(file);});}
-async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch('/api/coins/balance?email='+encodeURIComponent(currentUser.email)+'&phone='+encodeURIComponent(phone));let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
-function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML='✅ '+currentUser.email+' | 🪙 '+(currentUser.coins||0);}}
+function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
+async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
+function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||0}`;}}
 function doLogout(){localStorage.clear();location.reload();}
 gateCheck();
 </script>
