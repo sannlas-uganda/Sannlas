@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop</title><style>body{font-family:Arial;background:#c0392b;margin:0}.header{background:#000;color:#fff;padding:20px;text-align:center}.header h1{color:#FFCC02}button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:bold;cursor:pointer}.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}.card{background:#fff;border-radius:12px;overflow:hidden}.card img{width:100%;height:170px;object-fit:cover}</style></head><body>
+<div class="header" id="h">Loading...</div><div class="products" id="p"></div>
+<script>
+let slug=location.pathname.split('/shop/')[1]||new URLSearchParams(location.search).get('slug');
+async function load(){let r=await fetch('/api/shop/'+slug);let d=await r.json();
+document.getElementById('h').innerHTML=`<h1>🏪 ${d.shop.business_name}</h1><p>📍 ${d.shop.location} | 📞 ${d.shop.phone}</p><p>${d.shop.description}</p><p>📦 ${d.products.length} Products</p><button style="background:#25D366;color:#fff" onclick="window.open('https://wa.me/${d.shop.phone}')">💬 WhatsApp</button><button style="background:#FFCC02" onclick="navigator.clipboard.writeText(location.href);alert('Link copied')">🔗 Share Shop</button><button onclick="location.href='/'">🏠 Home</button>`;
+document.getElementById('p').innerHTML=d.products.map(x=>`<div class="card"><img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br>UGX ${x.price}<br><button onclick="location.href='/?q=${x.name}'" style="width:100%;background:#000;color:#FFCC02;padding:6px;border:none;border-radius:8px">View</button></div></div>`).join('');}load();
+</script></body></html>
