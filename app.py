@@ -468,9 +468,37 @@ def sell():
         print("shop ensure failed", e)
         shop_id = None
         shop_slug = None
-    exp_time = seller['subscription_expires'] if seller and seller['subscription_expires']>time.time() else time.time()+plan_info['days']*86400
-    prod={'id':int(time.time()*1000),'name':name,'price':price,'business':business,'location':location,'phone':phone,'seller_email':user_email,'description':desc,'image':images[0],'images':images,'main_category':main_cat,'sub_category':sub_cat,'stock':stock,'sold':0,'rating':5.0,'reviews':[],'views':0,'verified':False,'boosted':0,'bargain_allowed':True,'created':time.time(),'plan':plan,'plan_name':plan_info['name'],'plan_price':plan_info['price'],'subscription_expires':exp_time,'shop_id': shop_id,'shop_slug': shop_slug}
-        if DATABASE_URL:
+        exp_time = seller['subscription_expires'] if seller and seller['subscription_expires'] > time.time() else time.time() + plan_info['days'] * 86400
+    prod = {
+        'id': int(time.time() * 1000),
+        'name': name,
+        'price': price,
+        'business': business,
+        'location': location,
+        'phone': phone,
+        'seller_email': user_email,
+        'description': desc,
+        'image': images[0],
+        'images': images,
+        'main_category': main_cat,
+        'sub_category': sub_cat,
+        'stock': stock,
+        'sold': 0,
+        'rating': 5.0,
+        'reviews': [],
+        'views': 0,
+        'verified': False,
+        'boosted': 0,
+        'bargain_allowed': True,
+        'created': time.time(),
+        'plan': plan,
+        'plan_name': plan_info['name'],
+        'plan_price': plan_info['price'],
+        'subscription_expires': exp_time,
+        'shop_id': shop_id,
+        'shop_slug': shop_slug
+    }
+    if DATABASE_URL:
         try:
             ensure_tables(); import json as js; conn=get_conn(); cur=conn.cursor()
             try:
