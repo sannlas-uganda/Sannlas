@@ -189,7 +189,7 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 def coins_config(): return jsonify(get_coin_config())
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
-    @app.route('/api/coins/balance')
+@app.route('/api/coins/balance')
 def coins_balance():
     email=request.args.get('email','').lower().strip()
     phone=request.args.get('phone','').strip()
