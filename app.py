@@ -74,7 +74,8 @@ def ensure_tables():
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
         conn.commit(); cur.close(); conn.close()
     except Exception as e: print("ensure_tables:", e)
-        def load_db(file, default):
+
+def load_db(file, default):
     for attempt in range(3):
         try:
             if DATABASE_URL:
@@ -190,6 +191,7 @@ def send_email_helper(to_email, subject, html_body):
         else: return True
     except: return False
 
+# ===== SHOP HELPER - ONLY NEW CODE =====
 def make_shop_slug(business):
     base = re.sub(r'[^a-z0-9]+', '-', (business or 'shop').lower()).strip('-')
     if not base: base='shop'
@@ -220,8 +222,8 @@ def ensure_shop_for_user(user):
     shops.append(shop)
     save_db('shops.json', shops)
     return shop
+    BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
-BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 @app.route('/')
 def home(): return render_template('index.html')
 @app.route('/admin')
@@ -325,9 +327,119 @@ def coins_verify():
     save_db('users.json', users)
     save_coin_config(cfg)
     return jsonify({'success':True})
-
-#... rest continues same as your file...
-
+@app.route('/manifest.json')
+def manifest_json():
+    return jsonify({"name": "SANNLAS UGANDA-Buy & sell Everything","short_name": "SANNLAS","start_url": "/","scope": "/","display": "standalone","background_color": "#c0392b","theme_color": "#000000","description": "The best online shop in Uganda SN","icons": [{"src": "/icon-192.png","sizes": "192x192","type": "image/png"},{"src": "/icon-512.png","sizes": "512x512","type": "image/png"}]})
+@app.route('/service-worker.js')
+def sw():
+    js = """const CACHE="sannlas-v3"; self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))); }); self.addEventListener('fetch', e => { e.respondWith(fetch(e.request)); });"""
+    return Response(js, mimetype='application/javascript')
+@app.route('/sw.js')
+def sw2():
+    return sw()
+@app.route('/icon-192.png')
+def icon192_json():
+    if os.path.exists('icon-192.png'): return send_from_directory('.', 'icon-192.png')
+    return ("", 204)
+@app.route('/icon-512.png')
+def icon512_json():
+    if os.path.exists('icon-512.png'): return send_from_directory('.', 'icon-512.png')
+    return ("", 204)
+@app.route('/api/register', methods=['POST'])
+def register():
+    data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); role=data.get('role','seller'); biz=data.get('business','')
+    if not email or not phone or not pwd: return jsonify({'success':False,'message':'Email, phone, password required'}),400
+    users=load_db('users.json',[])
+    if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email already registered - Login'}),400
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'role':role,'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'free_used':True,'paid':True,'verified':False,'nin_status':'not_uploaded','followers':0,'total_likes':0,'total_stars':0,'coins':0}
+    users.append(user); save_db('users.json',users)
+    try: shop = ensure_shop_for_user(user)
+    except: shop = None
+    safe={k:v for k,v in user.items() if k!='password'}
+    if shop: safe['shop']=shop
+    return jsonify({'success':True,'message':'Registered! 14 Days FREE active','user':safe})
+@app.route('/api/login', methods=['POST'])
+def login():
+    data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
+    users=load_db('users.json',[]); u=next((x for x in users if x['email']==email and x['password']==hash_pwd(pwd)),None)
+    if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
+    try: ensure_shop_for_user(u)
+    except: pass
+    safe={k:v for k,v in u.items() if k!='password'}; safe['subscription_active']=safe['subscription_expires']>time.time()
+    if 'coins' not in safe: safe['coins']=0
+    try:
+        shops=load_db('shops.json',[])
+        sh=next((s for s in shops if s.get('user_id')==u.get('id') or s.get('business_name')==u.get('business')), None)
+        if sh: safe['shop']=sh
+    except: pass
+    return jsonify({'success':True,'user':safe})
+@app.route('/api/send-otp', methods=['POST'])
+@limiter.limit("10 per minute")
+def send_otp():
+    data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone',''); business=data.get('business',''); otp=data.get('otp') or str(random.randint(100000,999999)); otps=load_db('otps.json',[]); otps=[o for o in otps if o['email']!=email]; otps.append({'email':email,'otp':otp,'phone':phone,'business':business,'time':time.time(),'expires':time.time()+600}); save_db('otps.json', otps)
+    send_email_helper(email, f"SANNLAS OTP Code: {otp}", f"<h2>OTP: {otp}</h2>"); send_email_helper(OWNER_EMAIL, f"New User: {business} {email} {phone}", f"<p>{business} {email} {phone} OTP {otp}</p>")
+    return jsonify({'success':True,'message':f'OTP sent','otp':otp})
+@app.route('/api/verify-otp', methods=['POST'])
+def verify_otp():
+    data=request.json; email=data.get('email','').lower().strip(); otp=data.get('otp','').strip(); otps=load_db('otps.json',[]); found=next((o for o in otps if o['email']==email and o['otp']==otp and o['expires']>time.time()), None)
+    if found: otps=[o for o in otps if o['email']!=email]; save_db('otps.json', otps); return jsonify({'success':True,'message':'OTP verified!'})
+    return jsonify({'success':False,'message':'Wrong or expired OTP'}),400
+@app.route('/api/verify-nin-number', methods=['POST'])
+def verify_nin_number():
+    data=request.json; phone=data.get('phone','').strip(); email=data.get('email','').lower().strip(); nin_number=data.get('nin_number','').strip()
+    users=load_db('users.json',[]); updated=False
+    for u in users:
+        if u['phone']==phone or u['email']==email: u['nin_number']=nin_number; u['nin_status']='verified_number'; u['verified']=True; u['nin_names']=u.get('business',''); updated=True
+    save_db('users.json',users)
+    if updated: return jsonify({'success':True,'message':'NIN saved Verified'})
+    return jsonify({'success':False,'message':'User not found'}),404
+@app.route('/api/user-nin-info')
+def user_nin_info():
+    email=request.args.get('email','').lower().strip(); phone=request.args.get('phone','').strip(); users=load_db('users.json',[]); u=next((x for x in users if x['email']==email or x['phone']==phone), None)
+    if not u: return jsonify({'success':False,'message':'User not found'}),404
+    return jsonify({'success': True,'nin_number': u.get('nin_number',''),'nin_names': u.get('nin_names','') or u.get('business',''),'nin_status': u.get('nin_status','not_uploaded'),'verified': u.get('verified',False),'email': u.get('email',''),'phone': u.get('phone',''),'business': u.get('business',''),'followers': u.get('followers',0),'total_likes': u.get('total_likes',0),'total_stars': u.get('total_stars',0)})
+@app.route('/api/products')
+def get_products():
+    global PRODUCTS_CACHE
+    now = time.time()
+    q = request.args.get('q','').lower()
+    main = request.args.get('main')
+    sub = request.args.get('sub')
+    business = request.args.get('business')
+    shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+    if not q and not main and not sub and not business and not shop_slug and PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < CACHE_TTL):
+        return jsonify(PRODUCTS_CACHE["data"])
+    products=load_db('products.json', []); users=load_db('users.json',[]);
+    filtered=products
+    if main: filtered=[p for p in filtered if p.get('main_category')==main]
+    if sub: filtered=[p for p in filtered if p.get('sub_category')==sub]
+    if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('description','').lower() or q in p.get('business','').lower()]
+    if business: filtered=[p for p in filtered if p.get('business')==business]
+    if shop_slug: filtered=[p for p in filtered if p.get('shop_slug')==shop_slug]
+    filtered=sorted(filtered,key=lambda x:(x.get('boosted',0),x.get('created',0)),reverse=True)
+    seller_stats={}
+    for p in products:
+        biz=p.get('business')
+        if not biz: continue
+        if biz not in seller_stats: seller_stats[biz]={'likes':0,'stars':0}
+        seller_stats[biz]['likes']+=len(p.get('reviews',[]))
+        seller_stats[biz]['stars']+=sum([r.get('rating',0) for r in p.get('reviews',[])])
+    public=[]
+    for p in filtered:
+        pp=p.copy(); pp.pop('phone',None)
+        seller=next((u for u in users if u.get('business')==p.get('business')),None)
+        stats=seller_stats.get(p.get('business'),{'likes':0,'stars':0})
+        pp['seller_verified']=seller.get('verified',False) if seller else False
+        pp['seller_followers']=seller.get('followers',0) if seller else 0
+        pp['seller_total_likes']=stats['likes']
+        pp['seller_total_stars']=stats['stars']
+        pp['stars_count']=len(p.get('reviews',[]))
+        pp['stars_avg']=p.get('rating',0)
+        public.append(pp)
+    if not q and not main and not sub and not business and not shop_slug:
+        PRODUCTS_CACHE["data"] = public
+        PRODUCTS_CACHE["time"] = now
+    return jsonify(public)
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name'); price=int(request.form.get('price',0)); business=request.form.get('business'); location=request.form.get('location'); phone=request.form.get('phone'); desc=request.form.get('desc',''); main_cat=request.form.get('main_category'); sub_cat=request.form.get('sub_category'); stock=int(request.form.get('stock',10)); plan=request.form.get('plan','free14'); user_email=request.form.get('user_email','').lower()
@@ -356,8 +468,8 @@ def sell():
         print("shop ensure failed", e)
         shop_id = None
         shop_slug = None
-    exp_time = seller['subscription_expires'] if seller and seller['subscription_expires'] > time.time() else time.time() + plan_info['days'] * 86400
-    prod = {
+        exp_time = seller['subscription_expires'] if seller and seller['subscription_expires'] > time.time() else time.time() + plan_info['days'] * 86400
+        prod = {
         'id': int(time.time() * 1000),
         'name': name,
         'price': price,
@@ -386,7 +498,7 @@ def sell():
         'shop_id': shop_id,
         'shop_slug': shop_slug
     }
-        if DATABASE_URL:
+    if DATABASE_URL:
         try:
             ensure_tables(); import json as js; conn=get_conn(); cur=conn.cursor()
             try:
@@ -407,7 +519,6 @@ def sell():
             u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
     save_db('users.json', users)
     return jsonify({'success':True,'message':f'Added with {plan_info["name"]} - {UPLOAD_COST} coins used! {seller.get("coins",0)-UPLOAD_COST} left'})
-
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
@@ -422,7 +533,6 @@ def list_shops():
     except: pass
     shops_sorted = sorted(shops, key=lambda x: x.get('total_products',0), reverse=True)
     return jsonify(shops_sorted)
-
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     shops = load_db('shops.json', [])
@@ -437,10 +547,6 @@ def get_shop_by_slug(slug):
         public_products.append(pp)
     public_products = sorted(public_products, key=lambda x: x.get('created',0), reverse=True)
     return jsonify({'success':True,'shop':shop,'products':public_products})
-
-# --- KEEP ALL YOUR OTHER ROUTES SAME (follow, unfollow, orders etc) ---
-# For brevity, paste your original routes from /api/follow to /api/notifications here - they are unchanged!
-
 @app.route('/api/follow', methods=['POST'])
 def follow_seller():
     data=request.json; business=data.get('business'); follower_phone=data.get('follower_phone'); follower_email=data.get('follower_email','').lower()
@@ -451,7 +557,6 @@ def follow_seller():
     for u in users:
         if u.get('business')==business: u['followers']=u.get('followers',0)+1
     save_db('users.json',users); return jsonify({'success':True,'message':f'Following {business}'})
-
 @app.route('/api/unfollow', methods=['POST'])
 def unfollow_seller():
     data=request.json; business=data.get('business'); phone=data.get('follower_phone'); email=data.get('follower_email','').lower(); followers=load_db('followers.json',[]); users=load_db('users.json',[]); before=len(followers); followers=[f for f in followers if not (f['business']==business and (f.get('follower_phone')==phone or f.get('follower_email')==email))]
@@ -460,12 +565,191 @@ def unfollow_seller():
             if u.get('business')==business: u['followers']=max(0,u.get('followers',1)-1)
         save_db('users.json',users)
     save_db('followers.json',followers); return jsonify({'success':True})
-
 @app.route('/api/followers/<business>')
 def get_followers(business): followers=load_db('followers.json',[]); filtered=[f for f in followers if f['business']==business]; return jsonify({'business':business,'count':len(filtered),'followers':filtered})
-
-#... (keep your verify-nin, update-order-status, seller/sales, my-products, delete-product, rate, bargain, boost, subscribe, check-subscription, activate-subscription, checkout, jobs, contact, admin/send-message, notifications - all same)
-
+@app.route('/api/verify-nin', methods=['POST'])
+def upload_nin():
+    phone=request.form.get('phone'); email=request.form.get('email','').lower(); nin_number=request.form.get('nin_number'); users=load_db('users.json',[]); front=request.files.get('nin_front'); back=request.files.get('nin_back'); front_url=''; back_url=''
+    if front and front.filename: fn='nin_front_'+str(uuid.uuid4())[:8]+'_'+secure_filename(front.filename); front.save(os.path.join(app.config['UPLOAD_FOLDER'], fn)); front_url='/static/uploads/'+fn
+    if back and back.filename: fn='nin_back_'+str(uuid.uuid4())[:8]+'_'+secure_filename(back.filename); back.save(os.path.join(app.config['UPLOAD_FOLDER'], fn)); back_url='/static/uploads/'+fn
+    for u in users:
+        if u['phone']==phone or u['email']==email: u['nin_number']=nin_number; u['nin_front']=front_url; u['nin_back']=back_url; u['nin_status']='pending'; u['verified']=False
+    save_db('users.json',users); return jsonify({'success':True,'message':'NIN uploaded!'})
+@app.route('/api/update-order-status', methods=['POST'])
+def update_order():
+    data=request.json; order_id=data.get('order_id'); new_status=data.get('status'); boda_phone=data.get('boda_phone',''); boda_name=data.get('boda_name',''); orders=load_db('orders.json',[])
+    for o in orders:
+        if o['id']==order_id:
+            if 'tracking' not in o: o['tracking']=[]
+            o['tracking'].append({'status':new_status,'time':time.time(),'boda_name':boda_name,'boda_phone':boda_phone}); o['status']=new_status
+    save_db('orders.json',orders); return jsonify({'success':True,'message':f'Order {new_status}'})
+@app.route('/api/seller/sales')
+def seller_sales():
+    phone=request.args.get('phone'); email=request.args.get('email','').lower(); period=request.args.get('period','all')
+    if not phone and not email: return jsonify({'success':False,'message':'Phone/email required'}),400
+    orders=load_db('orders.json',[]); products=load_db('products.json',[]); my_prods=[p for p in products if p.get('phone')==phone or p.get('seller_email')==email]; my_ids=set(p['id'] for p in my_prods); my_orders=[]; now=time.time()
+    for o in orders:
+        if period=='today' and now-o.get('time',0)>86400: continue
+        if period=='week' and now-o.get('time',0)>7*86400: continue
+        if o.get('type')=='bargain': continue
+        cart=o.get('cart',[]); mine=[i for i in cart if i.get('id') in my_ids]
+        if mine: oc=o.copy(); oc['my_items']=mine; oc['my_total']=sum(i.get('price',0) for i in mine); my_orders.append(oc)
+    total=sum(o['my_total'] for o in my_orders); return jsonify({'success':True,'period':period,'total_sales':total,'total_orders':len(my_orders),'products_count':len(my_prods),'orders':my_orders[::-1],'products':my_prods})
+@app.route('/api/my-products')
+def my_products():
+    phone=request.args.get('phone'); email=request.args.get('email','').lower(); products=load_db('products.json', [])
+    if phone: products=[p for p in products if p.get('phone')==phone]
+    if email: products=[p for p in products if p.get('seller_email')==email or p.get('phone')==phone]
+    return jsonify(products)
+@app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
+def delete_prod(pid):
+    if DATABASE_URL:
+        try:
+            ensure_tables(); conn=get_conn(); cur=conn.cursor(); cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
+            for row in rows:
+                if isinstance(row, dict): r_id, r_data = row['id'], row['data']
+                else: r_id, r_data = row[0], row[1]
+                if isinstance(r_data, str): r_data=json.loads(r_data)
+                if r_data.get('id')==pid: cur.execute("DELETE FROM products WHERE id=%s", (r_id,)); break
+            conn.commit(); cur.close(); conn.close()
+        except Exception as e: print(e)
+    else: products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
+    global PRODUCTS_CACHE
+    PRODUCTS_CACHE["data"] = None
+    return jsonify({'success':True})
+@app.route('/api/rate', methods=['POST'])
+def rate():
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        pid=int(request.form.get('id')); rating=int(request.form.get('rating',5)); comment=request.form.get('comment',''); photo=request.files.get('review_photo'); photo_url=''
+        if photo and photo.filename: fn='review_'+str(uuid.uuid4())[:8]+'_'+secure_filename(photo.filename); photo.save(os.path.join(app.config['UPLOAD_FOLDER'], fn)); photo_url='/static/uploads/'+fn
+        products=load_db('products.json', []); business_name=""
+        for p in products:
+            if p['id']==pid: p['reviews'].append({'rating':rating,'comment':comment,'photo':photo_url,'time':time.time(),'verified_purchase':True}); p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews']); business_name=p.get('business','')
+        save_db('products.json', products)
+        if business_name:
+            users=load_db('users.json',[])
+            for u in users:
+                if u.get('business')==business_name: u['total_likes']=u.get('total_likes',0)+1; u['total_stars']=u.get('total_stars',0)+rating
+            save_db('users.json',users)
+        return jsonify({'success':True,'message':'Review added!'})
+    else:
+        data=request.json; pid=data['id']; products=load_db('products.json', []); business_name=""
+        for p in products:
+            if p['id']==pid: p['reviews'].append({'rating':data['rating'],'comment':data.get('comment',''),'time':time.time(),'verified_purchase':True}); p['rating']=sum(r['rating'] for r in p['reviews'])/len(p['reviews']); business_name=p.get('business','')
+        save_db('products.json', products)
+        if business_name:
+            users=load_db('users.json',[])
+            for u in users:
+                if u.get('business')==business_name: u['total_likes']=u.get('total_likes',0)+1; u['total_stars']=u.get('total_stars',0)+data.get('rating',0)
+            save_db('users.json',users)
+        return jsonify({'success':True})
+@app.route('/api/bargain', methods=['POST'])
+def bargain(): data=request.json; bargains=load_db('bargains.json', []); data['id']=int(time.time()); data['status']='pending'; data['time']=time.time(); bargains.append(data); save_db('bargains.json', bargains); orders=load_db('orders.json', []); orders.append({'id':data['id'],'type':'bargain','bargain':data,'total':data.get('offer'),'buyer':{'names':data.get('buyer_name','Bargain'),'phone1':data.get('buyer_phone','')},'cart':[{'name':data.get('product_name')}],'time':time.time(),'seller_phone':data.get('seller_phone')}); save_db('orders.json', orders); return jsonify({'success':True,'message':"Bargain sent!"})
+@app.route('/api/boost', methods=['POST'])
+def boost():
+    data = request.json
+    pid = data['id']
+    products = load_db('products.json', [])
+    for p in products:
+        if p['id'] == pid:
+            p['boosted'] = time.time() + 86400 * int(data.get('days', 1))
+    save_db('products.json', products)
+    return jsonify({'success': True, 'message': 'Boosted!'})
+@app.route('/api/subscribe', methods=['POST'])
+def sub():
+    data=request.json
+    sellers=load_db('sellers.json', [])
+    users=load_db('users.json', [])
+    transactions=load_db('transactions.json', [])
+    plan=data.get('plan','30')
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','').strip()
+    business_phone=data.get('business_phone','').strip() or phone
+    momo_code=data.get('momo_code','').strip().upper()
+    momo_phone=data.get('momo_phone','').strip() or phone
+    plan_info=PLANS.get(plan,PLANS['30'])
+    if plan == 'free14':
+        found=False
+        for u in users:
+            if u['email']==email or u['phone']==phone or u['phone']==business_phone:
+                u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=True
+                u['momo_code']=momo_code; u['momo_transaction']=momo_code
+                u['business_phone']=business_phone; u['momo_phone']=business_phone; u['payer_phone']=business_phone
+                u['paid_amount']=0; u['subscription_expires']=time.time()+plan_info['days']*86400
+                u['subscription_active']=True; u['payment_status']='verified_free'; u['owner_verified']=True; u['free_used']=True
+                found=True
+        if not found:
+            new_user={'id':int(time.time()*1000),'email':email,'phone':business_phone or phone,'password':hash_pwd('free14user'),'business': data.get('business', business_phone) or 'SANNLAS Seller','role':'seller','created':time.time(),'plan':plan,'plan_name':plan_info['name'],'paid':True,'paid_amount':0,'subscription_expires':time.time()+plan_info['days']*86400,'subscription_active':True,'payment_status':'verified_free','owner_verified':True,'verified':False,'free_used':True,'followers':0,'total_likes':0,'total_stars':0,'momo_code':momo_code,'coins':0}
+            users.append(new_user)
+        save_db('users.json',users)
+        sellers.append({'id':int(time.time()),'email':email,'phone':phone,'business_phone':business_phone,'momo_phone':business_phone,'plan':plan,'plan_name':plan_info['name'],'plan_price':0,'paid_amount':0,'transaction_id':momo_code,'time':time.time(),'status':'verified_free'})
+        save_db('sellers.json',sellers)
+        return jsonify({'success':True,'message':f'FREE 14 Days Activated! Upload now!','expires': time.time()+plan_info['days']*86400})
+    if business_phone.replace(" ","")!= momo_phone.replace(" ",""):
+        return jsonify({'success':False,'message':f'BLOCKED: Business {business_phone} must SAME as MoMo payer {momo_phone} that sent to 0795712326!'}),400
+    if plan_info.get('requires_payment'):
+        if not momo_code:
+            return jsonify({'success':False,'message':'Enter Transaction ID from MoMo SMS after sending to 0795712326'}),400
+        if any(t.get('transaction_id','').upper()==momo_code for t in transactions):
+            return jsonify({'success':False,'message':f'BLOCKED FAKE! Trans ID {momo_code} already used! One-time only.'}),400
+        transactions.append({'transaction_id': momo_code,'phone': phone,'business_phone': business_phone,'momo_phone': momo_phone,'payer_phone': momo_phone,'plan': plan,'plan_name': plan_info['name'],'amount': plan_info['price'],'paid_amount': plan_info['price'],'time': time.time(),'timestamp': time.time(),'to_number': OWNER_MOMO,'to_momo': OWNER_MOMO,'status': 'pending_owner_verify','email': email,'business': data.get('business','')})
+        save_db('transactions.json', transactions)
+    found=False
+    for u in users:
+        if u['email']==email or u['phone']==phone or u['phone']==business_phone:
+            u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=True; u['momo_code']=momo_code; u['momo_transaction']=momo_code; u['business_phone']=business_phone; u['momo_phone']=momo_phone; u['payer_phone']=momo_phone; u['paid_amount']=plan_info['price']; u['subscription_expires']=time.time()+plan_info['days']*86400; u['subscription_active']=True; u['payment_status']='pending_owner_verify'; u['owner_verified']=False; found=True
+    if not found:
+        return jsonify({'success':False,'message':'Seller not found - Register first'}),404
+    save_db('users.json',users)
+    data['id']=int(time.time()); data['plan_name']=plan_info['name']; data['plan_price']=plan_info['price']; data['paid_amount']=plan_info['price']; data['transaction_id']=momo_code; data['payer_phone']=momo_phone; data['business_phone']=business_phone; data['time']=time.time(); data['status']='pending_owner_verify'
+    sellers.append(data); save_db('sellers.json',sellers)
+    return jsonify({'success':True,'message':f'Payment OK! {plan_info["name"]} active {plan_info["days"]} days.','expires': time.time()+plan_info['days']*86400})
+@app.route('/api/check-subscription')
+def check_sub():
+    phone=request.args.get('phone','').strip()
+    email=request.args.get('email','').lower().strip()
+    users=load_db('users.json',[])
+    u=next((x for x in users if x['email']==email or x['phone']==phone), None)
+    if not u:
+        return jsonify({'success':False,'can_upload':False,'message':'Not registered'})
+    active = u.get('subscription_expires',0) > time.time() and u.get('paid',False)
+    return jsonify({'success':True,'can_upload': active,'subscription_active': active,'expires': u.get('subscription_expires',0),'plan_name': u.get('plan_name',''),'needs_subscription': not active,'plans': PLANS,'pay_to': OWNER_MOMO,'coins': u.get('coins',0),'coins_needed': UPLOAD_COST})
+@app.route('/api/admin/activate-subscription', methods=['POST'])
+def activate_sub():
+    data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); plan=data.get('plan'); users=load_db('users.json',[]); products=load_db('products.json',[]); plan_info=PLANS.get(plan,PLANS['30'])
+    for u in users:
+        if u['phone']==phone or u['email']==email: u['plan']=plan; u['plan_name']=plan_info['name']; u['paid']=True; u['subscription_expires']=time.time()+plan_info['days']*86400; u['payment_status']='verified_by_owner'; u['owner_verified']=True
+    save_db('users.json',users)
+    for p in products:
+        if p.get('phone')==phone or p.get('seller_email')==email: p['subscription_expires']=time.time()+plan_info['days']*86400; p['plan']=plan
+    save_db('products.json',products); return jsonify({'success':True,'message':f'Activated {plan_info["name"]} for {phone}'})
+@app.route('/api/checkout', methods=['POST'])
+def checkout():
+    data=request.json; orders=load_db('orders.json', []); data['id']=int(time.time()); data['status']='Packed'; data['tracking']=[{'status':'Packed','time':time.time()}]; data['time']=time.time(); orders.append(data); save_db('orders.json', orders); products=load_db('products.json', [])
+    for item in data['cart']:
+        for p in products:
+            if p['id']==item['id']: p['stock']=max(0,p.get('stock',10)-1); p['sold']=p.get('sold',0)+1
+    save_db('products.json', products); return jsonify({'message':'Order placed! ID: '+str(data['id'])})
+@app.route('/api/jobs', methods=['GET','POST'])
+def jobs_api():
+    if request.method=='POST': data=request.json; data['id']=int(time.time()*1000); data['time']=time.time(); all_jobs=load_db('jobs.json', []); all_jobs.append(data); save_db('jobs.json', all_jobs); return jsonify({'success':True,'message':'Job posted!'})
+    else: all_jobs=load_db('jobs.json', []); return jsonify(all_jobs[::-1])
+@app.route('/api/jobs/<int:jid>/apply', methods=['POST'])
+def apply_job(jid): data=request.json; apps=load_db('applications.json', []); data['job_id']=jid; data['id']=int(time.time()); data['time']=time.time(); apps.append(data); save_db('applications.json', apps); return jsonify({'success':True,'message':'Application sent!'})
+@app.route('/api/job-applications')
+def get_applications(): return jsonify(load_db('applications.json', [])[::-1])
+@app.route('/api/orders')
+def get_orders(): orders=load_db('orders.json', [])[::-1]; return jsonify(orders)
+@app.route('/api/contact', methods=['POST'])
+def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True,'message':'Message sent!'})
+@app.route('/api/admin/send-message', methods=['POST'])
+def admin_send_message():
+    data=request.json; to_email=data.get('to_email','').lower().strip(); to_phone=data.get('to_phone','').strip(); title=data.get('title','Message from SANNLAS Admin'); message=data.get('message','')
+    if not to_email and not to_phone: return jsonify({'success':False,'message':'Email or Phone required'}),400
+    notifs=load_db('notifications.json', []); notifs.append({'id': int(time.time()*1000),'to_email': to_email,'to_phone': to_phone,'title': title,'message': message,'time': time.time(),'read': False}); save_db('notifications.json', notifs)
+    return jsonify({'success':True,'message':f'Message sent to {to_email or to_phone}'})
+@app.route('/api/notifications')
+def get_notifications(): email=request.args.get('email','').lower().strip(); phone=request.args.get('phone','').strip(); notifs=load_db('notifications.json', []); mine=[n for n in notifs if (email and n.get('to_email')==email) or (phone and n.get('to_phone')==phone)]; return jsonify(mine[::-1])
 @app.route('/api/admin/data')
 def admin_data():
     def safe_load(file, default):
@@ -522,7 +806,6 @@ def admin_generic(filetype):
     except Exception as e:
         print(f"admin {filetype} error:", e)
         return jsonify([])
-
 @app.route('/api/admin/transactions')
 def admin_transactions():
     try:
@@ -530,7 +813,6 @@ def admin_transactions():
         return jsonify(transactions[::-1])
     except:
         return jsonify([])
-
 @app.route('/api/admin/verify-transaction', methods=['POST'])
 def verify_transaction():
     try:
@@ -556,14 +838,15 @@ def verify_transaction():
         return jsonify({'success':True,'message':f'Transaction {trans_id} {action} done'})
     except Exception as e:
         return jsonify({'success':False,'message': str(e)}),500
-
 @app.route('/api/admin/block-fake', methods=['POST'])
 def block_fake():
     return verify_transaction()
-
 @app.route('/icon.png')
 def icon_file():
     return send_from_directory('.', 'icon-512.png')
+@app.route('/googleac311007501ff6b1a.html')
+def google_verify_b1a():
+    return send_from_directory('.', 'googleac311007501ff6b1a.html')
 
 def keep_alive_worker():
     import urllib.request
