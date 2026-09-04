@@ -106,7 +106,7 @@ def load_db(file, default):
                             try: d=json.loads(d)
                             except: pass
                         return d
-                except: 
+                except:
                     try: conn.close()
                     except: pass
                     return default
@@ -168,7 +168,6 @@ def ensure_shop_for_user(user):
     shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"shop_slug": slug,"phone": user.get('phone',''),"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"created_at": time.time()}
     shops.append(shop); save_db('shops.json', shops); return shop
 
-# FIXED - OUTSIDE FUNCTION!
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
 @app.route('/')
@@ -189,6 +188,7 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 def coins_config(): return jsonify(get_coin_config())
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
+
 @app.route('/api/coins/balance')
 def coins_balance():
     email=request.args.get('email','').lower().strip()
@@ -198,6 +198,7 @@ def coins_balance():
     if not u: return jsonify({'success':False,'coins':0})
     return jsonify({'success':True,'coins': u.get('coins',0)})
 
+# FIXED - PENDING ONLY! NO INSTANT COINS
 @app.route('/api/coins/buy', methods=['POST'])
 def coins_buy():
     data=request.json
@@ -213,29 +214,83 @@ def coins_buy():
         return jsonify({'success':False,'message':f'{momo_code} already used!'}),400
     cfg = get_coin_config()
     if cfg['remaining'] < pack['coins']: return jsonify({'success':False,'message':'Coins finished!'}),400
+    # CREATE PENDING ONLY - NO COINS GIVEN YET!
     new_tx = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'pack': pack_id, 'coins': pack['coins'], 'price': pack['price'], 'momo_code': momo_code, 'momo_phone': momo_phone, 'time': time.time(), 'status': 'pending'}
     txs.append(new_tx); save_db('coin_transactions.json', txs)
-    users=load_db('users.json',[])
-    for u in users:
-        if u['email']==email or u['phone']==phone: u['coins'] = u.get('coins',0) + pack['coins']
-    save_db('users.json',users)
+    # RESERVE coins from pool but DON'T give to user yet
     cfg['remaining'] -= pack['coins']; cfg['sold'] += pack['coins']; save_coin_config(cfg)
-    return jsonify({'success':True,'coins': pack['coins'], 'config': cfg})
+    return jsonify({'success':True,'message':'Pending verification by owner! Coins will be added after owner checks MoMo','coins': 0, 'config': cfg, 'pending': True})
 
+# FIXED - VERIFY GIVES COINS, BLOCK DELETES PRODUCTS!
 @app.route('/api/coins/verify', methods=['POST'])
 def coins_verify():
     data=request.json; trans_id=data.get('momo_code','').strip().upper(); action=data.get('action','verify')
     txs=load_db('coin_transactions.json',[]); users=load_db('users.json',[]); cfg=get_coin_config()
+    target_tx = None
     for t in txs:
         if t.get('momo_code','').upper()==trans_id:
-            if action=='block_fake':
-                t['status']='blocked_fake'
-                for u in users:
-                    if u['email']==t.get('email') or u['phone']==t.get('phone'): u['coins'] = max(0, u.get('coins',0) - t.get('coins',0))
-                cfg['remaining'] += t.get('coins',0); cfg['sold'] -= t.get('coins',0)
-            else: t['status']='verified_by_owner'
+            target_tx = t
+            break
+    if not target_tx:
+        return jsonify({'success':False,'message':'Transaction not found'}),404
+
+    if action=='block_fake':
+        # BLOCK FAKE - return coins to pool + remove from user if already given + DELETE PRODUCTS
+        if target_tx.get('status')!= 'blocked_fake':
+            # If was pending (new system), coins were reserved but not given - return to pool
+            # If was old system where coins already given, also remove from user
+            cfg['remaining'] += target_tx.get('coins',0)
+            cfg['sold'] = max(0, cfg.get('sold',0) - target_tx.get('coins',0))
+            # Remove coins from user (in case old transactions gave instantly)
+            for u in users:
+                if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
+                    u['coins'] = max(0, u.get('coins',0) - target_tx.get('coins',0))
+            target_tx['status']='blocked_fake'
+            # AUTO-DELETE PRODUCTS from this fake buyer
+            try:
+                products = load_db('products.json', [])
+                fake_email = target_tx.get('email','').lower()
+                fake_phone = target_tx.get('phone','')
+                original_count = len(products)
+                products = [p for p in products if not (p.get('seller_email','').lower()==fake_email or p.get('phone','')==fake_phone)]
+                deleted = original_count - len(products)
+                if DATABASE_URL:
+                    # Delete from postgres
+                    ensure_tables(); conn=get_conn(); cur=conn.cursor()
+                    cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
+                    for row in rows:
+                        r_id, r_data = row[0], row[1]
+                        if isinstance(r_data, str): r_data=json.loads(r_data)
+                        if r_data.get('seller_email','').lower()==fake_email or r_data.get('phone','')==fake_phone:
+                            cur.execute("DELETE FROM products WHERE id=%s", (r_id,))
+                    conn.commit(); cur.close(); conn.close()
+                else:
+                    save_db('products.json', products)
+                # Reset shop product count
+                shops = load_db('shops.json', [])
+                for s in shops:
+                    if s.get('phone','')==fake_phone or s.get('business_name','').lower() in fake_email:
+                        s['total_products']=0
+                save_db('shops.json', shops)
+                print(f"Blocked fake {trans_id} - deleted {deleted} products")
+            except Exception as e:
+                print("Delete fake products error:", e)
+    else:
+        # VERIFY - GIVE COINS NOW!
+        if target_tx.get('status')!= 'verified_by_owner':
+            target_tx['status']='verified_by_owner'
+            # NOW give coins to user
+            found=False
+            for u in users:
+                if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
+                    u['coins'] = u.get('coins',0) + target_tx.get('coins',0)
+                    found=True
+            if not found:
+                # User not found but keep transaction verified
+                pass
+
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
-    return jsonify({'success':True})
+    return jsonify({'success':True, 'action': action, 'deleted_products': True if action=='block_fake' else False})
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -276,7 +331,6 @@ def get_products():
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
 
-# FIXED SELL - prod OUTSIDE try!
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name'); price=int(request.form.get('price',0)); business=request.form.get('business'); location=request.form.get('location'); phone=request.form.get('phone'); desc=request.form.get('desc',''); main_cat=request.form.get('main_category'); stock=int(request.form.get('stock',10)); user_email=request.form.get('user_email','').lower()
@@ -293,7 +347,6 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except Exception as e: print("shop fail", e)
-    # NOW prod is ALWAYS created, not inside except!
     prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug}
     if DATABASE_URL:
         try:
@@ -360,7 +413,6 @@ def delete_prod(pid):
         products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
     return jsonify({'success':True})
 
-# FIXED ADMIN DATA - NEVER RETURNS HTML!
 @app.route('/api/admin/data')
 def admin_data():
     try:
@@ -375,7 +427,6 @@ def admin_data():
         return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders)})
     except Exception as e:
         print("ADMIN DATA ERROR:", e)
-        # ALWAYS return JSON, never HTML!
         return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'error': str(e)}), 200
 
 @app.route('/api/admin/transactions')
