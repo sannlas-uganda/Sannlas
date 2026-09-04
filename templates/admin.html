@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Sannlas Admin - Owner</title>
+<title>Sannlas Admin - Clean Shops Edition</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Arial;padding:0;background:#0f0f0f;color:white;margin:0}
@@ -26,168 +26,61 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 </head>
 <body>
 <div id="loginBox">
-<h1>SANNLAS ADMIN</h1>
-<p>Owner: natelieabigail@gmail.com<br>MoMo 0795712326 | 1 coin = 599 UGX</p>
-<input type="password" id="pass" placeholder="Enter Admin Password">
-<button onclick="login()" style="width:100%">Unlock Dashboard</button>
+<h1>SANNLAS ADMIN CLEAN</h1>
+<p>natelieabigail@gmail.com<br>MoMo 0795712326 | Coins Only</p>
+<input type="password" id="pass" placeholder="Password">
+<button onclick="login()" style="width:100%">Unlock</button>
 <p id="msg" style="color:#ff6666"></p>
-<a href="/" style="color:#aaa;font-size:13px">← Back to Shop</a>
+<a href="/" style="color:#aaa">← Shop</a>
 </div>
 <div id="adminContent">
-<div style="padding:12px;background:#8B0000;display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center">
-<h2 style="margin:0">SANNLAS OWNER - SHOPS EDITION</h2>
-<div><span style="font-size:11px">natelieabigail@gmail.com | 0795712326</span> <a href="/" style="color:white">Shop</a> | <a href="#" onclick="logout()" style="color:#ffaaaa">Logout</a></div>
+<div style="padding:12px;background:#8B0000;display:flex;justify-content:space-between;flex-wrap:wrap">
+<h2 style="margin:0">SANNLAS - COINS + SHOPS ONLY</h2>
+<div><a href="/" style="color:white">Shop</a> | <a href="#" onclick="logout()" style="color:#ffaaaa">Logout</a></div>
 </div>
 <div id="stats" style="padding:10px"></div>
 <div class="tabs">
 <div class="t active" onclick="tab('overview',this)">📊 Overview</div>
 <div class="t" style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="tab('shops',this)">🏪 Shops <span id="cShops" class="badge" style="background:#FFCC02;color:#000">0</span></div>
 <div class="t" onclick="tab('users',this)">🔐 Users <span id="cUsers" class="badge">0</span></div>
-<div class="t" onclick="tab('payments',this)">💳 Sub Payments</div>
 <div class="t" style="background:#FFCC02;color:#000;border:2px solid #000" onclick="tab('coins',this)">🪙 Coins <span id="cCoins" class="badge" style="background:#000;color:#FFCC02">0</span></div>
 <div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
 <div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div>
-<div class="t" onclick="tab('bargains',this)">💰 Bargains</div>
-<div class="t" onclick="tab('sellers',this)">👥 Subs History</div>
 <div class="t" onclick="tab('sales',this)">💵 Sales</div>
 <div class="t" onclick="tab('topSellers',this)">⭐ Top Sellers</div>
 <div class="t" onclick="tab('notif',this)">🔔 Send Msg</div>
 </div>
-<div id="overview" class="tabPane">
-<div class="card" style="border:2px solid #FFCC02">
-<h2>🏪 Shops System - NEW</h2>
-<p style="font-size:12px;color:#aaa">Shops auto-created when seller registers. Each shop has unique slug like /shop/nike-store-a1b2. Visit Shop shows all products.</p>
-<div id="overviewData"></div>
-</div>
-</div>
 
-<div id="shops" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🏪 All Shops - Linked to index.html</h2><p style="font-size:11px;color:#aaa">Each shop = seller business. Slug used in /shop/SLUG page.</p><div id="shopsBox">Loading shops...</div></div></div>
-
-<div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users - With Shop Link + Coins</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Expired</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
-
-<div id="payments" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>💳 Subscription Payments</h2><div id="paymentsBox">Loading...</div></div></div>
-
-<div id="coins" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02">
-<h2>🪙 Coins - 1B @ 599 UGX</h2>
-<div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center">
-<div style="font-size:13px;color:#FFCC02">🔴 LIVE COINS REMAINING</div>
-<div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div>
-<div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div>
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-<div style="background:#222;padding:8px;border-radius:8px"><div>SOLD</div><b style="color:#FFCC02" id="coinsSoldShow">0</b></div>
-<div style="background:#222;padding:8px;border-radius:8px"><div>PRICE</div><b style="color:#00FF00">599</b></div>
-<div style="background:#222;padding:8px;border-radius:8px"><div>REV</div><b style="color:#FFCC02" id="coinsRevShow">0</b></div>
-</div>
-</div>
-<h3>Coin Transactions</h3>
-<div id="coinsBox">Loading...</div>
-</div></div>
-
+<div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Shops + Coins System</h2><div id="overviewData"></div></div></div>
+<div id="shops" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🏪 All Shops</h2><div id="shopsBox">Loading...</div></div></div>
+<div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users - Coins + Shops</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Expired</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
+<div id="coins" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🪙 Coins - 1B @ 599 UGX</h2><div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center"><div style="font-size:13px;color:#FFCC02">🔴 LIVE REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#222;padding:8px;border-radius:8px"><div>SOLD</div><b style="color:#FFCC02" id="coinsSoldShow">0</b></div><div style="background:#222;padding:8px;border-radius:8px"><div>PRICE</div><b style="color:#00FF00">599</b></div><div style="background:#222;padding:8px;border-radius:8px"><div>REV</div><b style="color:#FFCC02" id="coinsRevShow">0</b></div></div></div><div id="coinsBox">Loading...</div></div></div>
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products - With Shop Link</h2><div id="productsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages</h2><div id="contactsBox">Loading...</div></div></div>
-<div id="bargains" class="tabPane" style="display:none"><div class="card"><h2>💰 Bargains</h2><div id="bargainsBox">Loading...</div></div></div>
-<div id="sellers" class="tabPane" style="display:none"><div class="card"><h2>👥 Subs History</h2><div id="sellersBox">Loading...</div></div></div>
-<div id="sales" class="tabPane" style="display:none"><div class="card"><h2>💵 Sales Per Seller</h2><div style="display:flex;gap:5px;flex-wrap:wrap"><input id="salesPhone" placeholder="Seller Phone 256..."><select id="salesPeriod"><option value="today">Today</option><option value="week">Week</option><option value="month" selected>Month</option><option value="year">Year</option><option value="all">All</option></select><button onclick="loadSellerSales()">Load Sales</button></div><div id="salesBox">Enter phone</div></div></div>
-<div id="topSellers" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>⭐ Top Sellers by Likes</h2><div id="topSellersBox">Loading...</div></div></div>
-<div id="notif" class="tabPane" style="display:none"><div class="card" style="border:2px solid #00FF00"><h2>🔔 Send Message</h2>
-<input id="notifEmail" placeholder="User Email"><input id="notifPhone" placeholder="Or Phone"><input id="notifTitle" placeholder="Title"><textarea id="notifMessage" placeholder="Message..." rows="4"></textarea>
-<button onclick="sendAdminMessage()" style="width:100%;background:#00FF00;color:#000">📩 Send</button><div id="notifStatus"></div>
-<h3>Recent</h3><div id="notifHistory" style="max-height:300px;overflow:auto;background:#111;padding:8px;border-radius:8px"></div>
-</div></div>
+<div id="sales" class="tabPane" style="display:none"><div class="card"><h2>💵 Sales Per Seller</h2><div style="display:flex;gap:5px;flex-wrap:wrap"><input id="salesPhone" placeholder="Phone 256..."><select id="salesPeriod"><option value="today">Today</option><option value="week">Week</option><option value="month" selected>Month</option><option value="year">Year</option><option value="all">All</option></select><button onclick="loadSellerSales()">Load</button></div><div id="salesBox">Enter phone</div></div></div>
+<div id="topSellers" class="tabPane" style="display:none"><div class="card" style="border:2px solid #FFCC02"><h2>⭐ Top Sellers</h2><div id="topSellersBox">Loading...</div></div></div>
+<div id="notif" class="tabPane" style="display:none"><div class="card" style="border:2px solid #00FF00"><h2>🔔 Send Message</h2><input id="notifEmail" placeholder="Email"><input id="notifPhone" placeholder="Phone"><input id="notifTitle" placeholder="Title"><textarea id="notifMessage" placeholder="Message..." rows="4"></textarea><button onclick="sendAdminMessage()" style="width:100%;background:#00FF00;color:#000">📩 Send</button><div id="notifStatus"></div><h3>Recent</h3><div id="notifHistory" style="max-height:300px;overflow:auto;background:#111;padding:8px;border-radius:8px"></div></div></div>
 </div>
 <script>
-const MY_PASSWORD="ThE,RISE";
-let ALL={}; let USER_FILTER='all';
-function getPlanAmount(plan){const map={"free14":0,"30":6540,"60":13090,"180":39500,"365":80000};return map[plan]||0;}
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='payments') loadPayments(); if(id==='coins') loadCoinsTab();}
-function login(){if(document.getElementById('pass').value===MY_PASSWORD){localStorage.setItem('sannlas_admin','ok');showAdmin();}else document.getElementById('msg').innerText='Wrong password!';}
+const MY_PASSWORD="ThE,RISE"; let ALL={}; let USER_FILTER='all';
+function getPlanAmount(p){const m={"free14":0,"30":6540,"60":13090,"180":39500,"365":80000};return m[p]||0;}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='coins') loadCoinsTab();}
+function login(){if(document.getElementById('pass').value===MY_PASSWORD){localStorage.setItem('sannlas_admin','ok');showAdmin();}else document.getElementById('msg').innerText='Wrong!';}
 function showAdmin(){document.getElementById('loginBox').style.display='none';document.getElementById('adminContent').style.display='block';loadData();}
 function logout(){localStorage.removeItem('sannlas_admin');location.reload();}
 function filterUsers(f){USER_FILTER=f; renderUsers();}
-
-function renderShops(){
- let shops=ALL.shops||[]; let box=document.getElementById('shopsBox');
- if(!shops.length){box.innerHTML='<p>No shops yet - Shops auto-create when seller registers</p>';return;}
- box.innerHTML=shops.map(s=>{
-  let slug=s.shop_slug||''; let count=s.total_products||0; let verified=s.verified?'<span style="background:green;color:white;padding:2px 6px;border-radius:5px">✓ Verified</span>':'<span style="background:gray;padding:2px 6px;border-radius:5px">Not verified</span>';
-  return `<div class="shop-card"><div><b>🏪 ${s.business_name||'Shop'}</b> ${verified}<br><span style="font-size:11px">Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${slug}</code> | 📦 ${count} products | 📞 ${s.phone||''}</span><br><span style="font-size:10px;color:#aaa">${s.description||''}</span></div><div style="display:flex;flex-direction:column;gap:5px"><a href="/shop/${slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">🏪 Visit Shop</button></a><a href="/api/shop/${slug}" target="_blank"><button style="background:#000;color:#FFCC02;border:1px solid #FFCC02;font-size:10px">JSON</button></a></div></div>`;
- }).join('');
-}
-
-function renderUsers(){
-  let users=ALL.users||[]; let filtered=users;
-  if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000);
-  if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000);
-  document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business + Shop</th><th>Phone</th><th>Plan</th><th>Amount</th><th>Trans ID</th><th>Coins</th><th>Followers</th><th>Status</th><th>Action</th></tr>'+filtered.map(u=>{
-   let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;color:white;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;color:white;padding:3px 6px;border-radius:5px">✅</span>';
-   let amount = getPlanAmount(u.plan); let transId = u.momo_code || u.momo_transaction || '- FREE -'; let shop = (ALL.shops||[]).find(s=>s.user_id==u.id || s.business_name==u.business); let shopLink = shop?`<a href="/shop/${shop.shop_slug}" target="_blank" style="color:#FFCC02">🏪 ${shop.shop_slug}</a>`:'No shop';
-   return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span><br><span style="font-size:10px">${shopLink}</span></td><td><span class="green-box">${u.phone||''}</span></td><td>${u.plan_name||u.plan}</td><td>UGX ${amount.toLocaleString()}</td><td><b style="color:#00FF00;font-size:11px">${transId}</b></td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${u.followers||0}</td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d</option><option value="60">2mo</option><option value="180">6mo</option><option value="365">1yr</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button></td></tr>`
-  }).join('')+'</table>':'No users';
-}
-function loadPayments(){
-  fetch('/api/admin/transactions').then(async r=>{
-    let txt=await r.text(); let trans=[]; try{ trans=JSON.parse(txt)||[]; }catch{ trans=[]; }
-    let box=document.getElementById('paymentsBox');
-    if(!trans.length){box.innerHTML='<p>No subscription payments yet - users in 14 days FREE</p>';return;}
-    box.innerHTML='<table><tr><th>Business</th><th>Biz Phone</th><th>Payer Phone</th><th>Amount</th><th>Trans ID</th><th>Plan</th><th>Time</th></tr>'+trans.slice().reverse().map(t=>`<tr><td>${t.business||t.email||''}</td><td>${t.business_phone||t.phone||''}</td><td>${t.momo_phone||t.payer_phone||''}</td><td>UGX ${Number(t.amount||0).toLocaleString()}</td><td><b style="color:#00FF00">${t.transaction_id||''}</b></td><td>${t.plan_name||t.plan||''}</td><td style="font-size:10px">${t.timestamp? new Date(t.timestamp*1000).toLocaleString():''}</td></tr>`).join('')+'</table>';
-  });
-}
-function loadCoinsTab(){
-  let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; let rev = ALL.coin_revenue || 0;
-  document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsSoldShow').innerText=Number(cfg.sold||0).toLocaleString(); document.getElementById('coinsRevShow').innerText='UGX '+Number(rev).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%';
-  let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales yet</p>';return;}
-  box.innerHTML='<table><tr><th>Email</th><th>Phone</th><th>Coins</th><th>Price</th><th>Trans ID</th><th>Payer</th><th>Time</th><th>Status</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><span class="green-box">${t.phone||''}</span></td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td>UGX ${Number(t.price||0).toLocaleString()}</td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td>${t.momo_phone||''}</td><td style="font-size:10px">${t.time? new Date(t.time*1000).toLocaleString():''}</td><td>${t.status||''}</td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';
-}
+function renderShops(){let shops=ALL.shops||[]; let box=document.getElementById('shopsBox'); if(!shops.length){box.innerHTML='<p>No shops yet</p>';return;} box.innerHTML=shops.map(s=>`<div class="shop-card"><div><b>🏪 ${s.business_name||'Shop'}</b><br><span style="font-size:11px">Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${s.shop_slug||''}</code> | 📦 ${s.total_products||0} | 📞 ${s.phone||''}</span></div><div><a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">🏪 Visit</button></a></div></div>`).join('');}
+function renderUsers(){let users=ALL.users||[]; let filtered=users; if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000); if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000); document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business + Shop</th><th>Phone</th><th>Plan</th><th>Coins</th><th>Followers</th><th>Status</th><th>Action</th></tr>'+filtered.map(u=>{let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;padding:3px 6px;border-radius:5px">✅</span>'; let shop = (ALL.shops||[]).find(s=>s.user_id==u.id || s.business_name==u.business); let shopLink = shop?`<a href="/shop/${shop.shop_slug}" target="_blank" style="color:#FFCC02">🏪 ${shop.shop_slug}</a>`:'No shop'; return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span><br><span style="font-size:10px">${shopLink}</span></td><td><span class="green-box">${u.phone||''}</span></td><td>${u.plan_name||u.plan}</td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${u.followers||0}</td><td>${statusBadge}</td><td><select id="plan_${u.id}"><option value="30">30d</option><option value="60">2mo</option><option value="180">6mo</option><option value="365">1yr</option></select><button style="background:green" onclick="activateSub('${u.phone}','${u.email}')">Activate</button></td></tr>`}).join('')+'</table>':'No users';}
+function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; let rev = ALL.coin_revenue || 0; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsSoldShow').innerText=Number(cfg.sold||0).toLocaleString(); document.getElementById('coinsRevShow').innerText='UGX '+Number(rev).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales yet</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Phone</th><th>Coins</th><th>Price</th><th>Trans ID</th><th>Payer</th><th>Time</th><th>Status</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><span class="green-box">${t.phone||''}</span></td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td>UGX ${Number(t.price||0).toLocaleString()}</td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td>${t.momo_phone||''}</td><td style="font-size:10px">${t.time? new Date(t.time*1000).toLocaleString():''}</td><td>${t.status||''}</td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
-function loadData(){
- document.getElementById('stats').innerHTML='<div class="card">Loading data... 5 sec</div>';
- fetch('/api/admin/data').then(async r=>{
-   let text = await r.text(); try{return JSON.parse(text);}catch(err){throw new Error('Invalid JSON: '+text.substring(0,150));}
- }).then(d=>{
-  ALL=d; let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[], bargains=d.bargains||[], sellers=d.sellers||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[];
-  document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length;
-  document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat">Revenue<br><b>UGX ${(d.total_revenue||0).toLocaleString()}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div><div class="stat" style="background:#000;color:#FFCC02;border:1px solid #FFCC02">Coin Rev<br><b>UGX ${Number(d.coin_revenue||0).toLocaleString()}</b></div>`;
-  document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com | MoMo 0795712326</h3><p>Active sellers: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length} | Total Shops: ${shops.length} | Products with shop_slug: ${prods.filter(p=>p.shop_slug).length} / ${prods.length}</p><p style="color:#FFCC02">Coins: ${coinCfg.sold} sold, ${coinCfg.remaining} left | Revenue UGX ${Number(d.coin_revenue||0).toLocaleString()}</p><h4>Quick Shops Preview</h4><div style="display:grid;gap:6px">${shops.slice(0,5).map(s=>`<div style="background:#222;padding:8px;border-radius:8px;display:flex;justify-content:space-between"><span>🏪 ${s.business_name} - ${s.shop_slug} (${s.total_products||0} prods)</span><a href="/shop/${s.shop_slug}" target="_blank" style="color:#FFCC02">Visit</a></div>`).join('')||'No shops'}</div></div>`;
-  renderUsers(); renderShops(); renderTopSellers(); loadPayments(); loadCoinsTab();
-  document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages';
-  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th><th>Phone</th><th>Total</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td>${o.buyer?.phone1||''}</td><td>UGX ${o.total||0}</td></tr>`).join('')+'</table>':'No orders';
-  document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><span class="yellow-box">${p.business||''}</span> <span class="green-box">${p.phone||''}</span> ${p.shop_slug?'<span style="background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:3px 6px;border-radius:5px;font-size:10px">🏪 '+p.shop_slug+'</span>':'<span style="background:red;color:white;padding:2px 6px;border-radius:4px;font-size:10px">No shop_slug - OLD</span>'}<br><span style="font-size:10px">⭐ ${(p.rating||0).toFixed(1)} (${(p.reviews||[]).length})</span><br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button> ${p.shop_slug?'<a href="/shop/'+p.shop_slug+'" target="_blank"><button style="background:#FFCC02;color:#000;font-size:10px">🏪 Visit Shop</button></a>':''}</div></div>`).join(''):'No products';
-  document.getElementById('bargainsBox').innerHTML=bargains.length?bargains.map(b=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${b.product_name}</b> - Offer ${b.offer}</div>`).join(''):'No bargains';
-  document.getElementById('sellersBox').innerHTML=sellers.length?'<table><tr><th>Business</th><th>Phone</th><th>Trans ID</th><th>Plan</th></tr>'+sellers.map(s=>`<tr><td>${s.business||''}</td><td>${s.phone||''}</td><td>${s.momo_code||s.transaction_id||''}</td><td>${s.plan_name||s.plan}</td></tr>`).join('')+'</table>':'No history';
-  loadNotifHistory();
- }).catch(e=>{document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red"><h3 style="color:red">Load Failed: ${e.message}</h3><button onclick="loadData()" style="background:#FFCC02;color:#000;width:100%">Retry</button></div>`;});
-}
-function renderTopSellers(){
- let users=ALL.users||[]; let prods=ALL.products||[]; let stats={};
- prods.forEach(p=>{let biz=p.business; if(!biz) return; if(!stats[biz]) stats[biz]={likes:0,stars:0,products:0,business:biz,phone:p.phone||''}; stats[biz].likes+=(p.reviews||[]).length; stats[biz].stars+=(p.reviews||[]).reduce((s,r)=>s+Number(r.rating||0),0); stats[biz].products+=1;});
- let merged=Object.values(stats).map(s=>{let u=users.find(x=>x.business===s.business); return {...s, email:u?.email||'', followers:u?.followers||0};});
- merged.sort((a,b)=>b.likes-a.likes);
- document.getElementById('topSellersBox').innerHTML=merged.length?'<table><tr><th>Rank</th><th>Business</th><th>Phone</th><th>Likes</th><th>Stars</th><th>Prods</th></tr>'+merged.map((s,i)=>`<tr><td>${i+1}</td><td><span class="yellow-box">${s.business}</span></td><td>${s.phone}</td><td>👍 ${s.likes}</td><td>⭐ ${s.stars}</td><td>${s.products}</td></tr>`).join('')+'</table>':'No sellers';
-}
-function sendAdminMessage(){
- let email=document.getElementById('notifEmail').value.trim(); let phone=document.getElementById('notifPhone').value.trim(); let title=document.getElementById('notifTitle').value.trim()||'Message from SANNLAS'; let message=document.getElementById('notifMessage').value.trim();
- if(!email &&!phone){alert('Enter email or phone');return;} if(!message){alert('Enter message');return;}
- fetch('/api/admin/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to_email:email,to_phone:phone,title,message})}).then(r=>r.json()).then(d=>{document.getElementById('notifStatus').innerHTML=`<span style="color:#00FF00">✅ ${d.message}</span>`;loadNotifHistory();});
-}
-function loadNotifHistory(){
- fetch('/api/admin/notifications').then(async r=>{let txt=await r.text(); try{return JSON.parse(txt)}catch{return []}}).then(d=>{
-   let arr=d||[]; document.getElementById('notifHistory').innerHTML=arr.length?arr.slice().reverse().slice(0,15).map(n=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${n.title}</b> → ${n.to_email||''} ${n.to_phone||''}<br><span style="font-size:10px;color:#aaa">${new Date(n.time*1000).toLocaleString()}</span><br>${n.message}</div>`).join(''):'No messages';
- });
-}
-function activateSub(phone,email){
- let user = ALL.users.find(u=>u.phone==phone); let selId = user? user.id : ''; let plan=document.getElementById('plan_'+selId)?.value || '30';
- if(!confirm(`Activate ${plan} for ${phone}?`)) return;
- fetch('/api/admin/activate-subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,email,plan})}).then(()=>loadData());
-}
-function loadSellerSales(){
- let phone=document.getElementById('salesPhone').value; let period=document.getElementById('salesPeriod').value;
- if(!phone){alert('Enter phone');return;}
- fetch(`/api/seller/sales?phone=${phone}&period=${period}`).then(r=>r.json()).then(d=>{
-  document.getElementById('salesBox').innerHTML=`<h3>Seller ${phone} - ${d.period} - UGX ${d.total_sales.toLocaleString()} - Orders ${d.total_orders}</h3><table><tr><th>ID</th><th>Buyer</th><th>Total</th></tr>${d.orders.map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td>UGX ${o.my_total}</td></tr>`).join('')||'No sales'}</table>`;
- });
-}
+function loadData(){document.getElementById('stats').innerHTML='<div class="card">Loading...</div>'; fetch('/api/admin/data').then(r=>r.json()).then(d=>{ALL=d; let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div><div class="stat" style="background:#000;color:#FFCC02;border:1px solid #FFCC02">Coin Rev<br><b>UGX ${Number(d.coin_revenue||0).toLocaleString()}</b></div>`; document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length} | Shops: ${shops.length} | With slug: ${prods.filter(p=>p.shop_slug).length} / ${prods.length}</p><p style="color:#FFCC02">Coins sold: ${coinCfg.sold} | Left: ${coinCfg.remaining}</p></div>`; renderUsers(); renderShops(); renderTopSellers(); loadCoinsTab(); document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages'; document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th><th>Phone</th><th>Total</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td>${o.buyer?.phone1||''}</td><td>UGX ${o.total||0}</td></tr>`).join('')+'</table>':'No orders'; document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><span class="yellow-box">${p.business||''}</span> <span class="green-box">${p.phone||''}</span> ${p.shop_slug?'<span style="background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:3px 6px;border-radius:5px;font-size:10px">🏪 '+p.shop_slug+'</span>':'<span style="background:red;padding:2px 6px;border-radius:4px;font-size:10px">OLD</span>'}<br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button> ${p.shop_slug?'<a href="/shop/'+p.shop_slug+'" target="_blank"><button style="background:#FFCC02;color:#000;font-size:10px">🏪 Shop</button></a>':''}</div></div>`).join(''):'No products'; loadNotifHistory(); }).catch(e=>{document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red"><h3 style="color:red">${e.message}</h3><button onclick="loadData()" style="background:#FFCC02;color:#000;width:100%">Retry</button></div>`;});}
+function renderTopSellers(){let users=ALL.users||[]; let prods=ALL.products||[]; let stats={}; prods.forEach(p=>{let biz=p.business; if(!biz) return; if(!stats[biz]) stats[biz]={likes:0,stars:0,products:0,business:biz,phone:p.phone||''}; stats[biz].likes+=(p.reviews||[]).length; stats[biz].stars+=(p.reviews||[]).reduce((s,r)=>s+Number(r.rating||0),0); stats[biz].products+=1;}); let merged=Object.values(stats).map(s=>{let u=users.find(x=>x.business===s.business); return {...s, email:u?.email||'', followers:u?.followers||0};}); merged.sort((a,b)=>b.likes-a.likes); document.getElementById('topSellersBox').innerHTML=merged.length?'<table><tr><th>Rank</th><th>Business</th><th>Phone</th><th>Likes</th><th>Stars</th></tr>'+merged.map((s,i)=>`<tr><td>${i+1}</td><td><span class="yellow-box">${s.business}</span></td><td>${s.phone}</td><td>👍 ${s.likes}</td><td>⭐ ${s.stars}</td></tr>`).join('')+'</table>':'No sellers';}
+function sendAdminMessage(){let email=document.getElementById('notifEmail').value.trim(); let phone=document.getElementById('notifPhone').value.trim(); let title=document.getElementById('notifTitle').value.trim()||'Message'; let message=document.getElementById('notifMessage').value.trim(); if(!email &&!phone){alert('Enter email/phone');return;} if(!message){alert('Enter msg');return;} fetch('/api/admin/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to_email:email,to_phone:phone,title,message})}).then(r=>r.json()).then(d=>{document.getElementById('notifStatus').innerHTML=`<span style="color:#00FF00">✅ ${d.message}</span>`;loadNotifHistory();});}
+function loadNotifHistory(){fetch('/api/admin/notifications').then(async r=>{let txt=await r.text(); try{return JSON.parse(txt)}catch{return []}}).then(d=>{let arr=d||[]; document.getElementById('notifHistory').innerHTML=arr.length?arr.slice().reverse().slice(0,15).map(n=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${n.title}</b> → ${n.to_email||''} ${n.to_phone||''}<br><span style="font-size:10px;color:#aaa">${new Date(n.time*1000).toLocaleString()}</span><br>${n.message}</div>`).join(''):'No messages';});}
+function activateSub(phone,email){let user = ALL.users.find(u=>u.phone==phone); let selId = user? user.id : ''; let plan=document.getElementById('plan_'+selId)?.value || '30'; if(!confirm(`Activate ${plan} for ${phone}?`)) return; fetch('/api/admin/activate-subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,email,plan})}).then(()=>loadData());}
+function loadSellerSales(){let phone=document.getElementById('salesPhone').value; let period=document.getElementById('salesPeriod').value; if(!phone){alert('Enter phone');return;} fetch(`/api/seller/sales?phone=${phone}&period=${period}`).then(r=>r.json()).then(d=>{document.getElementById('salesBox').innerHTML=`<h3>${phone} - ${d.period} - UGX ${d.total_sales.toLocaleString()} - ${d.total_orders} orders</h3><table><tr><th>ID</th><th>Buyer</th><th>Total</th></tr>${d.orders.map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td>UGX ${o.my_total}</td></tr>`).join('')||'No sales'}</table>`;});}
 function delProd(id){if(!confirm('Delete '+id+'?'))return;fetch('/api/delete-product/'+id,{method:'DELETE'}).then(()=>loadData());}
 if(localStorage.getItem('sannlas_admin')==='ok')showAdmin();
 </script>
