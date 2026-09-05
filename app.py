@@ -446,11 +446,35 @@ def list_shops():
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     shops = load_db('shops.json', [])
-    shop = next((s for s in shops if s.get('shop_slug')==slug), None)
-    if not shop: return jsonify({'success':False,'message':'Shop not found'}),404
     products = load_db('products.json', [])
+    # Try find in shops.json
+    shop = next((s for s in shops if s.get('shop_slug')==slug or s.get('slug')==slug), None)
+    if shop:
+        shop_products = [p for p in products if p.get('shop_slug')==slug or p.get('shop_slug')==shop.get('shop_slug')]
+        shop['total_products'] = len(shop_products)
+        shop['product_count'] = len(shop_products)
+        shop['name'] = shop.get('business_name') or shop.get('name') or 'Shop'
+        shop['slug'] = shop.get('shop_slug') or slug
+        return jsonify({'success':True,'shop':shop,'products':shop_products})
+    # FALLBACK: virtual shop from products
     shop_products = [p for p in products if p.get('shop_slug')==slug]
-    return jsonify({'success':True,'shop':shop,'products':shop_products})
+    if shop_products:
+        sample = shop_products[0]
+        virtual_shop = {
+            "business_name": sample.get('business') or "Shop",
+            "name": sample.get('business') or "Shop",
+            "business": sample.get('business') or "Shop",
+            "shop_slug": slug,
+            "slug": slug,
+            "location": sample.get('location') or "Uganda",
+            "owner_email": sample.get('seller_email') or "",
+            "phone": sample.get('phone') or "",
+            "total_products": len(shop_products),
+            "product_count": len(shop_products),
+            "description": "Welcome to " + (sample.get('business') or "Shop") + " shop!"
+        }
+        return jsonify({'success':True,'shop':virtual_shop,'products':shop_products})
+    return jsonify({'success':False,'message':'Shop not found'}),404
 
 @app.route('/api/my-products')
 def my_products():
