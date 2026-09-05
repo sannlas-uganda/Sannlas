@@ -454,10 +454,20 @@ def get_shop_by_slug(slug):
 
 @app.route('/api/my-products')
 def my_products():
-    phone=request.args.get('phone'); email=request.args.get('email','').lower(); products=load_db('products.json', [])
-    if phone: products=[p for p in products if p.get('phone')==phone]
-    if email: products=[p for p in products if p.get('seller_email')==email]
-    return jsonify(products)
+    phone=request.args.get('phone','').strip()
+    email=request.args.get('email','').lower().strip()
+    products=load_db('products.json', [])
+    result=[]
+    for p in products:
+        p_email = (p.get('seller_email') or '').lower()
+        p_phone = p.get('phone') or ''
+        if email and p_email == email:
+            result.append(p)
+        elif phone and p_phone == phone:
+            result.append(p)
+        elif not email and not phone:
+            result.append(p)
+    return jsonify(result)
 
 @app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
 def delete_prod(pid):
