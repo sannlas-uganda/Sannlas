@@ -152,21 +152,61 @@ def get_coin_config():
     return cfg
 def save_coin_config(cfg): save_db('coin_config.json', cfg)
 
+# ===== FIXED SLUG LOGIC - NO RANDOM =====
 def make_shop_slug(business):
-    base = re.sub(r'[^a-z0-9]+', '-', (business or 'shop').lower()).strip('-')
-    if not base: base='shop'
-    return base + '-' + uuid.uuid4().hex[:4]
+    if not business:
+        return 'shop'
+    base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
+    if not base:
+        base = 'shop'
+    return base[:50]
+
+def get_biz_key(name):
+    if not name:
+        return ''
+    return re.sub(r'[^a-z0-9]+', '', name.lower())
 
 def ensure_shop_for_user(user):
     shops = load_db('shops.json', [])
-    biz = user.get('business','')
-    existing = next((s for s in shops if s.get('user_id')==user.get('id') or s.get('business_name')==biz), None)
-    if existing: return existing
+    biz = (user.get('business') or '').strip()
+    if not biz:
+        biz = 'Shop'
+    biz_key = get_biz_key(biz)
     slug = make_shop_slug(biz)
-    while any(s.get('shop_slug')==slug for s in shops):
-        slug = make_shop_slug(biz)
-    shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"shop_slug": slug,"phone": user.get('phone',''),"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"created_at": time.time()}
-    shops.append(shop); save_db('shops.json', shops); return shop
+    email = (user.get('email') or '').lower()
+    for s in shops:
+        s_biz = s.get('business_name') or s.get('name') or ''
+        if get_biz_key(s_biz) == biz_key and biz_key:
+            s['shop_slug'] = slug
+            s['slug'] = slug
+            s['business_name'] = biz
+            s['name'] = biz
+            if email:
+                s['owner_email'] = email
+            if user.get('phone'):
+                s['phone'] = user.get('phone')
+            save_db('shops.json', shops)
+            return s
+    existing = next((s for s in shops if (s.get('shop_slug')==slug or s.get('slug')==slug)), None)
+    if existing:
+        existing['business_name'] = biz
+        existing['name'] = biz
+        existing['shop_slug'] = slug
+        existing['slug'] = slug
+        save_db('shops.json', shops)
+        return existing
+    existing2 = next((s for s in shops if s.get('user_id')==user.get('id')), None)
+    if existing2:
+        existing2['business_name'] = biz
+        existing2['name'] = biz
+        existing2['shop_slug'] = slug
+        existing2['slug'] = slug
+        save_db('shops.json', shops)
+        return existing2
+    shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"name": biz,"shop_slug": slug,"slug": slug,"phone": user.get('phone',''),"owner_email": email,"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"product_count": 0,"created_at": time.time()}
+    shops.append(shop)
+    save_db('shops.json', shops)
+    return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
@@ -198,7 +238,6 @@ def coins_balance():
     if not u: return jsonify({'success':False,'coins':0})
     return jsonify({'success':True,'coins': u.get('coins',0)})
 
-# FIXED - PENDING ONLY! NO INSTANT COINS
 @app.route('/api/coins/buy', methods=['POST'])
 def coins_buy():
     data=request.json
@@ -214,14 +253,11 @@ def coins_buy():
         return jsonify({'success':False,'message':f'{momo_code} already used!'}),400
     cfg = get_coin_config()
     if cfg['remaining'] < pack['coins']: return jsonify({'success':False,'message':'Coins finished!'}),400
-    # CREATE PENDING ONLY - NO COINS GIVEN YET!
     new_tx = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'pack': pack_id, 'coins': pack['coins'], 'price': pack['price'], 'momo_code': momo_code, 'momo_phone': momo_phone, 'time': time.time(), 'status': 'pending'}
     txs.append(new_tx); save_db('coin_transactions.json', txs)
-    # RESERVE coins from pool but DON'T give to user yet
     cfg['remaining'] -= pack['coins']; cfg['sold'] += pack['coins']; save_coin_config(cfg)
-    return jsonify({'success':True,'message':'Pending verification by owner! Coins will be added after owner checks MoMo','coins': 0, 'config': cfg, 'pending': True})
+    return jsonify({'success':True,'message':'Pending verification by owner!','coins': 0, 'config': cfg, 'pending': True})
 
-# FIXED - VERIFY GIVES COINS, BLOCK DELETES PRODUCTS!
 @app.route('/api/coins/verify', methods=['POST'])
 def coins_verify():
     data=request.json; trans_id=data.get('momo_code','').strip().upper(); action=data.get('action','verify')
@@ -233,29 +269,20 @@ def coins_verify():
             break
     if not target_tx:
         return jsonify({'success':False,'message':'Transaction not found'}),404
-
     if action=='block_fake':
-        # BLOCK FAKE - return coins to pool + remove from user if already given + DELETE PRODUCTS
         if target_tx.get('status')!= 'blocked_fake':
-            # If was pending (new system), coins were reserved but not given - return to pool
-            # If was old system where coins already given, also remove from user
             cfg['remaining'] += target_tx.get('coins',0)
             cfg['sold'] = max(0, cfg.get('sold',0) - target_tx.get('coins',0))
-            # Remove coins from user (in case old transactions gave instantly)
             for u in users:
                 if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
                     u['coins'] = max(0, u.get('coins',0) - target_tx.get('coins',0))
             target_tx['status']='blocked_fake'
-            # AUTO-DELETE PRODUCTS from this fake buyer
             try:
                 products = load_db('products.json', [])
                 fake_email = target_tx.get('email','').lower()
                 fake_phone = target_tx.get('phone','')
-                original_count = len(products)
                 products = [p for p in products if not (p.get('seller_email','').lower()==fake_email or p.get('phone','')==fake_phone)]
-                deleted = original_count - len(products)
                 if DATABASE_URL:
-                    # Delete from postgres
                     ensure_tables(); conn=get_conn(); cur=conn.cursor()
                     cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
                     for row in rows:
@@ -266,31 +293,21 @@ def coins_verify():
                     conn.commit(); cur.close(); conn.close()
                 else:
                     save_db('products.json', products)
-                # Reset shop product count
                 shops = load_db('shops.json', [])
                 for s in shops:
-                    if s.get('phone','')==fake_phone or s.get('business_name','').lower() in fake_email:
+                    if s.get('phone','')==fake_phone:
                         s['total_products']=0
                 save_db('shops.json', shops)
-                print(f"Blocked fake {trans_id} - deleted {deleted} products")
             except Exception as e:
                 print("Delete fake products error:", e)
     else:
-        # VERIFY - GIVE COINS NOW!
         if target_tx.get('status')!= 'verified_by_owner':
             target_tx['status']='verified_by_owner'
-            # NOW give coins to user
-            found=False
             for u in users:
                 if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
                     u['coins'] = u.get('coins',0) + target_tx.get('coins',0)
-                    found=True
-            if not found:
-                # User not found but keep transaction verified
-                pass
-
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
-    return jsonify({'success':True, 'action': action, 'deleted_products': True if action=='block_fake' else False})
+    return jsonify({'success':True, 'action': action})
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -321,10 +338,22 @@ def login():
 def get_products():
     q = request.args.get('q','').lower()
     shop_slug = request.args.get('shop') or request.args.get('shop_slug')
-    products=load_db('products.json', []);
+    products=load_db('products.json', [])
     filtered=products
     if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower()]
-    if shop_slug: filtered=[p for p in filtered if p.get('shop_slug')==shop_slug]
+    if shop_slug:
+        sf = shop_slug.strip()
+        exact = [p for p in filtered if p.get('shop_slug')==sf]
+        if exact:
+            filtered = exact
+        else:
+            sf_key = get_biz_key(sf.replace('-',' '))
+            fallback = []
+            for p in filtered:
+                pb = p.get('business') or ''
+                if get_biz_key(pb) == sf_key or make_shop_slug(pb) == sf:
+                    fallback.append(p)
+            filtered = fallback
     filtered=sorted(filtered,key=lambda x:x.get('created',0),reverse=True)
     public=[]
     for p in filtered:
@@ -378,11 +407,7 @@ def list_shops():
         slug = p.get('shop_slug')
         if slug:
             counts[slug] = counts.get(slug, 0) + 1
-
-    # Map existing shops
     shop_map = {s.get('shop_slug'): s for s in shops if s.get('shop_slug')}
-
-    # Update counts for existing shops
     for s in shops:
         slug = s.get('shop_slug')
         cnt = counts.get(slug, 0)
@@ -393,8 +418,6 @@ def list_shops():
         s['shop_slug'] = slug
         if not s.get('location'):
             s['location'] = 'Uganda'
-
-    # Add virtual shops for slugs not in shops.json (this fixes No Shops Yet)
     for slug, cnt in counts.items():
         if slug not in shop_map:
             sample = next((p for p in products if p.get('shop_slug') == slug), None)
@@ -411,8 +434,6 @@ def list_shops():
                     "total_products": cnt,
                     "product_count": cnt
                 })
-
-    # Handle products without shop_slug - group by business name
     no_slug = [p for p in products if not p.get('shop_slug')]
     if no_slug:
         from collections import defaultdict
@@ -423,7 +444,6 @@ def list_shops():
         for biz, plist in biz_groups.items():
             exists = any((s.get('business_name') == biz or s.get('name') == biz) for s in shops)
             if not exists and biz:
-                sample = plist[0]
                 slug = make_shop_slug(biz)
                 shops.append({
                     "business_name": biz,
@@ -431,14 +451,12 @@ def list_shops():
                     "business": biz,
                     "shop_slug": slug,
                     "slug": slug,
-                    "location": sample.get('location') or "Uganda",
-                    "owner_email": sample.get('seller_email') or "",
-                    "phone": sample.get('phone') or "",
+                    "location": plist[0].get('location') or "Uganda",
+                    "owner_email": plist[0].get('seller_email') or "",
+                    "phone": plist[0].get('phone') or "",
                     "total_products": len(plist),
                     "product_count": len(plist)
                 })
-
-    # Hide 0 products shops - show exact count
     filtered = [s for s in shops if (s.get('total_products', 0) > 0 or s.get('product_count', 0) > 0)]
     filtered = sorted(filtered, key=lambda x: x.get('total_products', 0), reverse=True)
     return jsonify(filtered)
@@ -447,17 +465,21 @@ def list_shops():
 def get_shop_by_slug(slug):
     shops = load_db('shops.json', [])
     products = load_db('products.json', [])
-    # Try find in shops.json
     shop = next((s for s in shops if s.get('shop_slug')==slug or s.get('slug')==slug), None)
     if shop:
         shop_products = [p for p in products if p.get('shop_slug')==slug or p.get('shop_slug')==shop.get('shop_slug')]
+        if not shop_products:
+            bk = get_biz_key(shop.get('business_name') or '')
+            shop_products = [p for p in products if get_biz_key(p.get('business') or '')==bk]
         shop['total_products'] = len(shop_products)
         shop['product_count'] = len(shop_products)
         shop['name'] = shop.get('business_name') or shop.get('name') or 'Shop'
         shop['slug'] = shop.get('shop_slug') or slug
         return jsonify({'success':True,'shop':shop,'products':shop_products})
-    # FALLBACK: virtual shop from products
     shop_products = [p for p in products if p.get('shop_slug')==slug]
+    if not shop_products:
+        bk = get_biz_key(slug.replace('-',' '))
+        shop_products = [p for p in products if get_biz_key(p.get('business') or '')==bk or make_shop_slug(p.get('business') or '')==slug]
     if shop_products:
         sample = shop_products[0]
         virtual_shop = {
@@ -508,6 +530,43 @@ def delete_prod(pid):
         products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
     return jsonify({'success':True})
 
+@app.route('/api/fix-slugs')
+def fix_slugs():
+    products = load_db('products.json', [])
+    fixed = 0
+    for p in products:
+        b = p.get('business') or ''
+        if b:
+            new_slug = make_shop_slug(b)
+            if p.get('shop_slug')!= new_slug:
+                p['shop_slug'] = new_slug
+                fixed += 1
+    save_db('products.json', products)
+    shops_map = {}
+    for p in products:
+        b = p.get('business') or 'Shop'
+        slug = p.get('shop_slug')
+        if slug not in shops_map:
+            shops_map[slug] = {
+                "business_name": b,
+                "name": b,
+                "business": b,
+                "shop_slug": slug,
+                "slug": slug,
+                "location": p.get('location') or "Uganda",
+                "owner_email": p.get('seller_email') or "",
+                "phone": p.get('phone') or "",
+                "total_products": 0,
+                "product_count": 0,
+                "description": f"Welcome to {b} shop!"
+            }
+    for s in shops_map.values():
+        cnt = sum(1 for p in products if p.get('shop_slug')==s['shop_slug'])
+        s['total_products']=cnt
+        s['product_count']=cnt
+    save_db('shops.json', list(shops_map.values()))
+    return jsonify({'success':True,'fixed_products':fixed,'total_shops':len(shops_map),'message':'Slugs fixed! Now use /shop/business-name. Delete this route after.'})
+
 @app.route('/api/admin/data')
 def admin_data():
     try:
@@ -526,10 +585,8 @@ def admin_data():
 
 @app.route('/api/admin/transactions')
 def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
-
 @app.route('/api/orders')
 def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
-
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
 
