@@ -105,12 +105,49 @@ async function showAllShops(){
 async function goToMyShop(){
   if(!currentUser){ showGate(); switchGate('login'); return; }
   try{
-    let r=await fetch('/api/shops');
-    let shops=await r.json();
-    let my=shops.find(s=>s.owner_email && currentUser.email && s.owner_email.toLowerCase()==currentUser.email.toLowerCase());
-    if(my){ location.href='/shop/'+my.slug; }
-    else{ alert('No shop yet Boss! Upload a product first - your shop will be auto-created!'); document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'}); }
-  }catch(e){ alert('Failed to find your shop'); }
+    let r = await fetch('/api/shops');
+    let shops = await r.json();
+    let myEmail = (currentUser.email||'').toLowerCase();
+    let myPhone = currentUser.phone||'';
+    let myBiz = (currentUser.business||'').toLowerCase();
+
+    // 3 ways to find your shop
+    let my = shops.find(s => s.owner_email && myEmail && s.owner_email.toLowerCase()==myEmail);
+    if(!my) my = shops.find(s => s.phone && myPhone && s.phone==myPhone);
+    if(!my) my = shops.find(s => (s.business_name||s.name||'').toLowerCase()==myBiz);
+
+    // Fallback: find by my products
+    if(!my){
+      let rp = await fetch(`/api/my-products?email=${encodeURIComponent(myEmail)}&phone=${encodeURIComponent(myPhone)}`);
+      let myProds = await rp.json();
+      if(myProds && myProds.length>0){
+        let slug = myProds[0].shop_slug;
+        my = shops.find(s => s.shop_slug==slug || s.slug==slug);
+        if(!my){
+          // product exists but shop not in list -> go directly
+          location.href='/shop/'+slug;
+          return;
+        }
+      }
+    }
+
+    if(my){
+      let slug = my.shop_slug || my.slug;
+      location.href='/shop/'+slug;
+    } else {
+      let count = 0;
+      try{
+        let rp = await fetch(`/api/my-products?email=${encodeURIComponent(myEmail)}&phone=${encodeURIComponent(myPhone)}`);
+        let pr = await rp.json();
+        count = pr.length;
+      }catch{}
+      alert('No shop yet Boss! You have '+count+' products. Upload a product first - shop auto-created! Your email: '+currentUser.email);
+      document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'});
+    }
+  }catch(e){
+    console.log(e);
+    alert('Failed to find your shop Boss');
+  }
 }
 setInterval(loadCoinLive,30000);
   function requireAuthForCoins(){
