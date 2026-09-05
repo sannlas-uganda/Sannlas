@@ -86,13 +86,15 @@ async function showAllShops(){
   try{
     let r=await fetch('/api/shops');
     let shops=await r.json();
+    // FIX: hide shops with 0 products and show exact count - auto updates when seller uploads
+    shops = shops.filter(s => (s.product_count||0) > 0);
     if(!shops || shops.length==0){
       document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><p>Be first to sell!</p><button aria-label="Close" onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
       return;
     }
     let html='<h2 style="color:#8B0000">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
     shops.forEach(s=>{
-      html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+(s.name||'Shop')+'</b><br><span style="font-size:11px">📍 '+(s.location||'Uganda')+' | 📦 '+(s.product_count||0)+' products</span></div><a href="/shop/'+s.slug+'" style="text-decoration:none"><button aria-label="Visit shop" style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>';
+      html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+(s.name||'Shop')+'</b><br><span style="font-size:11px">📍 '+(s.location||'Uganda')+' | 📦 '+(s.product_count)+' products</span></div><a href="/shop/'+s.slug+'" style="text-decoration:none"><button aria-label="Visit shop" style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>';
     });
     html+='</div><button aria-label="Close" onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:15px">Close</button>';
     document.getElementById('shopsContent').innerHTML=html;
