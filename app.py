@@ -372,15 +372,76 @@ def sell():
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
-    try:
-        products = load_db('products.json', [])
-        counts={}
-        for p in products:
-            slug=p.get('shop_slug')
-            if slug: counts[slug]=counts.get(slug,0)+1
-        for s in shops: s['total_products']=counts.get(s.get('shop_slug'),0)
-    except: pass
-    return jsonify(sorted(shops, key=lambda x: x.get('total_products',0), reverse=True))
+    products = load_db('products.json', [])
+    counts = {}
+    for p in products:
+        slug = p.get('shop_slug')
+        if slug:
+            counts[slug] = counts.get(slug, 0) + 1
+
+    # Map existing shops
+    shop_map = {s.get('shop_slug'): s for s in shops if s.get('shop_slug')}
+
+    # Update counts for existing shops
+    for s in shops:
+        slug = s.get('shop_slug')
+        cnt = counts.get(slug, 0)
+        s['total_products'] = cnt
+        s['product_count'] = cnt
+        s['name'] = s.get('business_name') or s.get('business') or s.get('name') or 'Shop'
+        s['slug'] = slug
+        s['shop_slug'] = slug
+        if not s.get('location'):
+            s['location'] = 'Uganda'
+
+    # Add virtual shops for slugs not in shops.json (this fixes No Shops Yet)
+    for slug, cnt in counts.items():
+        if slug not in shop_map:
+            sample = next((p for p in products if p.get('shop_slug') == slug), None)
+            if sample:
+                shops.append({
+                    "business_name": sample.get('business') or "Shop",
+                    "name": sample.get('business') or "Shop",
+                    "business": sample.get('business') or "Shop",
+                    "shop_slug": slug,
+                    "slug": slug,
+                    "location": sample.get('location') or "Uganda",
+                    "owner_email": sample.get('seller_email') or "",
+                    "phone": sample.get('phone') or "",
+                    "total_products": cnt,
+                    "product_count": cnt
+                })
+
+    # Handle products without shop_slug - group by business name
+    no_slug = [p for p in products if not p.get('shop_slug')]
+    if no_slug:
+        from collections import defaultdict
+        biz_groups = defaultdict(list)
+        for p in no_slug:
+            key = (p.get('business') or p.get('seller_email') or 'Shop').strip()
+            biz_groups[key].append(p)
+        for biz, plist in biz_groups.items():
+            exists = any((s.get('business_name') == biz or s.get('name') == biz) for s in shops)
+            if not exists and biz:
+                sample = plist[0]
+                slug = make_shop_slug(biz)
+                shops.append({
+                    "business_name": biz,
+                    "name": biz,
+                    "business": biz,
+                    "shop_slug": slug,
+                    "slug": slug,
+                    "location": sample.get('location') or "Uganda",
+                    "owner_email": sample.get('seller_email') or "",
+                    "phone": sample.get('phone') or "",
+                    "total_products": len(plist),
+                    "product_count": len(plist)
+                })
+
+    # Hide 0 products shops - show exact count
+    filtered = [s for s in shops if (s.get('total_products', 0) > 0 or s.get('product_count', 0) > 0)]
+    filtered = sorted(filtered, key=lambda x: x.get('total_products', 0), reverse=True)
+    return jsonify(filtered)
 
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
