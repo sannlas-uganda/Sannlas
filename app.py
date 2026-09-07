@@ -398,7 +398,7 @@ def get_shop_by_slug(slug):
         }
         return jsonify({'success':True,'shop':virtual_shop,'products':shop_products})
     return jsonify({'success':False,'message':'Shop not found'}),404
-    @app.route('/api/my-products')
+@app.route('/api/my-products')
 def my_products():
     phone=request.args.get('phone','').strip()
     email=request.args.get('email','').lower().strip()
