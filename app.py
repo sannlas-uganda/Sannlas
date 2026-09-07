@@ -478,7 +478,7 @@ def sales_summary():
     pending_withdraw = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='pending')
     balance = total_sales - withdrawn - pending_withdraw
     return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
-    @app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
