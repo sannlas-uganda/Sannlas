@@ -168,21 +168,25 @@ def get_billboard_config():
         save_db('billboard.json', cfg)
     return cfg
 def make_shop_slug(business):
-    if not business: return 'shop'
+    if not business:
+        return 'shop'
     import re
     base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
-    if not base: base = 'shop'
+    if not base:
+        base = 'shop'
     return base[:50]
 
 def get_biz_key(name):
-    if not name: return ''
+    if not name:
+        return ''
     import re
     return re.sub(r'[^a-z0-9]+', '', name.lower())
 
 def ensure_shop_for_user(user):
     shops = load_db('shops.json', [])
     biz = (user.get('business') or '').strip()
-    if not biz: biz = 'Shop'
+    if not biz:
+        biz = 'Shop'
     biz_key = get_biz_key(biz)
     slug = make_shop_slug(biz)
     email = (user.get('email') or '').lower()
@@ -193,8 +197,10 @@ def ensure_shop_for_user(user):
             s['slug'] = slug
             s['business_name'] = biz
             s['name'] = biz
-            if email: s['owner_email'] = email
-            if user.get('phone'): s['phone'] = user.get('phone')
+            if email:
+                s['owner_email'] = email
+            if user.get('phone'):
+                s['phone'] = user.get('phone')
             save_db('shops.json', shops)
             return s
     existing = next((s for s in shops if (s.get('shop_slug')==slug or s.get('slug')==slug)), None)
@@ -205,7 +211,24 @@ def ensure_shop_for_user(user):
         existing['slug'] = slug
         save_db('shops.json', shops)
         return existing
-    shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"name": biz,"shop_slug": slug,"slug": slug,"phone": user.get('phone',''),"owner_email": email,"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"product_count": 0,"created_at": time.time()}
+    shop = {
+        "id": int(time.time()*1000),
+        "user_id": user.get('id'),
+        "business_name": biz,
+        "name": biz,
+        "shop_slug": slug,
+        "slug": slug,
+        "phone": user.get('phone',''),
+        "owner_email": email,
+        "location": "Kampala",
+        "description": "Welcome to " + biz + " shop!",
+        "logo_url": "",
+        "banner_url": "",
+        "verified": False,
+        "total_products": 0,
+        "product_count": 0,
+        "created_at": time.time()
+    }
     shops.append(shop)
     save_db('shops.json', shops)
     return shop
