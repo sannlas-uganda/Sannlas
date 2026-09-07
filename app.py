@@ -35,7 +35,7 @@ def admin_required(f):
             return jsonify({'success': False, 'message': 'Admin login required'}), 401
         return redirect('/admin/login')
     return decorated
-    @app.after_request
+@app.after_request
 def clarity_headers(response):
     response.headers['X-Clarity'] = 'HD-Enabled'
     response.headers['Cache-Control'] = 'public, max-age=0'
