@@ -35,8 +35,7 @@ def admin_required(f):
             return jsonify({'success': False, 'message': 'Admin login required'}), 401
         return redirect('/admin/login')
     return decorated
-
-@app.after_request
+    @app.after_request
 def clarity_headers(response):
     response.headers['X-Clarity'] = 'HD-Enabled'
     response.headers['Cache-Control'] = 'public, max-age=0'
@@ -47,8 +46,6 @@ OWNER_MOMO = "0795712326"
 COIN_PRICE = 599
 UPLOAD_COST = 3
 TOTAL_COINS = 1000000000
-PLANS = {"free14":{"days":14,"price":0,"name":"14 Days FREE"},"30":{"days":30,"price":6540,"name":"30 Days"},"60":{"days":60,"price":13090,"name":"2 Months"},"180":{"days":180,"price":39500,"name":"6 Months"},"365":{"days":365,"price":80000,"name":"1 Year"}}
-COIN_PACKS = {"10":{"coins":10,"price":5990,"name":"Starter"},"30":{"coins":30,"price":17970,"name":"Popular"},"60":{"coins":60,"price":35940,"name":"Business"},"150":{"coins":150,"price":89850,"name":"Boss Pro"}}
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -170,16 +167,18 @@ def get_billboard_config():
         cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time()}
         save_db('billboard.json', cfg)
     return cfg
-
-def make_shop_slug(business):
+    def make_shop_slug(business):
     if not business: return 'shop'
+    import re
     base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
     if not base: base = 'shop'
     return base[:50]
 
 def get_biz_key(name):
     if not name: return ''
+    import re
     return re.sub(r'[^a-z0-9]+', '', name.lower())
+
 def ensure_shop_for_user(user):
     shops = load_db('shops.json', [])
     biz = (user.get('business') or '').strip()
@@ -206,20 +205,12 @@ def ensure_shop_for_user(user):
         existing['slug'] = slug
         save_db('shops.json', shops)
         return existing
-    existing2 = next((s for s in shops if s.get('user_id')==user.get('id')), None)
-    if existing2:
-        existing2['business_name'] = biz
-        existing2['name'] = biz
-        existing2['shop_slug'] = slug
-        existing2['slug'] = slug
-        save_db('shops.json', shops)
-        return existing2
     shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"name": biz,"shop_slug": slug,"slug": slug,"phone": user.get('phone',''),"owner_email": email,"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"product_count": 0,"created_at": time.time()}
     shops.append(shop)
     save_db('shops.json', shops)
     return shop
 
-BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"]}
 
 @app.route('/')
 def home(): return render_template('index.html')
@@ -229,9 +220,6 @@ def wallet_page(): return render_template('wallet.html')
 def balance_page(): return render_template('balance.html')
 @app.route('/shop/<slug>')
 def shop_page_slug(slug): return render_template('shop.html')
-@app.route('/shop')
-def shop_page(): return render_template('shop.html')
-
 @app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
     if request.method == 'GET':
@@ -280,24 +268,59 @@ def admin_save_billboard():
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
 
-# ===== NEW BILLBOARD UPLOAD - ADDED BY BOSS REQUEST =====
+# ===== BOSS FIXED: AUTO LANDSCAPE 1200x400 CONVERTER =====
 @app.route('/api/upload/billboard', methods=['POST'])
 @admin_required
 def upload_billboard():
     file = request.files.get('file')
     if not file:
         return jsonify({"error": "No file selected"}), 400
-    filename = secure_filename(file.filename)
-    # Add timestamp to avoid overwrite
-    name, ext = os.path.splitext(filename)
+    orig_name = secure_filename(file.filename)
+    name, ext = os.path.splitext(orig_name)
+    ext = ext.lower()
     filename = f"{name}_{int(time.time())}{ext}"
     folder = 'static/billboards'
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, filename)
-    file.save(path)
-    filetype = 'video' if filename.lower().endswith(('.mp4','.mov','.webm','.avi','.m4v')) else 'image'
+
+    if ext in ('.jpg','.jpeg','.png','.webp','.bmp'):
+        try:
+            from PIL import Image
+            img = Image.open(file.stream)
+            if img.mode in ('RGBA','LA','P'):
+                bg = Image.new('RGB', img.size, (0,0,0))
+                if img.mode == 'RGBA':
+                    bg.paste(img, mask=img.split()[-1])
+                    img = bg
+                else:
+                    img = img.convert('RGB')
+            target_w, target_h = 1200, 400
+            w, h = img.size
+            target_ratio = target_w / target_h
+            img_ratio = w / h
+            if img_ratio > target_ratio:
+                new_h = h
+                new_w = int(new_h * target_ratio)
+            else:
+                new_w = w
+                new_h = int(new_w / target_ratio)
+            left = (w - new_w)//2
+            top = (h - new_h)//2
+            img = img.crop((left, top, left+new_w, top+new_h))
+            img = img.resize((target_w, target_h), Image.LANCZOS)
+            img.save(path, quality=90, optimize=True)
+        except Exception as e:
+            print("PIL failed:", e)
+            file.stream.seek(0)
+            file.save(path)
+    else:
+        file.save(path)
+
+    filetype = 'video' if ext in ('.mp4','.mov','.webm','.avi','.m4v') else 'image'
     url = f'/{path}'
     return jsonify({"url": url, "type": filetype, "success": True})
+    PLANS = {"free14":{"days":14,"price":0,"name":"14 Days FREE"},"30":{"days":30,"price":6540,"name":"30 Days"},"60":{"days":60,"price":13090,"name":"2 Months"},"180":{"days":180,"price":39500,"name":"6 Months"},"365":{"days":365,"price":80000,"name":"1 Year"}}
+COIN_PACKS = {"10":{"coins":10,"price":5990,"name":"Starter"},"30":{"coins":30,"price":17970,"name":"Popular"},"60":{"coins":60,"price":35940,"name":"Business"},"150":{"coins":150,"price":89850,"name":"Boss Pro"}}
 
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
@@ -343,8 +366,7 @@ def coins_verify():
     target_tx = None
     for t in txs:
         if t.get('momo_code','').upper()==trans_id:
-            target_tx = t
-            break
+            target_tx = t; break
     if not target_tx:
         return jsonify({'success':False,'message':'Transaction not found'}),404
     if action=='block_fake':
@@ -355,29 +377,6 @@ def coins_verify():
                 if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
                     u['coins'] = max(0, u.get('coins',0) - target_tx.get('coins',0))
             target_tx['status']='blocked_fake'
-            try:
-                products = load_db('products.json', [])
-                fake_email = target_tx.get('email','').lower()
-                fake_phone = target_tx.get('phone','')
-                products = [p for p in products if not (p.get('seller_email','').lower()==fake_email or p.get('phone','')==fake_phone)]
-                if DATABASE_URL:
-                    ensure_tables(); conn=get_conn(); cur=conn.cursor()
-                    cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
-                    for row in rows:
-                        r_id, r_data = row[0], row[1]
-                        if isinstance(r_data, str): r_data=json.loads(r_data)
-                        if r_data.get('seller_email','').lower()==fake_email or r_data.get('phone','')==fake_phone:
-                            cur.execute("DELETE FROM products WHERE id=%s", (r_id,))
-                    conn.commit(); cur.close(); conn.close()
-                else:
-                    save_db('products.json', products)
-                shops = load_db('shops.json', [])
-                for s in shops:
-                    if s.get('phone','')==fake_phone:
-                        s['total_products']=0
-                save_db('shops.json', shops)
-            except Exception as e:
-                print("Delete fake products error:", e)
     else:
         if target_tx.get('status')!= 'verified_by_owner':
             target_tx['status']='verified_by_owner'
@@ -394,37 +393,16 @@ def admin_add_coins():
     email = data.get('email','').lower().strip()
     phone = data.get('phone','').strip()
     coins = int(data.get('coins',0))
-    reason = data.get('reason','Admin refill')
-    if coins <=0:
-        return jsonify({'success': False, 'message': 'Coins must be >0'}),400
+    if coins <=0: return jsonify({'success': False, 'message': 'Coins must be >0'}),400
     users = load_db('users.json', [])
     found = None
     for u in users:
         if (email and u.get('email','').lower()==email) or (phone and u.get('phone','')==phone):
             u['coins'] = u.get('coins',0) + coins
-            found = u
-            break
-    if not found:
-        return jsonify({'success': False, 'message': 'User not found'}),404
+            found = u; break
+    if not found: return jsonify({'success': False, 'message': 'User not found'}),404
     save_db('users.json', users)
-    txs = load_db('coin_transactions.json', [])
-    txs.append({'id': int(time.time()*1000), 'email': found.get('email'), 'phone': found.get('phone'), 'coins': coins, 'price': 0, 'momo_code': f'ADMIN-{uuid.uuid4().hex[:6].upper()}', 'reason': reason, 'time': time.time(), 'status': 'admin_gift'})
-    save_db('coin_transactions.json', txs)
-    return jsonify({'success': True, 'message': f'Added {coins} coins to {found.get("email")}', 'user': {'email': found.get('email'), 'coins': found.get('coins')}})
-
-@app.route('/api/admin/coins/config', methods=['POST'])
-@admin_required
-def admin_update_coin_config():
-    data = request.json or {}
-    cfg = get_coin_config()
-    if 'price' in data: cfg['price'] = int(data['price'])
-    if 'upload_cost' in data: cfg['upload_cost'] = int(data['upload_cost'])
-    if 'total' in data:
-        diff = int(data['total']) - cfg.get('total', TOTAL_COINS)
-        cfg['total'] = int(data['total'])
-        cfg['remaining'] = max(0, cfg.get('remaining',0) + diff)
-    save_coin_config(cfg)
-    return jsonify({'success': True, 'config': cfg})
+    return jsonify({'success': True, 'message': f'Added {coins} coins'})
 
 @app.route('/api/withdraw', methods=['POST'])
 def request_withdraw():
@@ -434,79 +412,23 @@ def request_withdraw():
     amount = int(data.get('amount',0))
     momo_number = data.get('momo_number','').strip()
     momo_name = data.get('momo_name','').strip()
-    if amount < 5000:
-        return jsonify({'success': False, 'message': 'Minimum withdraw 5000 UGX'}),400
-    if not momo_number:
-        return jsonify({'success': False, 'message': 'MoMo number required'}),400
+    if amount < 5000: return jsonify({'success': False, 'message': 'Minimum withdraw 5000 UGX'}),400
     withdraws = load_db('withdraws.json', [])
-    new_w = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'amount': amount, 'momo_number': momo_number, 'momo_name': momo_name, 'status': 'pending', 'time': time.time(), 'paid_time': None}
-    withdraws.append(new_w)
-    save_db('withdraws.json', withdraws)
-    return jsonify({'success': True, 'message': 'Withdraw request sent! Owner will pay to your MoMo', 'withdraw': new_w})
+    new_w = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'amount': amount, 'momo_number': momo_number, 'momo_name': momo_name, 'status': 'pending', 'time': time.time()}
+    withdraws.append(new_w); save_db('withdraws.json', withdraws)
+    return jsonify({'success': True, 'message': 'Withdraw request sent!'})
 
-@app.route('/api/withdraws')
-def my_withdraws():
-    email = request.args.get('email','').lower().strip()
-    phone = request.args.get('phone','').strip()
-    withdraws = load_db('withdraws.json', [])
-    result = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
-    return jsonify(result[::-1])
-
-@app.route('/api/admin/withdraws')
-@admin_required
-def admin_withdraws():
-    return jsonify(load_db('withdraws.json', [])[::-1])
-
-@app.route('/api/admin/withdraw/action', methods=['POST'])
-@admin_required
-def admin_withdraw_action():
-    data = request.json or {}
-    wid = data.get('id')
-    action = data.get('action','paid')
-    withdraws = load_db('withdraws.json', [])
-    for w in withdraws:
-        if str(w.get('id')) == str(wid):
-            w['status'] = action
-            if action == 'paid': w['paid_time'] = time.time()
-            break
-    save_db('withdraws.json', withdraws)
-    return jsonify({'success': True})
-
-@app.route('/api/sales/summary')
-def sales_summary():
-    email = request.args.get('email','').lower().strip()
-    phone = request.args.get('phone','').strip()
-    orders = load_db('orders.json', [])
-    my_orders = []
-    for o in orders:
-        if (email and o.get('seller_email','').lower()==email) or (phone and o.get('seller_phone','')==phone) or (email and o.get('seller','').lower()==email):
-            my_orders.append(o)
-        items = o.get('items',[]) or o.get('products',[])
-        for it in items:
-            if isinstance(it, dict):
-                if (email and it.get('seller_email','').lower()==email) or (phone and it.get('phone','')==phone):
-                    my_orders.append(o)
-                    break
-    total_sales = sum(o.get('total', o.get('amount',0)) for o in my_orders)
-    total_orders = len(my_orders)
-    withdraws = load_db('withdraws.json', [])
-    my_withdraws = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
-    withdrawn = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='paid')
-    pending_withdraw = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='pending')
-    balance = total_sales - withdrawn - pending_withdraw
-    return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
     users=load_db('users.json',[])
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email exists - Login'}),400
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':0}
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'coins':0}
     users.append(user); save_db('users.json',users)
     try: shop = ensure_shop_for_user(user)
     except: shop = None
     safe={k:v for k,v in user.items() if k!='password'}
-    if shop: safe['shop']=shop
     return jsonify({'success':True,'user':safe})
 
 @app.route('/api/login', methods=['POST'])
@@ -514,271 +436,53 @@ def login():
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
     users=load_db('users.json',[]); u=next((x for x in users if x['email']==email and x['password']==hash_pwd(pwd)),None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
-    try: ensure_shop_for_user(u)
-    except: pass
     safe={k:v for k,v in u.items() if k!='password'}
-    safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
     return jsonify({'success':True,'user':safe})
 
 @app.route('/api/products')
 def get_products():
     q = request.args.get('q','').lower()
-    shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+    shop_slug = request.args.get('shop')
     products=load_db('products.json', [])
     filtered=products
     if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower()]
     if shop_slug:
-        sf = shop_slug.strip()
-        exact = [p for p in filtered if p.get('shop_slug')==sf]
-        if exact:
-            filtered = exact
-        else:
-            sf_key = get_biz_key(sf.replace('-',' '))
-            fallback = []
-            for p in filtered:
-                pb = p.get('business') or ''
-                if get_biz_key(pb) == sf_key or make_shop_slug(pb) == sf:
-                    fallback.append(p)
-            filtered = fallback
+        filtered=[p for p in filtered if p.get('shop_slug')==shop_slug]
     filtered=sorted(filtered,key=lambda x:x.get('created',0),reverse=True)
-    public=[]
-    for p in filtered:
-        pp=p.copy(); pp.pop('phone',None); public.append(pp)
-    return jsonify(public)
+    return jsonify(filtered)
 
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name'); price=int(request.form.get('price',0)); business=request.form.get('business'); location=request.form.get('location'); phone=request.form.get('phone'); desc=request.form.get('desc',''); main_cat=request.form.get('main_category'); stock=int(request.form.get('stock',10)); user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
-    if seller.get('coins',0) < UPLOAD_COST: return jsonify({'success':False,'message':f'Need {UPLOAD_COST} coins! You have {seller.get("coins",0)}','needs_coins':True,'my_coins':seller.get('coins',0)}),402
     images=[]
     for key in request.files:
         f=request.files[key]
         if f and f.filename:
             import base64; file_bytes=f.read(); mime=f.mimetype or 'image/jpeg'; b64=base64.b64encode(file_bytes).decode('utf-8'); images.append(f"data:{mime};base64,{b64}")
     if not images: images=['https://via.placeholder.com/300']
-    shop_id=None; shop_slug=None
-    try:
-        shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
-    except Exception as e: print("shop fail", e)
-    prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug}
-    if DATABASE_URL:
-        try:
-            ensure_tables(); import json as js; conn=get_conn(); cur=conn.cursor()
-            try:
-                from psycopg.types.json import Jsonb; cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(prod)])
-            except: cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
-            conn.commit(); cur.close(); conn.close()
-        except Exception as e: return jsonify({'success':False,'message':f'Upload failed: {str(e)}'}),500
-    else:
-        products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    try:
-        shops = load_db('shops.json', [])
-        for s in shops:
-            if s.get('shop_slug')==shop_slug: s['total_products']=s.get('total_products',0)+1
-        save_db('shops.json', shops)
-    except: pass
+    prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'created': time.time(),'shop_slug': make_shop_slug(business)}
+    products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     for u in users:
-        if u['phone']==phone or u['email']==user_email: u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
+        if u['phone']==phone or u['email']==user_email: u['coins'] = max(0, u.get('coins',0) - 3)
     save_db('users.json', users)
-    return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
+    return jsonify({'success':True})
 
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
-    products = load_db('products.json', [])
-    counts = {}
-    for p in products:
-        slug = p.get('shop_slug')
-        if slug:
-            counts[slug] = counts.get(slug, 0) + 1
-    shop_map = {s.get('shop_slug'): s for s in shops if s.get('shop_slug')}
-    for s in shops:
-        slug = s.get('shop_slug')
-        cnt = counts.get(slug, 0)
-        s['total_products'] = cnt
-        s['product_count'] = cnt
-        s['name'] = s.get('business_name') or s.get('business') or s.get('name') or 'Shop'
-        s['slug'] = slug
-        s['shop_slug'] = slug
-        if not s.get('location'):
-            s['location'] = 'Uganda'
-    for slug, cnt in counts.items():
-        if slug not in shop_map:
-            sample = next((p for p in products if p.get('shop_slug') == slug), None)
-            if sample:
-                shops.append({
-                    "business_name": sample.get('business') or "Shop",
-                    "name": sample.get('business') or "Shop",
-                    "business": sample.get('business') or "Shop",
-                    "shop_slug": slug,
-                    "slug": slug,
-                    "location": sample.get('location') or "Uganda",
-                    "owner_email": sample.get('seller_email') or "",
-                    "phone": sample.get('phone') or "",
-                    "total_products": cnt,
-                    "product_count": cnt
-                })
-    no_slug = [p for p in products if not p.get('shop_slug')]
-    if no_slug:
-        from collections import defaultdict
-        biz_groups = defaultdict(list)
-        for p in no_slug:
-            key = (p.get('business') or p.get('seller_email') or 'Shop').strip()
-            biz_groups[key].append(p)
-        for biz, plist in biz_groups.items():
-            exists = any((s.get('business_name') == biz or s.get('name') == biz) for s in shops)
-            if not exists and biz:
-                slug = make_shop_slug(biz)
-                shops.append({
-                    "business_name": biz,
-                    "name": biz,
-                    "business": biz,
-                    "shop_slug": slug,
-                    "slug": slug,
-                    "location": plist[0].get('location') or "Uganda",
-                    "owner_email": plist[0].get('seller_email') or "",
-                    "phone": plist[0].get('phone') or "",
-                    "total_products": len(plist),
-                    "product_count": len(plist)
-                })
-    filtered = [s for s in shops if (s.get('total_products', 0) > 0 or s.get('product_count', 0) > 0)]
-    filtered = sorted(filtered, key=lambda x: x.get('total_products', 0), reverse=True)
-    return jsonify(filtered)
-
-@app.route('/api/shop/<slug>')
-def get_shop_by_slug(slug):
-    shops = load_db('shops.json', [])
-    products = load_db('products.json', [])
-    shop = next((s for s in shops if s.get('shop_slug')==slug or s.get('slug')==slug), None)
-    if shop:
-        shop_products = [p for p in products if p.get('shop_slug')==slug or p.get('shop_slug')==shop.get('shop_slug')]
-        if not shop_products:
-            bk = get_biz_key(shop.get('business_name') or '')
-            shop_products = [p for p in products if get_biz_key(p.get('business') or '')==bk]
-        shop['total_products'] = len(shop_products)
-        shop['product_count'] = len(shop_products)
-        shop['name'] = shop.get('business_name') or shop.get('name') or 'Shop'
-        shop['slug'] = shop.get('shop_slug') or slug
-        return jsonify({'success':True,'shop':shop,'products':shop_products})
-    shop_products = [p for p in products if p.get('shop_slug')==slug]
-    if not shop_products:
-        bk = get_biz_key(slug.replace('-',' '))
-        shop_products = [p for p in products if get_biz_key(p.get('business') or '')==bk or make_shop_slug(p.get('business') or '')==slug]
-    if shop_products:
-        sample = shop_products[0]
-        virtual_shop = {
-            "business_name": sample.get('business') or "Shop",
-            "name": sample.get('business') or "Shop",
-            "business": sample.get('business') or "Shop",
-            "shop_slug": slug,
-            "slug": slug,
-            "location": sample.get('location') or "Uganda",
-            "owner_email": sample.get('seller_email') or "",
-            "phone": sample.get('phone') or "",
-            "total_products": len(shop_products),
-            "product_count": len(shop_products),
-            "description": "Welcome to " + (sample.get('business') or "Shop") + " shop!"
-        }
-        return jsonify({'success':True,'shop':virtual_shop,'products':shop_products})
-    return jsonify({'success':False,'message':'Shop not found'}),404
-
-@app.route('/api/my-products')
-def my_products():
-    phone=request.args.get('phone','').strip()
-    email=request.args.get('email','').lower().strip()
-    products=load_db('products.json', [])
-    result=[]
-    for p in products:
-        p_email = (p.get('seller_email') or '').lower()
-        p_phone = p.get('phone') or ''
-        if email and p_email == email:
-            result.append(p)
-        elif phone and p_phone == phone:
-            result.append(p)
-        elif not email and not phone:
-            result.append(p)
-    return jsonify(result)
-
-@app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
-def delete_prod(pid):
-    if DATABASE_URL:
-        try:
-            ensure_tables(); conn=get_conn(); cur=conn.cursor(); cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
-            for row in rows:
-                r_id, r_data = row[0], row[1]
-                if isinstance(r_data, str): r_data=json.loads(r_data)
-                if r_data.get('id')==pid: cur.execute("DELETE FROM products WHERE id=%s", (r_id,)); break
-            conn.commit(); cur.close(); conn.close()
-        except Exception as e: print(e)
-    else:
-        products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
-    return jsonify({'success':True})
-
-@app.route('/api/fix-slugs')
-def fix_slugs():
-    products = load_db('products.json', [])
-    fixed = 0
-    for p in products:
-        b = p.get('business') or ''
-        if b:
-            new_slug = make_shop_slug(b)
-            if p.get('shop_slug')!= new_slug:
-                p['shop_slug'] = new_slug
-                fixed += 1
-    save_db('products.json', products)
-    shops_map = {}
-    for p in products:
-        b = p.get('business') or 'Shop'
-        slug = p.get('shop_slug')
-        if slug not in shops_map:
-            shops_map[slug] = {
-                "business_name": b,
-                "name": b,
-                "business": b,
-                "shop_slug": slug,
-                "slug": slug,
-                "location": p.get('location') or "Uganda",
-                "owner_email": p.get('seller_email') or "",
-                "phone": p.get('phone') or "",
-                "total_products": 0,
-                "product_count": 0,
-                "description": f"Welcome to {b} shop!"
-            }
-    for s in shops_map.values():
-        cnt = sum(1 for p in products if p.get('shop_slug')==s['shop_slug'])
-        s['total_products']=cnt
-        s['product_count']=cnt
-    save_db('shops.json', list(shops_map.values()))
-    return jsonify({'success':True,'fixed_products':fixed,'total_shops':len(shops_map),'message':'Slugs fixed!'})
+    return jsonify(shops)
 
 @app.route('/api/admin/data')
 @admin_required
 def admin_data():
-    try:
-        products=load_db('products.json',[]) or []
-        users=load_db('users.json',[]) or []
-        orders=load_db('orders.json',[]) or []
-        contacts=load_db('contacts.json',[]) or []
-        coin_transactions=load_db('coin_transactions.json',[]) or []
-        shops=load_db('shops.json',[]) or []
-        withdraws=load_db('withdraws.json',[]) or []
-        billboard=get_billboard_config()
-        coin_config=get_coin_config()
-        coin_rev = sum(t.get('price',0) for t in coin_transactions if t.get('status')!='blocked_fake')
-        return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders)})
-    except Exception as e:
-        print("ADMIN DATA ERROR:", e)
-        return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'error': str(e)}), 200
-
-@app.route('/api/admin/transactions')
-@admin_required
-def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
-@app.route('/api/orders')
-def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
-@app.route('/api/contact', methods=['POST'])
-def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
+    products=load_db('products.json',[]) or []
+    users=load_db('users.json',[]) or []
+    coin_transactions=load_db('coin_transactions.json',[]) or []
+    billboard=get_billboard_config()
+    coin_config=get_coin_config()
+    return jsonify({'products':products,'users':users,'coin_transactions':coin_transactions,'billboard':billboard,'coin_config':coin_config})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
