@@ -179,7 +179,7 @@ def make_shop_slug(business):
 def get_biz_key(name):
     if not name: return ''
     return re.sub(r'[^a-z0-9]+', '', name.lower())
-    def ensure_shop_for_user(user):
+def ensure_shop_for_user(user):
     shops = load_db('shops.json', [])
     biz = (user.get('business') or '').strip()
     if not biz: biz = 'Shop'
