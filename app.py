@@ -167,7 +167,7 @@ def get_billboard_config():
         cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time()}
         save_db('billboard.json', cfg)
     return cfg
-    def make_shop_slug(business):
+def make_shop_slug(business):
     if not business: return 'shop'
     import re
     base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
