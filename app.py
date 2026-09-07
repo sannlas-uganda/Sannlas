@@ -1,222 +1,490 @@
-import os, json, time, hashlib, re, random, string
-from flask import Flask, request, jsonify, session, render_template, redirect
+from flask import Flask, request, jsonify, render_template, Response, send_from_directory, session, redirect
+import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from werkzeug.utils import secure_filename
+from flask_talisman import Talisman
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_cors import CORS
+from functools import wraps
 
 app = Flask(__name__)
-CORS(app)
-app.secret_key = os.environ.get('SECRET_KEY', 'sannlas_secret_2024')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
-DATABASE_URL = os.environ.get('DATABASE_URL')
+app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+app.config['UPLOAD_FOLDER']='static/uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('data', exist_ok=True)
 
-def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
-def gen_slug(name): return re.sub(r'[^a-z0-9]+','-',(name or 'shop').lower()).strip('-')[:50] or 'shop'
-def make_shop_slug(biz): return gen_slug(biz)
-def get_biz_key(biz): return re.sub(r'[^a-z0-9]','',(biz or '').lower())
+Talisman(app, content_security_policy=None, force_https=False)
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
+CORS(app, origins=["https://sannlas.onrender.com"])
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
+
+PRODUCTS_CACHE = {"data": None, "time": 0}
+CACHE_TTL = 10
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get('is_admin'):
+            return f(*args, **kwargs)
+        if request.path.startswith('/api/admin'):
+            return jsonify({'success': False, 'message': 'Admin login required'}), 401
+        return redirect('/admin/login')
+    return decorated
+
+@app.after_request
+def clarity_headers(response):
+    response.headers['X-Clarity'] = 'HD-Enabled'
+    response.headers['Cache-Control'] = 'public, max-age=0'
+    return response
+
+OWNER_EMAIL = "natelieabigail@gmail.com"
+OWNER_MOMO = "0795712326"
+COIN_PRICE = 599
 UPLOAD_COST = 3
+TOTAL_COINS = 1000000000
+PLANS = {"free14":{"days":14,"price":0,"name":"14 Days FREE"},"30":{"days":30,"price":6540,"name":"30 Days"},"60":{"days":60,"price":13090,"name":"2 Months"},"180":{"days":180,"price":39500,"name":"6 Months"},"365":{"days":365,"price":80000,"name":"1 Year"}}
+COIN_PACKS = {"10":{"coins":10,"price":5990,"name":"Starter"},"30":{"coins":30,"price":17970,"name":"Popular"},"60":{"coins":60,"price":35940,"name":"Business"},"150":{"coins":150,"price":89850,"name":"Boss Pro"}}
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_conn():
-    import psycopg
-    return psycopg.connect(DATABASE_URL)
+    if not DATABASE_URL: raise Exception("No DATABASE_URL")
+    try:
+        import psycopg
+        return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+    except ImportError:
+        import psycopg2
+        return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
 
 def ensure_tables():
     if not DATABASE_URL: return
-    conn = get_conn(); cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS kv_store (k TEXT PRIMARY KEY, v TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB)")
-    cur.execute("CREATE TABLE IF NOT EXISTS shops (id SERIAL PRIMARY KEY, data JSONB)")
-    conn.commit(); cur.close(); conn.close()
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
+        cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e: print("ensure_tables:", e)
 
-def load_db(name, default):
+def load_db(file, default):
+    try:
+        if DATABASE_URL:
+            ensure_tables(); conn = get_conn()
+            try:
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                if file == 'products.json':
+                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                    result=[]
+                    for r in rows:
+                        d=r['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        result.append(d)
+                    return result
+                else:
+                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                    if not row: return default
+                    d=row['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
+                        except: pass
+                    return d
+            except:
+                try:
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    if file == 'products.json':
+                        cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                        result=[]
+                        for r in rows:
+                            d=r['data']
+                            if isinstance(d,str):
+                                try: d=json.loads(d)
+                                except: pass
+                            result.append(d)
+                        return result
+                    else:
+                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                        if not row: return default
+                        d=row['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        return d
+                except:
+                    try: conn.close()
+                    except: pass
+                    return default
+        else:
+            path=f'data/{file}'
+            if os.path.exists(path):
+                try: return json.load(open(path))
+                except: return default
+            return default
+    except: return default
+
+def save_db(file, data):
+    global PRODUCTS_CACHE
+    if file in ('products.json','users.json','shops.json'):
+        PRODUCTS_CACHE["data"] = None
     if DATABASE_URL:
         try:
-            ensure_tables(); conn=get_conn(); cur=conn.cursor()
-            if name=='shops.json': cur.execute("SELECT data FROM shops")
-            elif name=='products.json': cur.execute("SELECT data FROM products")
-            else:
-                cur.execute("SELECT v FROM kv_store WHERE k=%s", (name,))
-                row=cur.fetchone()
-                if not row: cur.close(); conn.close(); return default
-                val=row[0]
-                try: data=json.loads(val)
-                except: data=default
-                cur.close(); conn.close(); return data
-            rows=cur.fetchall(); out=[]
-            for r in rows:
-                d=r[0]
-                if isinstance(d,str):
-                    try: d=json.loads(d)
-                    except: continue
-                out.append(d)
-            cur.close(); conn.close(); return out
-        except Exception as e:
-            print("DB load fail", e); return default
-    else:
-        try:
-            if os.path.exists(name):
-                with open(name,'r') as f: return json.load(f)
-        except: pass
-        return default
+            ensure_tables(); conn = get_conn(); cur = conn.cursor()
+            try:
+                from psycopg.types.json import Jsonb
+                if file == 'products.json':
+                    cur.execute("DELETE FROM products")
+                    for item in data: cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(item)])
+                else:
+                    cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, Jsonb(data)))
+            except ImportError:
+                import json as js
+                if file == 'products.json':
+                    cur.execute("DELETE FROM products")
+                    for item in data: cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(item)])
+                else:
+                    cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, js.dumps(data)))
+            conn.commit(); cur.close(); conn.close(); return
+        except Exception as e: print(e)
+    json.dump(data, open(f'data/{file}','w'), indent=2)
 
-def save_db(name, data):
-    if DATABASE_URL:
-        try:
-            ensure_tables(); conn=get_conn(); cur=conn.cursor()
-            if name in ('shops.json','products.json'):
-                cur.execute(f"DELETE FROM {name.split('.')[0]}")
-                for item in data:
-                    import json as js
-                    try:
-                        from psycopg.types.json import Jsonb
-                        cur.execute(f"INSERT INTO {name.split('.')[0]} (data) VALUES (%s)", [Jsonb(item)])
-                    except:
-                        cur.execute(f"INSERT INTO {name.split('.')[0]} (data) VALUES (%s)", [js.dumps(item)])
-            else:
-                cur.execute("INSERT INTO kv_store (k,v) VALUES (%s,%s) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", (name, json.dumps(data)))
-            conn.commit(); cur.close(); conn.close()
-        except Exception as e: print("DB save fail", e)
-    else:
-        try:
-            with open(name,'w') as f: json.dump(data,f)
-        except Exception as e: print("File save fail", e)
-
+def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 def get_coin_config():
-    cfg=load_db('coin_config.json', None)
+    cfg = load_db('coin_config.json', None)
     if not cfg:
-        cfg={"total":1000000000,"remaining":1000000000,"sold":0,"price":599}
+        cfg = {"total": TOTAL_COINS, "remaining": TOTAL_COINS, "sold": 0, "price": COIN_PRICE, "upload_cost": UPLOAD_COST}
         save_db('coin_config.json', cfg)
     return cfg
+def save_coin_config(cfg): save_db('coin_config.json', cfg)
 
 def get_billboard_config():
-    bb=load_db('billboard.json', None)
-    if not bb:
-        bb={"active":False,"type":"image","media_url":"","text":"Welcome to Sannlas!","link":""}
-        save_db('billboard.json', bb)
-    return bb
+    cfg = load_db('billboard.json', None)
+    if not cfg:
+        cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time()}
+        save_db('billboard.json', cfg)
+    return cfg
 
-def ensure_shop_for_user(user):
-    shops=load_db('shops.json', [])
-    biz=user.get('business') or user.get('email','').split('@')[0]
-    slug=make_shop_slug(biz)
-    exist=next((s for s in shops if s.get('user_id')==user['id'] or s.get('owner_email','').lower()==user['email'].lower()), None)
-    if exist: return exist
-    shop={"id":int(time.time()*1000),"user_id":user['id'],"business_name":biz,"name":biz,"business":biz,"shop_slug":slug,"slug":slug,"owner_email":user['email'],"phone":user.get('phone',''),"location":user.get('location','Uganda'),"total_products":0,"product_count":0,"description":f"Welcome to {biz} shop!"}
-    shops.append(shop); save_db('shops.json', shops); return shop
+def make_shop_slug(business):
+    if not business: return 'shop'
+    base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
+    if not base: base = 'shop'
+    return base[:50]
 
-def admin_required(f):
-    from functools import wraps
-    @wraps(f)
-    def wrapper(*args,**kwargs):
-        if not session.get('is_admin'): return jsonify({'error':'Admin login required'}),401
-        return f(*args,**kwargs)
-    return wrapper
+def get_biz_key(name):
+    if not name: return ''
+    return re.sub(r'[^a-z0-9]+', '', name.lower())
+    def ensure_shop_for_user(user):
+    shops = load_db('shops.json', [])
+    biz = (user.get('business') or '').strip()
+    if not biz: biz = 'Shop'
+    biz_key = get_biz_key(biz)
+    slug = make_shop_slug(biz)
+    email = (user.get('email') or '').lower()
+    for s in shops:
+        s_biz = s.get('business_name') or s.get('name') or ''
+        if get_biz_key(s_biz) == biz_key and biz_key:
+            s['shop_slug'] = slug
+            s['slug'] = slug
+            s['business_name'] = biz
+            s['name'] = biz
+            if email: s['owner_email'] = email
+            if user.get('phone'): s['phone'] = user.get('phone')
+            save_db('shops.json', shops)
+            return s
+    existing = next((s for s in shops if (s.get('shop_slug')==slug or s.get('slug')==slug)), None)
+    if existing:
+        existing['business_name'] = biz
+        existing['name'] = biz
+        existing['shop_slug'] = slug
+        existing['slug'] = slug
+        save_db('shops.json', shops)
+        return existing
+    existing2 = next((s for s in shops if s.get('user_id')==user.get('id')), None)
+    if existing2:
+        existing2['business_name'] = biz
+        existing2['name'] = biz
+        existing2['shop_slug'] = slug
+        existing2['slug'] = slug
+        save_db('shops.json', shops)
+        return existing2
+    shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"name": biz,"shop_slug": slug,"slug": slug,"phone": user.get('phone',''),"owner_email": email,"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"product_count": 0,"created_at": time.time()}
+    shops.append(shop)
+    save_db('shops.json', shops)
+    return shop
+
+BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
 @app.route('/')
 def home(): return render_template('index.html')
-@app.route('/shop/<slug>')
-def shop_page(slug): return render_template('shop.html', shop_slug=slug)
 @app.route('/wallet')
-def wallet(): return render_template('wallet.html')
+def wallet_page(): return render_template('wallet.html')
 @app.route('/balance')
-def balance(): return render_template('balance.html')
+def balance_page(): return render_template('balance.html')
+@app.route('/shop/<slug>')
+def shop_page_slug(slug): return render_template('shop.html')
+@app.route('/shop')
+def shop_page(): return render_template('shop.html')
 
-@app.route('/admin')
-def admin():
-    if not session.get('is_admin'): return render_template('admin_login.html')
-    return render_template('admin.html')
-
-@app.route('/admin/login', methods=['GET'])
-def admin_login_page():
-    return render_template('admin_login.html')
-
-@app.route('/admin/login', methods=['POST'])
+# ===== ADMIN LOGIN - ONLY ADDED =====
+@app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
-    data=request.json or {}
-    pwd=data.get('password','')
-    if pwd==ADMIN_PASSWORD:
-        session['is_admin']=True
-        return jsonify({'success':True})
-    return jsonify({'success':False,'message':'Wrong password'}),401
+    if request.method == 'GET':
+        if session.get('is_admin'):
+            return redirect('/admin')
+        return render_template('admin_login.html')
+    data = request.get_json() if request.is_json else request.form
+    pwd = data.get('password','') if data else ''
+    if pwd == ADMIN_PASSWORD:
+        session['is_admin'] = True
+        return jsonify({'success': True}) if request.is_json else redirect('/admin')
+    return jsonify({'success': False, 'message': 'Wrong admin password'}), 401 if request.is_json else render_template('admin_login.html', error='Wrong password')
 
 @app.route('/admin/logout')
 def admin_logout():
-    session.pop('is_admin',None)
-    return jsonify({'success':True})
+    session.pop('is_admin', None)
+    return redirect('/admin/login')
 
+@app.route('/admin')
+def admin_page():
+    if not session.get('is_admin'):
+        return redirect('/admin/login')
+    return render_template('admin.html')
+
+# ===== BILLBOARD - ONLY ADDED =====
 @app.route('/api/billboard')
 def get_billboard():
+    cfg = get_billboard_config()
+    return jsonify(cfg)
+
+@app.route('/api/admin/billboard', methods=['GET'])
+@admin_required
+def admin_get_billboard():
     return jsonify(get_billboard_config())
 
 @app.route('/api/admin/billboard', methods=['POST'])
 @admin_required
-def set_billboard():
-    data=request.json
-    cfg={"active":bool(data.get('active',False)),"type":data.get('type','image'),"media_url":data.get('media_url',''),"text":data.get('text',''),"link":data.get('link',''),"updated":time.time()}
+def admin_save_billboard():
+    data = request.json or {}
+    cfg = get_billboard_config()
+    cfg['active'] = bool(data.get('active', cfg.get('active', False)))
+    cfg['text'] = data.get('text', cfg.get('text',''))[:200]
+    cfg['link'] = data.get('link', cfg.get('link',''))[:300]
+    cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
+    cfg['type'] = data.get('type', cfg.get('type','image'))
+    cfg['updated'] = time.time()
     save_db('billboard.json', cfg)
-    return jsonify({'success':True,'config':cfg})
-
+    return jsonify({'success': True, 'config': cfg})
+    @app.route('/api/categories')
+def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/coins/config')
-def coins_config():
-    return jsonify(get_coin_config())
+def coins_config(): return jsonify(get_coin_config())
+@app.route('/api/coins/packs')
+def coins_packs(): return jsonify(COIN_PACKS)
 
 @app.route('/api/coins/balance')
 def coins_balance():
-    email=request.args.get('email','').lower()
-    phone=request.args.get('phone','')
-    users=load_db('users.json', [])
+    email=request.args.get('email','').lower().strip()
+    phone=request.args.get('phone','').strip()
+    users=load_db('users.json',[])
     u=next((x for x in users if x['email']==email or x['phone']==phone), None)
-    if not u: return jsonify({'coins':0})
-    return jsonify({'coins':u.get('coins',0)})
+    if not u: return jsonify({'success':False,'coins':0})
+    return jsonify({'success':True,'coins': u.get('coins',0)})
 
+@app.route('/api/coins/buy', methods=['POST'])
+def coins_buy():
+    data=request.json
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','').strip()
+    pack_id=data.get('pack','10')
+    momo_code=data.get('momo_code','').strip().upper()
+    momo_phone=data.get('momo_phone','').strip()
+    pack = COIN_PACKS.get(pack_id)
+    if not pack: return jsonify({'success':False,'message':'Invalid pack'}),400
+    txs = load_db('coin_transactions.json', [])
+    if any(t.get('momo_code','').upper()==momo_code for t in txs):
+        return jsonify({'success':False,'message':f'{momo_code} already used!'}),400
+    cfg = get_coin_config()
+    if cfg['remaining'] < pack['coins']: return jsonify({'success':False,'message':'Coins finished!'}),400
+    new_tx = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'pack': pack_id, 'coins': pack['coins'], 'price': pack['price'], 'momo_code': momo_code, 'momo_phone': momo_phone, 'time': time.time(), 'status': 'pending'}
+    txs.append(new_tx); save_db('coin_transactions.json', txs)
+    cfg['remaining'] -= pack['coins']; cfg['sold'] += pack['coins']; save_coin_config(cfg)
+    return jsonify({'success':True,'message':'Pending verification by owner!','coins': 0, 'config': cfg, 'pending': True})
+
+@app.route('/api/coins/verify', methods=['POST'])
+@admin_required
+def coins_verify():
+    data=request.json; trans_id=data.get('momo_code','').strip().upper(); action=data.get('action','verify')
+    txs=load_db('coin_transactions.json',[]); users=load_db('users.json',[]); cfg=get_coin_config()
+    target_tx = None
+    for t in txs:
+        if t.get('momo_code','').upper()==trans_id:
+            target_tx = t
+            break
+    if not target_tx:
+        return jsonify({'success':False,'message':'Transaction not found'}),404
+    if action=='block_fake':
+        if target_tx.get('status')!= 'blocked_fake':
+            cfg['remaining'] += target_tx.get('coins',0)
+            cfg['sold'] = max(0, cfg.get('sold',0) - target_tx.get('coins',0))
+            for u in users:
+                if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
+                    u['coins'] = max(0, u.get('coins',0) - target_tx.get('coins',0))
+            target_tx['status']='blocked_fake'
+            try:
+                products = load_db('products.json', [])
+                fake_email = target_tx.get('email','').lower()
+                fake_phone = target_tx.get('phone','')
+                products = [p for p in products if not (p.get('seller_email','').lower()==fake_email or p.get('phone','')==fake_phone)]
+                if DATABASE_URL:
+                    ensure_tables(); conn=get_conn(); cur=conn.cursor()
+                    cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
+                    for row in rows:
+                        r_id, r_data = row[0], row[1]
+                        if isinstance(r_data, str): r_data=json.loads(r_data)
+                        if r_data.get('seller_email','').lower()==fake_email or r_data.get('phone','')==fake_phone:
+                            cur.execute("DELETE FROM products WHERE id=%s", (r_id,))
+                    conn.commit(); cur.close(); conn.close()
+                else:
+                    save_db('products.json', products)
+                shops = load_db('shops.json', [])
+                for s in shops:
+                    if s.get('phone','')==fake_phone:
+                        s['total_products']=0
+                save_db('shops.json', shops)
+            except Exception as e:
+                print("Delete fake products error:", e)
+    else:
+        if target_tx.get('status')!= 'verified_by_owner':
+            target_tx['status']='verified_by_owner'
+            for u in users:
+                if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
+                    u['coins'] = u.get('coins',0) + target_tx.get('coins',0)
+    save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
+    return jsonify({'success':True, 'action': action})
+
+# ===== ADMIN COINS CONTROL - ONLY ADDED =====
 @app.route('/api/admin/coins/add', methods=['POST'])
 @admin_required
 def admin_add_coins():
-    data=request.json; email=data.get('email','').lower(); phone=data.get('phone',''); coins=int(data.get('coins',0)); reason=data.get('reason','Admin add')
-    if coins<=0: return jsonify({'success':False,'message':'Invalid coins'}),400
-    users=load_db('users.json', [])
-    found=False
+    data = request.json or {}
+    email = data.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    coins = int(data.get('coins',0))
+    reason = data.get('reason','Admin refill')
+    if coins <=0:
+        return jsonify({'success': False, 'message': 'Coins must be >0'}),400
+    users = load_db('users.json', [])
+    found = None
     for u in users:
-        if (email and u['email']==email) or (phone and u['phone']==phone):
-            u['coins']=u.get('coins',0)+coins; found=True
-    if not found: return jsonify({'success':False,'message':'User not found'}),404
+        if (email and u.get('email','').lower()==email) or (phone and u.get('phone','')==phone):
+            u['coins'] = u.get('coins',0) + coins
+            found = u
+            break
+    if not found:
+        return jsonify({'success': False, 'message': 'User not found'}),404
     save_db('users.json', users)
-    txs=load_db('coin_transactions.json', [])
-    txs.append({'email':email,'phone':phone,'coins':coins,'price':0,'type':'admin_add','reason':reason,'time':time.time()})
+    txs = load_db('coin_transactions.json', [])
+    txs.append({'id': int(time.time()*1000), 'email': found.get('email'), 'phone': found.get('phone'), 'coins': coins, 'price': 0, 'momo_code': f'ADMIN-{uuid.uuid4().hex[:6].upper()}', 'reason': reason, 'time': time.time(), 'status': 'admin_gift'})
     save_db('coin_transactions.json', txs)
-    return jsonify({'success':True,'message':f'Added {coins} coins to {email or phone}'})
+    return jsonify({'success': True, 'message': f'Added {coins} coins to {found.get("email")}', 'user': {'email': found.get('email'), 'coins': found.get('coins')}})
 
-@app.route('/api/withdraw/request', methods=['POST'])
-def withdraw_request():
-    data=request.json; email=data.get('email','').lower(); phone=data.get('phone',''); amount=int(data.get('amount',0)); momo=data.get('momo_number',''); mname=data.get('momo_name','')
-    if amount<10000: return jsonify({'success':False,'message':'Min 10,000 UGX'}),400
-    withdraws=load_db('withdraws.json', [])
-    wd={'id':int(time.time()*1000),'email':email,'phone':phone,'amount':amount,'momo_number':momo,'momo_name':mname,'status':'pending','time':time.time()}
-    withdraws.append(wd); save_db('withdraws.json', withdraws)
-    return jsonify({'success':True,'message':'Withdraw request sent to Admin - 0795712326','withdraw':wd})
+@app.route('/api/admin/coins/config', methods=['POST'])
+@admin_required
+def admin_update_coin_config():
+    data = request.json or {}
+    cfg = get_coin_config()
+    if 'price' in data: cfg['price'] = int(data['price'])
+    if 'upload_cost' in data: cfg['upload_cost'] = int(data['upload_cost'])
+    if 'total' in data:
+        diff = int(data['total']) - cfg.get('total', TOTAL_COINS)
+        cfg['total'] = int(data['total'])
+        cfg['remaining'] = max(0, cfg.get('remaining',0) + diff)
+    save_coin_config(cfg)
+    return jsonify({'success': True, 'config': cfg})
 
-@app.route('/api/withdraw/my')
+# ===== WITHDRAW SYSTEM - ONLY ADDED =====
+@app.route('/api/withdraw', methods=['POST'])
+def request_withdraw():
+    data = request.json or {}
+    email = data.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    amount = int(data.get('amount',0))
+    momo_number = data.get('momo_number','').strip()
+    momo_name = data.get('momo_name','').strip()
+    if amount < 5000:
+        return jsonify({'success': False, 'message': 'Minimum withdraw 5000 UGX'}),400
+    if not momo_number:
+        return jsonify({'success': False, 'message': 'MoMo number required'}),400
+    withdraws = load_db('withdraws.json', [])
+    new_w = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'amount': amount, 'momo_number': momo_number, 'momo_name': momo_name, 'status': 'pending', 'time': time.time(), 'paid_time': None}
+    withdraws.append(new_w)
+    save_db('withdraws.json', withdraws)
+    return jsonify({'success': True, 'message': 'Withdraw request sent! Owner will pay to your MoMo', 'withdraw': new_w})
+
+@app.route('/api/withdraws')
 def my_withdraws():
-    email=request.args.get('email','').lower()
-    withdraws=load_db('withdraws.json', [])
-    mine=[w for w in withdraws if w['email']==email]
-    return jsonify({'withdraws':mine})
+    email = request.args.get('email','').lower().strip()
+    phone = request.args.get('phone','').strip()
+    withdraws = load_db('withdraws.json', [])
+    result = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
+    return jsonify(result[::-1])
+
+@app.route('/api/admin/withdraws')
+@admin_required
+def admin_withdraws():
+    return jsonify(load_db('withdraws.json', [])[::-1])
 
 @app.route('/api/admin/withdraw/action', methods=['POST'])
 @admin_required
-def withdraw_action():
-    data=request.json; wid=data.get('id'); action=data.get('action')
-    withdraws=load_db('withdraws.json', [])
+def admin_withdraw_action():
+    data = request.json or {}
+    wid = data.get('id')
+    action = data.get('action','paid')
+    withdraws = load_db('withdraws.json', [])
     for w in withdraws:
-        if w['id']==wid:
-            w['status']=action; w['action_time']=time.time()
+        if str(w.get('id')) == str(wid):
+            w['status'] = action
+            if action == 'paid': w['paid_time'] = time.time()
+            break
     save_db('withdraws.json', withdraws)
-    return jsonify({'success':True})
-@app.route('/api/register', methods=['POST'])
+    return jsonify({'success': True})
+
+@app.route('/api/sales/summary')
+def sales_summary():
+    email = request.args.get('email','').lower().strip()
+    phone = request.args.get('phone','').strip()
+    orders = load_db('orders.json', [])
+    my_orders = []
+    for o in orders:
+        if (email and o.get('seller_email','').lower()==email) or (phone and o.get('seller_phone','')==phone) or (email and o.get('seller','').lower()==email):
+            my_orders.append(o)
+        items = o.get('items',[]) or o.get('products',[])
+        for it in items:
+            if isinstance(it, dict):
+                if (email and it.get('seller_email','').lower()==email) or (phone and it.get('phone','')==phone):
+                    my_orders.append(o)
+                    break
+    total_sales = sum(o.get('total', o.get('amount',0)) for o in my_orders)
+    total_orders = len(my_orders)
+    withdraws = load_db('withdraws.json', [])
+    my_withdraws = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
+    withdrawn = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='paid')
+    pending_withdraw = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='pending')
+    balance = total_sales - withdrawn - pending_withdraw
+    return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
+    @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
     users=load_db('users.json',[])
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email exists - Login'}),400
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':5}
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':0}
     users.append(user); save_db('users.json',users)
     try: shop = ensure_shop_for_user(user)
     except: shop = None
@@ -398,6 +666,7 @@ def get_shop_by_slug(slug):
         }
         return jsonify({'success':True,'shop':virtual_shop,'products':shop_products})
     return jsonify({'success':False,'message':'Shop not found'}),404
+
 @app.route('/api/my-products')
 def my_products():
     phone=request.args.get('phone','').strip()
@@ -489,64 +758,10 @@ def admin_data():
 @app.route('/api/admin/transactions')
 @admin_required
 def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
-
 @app.route('/api/orders')
 def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
-
 @app.route('/api/contact', methods=['POST'])
-def contact_owner():
-    data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
-
-@app.route('/api/coins/verify', methods=['POST'])
-@admin_required
-def verify_coin():
-    data=request.json; code=data.get('momo_code'); action=data.get('action')
-    txs=load_db('coin_transactions.json', [])
-    for t in txs:
-        if t.get('momo_code')==code:
-            t['status']='verified' if action=='verify' else 'blocked_fake'
-    save_db('coin_transactions.json', txs)
-    return jsonify({'success':True})
-
-@app.route('/api/admin/activate-subscription', methods=['POST'])
-@admin_required
-def activate_sub():
-    data=request.json; phone=data.get('phone'); email=data.get('email','').lower(); plan=data.get('plan','30')
-    days={'30':30,'60':60,'180':180,'365':365}.get(plan,30)
-    users=load_db('users.json', [])
-    for u in users:
-        if u['phone']==phone or u['email']==email:
-            u['paid']=True
-            u['plan']=plan
-            u['subscription_expires']=time.time()+days*86400
-    save_db('users.json', users)
-    return jsonify({'success':True})
-
-@app.route('/api/admin/send-message', methods=['POST'])
-@admin_required
-def send_msg():
-    data=request.json; notifs=load_db('notifications.json', [])
-    notifs.append({**data,'time':time.time(),'id':int(time.time())})
-    save_db('notifications.json', notifs)
-    return jsonify({'success':True,'message':'Sent'})
-
-@app.route('/api/admin/notifications')
-@admin_required
-def get_notifs():
-    return jsonify(load_db('notifications.json', []) or [])
-
-@app.route('/api/seller/sales')
-def seller_sales():
-    phone=request.args.get('phone',''); email=request.args.get('email','').lower(); period=request.args.get('period','all')
-    orders=load_db('orders.json', []) or []
-    my=[]
-    for o in orders:
-        items=o.get('items',[]) or []
-        for it in items:
-            if (phone and it.get('phone')==phone) or (email and (it.get('seller_email','').lower()==email)):
-                my.append(o); break
-    total=sum(o.get('total',0) for o in my)
-    return jsonify({'total_sales':total,'total_orders':len(my),'orders':my,'period':period})
+def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
