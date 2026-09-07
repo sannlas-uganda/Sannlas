@@ -39,12 +39,20 @@
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .coin-progress{width:150px;height:10px;background:#333;border-radius:10px;overflow:hidden;display:inline-block}
 .coin-progress-fill{height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:98%;transition:width 1s}
+/* BILLBOARD - ONLY ADDED */
+#billboardBanner{display:none;background:#000;border-bottom:4px solid #FFCC02;text-align:center;position:relative;overflow:hidden;cursor:pointer}
+#billboardBanner.active{display:block}
+#billboardBanner img{max-width:100%;max-height:400px;width:auto;height:auto;object-fit:contain;display:block;margin:0 auto}
+#billboardBanner video{max-width:100%;max-height:400px;width:100%;display:block;margin:0 auto;background:#000}
+#billboardText{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#FFCC02;padding:8px 14px;border-radius:20px;font-weight:bold;font-size:14px;max-width:90%;z-index:2}
 </style>
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register</h3><input aria-label="Email" id="gateRegEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Phone" id="gateRegPhone" placeholder="Phone" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Password" id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Business name" id="gateRegBiz" placeholder="Business" style="width:100%;padding:10px;margin:5px 0"><select aria-label="Role" id="gateRegRole" style="width:100%;padding:10px;margin:5px 0"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn btn-green" style="width:100%;padding:12px" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse Free</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input aria-label="OTP code" id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:12px;text-align:center;font-size:20px;margin:10px 0"><button class="btn btn-green" style="width:100%" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input aria-label="Email" id="gateLogEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Password" id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><button class="btn" style="width:100%;background:#000;padding:12px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input aria-label="NIN number" id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:10px;margin:10px 0;border:2px solid #1976d2;border-radius:8px"><button class="btn btn-blue" style="width:100%;padding:12px" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:gray;margin-top:8px" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
 <div class="navbar"><div style="display:flex;align-items:center;gap:8px"><button aria-label="Open menu" class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px">☰</button><h3>🛍️ SANNLAS</h3></div><div style="display:flex;gap:5px;flex-wrap:wrap"><button aria-label="Shops" class="btn" style="background:#FFCC02;color:#000" onclick="showAllShops()">🏪 Shops</button><button aria-label="Sell products" class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button><button aria-label="Wallet" class="btn" style="background:#000;border:2px solid #FFCC02;color:#FFCC02" onclick="goToWallet()">🪙 Wallet (<span id="myCoinsNav">0</span>)</button><button aria-label="Cart" class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button><button aria-label="Account" class="btn btn-yellow" onclick="openPopup('authPop')">👤 Account</button></div></div>
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">1 coin = 599 UGX | Upload = 3 coins</span><button aria-label="Buy coins now" class="btn btn-yellow" style="padding:4px 10px;font-size:10px" onclick="goToWallet()">BUY COINS NOW 🔥</button></div>
+<!-- BILLBOARD - ONLY ADDED - SHOWS WHEN ADMIN ACTIVATES -->
+<div id="billboardBanner" onclick="billboardClick()"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu"><div class="side-header"><b>🛍️ SANNLAS MENU</b><button aria-label="Close menu" class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
 <button aria-label="My Wallet" class="side-item-btn" style="background:#000;color:#FFCC02;border:1px solid #FFCC02;margin:10px;width:calc(100% - 20px)" onclick="goToWallet()">🪙 My Wallet - Buy Coins</button>
@@ -77,8 +85,11 @@
 <div class="fixed-bottom"><span onclick="goToWallet()" style="color:#FFCC02">🪙 Wallet</span><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/balance'" style="color:#FFCC02">💰 Balance</span></div>
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
-let _oldUrls=[];
+let _oldUrls=[]; let billboardData=null;
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
+// BILLBOARD - ONLY ADDED
+async function loadBillboardBanner(){try{let r=await fetch('/api/billboard');let bb=await r.json();billboardData=bb;let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;}else{wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;}txt.innerText=bb.text||'';}catch(e){}}
+function billboardClick(){if(billboardData&&billboardData.link){window.open(billboardData.link,'_blank');}}
 async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;}catch(e){}}
 async function showAllShops(){
   document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';
@@ -86,7 +97,6 @@ async function showAllShops(){
   try{
     let r=await fetch('/api/shops');
     let shops=await r.json();
-    // FIX: hide shops with 0 products and show exact count - auto updates when seller uploads
     shops = shops.filter(s => (s.product_count||0) > 0);
     if(!shops || shops.length==0){
       document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><p>Be first to sell!</p><button aria-label="Close" onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
@@ -110,56 +120,29 @@ async function goToMyShop(){
     let myEmail = (currentUser.email||'').toLowerCase();
     let myPhone = currentUser.phone||'';
     let myBiz = (currentUser.business||'').toLowerCase();
-
-    // 3 ways to find your shop
     let my = shops.find(s => s.owner_email && myEmail && s.owner_email.toLowerCase()==myEmail);
     if(!my) my = shops.find(s => s.phone && myPhone && s.phone==myPhone);
     if(!my) my = shops.find(s => (s.business_name||s.name||'').toLowerCase()==myBiz);
-
-    // Fallback: find by my products
     if(!my){
       let rp = await fetch(`/api/my-products?email=${encodeURIComponent(myEmail)}&phone=${encodeURIComponent(myPhone)}`);
       let myProds = await rp.json();
       if(myProds && myProds.length>0){
         let slug = myProds[0].shop_slug;
         my = shops.find(s => s.shop_slug==slug || s.slug==slug);
-        if(!my){
-          // product exists but shop not in list -> go directly
-          location.href='/shop/'+slug;
-          return;
-        }
+        if(!my){ location.href='/shop/'+slug; return; }
       }
     }
-
-    if(my){
-      let slug = my.shop_slug || my.slug;
-      location.href='/shop/'+slug;
-    } else {
-      let count = 0;
-      try{
-        let rp = await fetch(`/api/my-products?email=${encodeURIComponent(myEmail)}&phone=${encodeURIComponent(myPhone)}`);
-        let pr = await rp.json();
-        count = pr.length;
-      }catch{}
-      alert('No shop yet Boss! You have '+count+' products. Upload a product first - shop auto-created! Your email: '+currentUser.email);
-      document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'});
-    }
-  }catch(e){
-    console.log(e);
-    alert('Failed to find your shop Boss');
-  }
+    if(my){ location.href='/shop/'+(my.shop_slug||my.slug); }
+    else { alert('No shop yet Boss! Upload a product first'); document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'}); }
+  }catch(e){ alert('Failed to find shop'); }
 }
-setInterval(loadCoinLive,30000);
+setInterval(loadCoinLive,30000); setInterval(loadBillboardBanner,60000);
   function requireAuthForCoins(){
   if(!currentUser){
     let u = localStorage.getItem('sannlas_user');
     if(u){ try{ currentUser = JSON.parse(u); }catch(e){} }
   }
-  if(!currentUser){
-    showGate();
-    switchGate('register');
-    return false;
-  }
+  if(!currentUser){ showGate(); switchGate('register'); return false; }
   return true;
 }
 function requireAuthForCheckout(){
@@ -167,20 +150,12 @@ function requireAuthForCheckout(){
     let u = localStorage.getItem('sannlas_user');
     if(u){ try{ currentUser = JSON.parse(u); }catch(e){} }
   }
-  if(!currentUser){
-    showGate();
-    switchGate('register');
-    return false;
-  }
+  if(!currentUser){ showGate(); switchGate('register'); return false; }
   return true;
 }
 function goToWallet(){
   let u = localStorage.getItem('sannlas_user');
-  if(!u &&!currentUser){
-    showGate();
-    switchGate('register');
-    return;
-  }
+  if(!u &&!currentUser){ showGate(); switchGate('register'); return; }
   if(!currentUser){ try{ currentUser = JSON.parse(u); }catch(e){} }
   location.href='/wallet';
 }
@@ -188,10 +163,7 @@ function doCheckout(){
   if(!requireAuthForCheckout()) return;
   let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
   if(confirm(`✅ Boss Confirm Order?\nTotal: UGX ${total.toLocaleString()}`)){
-    cart=[];
-    document.getElementById('cartN').innerText=0;
-    closePop('cartPop');
-    alert('🎉 Order Placed Boss! We will call you soon!');
+    cart=[]; document.getElementById('cartN').innerText=0; closePop('cartPop'); alert('🎉 Order Placed Boss!');
   }
 }
 async function frontUploadAllProceed(){
@@ -210,7 +182,7 @@ function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
-function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){currentUser=JSON.parse(u);updateLoginUI();loadMyCoins();}hideGate();loadCoinLive();doFilter();}
+function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){currentUser=JSON.parse(u);updateLoginUI();loadMyCoins();}hideGate();loadCoinLive();loadBillboardBanner();doFilter();}
 function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;switchGate('otp');}else{alert(d.message);switchGate('register');}});}
 function gateVerifyOTP(){switchGate('nin');}
 function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();}else{alert(d.message);}});}
