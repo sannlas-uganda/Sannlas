@@ -39,21 +39,19 @@
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .coin-progress{width:150px;height:10px;background:#333;border-radius:10px;overflow:hidden;display:inline-block}
 .coin-progress-fill{height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:98%;transition:width 1s}
-/* BOSS FIXED BILLBOARD 420PX MOTION */
-#billboardBanner{display:none;background:#000;border-bottom:5px solid #FFCC02;position:relative;overflow:hidden;cursor:pointer;width:100%;height:420px}
+/* BILLBOARD - ONLY ADDED */
+#billboardBanner{display:none;background:#000;border-bottom:4px solid #FFCC02;text-align:center;position:relative;overflow:hidden;cursor:pointer}
 #billboardBanner.active{display:block}
-#billboardMediaWrap{width:100%;height:100%;overflow:hidden;position:relative;background:#000}
-#billboardBanner img{width:120%;height:100%;object-fit:cover;display:block;animation:panLR 10s infinite alternate linear;transform-origin:center}
-@keyframes panLR{0%{transform:translateX(0%) scale(1.15)}100%{transform:translateX(-16%) scale(1.15)}}
-#billboardBanner video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
-#billboardText{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#FFCC02;padding:10px 18px;border-radius:25px;font-weight:bold;font-size:15px;max-width:92%;z-index:5;border:2px solid #FFCC02;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:600px){#billboardBanner{height:280px}#billboardBanner img{width:140%}}
+#billboardBanner img{max-width:100%;max-height:400px;width:auto;height:auto;object-fit:contain;display:block;margin:0 auto}
+#billboardBanner video{max-width:100%;max-height:400px;width:100%;display:block;margin:0 auto;background:#000}
+#billboardText{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#FFCC02;padding:8px 14px;border-radius:20px;font-weight:bold;font-size:14px;max-width:90%;z-index:2}
 </style>
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register</h3><input aria-label="Email" id="gateRegEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Phone" id="gateRegPhone" placeholder="Phone" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Password" id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Business name" id="gateRegBiz" placeholder="Business" style="width:100%;padding:10px;margin:5px 0"><select aria-label="Role" id="gateRegRole" style="width:100%;padding:10px;margin:5px 0"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn btn-green" style="width:100%;padding:12px" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse Free</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input aria-label="OTP code" id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:12px;text-align:center;font-size:20px;margin:10px 0"><button class="btn btn-green" style="width:100%" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input aria-label="Email" id="gateLogEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input aria-label="Password" id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><button class="btn" style="width:100%;background:#000;padding:12px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input aria-label="NIN number" id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:10px;margin:10px 0;border:2px solid #1976d2;border-radius:8px"><button class="btn btn-blue" style="width:100%;padding:12px" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:gray;margin-top:8px" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
 <div class="navbar"><div style="display:flex;align-items:center;gap:8px"><button aria-label="Open menu" class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px">☰</button><h3>🛍️ SANNLAS</h3></div><div style="display:flex;gap:5px;flex-wrap:wrap"><button aria-label="Shops" class="btn" style="background:#FFCC02;color:#000" onclick="showAllShops()">🏪 Shops</button><button aria-label="Sell products" class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button><button aria-label="Wallet" class="btn" style="background:#000;border:2px solid #FFCC02;color:#FFCC02" onclick="goToWallet()">🪙 Wallet (<span id="myCoinsNav">0</span>)</button><button aria-label="Cart" class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button><button aria-label="Account" class="btn btn-yellow" onclick="openPopup('authPop')">👤 Account</button></div></div>
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">1 coin = 599 UGX | Upload = 3 coins</span><button aria-label="Buy coins now" class="btn btn-yellow" style="padding:4px 10px;font-size:10px" onclick="goToWallet()">BUY COINS NOW 🔥</button></div>
+<!-- BILLBOARD - ONLY ADDED - SHOWS WHEN ADMIN ACTIVATES -->
 <div id="billboardBanner" onclick="billboardClick()"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu"><div class="side-header"><b>🛍️ SANNLAS MENU</b><button aria-label="Close menu" class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
@@ -89,28 +87,8 @@
 let products=[],cart=[],frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
 let _oldUrls=[]; let billboardData=null;
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
-async function loadBillboardBanner(){
-  try{
-    let r=await fetch('/api/billboard');
-    let bb=await r.json();
-    billboardData=bb;
-    let banner=document.getElementById('billboardBanner');
-    let wrap=document.getElementById('billboardMediaWrap');
-    let txt=document.getElementById('billboardText');
-    if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}
-    banner.classList.add('active');
-    if(bb.type=='video'){
-      wrap.innerHTML=`<video id="bbVideo" src="${bb.media_url}" autoplay muted loop playsinline disablepictureinpicture controlsList="nodownload nofullscreen noremoteplayback" oncontextmenu="return false" style="width:100%;height:100%;object-fit:cover"></video>`;
-      setTimeout(()=>{
-        let v=document.getElementById('bbVideo');
-        if(v){v.muted=true;v.play().catch(()=>{});v.addEventListener('pause',()=>{v.play();});v.addEventListener('click',(e)=>{e.preventDefault();billboardClick();});}
-      },100);
-    }else{
-      wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;
-    }
-    txt.innerText=bb.text||'';
-  }catch(e){}
-}
+// BILLBOARD - ONLY ADDED
+async function loadBillboardBanner(){try{let r=await fetch('/api/billboard');let bb=await r.json();billboardData=bb;let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;}else{wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;}txt.innerText=bb.text||'';}catch(e){}}
 function billboardClick(){if(billboardData&&billboardData.link){window.open(billboardData.link,'_blank');}}
 async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;}catch(e){}}
 async function showAllShops(){
