@@ -210,7 +210,7 @@ def withdraw_action():
             w['status']=action; w['action_time']=time.time()
     save_db('withdraws.json', withdraws)
     return jsonify({'success':True})
-    @app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
