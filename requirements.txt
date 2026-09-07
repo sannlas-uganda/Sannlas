@@ -5,3 +5,4 @@ Werkzeug==3.0.3
 psycopg[binary]==3.2.13
 flask-talisman
 flask-limiter
+Pillow==10.4.0
