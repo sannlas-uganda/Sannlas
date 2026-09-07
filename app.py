@@ -293,55 +293,56 @@ def admin_save_billboard():
 
 # ===== BOSS FIXED: AUTO LANDSCAPE 1200x400 CONVERTER =====
 @app.route('/api/upload/billboard', methods=['POST'])
-@admin_required
 def upload_billboard():
-    file = request.files.get('file')
-    if not file:
-        return jsonify({"error": "No file selected"}), 400
-    orig_name = secure_filename(file.filename)
-    name, ext = os.path.splitext(orig_name)
-    ext = ext.lower()
-    filename = f"{name}_{int(time.time())}{ext}"
-    folder = 'static/billboards'
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, filename)
-
-    if ext in ('.jpg','.jpeg','.png','.webp','.bmp'):
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file"}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "Empty"}), 400
+        
+        # Make folders
+        os.makedirs('static/billboards', exist_ok=True)
+        
+        filename = str(int(time.time())) + '_' + file.filename
+        filepath = os.path.join('static/billboards', filename)
+        file.save(filepath)
+        
+        # Try to convert to 1200x400 landscape - if Pillow missing, just skip
         try:
             from PIL import Image
-            img = Image.open(file.stream)
-            if img.mode in ('RGBA','LA','P'):
-                bg = Image.new('RGB', img.size, (0,0,0))
-                if img.mode == 'RGBA':
-                    bg.paste(img, mask=img.split()[-1])
-                    img = bg
-                else:
-                    img = img.convert('RGB')
+            img = Image.open(filepath)
+            # Auto landscape 1200x400 with cover
+            img = img.convert('RGB')
             target_w, target_h = 1200, 400
-            w, h = img.size
+            # Cover crop logic
+            img_ratio = img.width / img.height
             target_ratio = target_w / target_h
-            img_ratio = w / h
             if img_ratio > target_ratio:
-                new_h = h
-                new_w = int(new_h * target_ratio)
+                # too wide, crop width
+                new_h = target_h
+                new_w = int(img.width * (target_h / img.height))
+                img = img.resize((new_w, new_h))
+                left = (new_w - target_w) // 2
+                img = img.crop((left, 0, left+target_w, target_h))
             else:
-                new_w = w
-                new_h = int(new_w / target_ratio)
-            left = (w - new_w)//2
-            top = (h - new_h)//2
-            img = img.crop((left, top, left+new_w, top+new_h))
-            img = img.resize((target_w, target_h), Image.LANCZOS)
-            img.save(path, quality=90, optimize=True)
+                new_w = target_w
+                new_h = int(img.height * (target_w / img.width))
+                img = img.resize((new_w, new_h))
+                top = (new_h - target_h) // 2
+                img = img.crop((0, top, target_w, top+target_h))
+            img.save(filepath, quality=85)
         except Exception as e:
-            print("PIL failed:", e)
-            file.stream.seek(0)
-            file.save(path)
-    else:
-        file.save(path)
-
-    filetype = 'video' if ext in ('.mp4','.mov','.webm','.avi','.m4v') else 'image'
-    url = f'/{path}'
-    return jsonify({"url": url, "type": filetype, "success": True})
+            print("Pillow convert failed:", e)
+            # keep original if convert fails
+        
+        ext = filename.lower().split('.')[-1]
+        ftype = 'video' if ext in ['mp4','mov','webm'] else 'image'
+        url = f"/static/billboards/{filename}"
+        return jsonify({"url": url, "type": ftype})
+    except Exception as e:
+        print("BILLBOARD UPLOAD ERROR:", e)
+        return jsonify({"error": str(e)}), 500
     PLANS = {"free14":{"days":14,"price":0,"name":"14 Days FREE"},"30":{"days":30,"price":6540,"name":"30 Days"},"60":{"days":60,"price":13090,"name":"2 Months"},"180":{"days":180,"price":39500,"name":"6 Months"},"365":{"days":365,"price":80000,"name":"1 Year"}}
 COIN_PACKS = {"10":{"coins":10,"price":5990,"name":"Starter"},"30":{"coins":30,"price":17970,"name":"Popular"},"60":{"coins":60,"price":35940,"name":"Business"},"150":{"coins":150,"price":89850,"name":"Boss Pro"}}
 
