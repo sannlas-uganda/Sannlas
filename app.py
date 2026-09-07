@@ -14,6 +14,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
 app.config['UPLOAD_FOLDER']='static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
+os.makedirs('static/billboards', exist_ok=True)
 
 Talisman(app, content_security_policy=None, force_https=False)
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
@@ -231,7 +232,6 @@ def shop_page_slug(slug): return render_template('shop.html')
 @app.route('/shop')
 def shop_page(): return render_template('shop.html')
 
-# ===== ADMIN LOGIN - ONLY ADDED =====
 @app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
     if request.method == 'GET':
@@ -256,7 +256,6 @@ def admin_page():
         return redirect('/admin/login')
     return render_template('admin.html')
 
-# ===== BILLBOARD - ONLY ADDED =====
 @app.route('/api/billboard')
 def get_billboard():
     cfg = get_billboard_config()
@@ -280,6 +279,26 @@ def admin_save_billboard():
     cfg['updated'] = time.time()
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
+
+# ===== NEW BILLBOARD UPLOAD - ADDED BY BOSS REQUEST =====
+@app.route('/api/upload/billboard', methods=['POST'])
+@admin_required
+def upload_billboard():
+    file = request.files.get('file')
+    if not file:
+        return jsonify({"error": "No file selected"}), 400
+    filename = secure_filename(file.filename)
+    # Add timestamp to avoid overwrite
+    name, ext = os.path.splitext(filename)
+    filename = f"{name}_{int(time.time())}{ext}"
+    folder = 'static/billboards'
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, filename)
+    file.save(path)
+    filetype = 'video' if filename.lower().endswith(('.mp4','.mov','.webm','.avi','.m4v')) else 'image'
+    url = f'/{path}'
+    return jsonify({"url": url, "type": filetype, "success": True})
+
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/coins/config')
@@ -368,7 +387,6 @@ def coins_verify():
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
     return jsonify({'success':True, 'action': action})
 
-# ===== ADMIN COINS CONTROL - ONLY ADDED =====
 @app.route('/api/admin/coins/add', methods=['POST'])
 @admin_required
 def admin_add_coins():
@@ -408,7 +426,6 @@ def admin_update_coin_config():
     save_coin_config(cfg)
     return jsonify({'success': True, 'config': cfg})
 
-# ===== WITHDRAW SYSTEM - ONLY ADDED =====
 @app.route('/api/withdraw', methods=['POST'])
 def request_withdraw():
     data = request.json or {}
