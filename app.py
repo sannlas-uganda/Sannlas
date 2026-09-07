@@ -280,7 +280,7 @@ def admin_save_billboard():
     cfg['updated'] = time.time()
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
-    @app.route('/api/categories')
+@app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/coins/config')
 def coins_config(): return jsonify(get_coin_config())
