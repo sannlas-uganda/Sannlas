@@ -236,7 +236,9 @@ def ensure_shop_for_user(user):
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"]}
 
 @app.route('/')
-def home(): return render_template('index.html')
+def home():
+    with open('templates/index.html','r',encoding='utf-8') as f:
+        return f.read()
 @app.route('/wallet')
 def wallet_page(): return render_template('wallet.html')
 @app.route('/balance')
