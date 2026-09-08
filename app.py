@@ -733,6 +733,9 @@ def sell():
     desc=request.form.get('desc','') or request.form.get('description','')
     main_cat=request.form.get('main_category')
     stock=int(request.form.get('stock',10))
+        promo_commission = int(request.form.get('promo_commission','3'))
+    if promo_commission <1: promo_commission=1
+    if promo_commission >10: promo_commission=10
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
@@ -764,7 +767,8 @@ def sell():
         'stock': stock,
         'sold': 0,'rating': 5.0,'reviews': [],
         'created': time.time(),
-        'shop_id': shop_id,'shop_slug': shop_slug
+        'shop_id': shop_id,'shop_slug': shop_slug,
+        'promo_commission': promo_commission
     }
     if DATABASE_URL:
         try:
@@ -982,6 +986,82 @@ def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
 def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
+    # ===== PROMOTE SYSTEM - 1-10 COINS - FIXED DOMAIN =====
+@app.route('/api/promote/apply', methods=['POST'])
+def promote_apply():
+    data=request.json or {}
+    product_id=int(data.get('product_id',0))
+    phone=(data.get('phone') or '').strip()
+    email=(data.get('email') or '').lower().strip()
+    if not phone and not email:
+        return jsonify({"success":False,"message":"Login first"}),401
+    products=load_db('products.json',[])
+    prod=next((p for p in products if int(p.get('id'))==product_id),None)
+    if not prod: return jsonify({"success":False,"message":"Product not found"}),404
+    if (phone and prod.get('phone')==phone) or (email and (prod.get('seller_email','').lower()==email)):
+        return jsonify({"success":False,"message":"Can't promote own product"}),400
+    promos=load_db('promotions.json',[])
+    exists=next((x for x in promos if int(x.get('product_id'))==product_id and (x.get('freelancer_phone')==phone or x.get('freelancer_email','').lower()==email)),None)
+    host = request.host_url.rstrip('/')
+    if exists:
+        return jsonify({"success":False,"message":f"Already applied! Status: {exists.get('status')} | Link: {host}/?promo={exists.get('promo_code')}&product={product_id}"}),400
+    import random,string
+    code=f"PROMO{product_id}{phone[-3:] if phone else 'XXX'}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
+    new_promo={"id":int(time.time()*1000),"product_id":product_id,"product_name":prod.get('name'),"product_owner_phone":prod.get('phone'),"product_owner_email":(prod.get('seller_email') or '').lower(),"freelancer_phone":phone,"freelancer_email":email,"commission_coins":int(prod.get('promo_commission',3)),"commission_ugx":int(prod.get('promo_commission',3))*COIN_PRICE,"promo_code":code,"status":"pending","sales":0,"created":time.time()}
+    promos.append(new_promo)
+    save_db('promotions.json',promos)
+    return jsonify({"success":True,"message":f"✅ Applied! {new_promo['commission_coins']} coins per sale. Owner will approve. Your link: {host}/?promo={code}&product={product_id}","promo":new_promo})
+
+@app.route('/api/promote/my', methods=['GET'])
+def my_promotions():
+    phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
+    promos=load_db('promotions.json',[])
+    result=[p for p in promos if (phone and p.get('freelancer_phone')==phone) or (email and p.get('freelancer_email','').lower()==email)]
+    return jsonify(result[::-1])
+
+@app.route('/api/promote/requests', methods=['GET'])
+def promote_requests():
+    phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
+    promos=load_db('promotions.json',[])
+    result=[p for p in promos if (phone and p.get('product_owner_phone')==phone) or (email and p.get('product_owner_email','').lower()==email)]
+    return jsonify(result[::-1])
+
+@app.route('/api/promote/action', methods=['POST'])
+def promote_action():
+    data=request.json or {}; pid=int(data.get('id',0)); action=data.get('action','approve')
+    promos=load_db('promotions.json',[])
+    for p in promos:
+        if int(p.get('id'))==pid: p['status']=action; break
+    save_db('promotions.json',promos)
+    return jsonify({"success":True,"message":f"Promoter {action}d!"})
+
+@app.route('/api/orders/create', methods=['POST'])
+def create_order():
+    data=request.json or {}
+    promo_code=data.get('promo_code','').strip() or request.cookies.get('promo_code','').strip()
+    product_id=data.get('product_id')
+    buyer_phone=data.get('buyer_phone','').strip()
+    buyer_email=data.get('buyer_email','').lower().strip()
+    amount=data.get('amount',0)
+    orders=load_db('orders.json',[])
+    new_order={"id":int(time.time()*1000),"product_id":product_id,"amount":amount,"buyer_phone":buyer_phone,"buyer_email":buyer_email,"promo_code":promo_code,"time":time.time(),"status":"pending"}
+    orders.append(new_order)
+    save_db('orders.json',orders)
+    if promo_code:
+        promos=load_db('promotions.json',[])
+        users=load_db('users.json',[])
+        for p in promos:
+            if p.get('promo_code')==promo_code and p.get('status')=='approve':
+                p['sales']=p.get('sales',0)+1
+                for u in users:
+                    if u.get('phone')==p.get('freelancer_phone') or u.get('email','').lower()==p.get('freelancer_email','').lower():
+                        u['coins']=u.get('coins',0)+p.get('commission_coins',3)
+                        u['earned_coins']=u.get('earned_coins',0)+p.get('commission_coins',3)
+                        break
+                break
+        save_db('promotions.json',promos)
+        save_db('users.json',users)
+    return jsonify({"success":True,"order":new_order})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
