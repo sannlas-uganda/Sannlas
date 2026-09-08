@@ -237,7 +237,6 @@ def ensure_shop_for_user(user):
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
-# ===== HOME WITH REF CAPTURE =====
 @app.route('/')
 def home():
     ref = request.args.get('ref')
@@ -248,13 +247,10 @@ def home():
 
 @app.route('/wallet')
 def wallet_page(): return render_template('wallet.html')
-
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
-
 @app.route('/invite')
 def invite_page(): return render_template('invite.html')
-
 @app.route('/shop/<slug>')
 def shop_page_slug(slug): return render_template('shop.html')
 @app.route('/shop')
@@ -419,29 +415,6 @@ def coins_verify():
                 if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
                     u['coins'] = max(0, u.get('coins',0) - target_tx.get('coins',0))
             target_tx['status']='blocked_fake'
-            try:
-                products = load_db('products.json', [])
-                fake_email = target_tx.get('email','').lower()
-                fake_phone = target_tx.get('phone','')
-                products = [p for p in products if not (p.get('seller_email','').lower()==fake_email or p.get('phone','')==fake_phone)]
-                if DATABASE_URL:
-                    ensure_tables(); conn=get_conn(); cur=conn.cursor()
-                    cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
-                    for row in rows:
-                        r_id, r_data = row[0], row[1]
-                        if isinstance(r_data, str): r_data=json.loads(r_data)
-                        if r_data.get('seller_email','').lower()==fake_email or r_data.get('phone','')==fake_phone:
-                            cur.execute("DELETE FROM products WHERE id=%s", (r_id,))
-                    conn.commit(); cur.close(); conn.close()
-                else:
-                    save_db('products.json', products)
-                shops = load_db('shops.json', [])
-                for s in shops:
-                    if s.get('phone','')==fake_phone:
-                        s['total_products']=0
-                save_db('shops.json', shops)
-            except Exception as e:
-                print("Delete fake products error:", e)
     else:
         if target_tx.get('status')!= 'verified_by_owner':
             target_tx['status']='verified_by_owner'
@@ -588,7 +561,7 @@ def sales_summary():
     balance = total_sales - withdrawn - pending_withdraw
     return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
 
-# ===== INVITE SYSTEM - NEW =====
+# ===== INVITE SYSTEM =====
 @app.route('/api/my-referral')
 def my_referral_api():
     phone = request.args.get('phone','').strip() or session.get('phone','')
@@ -638,7 +611,46 @@ def api_balance():
         "history": my_txs[::-1][:30]
     })
 
-# ===== REGISTER WITH INVITE =====
+# ===== NEW: WITHDRAW COINS TO MOMO =====
+@app.route('/api/withdraw/coins', methods=['POST'])
+def withdraw_coins():
+    data = request.json or {}
+    phone = data.get('phone','').strip() or request.args.get('phone','').strip()
+    email = data.get('email','').lower().strip() or request.args.get('email','').lower().strip()
+    coins = int(data.get('coins',0))
+    momo = data.get('momo_number','').strip()
+    if coins <=0: return jsonify({"success":False,"message":"Enter coins >0"}),400
+    if not momo: return jsonify({"success":False,"message":"MoMo number required"}),400
+    users = load_db('users.json', [])
+    u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
+    if not u: return jsonify({"success":False,"message":"User not found - login"}),404
+    if u.get('coins',0) < coins:
+        return jsonify({"success":False,"message":f"Not enough! You have {u.get('coins',0)} coins"}),400
+    ugx = coins * COIN_PRICE
+    if ugx < 5000:
+        return jsonify({"success":False,"message":f"Min 9 coins = UGX {9*COIN_PRICE}. You tried {coins} coins = UGX {ugx}"}),400
+    u['coins'] = u.get('coins',0) - coins
+    save_db('users.json', users)
+    withdraws = load_db('withdraws.json', [])
+    withdraws.append({
+        'id': int(time.time()*1000),
+        'email': u.get('email'),
+        'phone': u.get('phone'),
+        'amount': ugx,
+        'coins': coins,
+        'momo_number': momo,
+        'momo_name': data.get('momo_name',''),
+        'status': 'pending',
+        'type': 'coins',
+        'time': time.time(),
+        'paid_time': None
+    })
+    save_db('withdraws.json', withdraws)
+    txs = load_db('coin_transactions.json', [])
+    txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
+    save_db('coin_transactions.json', txs)
+    return jsonify({"success":True, "message":f"✅ Request sent! {coins} coins = UGX {ugx:,} to {momo}. Owner will pay soon!"})
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
@@ -646,18 +658,15 @@ def register():
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
     users=load_db('users.json',[])
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email exists - Login'}),400
-    # generate referral code for new user
     import random, string
     my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
     user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':0,'bought_coins':0,'earned_coins':0,'referral_code':my_ref_code,'invited_by':ref_code}
     users.append(user)
-    # give referrer 1 coin if valid
     if ref_code:
         for ru in users:
             if ru.get('referral_code')==ref_code:
                 ru['coins'] = ru.get('coins',0) + 1
                 ru['earned_coins'] = ru.get('earned_coins',0) + 1
-                # log invite bonus
                 txs = load_db('coin_transactions.json', [])
                 txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
                 save_db('coin_transactions.json', txs)
@@ -678,7 +687,6 @@ def login():
     except: pass
     safe={k:v for k,v in u.items() if k!='password'}
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
-    # save session for referral
     session['phone']=u.get('phone')
     session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
