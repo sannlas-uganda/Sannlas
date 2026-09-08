@@ -580,7 +580,9 @@ def my_referral_api():
         code = f"SANN-{u.get('phone','0000')[-4:]}-{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=4))}"
         u['referral_code'] = code
         save_db('users.json', users)
-    link = f"https://sannlas.com/?ref={u['referral_code']}"
+    # FIXED - uses current domain automatically
+    host = request.host_url.rstrip('/')
+    link = f"{host}/?ref={u['referral_code']}"
     invites = [x for x in users if x.get('invited_by')==u['referral_code']]
     return jsonify({
         "success": True,
@@ -591,7 +593,6 @@ def my_referral_api():
         "earned_ugx": len(invites) * COIN_PRICE,
         "invites": [{"email": i.get('email'), "phone": i.get('phone'), "business": i.get('business')} for i in invites[-20:]]
     })
-
 @app.route('/api/balance')
 def api_balance():
     phone = request.args.get('phone','').strip()
