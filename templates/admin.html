@@ -22,13 +22,6 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 .prod-row{display:flex;gap:10px;border-bottom:1px solid #333;padding:10px 0;align-items:center}
 .prod-row img{width:55px;height:55px;object-fit:cover;border-radius:8px}
 .shop-card{background:#111;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
-/* BOSS FIXED BILLBOARD PREVIEW */
-#bbPreviewWrap{width:100%;height:420px;background:#000;border:3px solid #00FF00;border-radius:12px;overflow:hidden;position:relative;margin-top:10px}
-#bbPreview img{width:120%;height:100%;object-fit:cover;display:block;animation:panLR 10s infinite alternate linear}
-#bbPreview video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
-#bbPreviewText{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#FFCC02;padding:8px 14px;border-radius:20px;border:2px solid #FFCC02;font-weight:bold;max-width:90%;text-align:center}
-@keyframes panLR{0%{transform:translateX(0%) scale(1.15)}100%{transform:translateX(-16%) scale(1.15)}}
-@media(max-width:600px){#bbPreviewWrap{height:250px}}
 </style>
 </head>
 <body>
@@ -80,13 +73,12 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products - With Shop Link</h2><div id="productsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="withdraws" class="tabPane" style="display:none"><div class="card" style="border:3px solid #ff6a00"><h2>💸 Withdraw Requests</h2><p>Users request MoMo payment. Click PAID after you send money.</p><div id="withdrawsBox">Loading...</div></div></div>
-<div id="billboard" class="tabPane" style="display:none"><div class="card" style="border:3px solid #00FF00"><h2>📢 Billboard - Auto Landscape 1200x400 + Motion</h2>
+<div id="billboard" class="tabPane" style="display:none"><div class="card" style="border:3px solid #00FF00"><h2>📢 Billboard - Upload From Phone</h2>
 <div style="background:#000;padding:12px;border-radius:10px;border:1px solid #333">
 <div style="background:#111;padding:10px;border-radius:8px;border:2px dashed #00FF00;margin-bottom:10px">
 <b style="color:#00FF00">📁 Step 1: Choose Image/Video from your files</b><br>
-<p style="font-size:11px;color:#aaa">Boss your portrait SALE image will be auto-converted to 1200x400 landscape!</p>
 <input type="file" id="bbFileInput" accept="image/*,video/*" style="background:#222;margin-top:8px">
-<button onclick="uploadBillboardFile()" style="background:#0000ff;color:white;width:100%;margin-top:8px">⬆️ Upload File Now (Auto Landscape)</button>
+<button onclick="uploadBillboardFile()" style="background:#0000ff;color:white;width:100%;margin-top:8px">⬆️ Upload File Now</button>
 <div id="bbUploadStatus" style="margin-top:8px;font-weight:bold"></div>
 </div>
 <label><input type="checkbox" id="bbActive"> Active (Show on homepage)</label><br>
@@ -96,7 +88,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <input id="bbLink" placeholder="Link when clicked (optional) /shop">
 <button onclick="saveBillboard()" style="width:100%;background:#00FF00;color:#000">💾 Save Billboard</button>
 <div id="bbStatus" style="margin-top:8px;font-size:12px"></div>
-<div id="bbPreviewWrap"><div id="bbPreview" style="width:100%;height:100%"></div><div id="bbPreviewText"></div></div>
+<div id="bbPreview" style="margin-top:10px;background:#222;padding:10px;border-radius:8px"></div>
 </div>
 </div></div>
 <div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages</h2><div id="contactsBox">Loading...</div></div></div>
@@ -152,19 +144,17 @@ async function uploadBillboardFile(){
   if(!file){ alert('Boss choose file first!'); return; }
   const form = new FormData();
   form.append('file', file);
-  document.getElementById('bbUploadStatus').innerHTML = '<span style="color:yellow">⏳ Uploading + Converting to 1200x400 landscape...</span>';
+  document.getElementById('bbUploadStatus').innerHTML = '<span style="color:yellow">⏳ Uploading... please wait</span>';
   try{
     const res = await fetch('/api/upload/billboard', {method:'POST', body:form});
     const data = await res.json();
     if(data.url){
       document.getElementById('bbMedia').value = data.url;
       document.getElementById('bbType').value = data.type;
-      document.getElementById('bbUploadStatus').innerHTML = '<span style="color:#00FF00">✅ Done! '+data.url+' - Now click SAVE below</span>';
+      document.getElementById('bbUploadStatus').innerHTML = '<span style="color:#00FF00">✅ Uploaded! '+data.url+' Now click SAVE BILLBOARD below</span>';
       let prev=document.getElementById('bbPreview');
-      let txt=document.getElementById('bbPreviewText');
-      txt.innerText=document.getElementById('bbText').value||'';
-      if(data.type=='video') prev.innerHTML=`<video src="${data.url}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover"></video>`;
-      else prev.innerHTML=`<img src="${data.url}" style="width:120%;height:100%;object-fit:cover">`;
+      if(data.type=='video') prev.innerHTML=`<video src="${data.url}" controls style="max-width:100%;max-height:200px;border-radius:8px"></video>`;
+      else prev.innerHTML=`<img src="${data.url}" style="max-width:100%;max-height:200px;border-radius:8px">`;
     }else{
       document.getElementById('bbUploadStatus').innerHTML = '<span style="color:red">❌ Failed: '+(data.error||'unknown')+'</span>';
     }
@@ -180,18 +170,16 @@ function loadBillboard(){
  document.getElementById('bbText').value=bb.text||'';
  document.getElementById('bbLink').value=bb.link||'';
  let prev=document.getElementById('bbPreview');
- let txt=document.getElementById('bbPreviewText');
- txt.innerText=bb.text||'';
  if(bb.media_url){
-  if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover"></video>`;
-  else prev.innerHTML=`<img src="${bb.media_url}" style="width:120%;height:100%;object-fit:cover">`;
- } else prev.innerHTML='<p style="padding:100px;text-align:center">No media yet</p>';
+  if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" controls style="max-width:100%;max-height:200px;border-radius:8px"></video><p>${bb.text}</p>`;
+  else prev.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:200px;border-radius:8px"><p>${bb.text}</p>`;
+ } else prev.innerHTML='<p>No media</p>';
 }
 async function saveBillboard(){
  let data={active:document.getElementById('bbActive').checked,type:document.getElementById('bbType').value,media_url:document.getElementById('bbMedia').value.trim(),text:document.getElementById('bbText').value.trim(),link:document.getElementById('bbLink').value.trim()};
  let res=await fetch('/api/admin/billboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
  let d=await res.json();
- document.getElementById('bbStatus').innerHTML=d.success?'<span style="color:#00FF00">✅ Saved! Homepage will show 420px motion now</span>':'<span style="color:red">Failed</span>';
+ document.getElementById('bbStatus').innerHTML=d.success?'<span style="color:#00FF00">✅ Saved! Homepage will show now</span>':'<span style="color:red">Failed</span>';
  if(d.success){ALL.billboard=d.config;loadBillboard();}
 }
 function loadData(){
@@ -199,7 +187,7 @@ document.getElementById('stats').innerHTML='<div class="card">Loading...</div>';
 fetch('/api/admin/data').then(r=>{
  if(r.status==401){localStorage.removeItem('sannlas_admin');document.getElementById('loginBox').style.display='block';document.getElementById('adminContent').style.display='none';throw new Error('Login required');}
  return r.json()
-}).then(d=>{ALL=d; let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; let withdraws=d.withdraws||[]; document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length; document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#ff6a00;color:#000">Withdraws<br><b>${withdraws.filter(w=>w.status=='pending').length} pending</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div><div class="stat" style="background:#000;color:#FFCC02;border:1px solid #FFCC02">Coin Rev<br><b>UGX ${Number(d.coin_revenue||0).toLocaleString()}</b></div>`; document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length} | Shops: ${shops.length} | With slug: ${prods.filter(p=>p.shop_slug).length} / ${prods.length}</p><p style="color:#FFCC02">Coins sold: ${coinCfg.sold} | Left: ${coinCfg.remaining} | Billboard: ${d.billboard?.active?'🟢 ON - 420px MOTION':'🔴 OFF'}</p></div>`; renderUsers(); renderShops(); renderTopSellers(); loadCoinsTab(); loadWithdraws(); loadBillboard(); document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages'; document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th><th>Phone</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td>${o.buyer?.phone1||''}</td></tr>`).join('')+'</table>':'No orders'; document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><span class="yellow-box">${p.business||''}</span> <span class="green-box">${p.phone||''}</span> ${p.shop_slug?'<span style="background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:3px 6px;border-radius:5px;font-size:10px">🏪 '+p.shop_slug+'</span>':'<span style="background:red;padding:2px 6px;border-radius:4px;font-size:10px">OLD</span>'}<br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button> ${p.shop_slug?'<a href="/shop/'+p.shop_slug+'" target="_blank"><button style="background:#FFCC02;color:#000;font-size:10px">🏪 Shop</button></a>':''}</div></div>`).join(''):'No products'; loadNotifHistory(); }).catch(e=>{console.log(e);document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red"><h3 style="color:red">${e.message}</h3><button onclick="loadData()" style="background:#FFCC02;color:#000;width:100%">Retry</button></div>`;});}
+}).then(d=>{ALL=d; let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; let withdraws=d.withdraws||[]; document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length; document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#ff6a00;color:#000">Withdraws<br><b>${withdraws.filter(w=>w.status=='pending').length} pending</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div><div class="stat" style="background:#000;color:#FFCC02;border:1px solid #FFCC02">Coin Rev<br><b>UGX ${Number(d.coin_revenue||0).toLocaleString()}</b></div>`; document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length} | Shops: ${shops.length} | With slug: ${prods.filter(p=>p.shop_slug).length} / ${prods.length}</p><p style="color:#FFCC02">Coins sold: ${coinCfg.sold} | Left: ${coinCfg.remaining} | Billboard: ${d.billboard?.active?'🟢 ON':'🔴 OFF'}</p></div>`; renderUsers(); renderShops(); renderTopSellers(); loadCoinsTab(); loadWithdraws(); loadBillboard(); document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages'; document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th><th>Phone</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td><td>${o.buyer?.phone1||''}</td></tr>`).join('')+'</table>':'No orders'; document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><span class="yellow-box">${p.business||''}</span> <span class="green-box">${p.phone||''}</span> ${p.shop_slug?'<span style="background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:3px 6px;border-radius:5px;font-size:10px">🏪 '+p.shop_slug+'</span>':'<span style="background:red;padding:2px 6px;border-radius:4px;font-size:10px">OLD</span>'}<br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button> ${p.shop_slug?'<a href="/shop/'+p.shop_slug+'" target="_blank"><button style="background:#FFCC02;color:#000;font-size:10px">🏪 Shop</button></a>':''}</div></div>`).join(''):'No products'; loadNotifHistory(); }).catch(e=>{console.log(e);document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red"><h3 style="color:red">${e.message}</h3><button onclick="loadData()" style="background:#FFCC02;color:#000;width:100%">Retry</button></div>`;});}
 function renderTopSellers(){let users=ALL.users||[]; let prods=ALL.products||[]; let stats={}; prods.forEach(p=>{let biz=p.business; if(!biz) return; if(!stats[biz]) stats[biz]={likes:0,stars:0,products:0,business:biz,phone:p.phone||''}; stats[biz].likes+=(p.reviews||[]).length; stats[biz].stars+=(p.reviews||[]).reduce((s,r)=>s+Number(r.rating||0),0); stats[biz].products+=1;}); let merged=Object.values(stats).map(s=>{let u=users.find(x=>x.business===s.business); return {...s, email:u?.email||'', followers:u?.followers||0};}); merged.sort((a,b)=>b.likes-a.likes); document.getElementById('topSellersBox').innerHTML=merged.length?'<table><tr><th>Rank</th><th>Business</th><th>Phone</th><th>Likes</th><th>Stars</th></tr>'+merged.map((s,i)=>`<tr><td>${i+1}</td><td><span class="yellow-box">${s.business}</span></td><td>${s.phone}</td><td>👍 ${s.likes}</td><td>⭐ ${s.stars}</td></tr>`).join('')+'</table>':'No sellers';}
 function sendAdminMessage(){let email=document.getElementById('notifEmail').value.trim(); let phone=document.getElementById('notifPhone').value.trim(); let title=document.getElementById('notifTitle').value.trim()||'Message'; let message=document.getElementById('notifMessage').value.trim(); if(!email &&!phone){alert('Enter email/phone');return;} if(!message){alert('Enter msg');return;} fetch('/api/admin/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to_email:email,to_phone:phone,title,message})}).then(r=>r.json()).then(d=>{document.getElementById('notifStatus').innerHTML=`<span style="color:#00FF00">✅ ${d.message}</span>`;loadNotifHistory();});}
 function loadNotifHistory(){fetch('/api/admin/notifications').then(async r=>{let txt=await r.text(); try{return JSON.parse(txt)}catch{return []}}).then(d=>{let arr=d||[]; document.getElementById('notifHistory').innerHTML=arr.length?arr.slice().reverse().slice(0,15).map(n=>`<div style="border-bottom:1px solid #333;padding:6px 0"><b>${n.title}</b> → ${n.to_email||''} ${n.to_phone||''}<br><span style="font-size:10px;color:#aaa">${new Date(n.time*1000).toLocaleString()}</span><br>${n.message}</div>`).join(''):'No messages';});}
