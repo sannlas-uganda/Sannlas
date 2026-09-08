@@ -733,7 +733,7 @@ def sell():
     desc=request.form.get('desc','') or request.form.get('description','')
     main_cat=request.form.get('main_category')
     stock=int(request.form.get('stock',10))
-        promo_commission = int(request.form.get('promo_commission','3'))
+    promo_commission = int(request.form.get('promo_commission','3'))
     if promo_commission <1: promo_commission=1
     if promo_commission >10: promo_commission=10
     user_email=request.form.get('user_email','').lower()
