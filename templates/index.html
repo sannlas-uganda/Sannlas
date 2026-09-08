@@ -88,6 +88,14 @@
 <div class="popup" id="cartPop"><div class="popup-content" id="cartContent"></div></div>
 <div class="popup" id="authPop"><div class="popup-content"><h2>Account</h2><div id="myProfileInfo"></div><div id="myShopBtnArea" style="margin:10px 0"></div><button class="btn" style="width:100%;background:#c0392b;margin-top:10px" onclick="doLogout()">Logout</button><button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button></div></div>
 <div class="popup" id="shopsPop"><div class="popup-content" id="shopsContent"></div></div>
+  <div style="background:linear-gradient(90deg,#000,#8B0000);border:3px solid #FFCC02;border-radius:15px;padding:15px;margin:15px auto;max-width:500px;text-align:center">
+<h2 style="color:#FFCC02">🎰 SPIN & WIN - 1 Coin!</h2>
+<div id="spinWheel" style="width:200px;height:200px;border-radius:50%;border:8px solid #FFCC02;margin:15px auto;background:conic-gradient(#FFCC02 0deg 60deg,#2e7d32 60deg 120deg,#ff6a00 120deg 180deg,#8B0000 180deg 240deg,#333 240deg 300deg,#555 300deg 360deg);display:flex;align-items:center;justify-content:center;font-size:50px;transition:transform 3s cubic-bezier(0.17,0.67,0.12,0.99)">🎰</div>
+<p style="color:white;font-size:12px">Pay 1 coin, win up to 5 coins! 👑</p>
+<button onclick="doSpin()" id="spinBtn" style="background:#FFCC02;color:#000;width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;margin-top:10px">🎰 SPIN NOW - 1 COIN</button>
+<p id="spinResult" style="color:#FFCC02;font-weight:bold;margin-top:10px"></p>
+<p style="color:#888;font-size:10px">Balance: <span id="spinBal">0</span> coins | <a href="#" onclick="loadSpinHistory()" style="color:#FFCC02">History</a></p>
+</div>
 <div class="fixed-bottom"><span onclick="goToWallet()" style="color:#FFCC02">🪙 Wallet</span><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/balance'" style="color:#FFCC02">💰 Balance</span></div>
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
@@ -278,6 +286,30 @@ function compressImage(file){return new Promise((res)=>{let img=new Image();img.
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
 function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||0}`; document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Business: ${currentUser.business||''}`; document.getElementById('myShopBtnArea').innerHTML=`<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer">🏪 MY SHOP - View My Store</button><button onclick="showAllShops()" style="width:100%;background:#FFCC02;color:#000;border:none;padding:10px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:8px">🏪 Browse All Shops</button>`;}}
 function doLogout(){localStorage.clear();location.reload();}
+  async function doSpin(){
+ let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+ if(!u.phone){ alert('Login first Boss!'); return; }
+ let btn=document.getElementById('spinBtn');
+ btn.disabled=true; btn.innerText='⏳ Spinning...';
+ document.getElementById('spinWheel').style.transform=`rotate(${Math.floor(Math.random()*2000)+1000}deg)`;
+ let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email})});
+ let d=await r.json();
+ setTimeout(()=>{
+   btn.disabled=false; btn.innerText='🎰 SPIN NOW - 1 COIN';
+   if(!d.success){ alert(d.message); document.getElementById('spinResult').innerText='❌ '+d.message; return; }
+   document.getElementById('spinResult').innerText=d.message;
+   document.getElementById('spinBal').innerText=d.my_coins;
+   document.getElementById('myCoinsNav').innerText=d.my_coins;
+   document.getElementById('myCoinsPlan').innerText=d.my_coins;
+   if(d.prize.coins>0) alert('🎉 '+d.prize.name+' Boss!');
+ },3000);
+}
+async function loadSpinHistory(){
+ let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+ let r=await fetch(`/api/spin/history?phone=${u.phone}&email=${u.email}`);
+ let h=await r.json();
+ alert('Last spins:\\n'+h.map(x=>`${x.prize} - won ${x.won}`).join('\\n'));
+}
 gateCheck();
 </script>
 <script>
