@@ -473,19 +473,53 @@ def admin_add_coins():
     save_db('coin_transactions.json', txs)
     return jsonify({'success': True, 'message': f'Added {coins} coins to {found.get("email")}', 'user': {'email': found.get('email'), 'coins': found.get('coins')}})
 
+@app.route('/api/admin/coins/config', methods=['GET'])
+@admin_required
+def admin_coin_config_get():
+    cfg = get_coin_config()
+    return jsonify(cfg)
+
 @app.route('/api/admin/coins/config', methods=['POST'])
 @admin_required
 def admin_update_coin_config():
     data = request.json or {}
     cfg = get_coin_config()
-    if 'price' in data: cfg['price'] = int(data['price'])
-    if 'upload_cost' in data: cfg['upload_cost'] = int(data['upload_cost'])
+    action = data.get('action')  # add / reduce / set_price / set_total
+    
+    # NEW: ADD or REDUCE (What you want Boss)
+    if action in ('add', 'reduce'):
+        try:
+            amount = int(data.get('amount', 0))
+        except:
+            return jsonify({"success": False, "message": "Invalid amount"}), 400
+        if amount <= 0:
+            return jsonify({"success": False, "message": "Enter amount >0"}), 400
+        
+        if action == "add":
+            cfg['total'] = int(cfg.get('total', 0)) + amount
+            cfg['remaining'] = int(cfg.get('remaining', 0)) + amount
+            save_coin_config(cfg)
+            return jsonify({"success": True, "message": f"✅ Added {amount:,} coins. Total now {cfg['total']:,}", "config": cfg})
+        else: # reduce
+            if int(cfg.get('remaining',0)) < amount:
+                return jsonify({"success": False, "message": f"Only {cfg.get('remaining',0):,} remaining! Cannot reduce {amount:,}"}), 400
+            cfg['total'] = int(cfg.get('total', 0)) - amount
+            cfg['remaining'] = int(cfg.get('remaining', 0)) - amount
+            save_coin_config(cfg)
+            return jsonify({"success": True, "message": f"✅ Reduced {amount:,} coins. Total now {cfg['total']:,}", "config": cfg})
+    
+    # OLD: Keep your old logic for price / total / upload_cost
+    if 'price' in data: 
+        cfg['price'] = int(data['price'])
+    if 'upload_cost' in data: 
+        cfg['upload_cost'] = int(data['upload_cost'])
     if 'total' in data:
         diff = int(data['total']) - cfg.get('total', TOTAL_COINS)
         cfg['total'] = int(data['total'])
         cfg['remaining'] = max(0, cfg.get('remaining',0) + diff)
+    
     save_coin_config(cfg)
-    return jsonify({'success': True, 'config': cfg})
+    return jsonify({'success': True, 'config': cfg, 'message': 'Config updated'})
 
 @app.route('/api/withdraw', methods=['POST'])
 def request_withdraw():
