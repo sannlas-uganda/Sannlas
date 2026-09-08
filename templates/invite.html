@@ -1,0 +1,30 @@
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Invite & Earn</title>
+<style>body{background:#0f0f0f;color:white;font-family:Arial;padding:15px}.card{background:#1e1e1e;padding:20px;border-radius:12px;border:2px solid #FFCC02} input{width:95%;padding:12px;border-radius:8px;border:none;background:#000;color:#FFCC02;margin:8px 0} button{padding:12px;border-radius:8px;border:none;font-weight:bold;margin:3px;cursor:pointer}</style>
+</head><body>
+<div class="card">
+<h2 style="color:#FFCC02">🔗 Invite & Earn 1 Coin = UGX 599!</h2>
+<p>Share your link — when friend registers, you get 1 coin instantly!</p>
+<input id="myLink" readonly placeholder="Loading link...">
+<button onclick="copyLink()" style="background:#FFCC02;color:#000;width:100%">📋 COPY LINK</button>
+<div style="display:flex;gap:5px;margin-top:10px">
+<button onclick="shareWA()" style="background:#25D366;color:white;flex:1">WhatsApp</button>
+<button onclick="shareFB()" style="background:#1877F2;color:white;flex:1">Facebook</button>
+</div>
+<div id="stats" style="margin-top:20px;background:#000;padding:15px;border-radius:10px;text-align:center">Loading...</div>
+<a href="/" style="color:#aaa;display:block;text-align:center;margin-top:15px">← Back to Shop</a>
+</div>
+<script>
+let userPhone=localStorage.getItem('user_phone')||''; let userEmail=localStorage.getItem('user_email')||'';
+function loadRef(){
+ fetch(`/api/my-referral?phone=${userPhone}&email=${userEmail}`).then(r=>r.json()).then(d=>{
+  if(!d.success){document.getElementById('stats').innerHTML=d.message+' — Login first'; return;}
+  document.getElementById('myLink').value=d.link;
+  document.getElementById('stats').innerHTML=`<h3>👥 Invites: ${d.total_invites}</h3><h3 style="color:#00FF00">🪙 Earned: ${d.earned_coins} coins</h3><h3 style="color:#FFCC02">💵 UGX ${d.earned_ugx.toLocaleString()}</h3>`;
+ });
+}
+function copyLink(){navigator.clipboard.writeText(document.getElementById('myLink').value); alert('Link Copied Boss!');}
+function shareWA(){window.open(`https://wa.me/?text=Join Sannlas! Earn money selling! ${document.getElementById('myLink').value}`)}
+function shareFB(){window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(document.getElementById('myLink').value)}`)}
+loadRef();
+</script>
+</body></html>
