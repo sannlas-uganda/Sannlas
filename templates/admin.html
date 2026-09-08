@@ -73,22 +73,34 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products - With Shop Link</h2><div id="productsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="withdraws" class="tabPane" style="display:none"><div class="card" style="border:3px solid #ff6a00"><h2>💸 Withdraw Requests</h2><p>Users request MoMo payment. Click PAID after you send money.</p><div id="withdrawsBox">Loading...</div></div></div>
-<div id="billboard" class="tabPane" style="display:none"><div class="card" style="border:3px solid #00FF00"><h2>📢 Billboard - Upload From Phone</h2>
+<div id="billboard" class="tabPane" style="display:none"><div class="card" style="border:3px solid #00FF00"><h2>📢 Billboard - Image OR Video + Timer</h2>
 <div style="background:#000;padding:12px;border-radius:10px;border:1px solid #333">
 <div style="background:#111;padding:10px;border-radius:8px;border:2px dashed #00FF00;margin-bottom:10px">
-<b style="color:#00FF00">📁 Step 1: Choose Image/Video from your files</b><br>
-<input type="file" id="bbFileInput" accept="image/*,video/*" style="background:#222;margin-top:8px">
-<button onclick="uploadBillboardFile()" style="background:#0000ff;color:white;width:100%;margin-top:8px">⬆️ Upload File Now</button>
-<div id="bbUploadStatus" style="margin-top:8px;font-weight:bold"></div>
+<b style="color:#00FF00">📁 Step 1: Choose Image OR Video</b><br>
+<small style="color:#aaa">✅ Accepts JPG/PNG (image) OR MP4 (video) - Max 12MB - Compressed video better</small>
+<input type="file" id="bbFileInput" accept="image/*,video/*" style="background:#222;margin-top:8px;width:95%">
+
+<label style="color:#FFCC02;font-size:12px;display:block;margin-top:10px">⏰ How long to show?</label>
+<select id="bbDuration" style="width:98%;background:#222;color:white">
+  <option value="3">3 Hours</option>
+  <option value="12">12 Hours</option>
+  <option value="24" selected>24 Hours (1 Day)</option>
+  <option value="72">3 Days</option>
+  <option value="168">7 Days (1 Week)</option>
+  <option value="720">30 Days</option>
+  <option value="0">Forever - Until I change</option>
+</select>
+
+<input id="bbText" placeholder="Banner Text e.g BIG SALE 50% OFF!" style="width:95%;margin-top:8px">
+<input id="bbLink" placeholder="Link when clicked (optional) /shop or https://..." style="width:95%">
+
+<button onclick="uploadBillboardFile()" style="background:#FFCC02;color:#000;width:100%;margin-top:10px;font-size:16px">🚀 UPLOAD BILLBOARD NOW</button>
+<button onclick="turnOffBillboard()" style="background:#333;color:white;width:100%;margin-top:8px;border:1px solid #555">❌ TURN OFF BILLBOARD</button>
+<div id="bbUploadStatus" style="margin-top:8px;font-weight:bold;text-align:center"></div>
 </div>
-<label><input type="checkbox" id="bbActive"> Active (Show on homepage)</label><br>
-<select id="bbType"><option value="image">Image</option><option value="video">Video</option></select>
-<input id="bbMedia" placeholder="Media URL - auto filled after upload">
-<input id="bbText" placeholder="Billboard Text e.g Welcome to Sannlas">
-<input id="bbLink" placeholder="Link when clicked (optional) /shop">
-<button onclick="saveBillboard()" style="width:100%;background:#00FF00;color:#000">💾 Save Billboard</button>
-<div id="bbStatus" style="margin-top:8px;font-size:12px"></div>
+
 <div id="bbPreview" style="margin-top:10px;background:#222;padding:10px;border-radius:8px"></div>
+<div id="bbStatus" style="margin-top:8px;font-size:12px"></div>
 </div>
 </div></div>
 <div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages</h2><div id="contactsBox">Loading...</div></div></div>
@@ -141,20 +153,24 @@ function withdrawAction(id,action){if(!confirm(action+' withdraw '+id+'? Make su
 async function uploadBillboardFile(){
   const fileInput = document.getElementById('bbFileInput');
   const file = fileInput.files[0];
-  if(!file){ alert('Boss choose file first!'); return; }
+  if(!file){ alert('Boss choose image OR video first!'); return; }
+  if(file.size > 12*1024*1024){ alert('File too big Boss! Max 12MB. Compress video!'); return; }
   const form = new FormData();
   form.append('file', file);
-  document.getElementById('bbUploadStatus').innerHTML = '<span style="color:yellow">⏳ Uploading... please wait</span>';
+  form.append('text', document.getElementById('bbText').value.trim());
+  form.append('link', document.getElementById('bbLink').value.trim());
+  form.append('duration', document.getElementById('bbDuration').value);
+  document.getElementById('bbUploadStatus').innerHTML = '<span style="color:yellow">⏳ Uploading '+file.name+' ('+(file.type.includes('video')?'VIDEO':'IMAGE')+')... please wait</span>';
   try{
     const res = await fetch('/api/upload/billboard', {method:'POST', body:form});
     const data = await res.json();
-    if(data.url){
-      document.getElementById('bbMedia').value = data.url;
-      document.getElementById('bbType').value = data.type;
-      document.getElementById('bbUploadStatus').innerHTML = '<span style="color:#00FF00">✅ Uploaded! '+data.url+' Now click SAVE BILLBOARD below</span>';
+    if(data.success || data.url){
+      document.getElementById('bbUploadStatus').innerHTML = '<span style="color:#00FF00">✅ LIVE as '+(data.type||'').toUpperCase()+'! Expires: '+(data.expires_at||data.config?.expires_at||'Forever')+'</span>';
       let prev=document.getElementById('bbPreview');
-      if(data.type=='video') prev.innerHTML=`<video src="${data.url}" controls style="max-width:100%;max-height:200px;border-radius:8px"></video>`;
-      else prev.innerHTML=`<img src="${data.url}" style="max-width:100%;max-height:200px;border-radius:8px">`;
+      let url = data.url || data.config?.media_url;
+      if((data.type||'')=='video') prev.innerHTML=`<video src="${url}" controls autoplay muted loop style="max-width:100%;max-height:250px;border-radius:8px"></video><p>${document.getElementById('bbText').value}</p>`;
+      else prev.innerHTML=`<img src="${url}" style="max-width:100%;max-height:250px;border-radius:8px"><p>${document.getElementById('bbText').value}</p>`;
+      loadData();
     }else{
       document.getElementById('bbUploadStatus').innerHTML = '<span style="color:red">❌ Failed: '+(data.error||'unknown')+'</span>';
     }
@@ -162,25 +178,25 @@ async function uploadBillboardFile(){
     document.getElementById('bbUploadStatus').innerHTML = '<span style="color:red">❌ Error: '+e.message+'</span>';
   }
 }
+async function turnOffBillboard(){
+  if(!confirm('Turn OFF billboard Boss?')) return;
+  await fetch('/api/admin/billboard', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({active:false})});
+  document.getElementById('bbUploadStatus').innerHTML = '<span style="color:orange">✅ Billboard OFF</span>';
+  document.getElementById('bbPreview').innerHTML = '';
+  loadData();
+}
 function loadBillboard(){
- let bb=ALL.billboard||{active:false,type:'image',media_url:'',text:'',link:''};
- document.getElementById('bbActive').checked=!!bb.active;
- document.getElementById('bbType').value=bb.type||'image';
- document.getElementById('bbMedia').value=bb.media_url||'';
+ let bb=ALL.billboard||{active:false,type:'image',media_url:'',text:'',link:'',expires_at:null};
  document.getElementById('bbText').value=bb.text||'';
  document.getElementById('bbLink').value=bb.link||'';
  let prev=document.getElementById('bbPreview');
- if(bb.media_url){
-  if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" controls style="max-width:100%;max-height:200px;border-radius:8px"></video><p>${bb.text}</p>`;
-  else prev.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:200px;border-radius:8px"><p>${bb.text}</p>`;
- } else prev.innerHTML='<p>No media</p>';
-}
-async function saveBillboard(){
- let data={active:document.getElementById('bbActive').checked,type:document.getElementById('bbType').value,media_url:document.getElementById('bbMedia').value.trim(),text:document.getElementById('bbText').value.trim(),link:document.getElementById('bbLink').value.trim()};
- let res=await fetch('/api/admin/billboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
- let d=await res.json();
- document.getElementById('bbStatus').innerHTML=d.success?'<span style="color:#00FF00">✅ Saved! Homepage will show now</span>':'<span style="color:red">Failed</span>';
- if(d.success){ALL.billboard=d.config;loadBillboard();}
+ if(bb.media_url && bb.active){
+  let expText = bb.expires_at? '⏰ Expires: '+new Date(bb.expires_at).toLocaleString() : '⏰ Forever';
+  if(bb.type=='video') prev.innerHTML=`<div style="background:green;color:white;padding:4px 8px;border-radius:5px;display:inline-block;margin-bottom:5px">🟢 LIVE VIDEO - ${expText}</div><br><video src="${bb.media_url}" controls style="max-width:100%;max-height:200px;border-radius:8px" autoplay muted loop></video><p>${bb.text||''}</p>`;
+  else prev.innerHTML=`<div style="background:green;color:white;padding:4px 8px;border-radius:5px;display:inline-block;margin-bottom:5px">🟢 LIVE IMAGE - ${expText}</div><br><img src="${bb.media_url}" style="max-width:100%;max-height:200px;border-radius:8px"><p>${bb.text||''}</p>`;
+ } else {
+   prev.innerHTML = bb.media_url? '<div style="background:red;color:white;padding:4px 8px;border-radius:5px">🔴 OFF / Expired</div>' : '<p>No billboard</p>';
+ }
 }
 function loadData(){
 document.getElementById('stats').innerHTML='<div class="card">Loading...</div>';
