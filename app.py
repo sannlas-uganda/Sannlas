@@ -1062,6 +1062,51 @@ def create_order():
         save_db('promotions.json',promos)
         save_db('users.json',users)
     return jsonify({"success":True,"order":new_order})
+    # ===== SPIN GAME - 1 COIN PER SPIN =====
+@app.route('/api/spin', methods=['POST'])
+def spin_game():
+    data=request.json or {}
+    phone=(data.get('phone') or '').strip()
+    email=(data.get('email') or '').lower().strip()
+    users=load_db('users.json',[])
+    u=None
+    for user in users:
+        if (phone and user.get('phone')==phone) or (email and user.get('email','').lower()==email):
+            u=user; break
+    if not u:
+        return jsonify({"success":False,"message":"Login first"}),401
+    if u.get('coins',0) < 1:
+        return jsonify({"success":False,"message":f"Need 1 coin to spin! You have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
+
+    import random
+    u['coins']=u.get('coins',0)-1
+    # Prizes: 0,1,2,3,5 coins + discount
+    prizes=[
+        {"name":"Try Again 😢","coins":0,"color":"#333"},
+        {"name":"1 Coin Back 🪙","coins":1,"color":"#FFCC02"},
+        {"name":"2 Coins Win! 🎉","coins":2,"color":"#2e7d32"},
+        {"name":"3 Coins JACKPOT! 🔥","coins":3,"color":"#ff6a00"},
+        {"name":"5 Coins SUPER! 👑","coins":5,"color":"#8B0000"},
+        {"name":"0.5 Coin 😅","coins":0,"color":"#555"},
+    ]
+    # 60% lose, 40% win - you profit Boss!
+    weights=[30,25,15,8,2,20]
+    prize=random.choices(prizes, weights=weights, k=1)[0]
+    u['coins']+=prize['coins']
+
+    spins=load_db('spins.json',[])
+    spins.append({"phone":phone,"email":email,"cost":1,"won":prize['coins'],"prize":prize['name'],"time":time.time()})
+    save_db('spins.json',spins)
+    save_db('users.json',users)
+    return jsonify({"success":True,"prize":prize,"my_coins":u['coins'],"message":f"🎰 {prize['name']}! Won {prize['coins']} coins! Balance: {u['coins']}"})
+
+@app.route('/api/spin/history', methods=['GET'])
+def spin_history():
+    phone=request.args.get('phone','').strip()
+    email=request.args.get('email','').lower().strip()
+    spins=load_db('spins.json',[])
+    result=[s for s in spins if s.get('phone')==phone or s.get('email','').lower()==email]
+    return jsonify(result[::-1][:20])
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
