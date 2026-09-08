@@ -12,20 +12,24 @@
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .box{background:#000;color:#FFCC02;padding:15px;border-radius:12px;text-align:center;border:2px solid #FFCC02}
 .box.green{background:#2e7d32;color:white;border:none}
+.box.black{background:#111;color:#FFCC02;border:2px solid #00FF00}
 input{padding:12px;width:100%;border-radius:8px;border:1px solid #ccc;margin:6px 0;font-size:14px}
 </style>
 </head>
 <body>
-<div class="navbar"><b onclick="location.href='/'">🛍️ SANNLAS</b><div><button class="btn" style="background:white;color:black" onclick="location.href='/'">🏠 Home</button><button class="btn btn-yellow" onclick="location.href='/wallet'">🪙 Wallet</button></div></div>
+<div class="navbar"><b onclick="location.href='/'">🛍️ SANNLAS</b><div><button class="btn" style="background:white;color:black" onclick="location.href='/'">🏠 Home</button><button class="btn btn-yellow" onclick="location.href='/wallet'">🪙 Wallet</button><button class="btn btn-yellow" onclick="location.href='/invite'">🔗 Invite</button></div></div>
 
 <div class="card" style="background:#000;color:#FFCC02;text-align:center;border:3px solid #FFCC02">
-<h2>💰 MY BALANCE</h2>
-<p style="font-size:11px;margin:5px 0">MoMo: 0795712326 | 1 coin = 599 UGX</p>
+<h2>💰 MY COIN BALANCE</h2>
+<p style="font-size:11px;margin:5px 0">MoMo: 0795712326 | 1 coin = UGX 599</p>
 <div class="grid" style="margin-top:10px">
-<div class="box"><div>🪙 Coins</div><div style="font-size:28px;font-weight:bold" id="coinsBal">0</div><div style="font-size:10px">Can upload <span id="upCount">0</span></div></div>
-<div class="box green"><div>💵 Sales UGX</div><div style="font-size:22px;font-weight:bold" id="salesBal">0</div><div style="font-size:10px" id="ordersBal">0 orders</div></div>
+<div class="box"><div>🛒 BOUGHT</div><div style="font-size:22px;font-weight:bold" id="boughtBal">0</div><div style="font-size:10px" id="boughtUgx">UGX 0</div></div>
+<div class="box green"><div>🎁 EARNED</div><div style="font-size:22px;font-weight:bold" id="earnedBal">0</div><div style="font-size:10px" id="earnedUgx">UGX 0</div></div>
+<div class="box" style="background:#FFCC02;color:#000"><div>🪙 TOTAL</div><div style="font-size:26px;font-weight:bold" id="coinsBal">0</div><div style="font-size:10px">Coins</div></div>
+<div class="box black"><div>💵 VALUE</div><div style="font-size:20px;font-weight:bold;color:#00FF00" id="totalUgx">UGX 0</div><div style="font-size:10px" id="upCount">Can upload 0</div></div>
 </div>
-<div style="margin-top:10px;background:#FFCC02;color:#000;padding:8px;border-radius:10px;font-size:11px">Email: <span id="myEmail">-</span></div>
+<div style="margin-top:10px;background:#FFCC02;color:#000;padding:8px;border-radius:10px;font-size:11px">Email: <span id="myEmail">-</span> | Phone: <span id="myPhone">-</span></div>
+<div style="margin-top:8px;background:#111;color:#00FF00;padding:8px;border-radius:8px;font-size:11px">🔗 My Invite Link: <span id="myInviteLink" style="color:#FFCC02;font-size:10px">Loading...</span> <button onclick="copyInvite()" style="padding:3px 8px;border-radius:10px;background:#FFCC02;color:#000;border:none">Copy</button></div>
 </div>
 
 <div class="card">
@@ -33,53 +37,95 @@ input{padding:12px;width:100%;border-radius:8px;border:1px solid #ccc;margin:6px
 <div id="salesList">Loading...</div>
 </div>
 
-<!-- WITHDRAW FIX - ONLY ADDED -->
-<div class="card" style="border:3px solid #ff6a00">
-<h3>💸 Withdraw - MoMo Payment</h3>
-<p style="font-size:11px;color:gray">Min 10,000 UGX. Admin will send MoMo to you.</p>
-<input id="wdAmount" type="number" placeholder="Amount UGX e.g 20000">
+<!-- WITHDRAW COINS - NEW LOGIC -->
+<div class="card" style="border:3px solid #00FF00">
+<h3>💸 Withdraw Coins → UGX to MoMo</h3>
+<p style="font-size:11px;color:gray">You withdraw COINS, we convert to UGX at 599 rate. Min 9 coins = UGX 5,391</p>
+<div style="background:#000;color:#00FF00;padding:10px;border-radius:8px;margin:8px 0;text-align:center">
+You have <b id="haveCoins">0</b> coins = <b id="haveUgx">UGX 0</b> withdrawable
+</div>
+<input id="wdCoins" type="number" placeholder="Coins to withdraw e.g 20 (20 x 599 = UGX 11,980)">
 <input id="wdMomo" placeholder="MoMo Number to receive - e.g 2567...">
 <input id="wdName" placeholder="MoMo Name">
-<button class="btn btn-green" style="width:100%;padding:14px;margin-top:8px" onclick="requestWithdraw()">💸 Request Withdraw Now</button>
+<button class="btn btn-green" style="width:100%;padding:14px;margin-top:8px" onclick="requestWithdrawCoins()">💸 Withdraw Coins Now</button>
 <div id="wdStatus" style="font-size:12px;margin-top:8px"></div>
 <h4 style="margin-top:12px">My Withdraw Requests</h4>
 <div id="myWithdraws" style="font-size:11px">Loading...</div>
 </div>
 
 <div class="card">
-<h3>🪙 Coin Usage</h3>
-<div id="coinUsage">You spend 3 coins per product upload. Each coin = 599 UGX.</div>
+<h3>🪙 History - Bought vs Earned</h3>
+<div id="coinUsage">Loading history...</div>
 </div>
 
 <script>
 let currentUser=null;
-function loadUser(){let s=localStorage.getItem('sannlas_user');if(!s){alert('Login first');location.href='/';return;} currentUser=JSON.parse(s); document.getElementById('myEmail').innerText=currentUser.email; document.getElementById('wdMomo').value=currentUser.phone||''; document.getElementById('wdName').value=currentUser.business||''; loadAll();}
+let myReferralLink='';
+function loadUser(){
+ let s=localStorage.getItem('sannlas_user');
+ if(!s){alert('Login first');location.href='/';return;}
+ currentUser=JSON.parse(s);
+ document.getElementById('myEmail').innerText=currentUser.email;
+ document.getElementById('myPhone').innerText=currentUser.phone||'-';
+ document.getElementById('wdMomo').value=currentUser.phone||'';
+ document.getElementById('wdName').value=currentUser.business||'';
+ loadAll();
+}
 function loadAll(){
-fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{document.getElementById('coinsBal').innerText=d.coins||0; document.getElementById('upCount').innerText=Math.floor((d.coins||0)/3);});
-fetch(`/api/seller/sales?phone=${encodeURIComponent(currentUser.phone)}&email=${encodeURIComponent(currentUser.email)}&period=all`).then(r=>r.json()).then(d=>{document.getElementById('salesBal').innerText=(d.total_sales||0).toLocaleString(); document.getElementById('ordersBal').innerText=(d.total_orders||0)+' orders'; document.getElementById('salesList').innerHTML=(d.orders||[]).slice(0,10).map(o=>`<div style="border-bottom:1px solid #eee;padding:6px 0;font-size:11px">📦 ${o.id||'Order'} - UGX ${Number(o.total||o.my_total||0).toLocaleString()} - ${o.status||'Packed'}</div>`).join('')||'No sales yet';});
-loadMyWithdraws();
+ // NEW BALANCE API
+ fetch(`/api/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{
+  if(!d.success) return;
+  document.getElementById('boughtBal').innerText=d.bought_coins||0;
+  document.getElementById('earnedBal').innerText=d.earned_coins||0;
+  document.getElementById('coinsBal').innerText=d.total_coins||0;
+  document.getElementById('boughtUgx').innerText='UGX '+((d.bought_coins||0)*599).toLocaleString();
+  document.getElementById('earnedUgx').innerText='UGX '+((d.earned_coins||0)*599).toLocaleString();
+  document.getElementById('totalUgx').innerText='UGX '+((d.total_coins||0)*599).toLocaleString();
+  document.getElementById('upCount').innerText='Can upload '+Math.floor((d.total_coins||0)/3)+' products';
+  document.getElementById('haveCoins').innerText=d.total_coins||0;
+  document.getElementById('haveUgx').innerText='UGX '+((d.total_coins||0)*599).toLocaleString();
+  // history
+  let h=d.history||[];
+  if(!h.length) document.getElementById('coinUsage').innerHTML='No coin history yet. Buy coins or Invite friends!';
+  else document.getElementById('coinUsage').innerHTML=h.map(t=>{
+   let c=t.coins||0; let col=c>=0?'green':'red';
+   return `<div style="border-bottom:1px solid #eee;padding:6px 0;font-size:11px;display:flex;justify-content:space-between"><div><b style="color:${col}">${c>0?'+':''}${c} coins</b><br><small>${t.reason||t.status||''}</small></div><div style="text-align:right"><small>UGX ${(t.price||0).toLocaleString()}</small><br><small>${t.time?new Date(t.time*1000).toLocaleDateString():''}</small></div></div>`;
+  }).join('');
+ });
+ // Sales
+ fetch(`/api/seller/sales?phone=${encodeURIComponent(currentUser.phone)}&email=${encodeURIComponent(currentUser.email)}&period=all`).then(r=>r.json().catch(()=>({}))).then(d=>{
+  document.getElementById('salesList').innerHTML=(d.orders||[]).slice(0,10).map(o=>`<div style="border-bottom:1px solid #eee;padding:6px 0;font-size:11px">📦 ${o.id||'Order'} - UGX ${Number(o.total||o.my_total||0).toLocaleString()} - ${o.status||'Packed'}</div>`).join('')||'No sales yet';
+ });
+ // Referral
+ fetch(`/api/my-referral?phone=${encodeURIComponent(currentUser.phone)}&email=${encodeURIComponent(currentUser.email)}`).then(r=>r.json()).then(d=>{
+  if(d.success){myReferralLink=d.link; document.getElementById('myInviteLink').innerText=d.link+' - '+d.total_invites+' invites = '+d.earned_coins+' coins';}
+ });
+ loadMyWithdraws();
 }
 function loadMyWithdraws(){
-fetch(`/api/withdraw/my?email=${encodeURIComponent(currentUser.email)}`).then(r=>r.json()).then(d=>{
-let list=d.withdraws||[];
-if(!list.length){document.getElementById('myWithdraws').innerHTML='<p>No requests yet</p>';return;}
-document.getElementById('myWithdraws').innerHTML=list.slice().reverse().map(w=>`<div style="border-bottom:1px solid #eee;padding:6px 0">UGX ${Number(w.amount).toLocaleString()} → ${w.momo_number} | <b style="color:${w.status=='paid'?'green':w.status=='pending'?'orange':'red'}">${w.status.toUpperCase()}</b> <span style="font-size:10px;color:gray">${new Date(w.time*1000).toLocaleDateString()}</span></div>`).join('');
-});
+ fetch(`/api/withdraws?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{
+  let list=d.withdraws||d||[];
+  if(!Array.isArray(list)) list=[];
+  if(!list.length){document.getElementById('myWithdraws').innerHTML='<p>No requests yet</p>';return;}
+  document.getElementById('myWithdraws').innerHTML=list.slice().reverse().map(w=>`<div style="border-bottom:1px solid #eee;padding:6px 0">${w.coins||Math.floor(w.amount/599)} coins = UGX ${Number(w.amount).toLocaleString()} → ${w.momo_number} | <b style="color:${w.status=='paid'?'green':w.status=='pending'?'orange':'red'}">${w.status.toUpperCase()}</b> <span style="font-size:10px;color:gray">${new Date((w.time||0)*1000).toLocaleDateString()}</span></div>`).join('');
+ });
 }
-async function requestWithdraw(){
-let amount=parseInt(document.getElementById('wdAmount').value);
-let momo_number=document.getElementById('wdMomo').value.trim();
-let momo_name=document.getElementById('wdName').value.trim();
-if(!amount||amount<10000){alert('Minimum 10,000 UGX');return;}
-if(!momo_number){alert('Enter MoMo number');return;}
-document.getElementById('wdStatus').innerText='⏳ Sending...';
-try{
-let r=await fetch('/api/withdraw/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,amount,momo_number,momo_name})});
-let d=await r.json();
-if(d.success){document.getElementById('wdStatus').innerHTML=`<span style="color:green">✅ ${d.message} - ID ${d.withdraw.id}</span>`;document.getElementById('wdAmount').value='';loadMyWithdraws();}
-else document.getElementById('wdStatus').innerHTML=`<span style="color:red">${d.message}</span>`;
-}catch(e){document.getElementById('wdStatus').innerHTML='<span style="color:red">Failed</span>';}
+async function requestWithdrawCoins(){
+ let coins=parseInt(document.getElementById('wdCoins').value);
+ let momo_number=document.getElementById('wdMomo').value.trim();
+ let momo_name=document.getElementById('wdName').value.trim();
+ if(!coins||coins<9){alert('Minimum 9 coins = UGX 5,391');return;}
+ if(!momo_number){alert('Enter MoMo number');return;}
+ if(!confirm(`Withdraw ${coins} coins = UGX ${(coins*599).toLocaleString()} to ${momo_number}?`)) return;
+ document.getElementById('wdStatus').innerText='⏳ Sending...';
+ try{
+  let r=await fetch('/api/withdraw/coins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,coins,momo_number,momo_name})});
+  let d=await r.json();
+  if(d.success){document.getElementById('wdStatus').innerHTML=`<span style="color:green">✅ ${d.message}</span>`;document.getElementById('wdCoins').value='';loadAll();}
+  else document.getElementById('wdStatus').innerHTML=`<span style="color:red">${d.message}</span>`;
+ }catch(e){document.getElementById('wdStatus').innerHTML='<span style="color:red">Failed</span>';}
 }
+function copyInvite(){if(!myReferralLink){alert('No link yet');return;} navigator.clipboard.writeText(myReferralLink); alert('Invite Link Copied Boss!');}
 loadUser();
 </script>
 </body>
