@@ -548,7 +548,20 @@ def get_products():
 
 @app.route('/api/sell', methods=['POST'])
 def sell():
-    name=request.form.get('name'); price=int(request.form.get('price',0)); business=request.form.get('business'); location=request.form.get('location'); phone=request.form.get('phone'); desc=request.form.get('desc',''); main_cat=request.form.get('main_category'); stock=int(request.form.get('stock',10)); user_email=request.form.get('user_email','').lower()
+    name=request.form.get('name')
+    price=int(request.form.get('price',0))
+    original_price=request.form.get('original_price')
+    try:
+        original_price=int(original_price) if original_price else price
+    except:
+        original_price=price
+    business=request.form.get('business')
+    location=request.form.get('location')
+    phone=request.form.get('phone')
+    desc=request.form.get('desc','') or request.form.get('description','')
+    main_cat=request.form.get('main_category')
+    stock=int(request.form.get('stock',10))
+    user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
     if seller.get('coins',0) < UPLOAD_COST: return jsonify({'success':False,'message':f'Need {UPLOAD_COST} coins! You have {seller.get("coins",0)}','needs_coins':True,'my_coins':seller.get('coins',0)}),402
@@ -562,7 +575,26 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except Exception as e: print("shop fail", e)
-    prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug}
+    # CROSSED PRICE + DESCRIPTION FIXED HERE
+    prod = {
+        'id': int(time.time()*1000),
+        'name': name,
+        'price': price,
+        'original_price': original_price,
+        'business': business,
+        'location': location,
+        'phone': phone,
+        'seller_email': user_email,
+        'description': desc,
+        'desc': desc, # both keys for safety
+        'image': images[0],
+        'images': images,
+        'main_category': main_cat,
+        'stock': stock,
+        'sold': 0,'rating': 5.0,'reviews': [],
+        'created': time.time(),
+        'shop_id': shop_id,'shop_slug': shop_slug
+    }
     if DATABASE_URL:
         try:
             ensure_tables(); import json as js; conn=get_conn(); cur=conn.cursor()
@@ -583,7 +615,6 @@ def sell():
         if u['phone']==phone or u['email']==user_email: u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
     save_db('users.json', users)
     return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
-
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
