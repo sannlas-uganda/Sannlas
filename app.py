@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, Response, send_from_directory, session, redirect
+from flask import Flask, request, jsonify, render_template, Response, send_from_directory, session, redirect, make_response
 import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
@@ -171,7 +171,6 @@ def get_billboard_config():
         cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time(), "expires_at": None}
         save_db('billboard.json', cfg)
         return cfg
-    # TIMER CHECK - auto hide if expired
     exp = cfg.get('expires_at')
     if exp and cfg.get('active'):
         try:
@@ -238,12 +237,24 @@ def ensure_shop_for_user(user):
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
+# ===== HOME WITH REF CAPTURE =====
 @app.route('/')
-def home(): return render_template('index.html')
+def home():
+    ref = request.args.get('ref')
+    resp = make_response(render_template('index.html'))
+    if ref:
+        resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
+    return resp
+
 @app.route('/wallet')
 def wallet_page(): return render_template('wallet.html')
+
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
+
+@app.route('/invite')
+def invite_page(): return render_template('invite.html')
+
 @app.route('/shop/<slug>')
 def shop_page_slug(slug): return render_template('shop.html')
 @app.route('/shop')
@@ -293,7 +304,6 @@ def admin_save_billboard():
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
     cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
     cfg['type'] = data.get('type', cfg.get('type','image'))
-    # TIMER FROM DROPDOWN
     if 'duration' in data:
         dur = str(data.get('duration'))
         if dur == "0":
@@ -309,7 +319,6 @@ def admin_save_billboard():
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
 
-# ===== FIXED UPLOAD - IMAGE OR VIDEO - PERMANENT + TIMER =====
 @app.route('/api/upload/billboard', methods=['POST'])
 @admin_required
 def upload_billboard():
@@ -318,28 +327,22 @@ def upload_billboard():
     text = request.form.get('text','')[:200]
     link = request.form.get('link','')[:300]
     duration = request.form.get('duration','24')
-
     if not file:
         return jsonify({"error": "No file selected"}), 400
-
     data = file.read()
     if len(data) > 12*1024*1024:
         return jsonify({"error": "File too big! Max 12MB. Compress video Boss"}), 400
     if len(data) == 0:
         return jsonify({"error": "Empty file"}), 400
-
     mime = file.mimetype or ''
     if not mime:
         if file.filename.lower().endswith(('.mp4','.mov','.webm','.avi','.m4v')):
             mime = 'video/mp4'
         else:
             mime = 'image/jpeg'
-
-    # PERMANENT SAVE - BASE64 IN DATABASE (NEVER DELETES ON RENDER)
     b64 = base64.b64encode(data).decode('utf-8')
     media_url = f"data:{mime};base64,{b64}"
     filetype = 'video' if 'video' in mime else 'image'
-
     if str(duration) == "0":
         expires_at = None
     else:
@@ -347,7 +350,6 @@ def upload_billboard():
             expires_at = (datetime.now() + timedelta(hours=int(duration))).isoformat()
         except:
             expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
-
     cfg = {
         "active": True,
         "type": filetype,
@@ -360,6 +362,7 @@ def upload_billboard():
     }
     save_db('billboard.json', cfg)
     return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg, "expires_at": expires_at})
+
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/coins/config')
@@ -445,6 +448,7 @@ def coins_verify():
             for u in users:
                 if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
                     u['coins'] = u.get('coins',0) + target_tx.get('coins',0)
+                    u['bought_coins'] = u.get('bought_coins',0) + target_tx.get('coins',0)
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
     return jsonify({'success':True, 'action': action})
 
@@ -463,6 +467,7 @@ def admin_add_coins():
     for u in users:
         if (email and u.get('email','').lower()==email) or (phone and u.get('phone','')==phone):
             u['coins'] = u.get('coins',0) + coins
+            u['earned_coins'] = u.get('earned_coins',0) + coins
             found = u
             break
     if not found:
@@ -484,9 +489,7 @@ def admin_coin_config_get():
 def admin_update_coin_config():
     data = request.json or {}
     cfg = get_coin_config()
-    action = data.get('action')  # add / reduce / set_price / set_total
-    
-    # NEW: ADD or REDUCE (What you want Boss)
+    action = data.get('action')
     if action in ('add', 'reduce'):
         try:
             amount = int(data.get('amount', 0))
@@ -494,30 +497,24 @@ def admin_update_coin_config():
             return jsonify({"success": False, "message": "Invalid amount"}), 400
         if amount <= 0:
             return jsonify({"success": False, "message": "Enter amount >0"}), 400
-        
         if action == "add":
             cfg['total'] = int(cfg.get('total', 0)) + amount
             cfg['remaining'] = int(cfg.get('remaining', 0)) + amount
             save_coin_config(cfg)
             return jsonify({"success": True, "message": f"✅ Added {amount:,} coins. Total now {cfg['total']:,}", "config": cfg})
-        else: # reduce
+        else:
             if int(cfg.get('remaining',0)) < amount:
                 return jsonify({"success": False, "message": f"Only {cfg.get('remaining',0):,} remaining! Cannot reduce {amount:,}"}), 400
             cfg['total'] = int(cfg.get('total', 0)) - amount
             cfg['remaining'] = int(cfg.get('remaining', 0)) - amount
             save_coin_config(cfg)
             return jsonify({"success": True, "message": f"✅ Reduced {amount:,} coins. Total now {cfg['total']:,}", "config": cfg})
-    
-    # OLD: Keep your old logic for price / total / upload_cost
-    if 'price' in data: 
-        cfg['price'] = int(data['price'])
-    if 'upload_cost' in data: 
-        cfg['upload_cost'] = int(data['upload_cost'])
+    if 'price' in data: cfg['price'] = int(data['price'])
+    if 'upload_cost' in data: cfg['upload_cost'] = int(data['upload_cost'])
     if 'total' in data:
         diff = int(data['total']) - cfg.get('total', TOTAL_COINS)
         cfg['total'] = int(data['total'])
         cfg['remaining'] = max(0, cfg.get('remaining',0) + diff)
-    
     save_coin_config(cfg)
     return jsonify({'success': True, 'config': cfg, 'message': 'Config updated'})
 
@@ -590,14 +587,82 @@ def sales_summary():
     pending_withdraw = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='pending')
     balance = total_sales - withdrawn - pending_withdraw
     return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
+
+# ===== INVITE SYSTEM - NEW =====
+@app.route('/api/my-referral')
+def my_referral_api():
+    phone = request.args.get('phone','').strip() or session.get('phone','')
+    email = request.args.get('email','').lower().strip() or session.get('email','')
+    if not phone and not email:
+        return jsonify({"success":False, "message":"Login first"}), 401
+    users = load_db('users.json', [])
+    u = None
+    for user in users:
+        if (phone and user.get('phone')==phone) or (email and user.get('email','').lower()==email):
+            u = user
+            break
+    if not u:
+        return jsonify({"success":False, "message":"User not found"}), 404
+    if not u.get('referral_code'):
+        code = f"SANN-{u.get('phone','0000')[-4:]}-{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=4))}"
+        u['referral_code'] = code
+        save_db('users.json', users)
+    link = f"https://sannlas.com/?ref={u['referral_code']}"
+    invites = [x for x in users if x.get('invited_by')==u['referral_code']]
+    return jsonify({
+        "success": True,
+        "code": u['referral_code'],
+        "link": link,
+        "total_invites": len(invites),
+        "earned_coins": len(invites) * 1,
+        "earned_ugx": len(invites) * COIN_PRICE,
+        "invites": [{"email": i.get('email'), "phone": i.get('phone'), "business": i.get('business')} for i in invites[-20:]]
+    })
+
+@app.route('/api/balance')
+def api_balance():
+    phone = request.args.get('phone','').strip()
+    email = request.args.get('email','').lower().strip()
+    users = load_db('users.json', [])
+    u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
+    if not u:
+        return jsonify({"success":False, "message":"User not found"}), 404
+    txs = load_db('coin_transactions.json', [])
+    my_txs = [t for t in txs if (phone and t.get('phone')==phone) or (email and t.get('email','').lower()==email)]
+    return jsonify({
+        "success": True,
+        "bought_coins": u.get('bought_coins',0),
+        "earned_coins": u.get('earned_coins',0),
+        "total_coins": u.get('coins',0),
+        "ugx_value": u.get('coins',0)*COIN_PRICE,
+        "history": my_txs[::-1][:30]
+    })
+
+# ===== REGISTER WITH INVITE =====
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
+    ref_code = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
     if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
     users=load_db('users.json',[])
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email exists - Login'}),400
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':0}
-    users.append(user); save_db('users.json',users)
+    # generate referral code for new user
+    import random, string
+    my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':0,'bought_coins':0,'earned_coins':0,'referral_code':my_ref_code,'invited_by':ref_code}
+    users.append(user)
+    # give referrer 1 coin if valid
+    if ref_code:
+        for ru in users:
+            if ru.get('referral_code')==ref_code:
+                ru['coins'] = ru.get('coins',0) + 1
+                ru['earned_coins'] = ru.get('earned_coins',0) + 1
+                # log invite bonus
+                txs = load_db('coin_transactions.json', [])
+                txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
+                save_db('coin_transactions.json', txs)
+                break
+    save_db('users.json',users)
     try: shop = ensure_shop_for_user(user)
     except: shop = None
     safe={k:v for k,v in user.items() if k!='password'}
@@ -613,6 +678,9 @@ def login():
     except: pass
     safe={k:v for k,v in u.items() if k!='password'}
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
+    # save session for referral
+    session['phone']=u.get('phone')
+    session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
 
 @app.route('/api/products')
@@ -670,7 +738,6 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except Exception as e: print("shop fail", e)
-    # CROSSED PRICE + DESCRIPTION FIXED HERE
     prod = {
         'id': int(time.time()*1000),
         'name': name,
@@ -681,7 +748,7 @@ def sell():
         'phone': phone,
         'seller_email': user_email,
         'description': desc,
-        'desc': desc, # both keys for safety
+        'desc': desc,
         'image': images[0],
         'images': images,
         'main_category': main_cat,
@@ -710,6 +777,7 @@ def sell():
         if u['phone']==phone or u['email']==user_email: u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
     save_db('users.json', users)
     return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
+
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
