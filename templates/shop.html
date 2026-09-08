@@ -1,9 +1,57 @@
 <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shop</title><style>body{font-family:Arial;background:#c0392b;margin:0}.header{background:#000;color:#fff;padding:20px;text-align:center}.header h1{color:#FFCC02}button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:bold;cursor:pointer}.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}.card{background:#fff;border-radius:12px;overflow:hidden}.card img{width:100%;height:170px;object-fit:cover}</style></head><body>
-<div class="header" id="h">Loading...</div><div class="products" id="p"></div>
+<title>Shop</title><style>
+body{font-family:Arial;background:#c0392b;margin:0}
+.header{background:#000;color:#fff;padding:20px;text-align:center}
+.header h1{color:#FFCC02}
+button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:bold;cursor:pointer}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
+.card{background:#fff;border-radius:12px;overflow:hidden;position:relative}
+.card img{width:100%;height:170px;object-fit:cover}
+.discount-badge{position:absolute;top:8px;left:8px;background:red;color:#fff;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:bold}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;padding:15px}
+.modal-box{background:#fff;border-radius:15px;max-width:400px;width:100%;overflow:hidden}
+.modal-box img{width:100%;height:250px;object-fit:cover}
+</style></head><body>
+<div class="header" id="h">Loading...</div>
+<div class="products" id="p"></div>
+
+<!-- DESCRIPTION MODAL -->
+<div class="modal" id="descModal" onclick="this.style.display='none'">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <img id="mImg" src="">
+    <div style="padding:15px">
+      <h3 id="mName"></h3>
+      <div id="mPrice"></div>
+      <hr>
+      <p style="font-weight:bold;margin:5px 0">📝 Description:</p>
+      <p id="mDesc" style="color:#444;font-size:14px;line-height:1.5"></p>
+      <button onclick="document.getElementById('descModal').style.display='none'" style="width:100%;background:#000;color:#FFCC02;margin-top:10px">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let slug = (location.pathname.split('/shop/')[1] || new URLSearchParams(location.search).get('slug') || '').trim();
 slug = decodeURIComponent(slug).split('?')[0].split('/')[0];
+let allProducts = [];
+
+function openDesc(id){
+  let x = allProducts.find(p=>p.id==id);
+  if(!x) return;
+  document.getElementById('mImg').src = x.image;
+  document.getElementById('mName').innerText = x.name;
+  let op = x.original_price || 0;
+  let disc = "";
+  if(op > x.price){
+    let pct = Math.round((op - x.price)*100/op);
+    disc = `<b>UGX ${x.price}</b> <span style="text-decoration:line-through;color:gray;margin-left:6px">UGX ${op}</span> <span style="background:red;color:#fff;padding:2px 6px;border-radius:5px;font-size:11px">${pct}% OFF</span>`;
+  } else {
+    disc = `<b>UGX ${x.price}</b>`;
+  }
+  document.getElementById('mPrice').innerHTML = disc;
+  document.getElementById('mDesc').innerText = x.description || x.desc || "No description added by seller.";
+  document.getElementById('descModal').style.display='flex';
+}
 
 async function load(){
  try{
@@ -11,8 +59,6 @@ async function load(){
   let d = await r.json();
   let shop = d.shop;
   let products = d.products || [];
-
-  // FALLBACK if shop not in shops.json but products exist
   if((!r.ok ||!shop) && products.length==0){
     let r2 = await fetch('/api/products?shop='+slug);
     products = await r2.json();
@@ -22,19 +68,27 @@ async function load(){
     }
   }
   if(!shop){
-    document.getElementById('h').innerHTML=`<h1>Shop Not Found</h1><p>Slug: ${slug}</p><p>Products found: ${products.length}</p><button onclick="location.href='/'">🏠 Home</button>`;
+    document.getElementById('h').innerHTML=`<h1>Shop Not Found</h1><p>Slug: ${slug}</p><button onclick="location.href='/'">🏠 Home</button>`;
     return;
   }
-  let count = products.length || shop.total_products || shop.product_count || 0;
-  document.getElementById('h').innerHTML=`<h1>🏪 ${shop.business_name||shop.name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p>${shop.description||''}</p><p>📦 ${count} Products (Exact)</p><button style="background:#25D366;color:#fff" onclick="window.open('https://wa.me/${(shop.phone||'').replace(/[^0-9]/g,'')}')">💬 WhatsApp</button><button style="background:#FFCC02" onclick="navigator.clipboard.writeText(location.href);alert('Link copied: '+location.href)">🔗 Share Shop</button><button onclick="location.href='/'">🏠 Home</button>`;
-  if(products.length==0){
-    document.getElementById('p').innerHTML=`<div style="grid-column:1/-1;background:#fff;padding:20px;border-radius:12px;text-align:center"><h3>No products yet</h3><p>This shop has ${count} products in database but none matched slug ${slug}</p></div>`;
-  } else {
-    document.getElementById('p').innerHTML=products.map(x=>`<div class="card"><img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br>UGX ${x.price}<br><button onclick="location.href='/?q='+encodeURIComponent(x.name)" style="width:100%;background:#000;color:#FFCC02;padding:6px;border:none;border-radius:8px">View</button></div></div>`).join('');
-  }
+  allProducts = products;
+  let count = products.length || shop.total_products || 0;
+  document.getElementById('h').innerHTML=`<h1>🏪 ${shop.business_name||shop.name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p>${shop.description||''}</p><p>📦 ${count} Products</p><button style="background:#25D366;color:#fff" onclick="window.open('https://wa.me/${(shop.phone||'').replace(/[^0-9]/g,'')}')">💬 WhatsApp</button><button style="background:#FFCC02" onclick="navigator.clipboard.writeText(location.href);alert('Link copied')">🔗 Share</button><button onclick="location.href='/'">🏠 Home</button>`;
+
+  document.getElementById('p').innerHTML=products.map(x=>{
+    let badge = "";
+    if(x.original_price && x.original_price > x.price){
+      let pct = Math.round((x.original_price - x.price)*100/x.original_price);
+      badge = `<div class="discount-badge">${pct}% OFF</div>`;
+    }
+    let priceHtml = `UGX ${x.price}`;
+    if(x.original_price && x.original_price > x.price){
+      priceHtml = `UGX ${x.price} <span style="text-decoration:line-through;color:gray;font-size:12px">UGX ${x.original_price}</span>`;
+    }
+    return `<div class="card">${badge}<img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br><span style="font-size:13px">${priceHtml}</span><br><button onclick="openDesc(${x.id})" style="width:100%;background:#000;color:#FFCC02;padding:6px;border-radius:8px;margin-top:6px">📄 Description</button></div></div>`;
+  }).join('');
  }catch(e){
-  console.log(e);
-  document.getElementById('h').innerHTML=`<h1>Error loading shop</h1><p>${e.message}</p><p>Slug: ${slug}</p><button onclick="location.href='/'">Home</button>`;
+  document.getElementById('h').innerHTML=`<h1>Error</h1><p>${e.message}</p>`;
  }
 }
 load();
