@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory, session, redirect
 import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re
+from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
@@ -167,8 +168,23 @@ def save_coin_config(cfg): save_db('coin_config.json', cfg)
 def get_billboard_config():
     cfg = load_db('billboard.json', None)
     if not cfg:
-        cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time()}
+        cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time(), "expires_at": None}
         save_db('billboard.json', cfg)
+        return cfg
+    # TIMER CHECK - auto hide if expired
+    exp = cfg.get('expires_at')
+    if exp and cfg.get('active'):
+        try:
+            from datetime import datetime
+            if isinstance(exp, str):
+                exp_dt = datetime.fromisoformat(exp)
+            else:
+                exp_dt = datetime.fromtimestamp(float(exp))
+            if datetime.now() > exp_dt:
+                cfg['active'] = False
+                save_db('billboard.json', cfg)
+        except:
+            pass
     return cfg
 
 def make_shop_slug(business):
@@ -180,6 +196,7 @@ def make_shop_slug(business):
 def get_biz_key(name):
     if not name: return ''
     return re.sub(r'[^a-z0-9]+', '', name.lower())
+
 def ensure_shop_for_user(user):
     shops = load_db('shops.json', [])
     biz = (user.get('business') or '').strip()
@@ -276,29 +293,73 @@ def admin_save_billboard():
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
     cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
     cfg['type'] = data.get('type', cfg.get('type','image'))
+    # TIMER FROM DROPDOWN
+    if 'duration' in data:
+        dur = str(data.get('duration'))
+        if dur == "0":
+            cfg['expires_at'] = None
+        else:
+            try:
+                from datetime import datetime, timedelta
+                cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
+            except: pass
+    if 'expires_at' in data:
+        cfg['expires_at'] = data['expires_at']
     cfg['updated'] = time.time()
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
 
-# ===== NEW BILLBOARD UPLOAD - ADDED BY BOSS REQUEST =====
+# ===== FIXED UPLOAD - IMAGE OR VIDEO - PERMANENT + TIMER =====
 @app.route('/api/upload/billboard', methods=['POST'])
 @admin_required
 def upload_billboard():
+    from datetime import datetime, timedelta
     file = request.files.get('file')
+    text = request.form.get('text','')[:200]
+    link = request.form.get('link','')[:300]
+    duration = request.form.get('duration','24')
+
     if not file:
         return jsonify({"error": "No file selected"}), 400
-    filename = secure_filename(file.filename)
-    # Add timestamp to avoid overwrite
-    name, ext = os.path.splitext(filename)
-    filename = f"{name}_{int(time.time())}{ext}"
-    folder = 'static/billboards'
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, filename)
-    file.save(path)
-    filetype = 'video' if filename.lower().endswith(('.mp4','.mov','.webm','.avi','.m4v')) else 'image'
-    url = f'/{path}'
-    return jsonify({"url": url, "type": filetype, "success": True})
 
+    data = file.read()
+    if len(data) > 12*1024*1024:
+        return jsonify({"error": "File too big! Max 12MB. Compress video Boss"}), 400
+    if len(data) == 0:
+        return jsonify({"error": "Empty file"}), 400
+
+    mime = file.mimetype or ''
+    if not mime:
+        if file.filename.lower().endswith(('.mp4','.mov','.webm','.avi','.m4v')):
+            mime = 'video/mp4'
+        else:
+            mime = 'image/jpeg'
+
+    # PERMANENT SAVE - BASE64 IN DATABASE (NEVER DELETES ON RENDER)
+    b64 = base64.b64encode(data).decode('utf-8')
+    media_url = f"data:{mime};base64,{b64}"
+    filetype = 'video' if 'video' in mime else 'image'
+
+    if str(duration) == "0":
+        expires_at = None
+    else:
+        try:
+            expires_at = (datetime.now() + timedelta(hours=int(duration))).isoformat()
+        except:
+            expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
+
+    cfg = {
+        "active": True,
+        "type": filetype,
+        "media_url": media_url,
+        "text": text or "Welcome to Sannlas - Shop Smart, Sell Faster",
+        "link": link or "",
+        "created": time.time(),
+        "updated": time.time(),
+        "expires_at": expires_at
+    }
+    save_db('billboard.json', cfg)
+    return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg, "expires_at": expires_at})
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/coins/config')
