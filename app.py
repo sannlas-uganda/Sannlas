@@ -1078,19 +1078,16 @@ def spin_game():
     if u.get('coins',0) < 1:
         return jsonify({"success":False,"message":f"Need 1 coin to spin! You have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
 
-    import random
-    u['coins']=u.get('coins',0)-1
-    # Prizes: 0,1,2,3,5 coins + discount
-    prizes=[
-        {"name":"Try Again 😢","coins":0,"color":"#333"},
-        {"name":"1 Coin Back 🪙","coins":1,"color":"#FFCC02"},
-        {"name":"2 Coins Win! 🎉","coins":2,"color":"#2e7d32"},
-        {"name":"3 Coins JACKPOT! 🔥","coins":3,"color":"#ff6a00"},
-        {"name":"5 Coins SUPER! 👑","coins":5,"color":"#8B0000"},
-        {"name":"0.5 Coin 😅","coins":0,"color":"#555"},
-    ]
-    # 60% lose, 40% win - you profit Boss!
-    weights=[30,25,15,8,2,20]
+       import random
+    cfg=load_spin_config()
+    if not cfg.get('enabled',True):
+        return jsonify({"success":False,"message":"Spin disabled by Admin"}),400
+    cost=cfg.get('cost',1)
+    if u.get('coins',0) < cost:
+        return jsonify({"success":False,"message":f"Need {cost} coin to spin! You have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
+    u['coins']=u.get('coins',0)-cost
+    prizes=cfg.get('prizes',[])
+    weights=[p.get('weight',10) for p in prizes]
     prize=random.choices(prizes, weights=weights, k=1)[0]
     u['coins']+=prize['coins']
 
@@ -1107,6 +1104,41 @@ def spin_history():
     spins=load_db('spins.json',[])
     result=[s for s in spins if s.get('phone')==phone or s.get('email','').lower()==email]
     return jsonify(result[::-1][:20])
+    # ===== ADMIN SPIN CONTROL =====
+SPIN_CONFIG_FILE='spin_config.json'
+def load_spin_config():
+    default={
+        "enabled": True,
+        "cost": 1,
+        "prizes": [
+            {"name":"Try Again 😢","coins":0,"weight":30,"color":"#333"},
+            {"name":"1 Coin Back 🪙","coins":1,"weight":25,"color":"#FFCC02"},
+            {"name":"2 Coins Win! 🎉","coins":2,"weight":15,"color":"#2e7d32"},
+            {"name":"3 Coins JACKPOT! 🔥","coins":3,"weight":8,"color":"#ff6a00"},
+            {"name":"5 Coins SUPER! 👑","coins":5,"weight":2,"color":"#8B0000"},
+            {"name":"0.5 Coin 😅","coins":0,"weight":20,"color":"#555"}
+        ]
+    }
+    try:
+        if os.path.exists(SPIN_CONFIG_FILE):
+            with open(SPIN_CONFIG_FILE,'r') as f: return json.load(f)
+    except: pass
+    return default
+
+@app.route('/api/admin/spin-config', methods=['GET','POST'])
+def admin_spin_config():
+    if request.method=='GET':
+        return jsonify(load_spin_config())
+    cfg=request.json
+    with open(SPIN_CONFIG_FILE,'w') as f: json.dump(cfg,f)
+    return jsonify({"success":True,"message":"Saved!"})
+
+# UPDATE your existing /api/spin to use admin config:
+# Replace the prizes and weights inside spin_game with this:
+# cfg=load_spin_config()
+# if not cfg.get('enabled'): return error
+# prizes=cfg['prizes']
+# weights=[p['weight'] for p in prizes]
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
