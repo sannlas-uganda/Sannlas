@@ -340,7 +340,7 @@ def coins_balance():
     u=next((x for x in users if x['email']==email or x['phone']==phone), None)
     if not u: return jsonify({'success':False,'coins':0})
     return jsonify({'success':True,'coins': u.get('coins',0)})
-    @app.route('/api/coins/buy', methods=['POST'])
+@app.route('/api/coins/buy', methods=['POST'])
 def coins_buy():
     data=request.json
     email=data.get('email','').lower().strip()
