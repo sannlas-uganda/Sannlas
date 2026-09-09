@@ -246,7 +246,8 @@ def home():
     return resp
 
 @app.route('/wallet')
-def wallet_page(): return render_template('wallet.html')
+def wallet_page(): 
+    return redirect('/balance')
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
 @app.route('/invite')
