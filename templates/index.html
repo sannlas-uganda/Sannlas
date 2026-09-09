@@ -92,34 +92,47 @@
 <div class="popup" id="viewPop" onclick="closePop('viewPop')"><div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div></div>
 <div class="popup" id="cartPop" onclick="closePop('cartPop')"><div class="popup-content" id="cartContent" onclick="event.stopPropagation()"></div></div>
 
-<!-- ✅ NEW ACCOUNT POPUP WITH BALANCE + PASSWORD -->
+<!-- ✅ FINAL ACCOUNT WITH BALANCE + SALES + PASSWORD -->
 <div class="popup" id="authPop" onclick="closePop('authPop')">
-<div class="popup-content" onclick="event.stopPropagation()" style="max-width:480px">
+<div class="popup-content" onclick="event.stopPropagation()" style="max-width:500px">
 <h2 style="text-align:center">👤 My Account</h2>
 <div id="myProfileInfo" style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;margin:10px 0;text-align:center"></div>
 
 <div style="background:#f3e5f5;border:2px solid #7b1fa2;border-radius:12px;padding:12px;margin:10px 0">
 <h3 style="color:#4a148c;text-align:center;margin:0">💰 My Balance</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
-<div style="background:#e3f2fd;padding:8px;border-radius:8px;text-align:center"><b id="accBought">0</b><br><small>BOUGHT</small></div>
-<div style="background:#e8f5e9;padding:8px;border-radius:8px;text-align:center"><b id="accEarned">0</b><br><small>EARNED</small></div>
-<div style="background:#ffebee;padding:8px;border-radius:8px;text-align:center"><b id="accSpent">0</b><br><small>SPENT</small></div>
-<div style="background:#fff3e0;padding:8px;border-radius:8px;text-align:center"><b id="accTotal">0</b><br><small>TOTAL</small></div>
+<div style="background:#e3f2fd;padding:10px;border-radius:8px;text-align:center"><b id="accBought" style="font-size:18px">0</b><br><small>BOUGHT</small></div>
+<div style="background:#e8f5e9;padding:10px;border-radius:8px;text-align:center"><b id="accEarned" style="font-size:18px">0</b><br><small>EARNED</small></div>
+<div style="background:#ffebee;padding:10px;border-radius:8px;text-align:center"><b id="accSpent" style="font-size:18px">0</b><br><small>SPENT</small></div>
+<div style="background:#fff3e0;padding:10px;border-radius:8px;text-align:center"><b id="accTotal" style="font-size:20px;color:#4a148c">0</b><br><small>TOTAL (same as Home)</small></div>
 </div>
 <div style="background:#fff;border:2px dashed #7b1fa2;border-radius:10px;padding:10px;text-align:center">
-<b id="accWithdrawable" style="font-size:22px;color:#4a148c">0</b><br>
-<small>WITHDRAWABLE = Total - 10 free</small><br>
-<small id="accWithdrawableUgx" style="color:#4a148c;font-weight:bold">UGX 0</small><br>
-<small>Min: 50 coins = UGX 29,950</small>
+<b id="accWithdrawable" style="font-size:24px;color:#4a148c">0</b> coins withdrawable<br>
+<small id="accWithdrawableUgx" style="color:#4a148c;font-weight:bold;font-size:16px">UGX 0</small><br>
+<small>Formula: Total - 10 free | Min: 50 = UGX 29,950</small>
 </div>
 <button onclick="location.href='/balance'" style="width:100%;background:#7b1fa2;color:#fff;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:10px">💰 Open Full Balance & Withdraw</button>
 </div>
 
-<div id="myShopBtnArea" style="margin:10px 0"></div>
+<div style="margin:10px 0">
+<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold">🏪 MY SHOP - View Shop</button>
+<div id="mySalesDash" style="background:#000;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin-top:10px">
+<h3 style="color:#FFCC02;text-align:center;margin:0 0 8px 0">📊 My Sales (Seller Only)</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
+<div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #0f0"><b id="saleToday" style="color:#0f0;font-size:14px">UGX 0</b><br><small style="color:#888">TODAY</small></div>
+<div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #FFCC02"><b id="saleWeek" style="color:#FFCC02;font-size:14px">UGX 0</b><br><small style="color:#888">THIS WEEK</small></div>
+<div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #ff6a00"><b id="saleYear" style="color:#ff6a00;font-size:14px">UGX 0</b><br><small style="color:#888">THIS YEAR</small></div>
+</div>
+<div style="background:#222;border-radius:8px;padding:10px;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center">
+<div style="background:#111;padding:8px;border-radius:6px"><b id="saleOrders" style="color:white">0</b><br><small style="color:#888">Total Orders</small></div>
+<div style="background:#111;padding:8px;border-radius:6px"><b id="salePromoCoins" style="color:#FFCC02">0 coins</b><br><small style="color:#888">Spent on Promo</small></div>
+</div>
+<div style="text-align:center;margin-top:8px;background:#1a1a1a;padding:6px;border-radius:6px"><small id="salePromoUgx" style="color:#FFCC02">💸 UGX 0 spent on promoters = coins</small></div>
+</div>
+</div>
 
 <div style="background:#fff3cd;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:12px 0">
 <h3 style="margin:0 0 8px 0">🔒 Protect Account - Set Password</h3>
-<p style="font-size:12px;color:#666">Create password so no one else uses your account</p>
 <input id="newPass1" type="password" placeholder="New Password (min 4)" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc">
 <input id="newPass2" type="password" placeholder="Confirm Password" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc">
 <button onclick="setMyPassword()" style="width:100%;background:#000;color:#FFCC02;padding:12px;border:none;border-radius:8px;font-weight:bold">🔒 Save My Password</button>
@@ -181,22 +194,45 @@ let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentU
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
 async function loadBillboardBanner(){try{let r=await fetch('/api/billboard');let bb=await r.json();billboardData=bb;let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;}else{wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;}txt.innerText=bb.text||'';}catch(e){}}
 function billboardClick(){if(billboardData&&billboardData.link){window.open(billboardData.link,'_blank');}}
-async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||d.total||0;let bottom=document.getElementById('bottomCoins');if(bottom)bottom.innerText=d.coins||d.total||0;document.getElementById('coinsMyBal').innerText=d.coins||d.total||0;document.getElementById('myCoinsPlan').innerText=d.coins||d.total||0;document.getElementById('spinBal').innerText=d.coins||d.total||0; loadAccountBalance(); }catch(e){}}
-
-async function loadAccountBalance(){
+async function loadMyCoins(){
  if(!currentUser) return;
  try{
   let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);
   let d=await r.json();
-  if(document.getElementById('accBought')){
-   document.getElementById('accBought').innerText=d.bought||0;
-   document.getElementById('accEarned').innerText=d.earned||0;
-   document.getElementById('accSpent').innerText=d.spent||0;
-   document.getElementById('accTotal').innerText=d.total||0;
-   document.getElementById('accWithdrawable').innerText=d.withdrawable||0;
-   document.getElementById('accWithdrawableUgx').innerText=`UGX ${(d.withdrawable_value||0).toLocaleString()}`;
+  let totalCoins = d.coins || d.total || 0;
+  document.getElementById('myCoinsNav').innerText=totalCoins;
+  let bottom=document.getElementById('bottomCoins'); if(bottom) bottom.innerText=totalCoins;
+  document.getElementById('coinsMyBal').innerText=totalCoins;
+  document.getElementById('myCoinsPlan').innerText=totalCoins;
+  document.getElementById('spinBal').innerText=totalCoins;
+  // FIX - update Account balance same as home
+  if(document.getElementById('accTotal')){
+    document.getElementById('accBought').innerText=d.bought||0;
+    document.getElementById('accEarned').innerText=d.earned||0;
+    document.getElementById('accSpent').innerText=d.spent||0;
+    document.getElementById('accTotal').innerText=d.total||totalCoins;
+    document.getElementById('accWithdrawable').innerText=d.withdrawable||0;
+    document.getElementById('accWithdrawableUgx').innerText=`UGX ${(d.withdrawable_value||0).toLocaleString()}`;
   }
  }catch(e){}
+}
+
+async function loadMySalesStats(){
+ if(!currentUser) return;
+ try{
+  let r=await fetch(`/api/my-sales/stats?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);
+  let d=await r.json();
+  document.getElementById('saleToday').innerText=`UGX ${(d.today||0).toLocaleString()}`;
+  document.getElementById('saleWeek').innerText=`UGX ${(d.week||0).toLocaleString()}`;
+  document.getElementById('saleYear').innerText=`UGX ${(d.year||0).toLocaleString()}`;
+  document.getElementById('saleOrders').innerText=d.orders||0;
+  document.getElementById('salePromoCoins').innerText=(d.promo_coins_spent||0)+' coins';
+  document.getElementById('salePromoUgx').innerText=`💸 UGX ${((d.promo_coins_spent||0)*599).toLocaleString()} spent on promoters`;
+ }catch(e){
+  document.getElementById('saleToday').innerText='UGX 0';
+  document.getElementById('saleWeek').innerText='UGX 0';
+  document.getElementById('saleYear').innerText='UGX 0';
+ }
 }
 
 async function setMyPassword(){
@@ -267,14 +303,14 @@ function closePop(id){ let el=document.getElementById(id); if(el) el.style.displ
 function openPopup(id){
  let el=document.getElementById(id);
  if(el) el.style.display='flex';
- if(id=='authPop'){ loadAccountBalance(); }
+ if(id=='authPop'){ loadMyCoins(); loadMySalesStats(); }
 }
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
-function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadLiveTicker();}
+function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadLiveTicker();}
 function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;switchGate('otp');}else{alert(d.message);switchGate('register');}});}
 function gateVerifyOTP(){switchGate('nin');}
-function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();}else{alert(d.message);}});}
+function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();loadMySalesStats();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
 function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=1000000;render();});}
@@ -307,7 +343,16 @@ function render(){
 function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
-function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||currentUser.total||0} (Total ${currentUser.total||0} - 10 free)`;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;document.getElementById('myShopBtnArea').innerHTML=`<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer">🏪 MY SHOP</button><br><button onclick="goToBalance()" style="width:100%;background:#7b1fa2;color:#fff;padding:12px;border-radius:10px;font-weight:bold;margin-top:8px">💰 My Balance - ${currentUser.coins||0} coins</button>`; loadAccountBalance();}}
+function updateLoginUI(){
+ if(currentUser){
+  document.getElementById('userInfo').style.display='block';
+  let tc = currentUser.coins || currentUser.total || 0;
+  document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${tc} coins (Total ${tc} - 10 free)`;
+  document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
+  loadMyCoins();
+  loadMySalesStats();
+ }
+}
 function doLogout(){localStorage.clear();location.reload();}
 function setStake(v){document.getElementById('stakeInput').value=v;updateFee();}
 function updateFee(){let s=parseInt(document.getElementById('stakeInput').value)||0;if(s>1000){s=1000;document.getElementById('stakeInput').value=1000}if(s<0){s=0;document.getElementById('stakeInput').value=0}let fee=s==0?0:Math.floor(s*0.15);document.getElementById('feePreview').innerText=s==0?'FREE DEMO':fee+' coins fee (15%) | Play '+(s-fee)+' coins';}
