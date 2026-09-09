@@ -701,7 +701,18 @@ def my_sales_stats():
 @app.route('/api/login', methods=['POST'])
 def login():
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
-    users=load_db('users.json',[]); u=next((x for x in users if x['email']==email and x['password']==hash_pwd(pwd)),None)
+   users=load_db('users.json',[])
+def check_pwd(u, pwd):
+    if u.get('password') == hash_pwd(pwd):
+        return True
+    try:
+        from werkzeug.security import check_password_hash
+        if u.get('password_hash') and check_password_hash(u.get('password_hash'), pwd):
+            return True
+    except:
+        pass
+    return False
+u=next((x for x in users if x['email']==email and check_pwd(x,pwd)), None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
     if 'bought' not in u: u['bought'] = int(u.get('bought_coins',0))
     if 'earned' not in u: u['earned'] = int(u.get('earned_coins',0))
