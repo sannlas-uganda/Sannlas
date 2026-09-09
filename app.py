@@ -712,7 +712,7 @@ def check_pwd(u, pwd):
     except:
         pass
     return False
-u=next((x for x in users if x['email']==email and check_pwd(x,pwd)), None)
+    u=next((x for x in users if x['email']==email and check_pwd(x,pwd)), None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
     if 'bought' not in u: u['bought'] = int(u.get('bought_coins',0))
     if 'earned' not in u: u['earned'] = int(u.get('earned_coins',0))
