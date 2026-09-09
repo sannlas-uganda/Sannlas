@@ -85,8 +85,7 @@ async function load(){
     if(x.original_price && x.original_price > x.price){
       priceHtml = `UGX ${x.price} <span style="text-decoration:line-through;color:gray;font-size:12px">UGX ${x.original_price}</span>`;
     }
-    return `<div class="card">${badge}<img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br><span style="font-size:13px">${priceHtml}</span><br><button onclick="openDesc(${x.id})" style="width:100%;background:#000;color:#FFCC02;padding:6px;border-radius:8px;margin-top:6px">📄 Description</button></div></div>`;
-  }).join('');
+return `<div class="card">${badge}<img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br><span style="font-size:13px">${priceHtml}</span><br><button onclick="openDesc('${x.id}')" style="width:100%;background:#000;color:#FFCC02;padding:6px;border-radius:8px;margin-top:6px">📄 Description</button></div></div>`;  }).join('');
  }catch(e){
   document.getElementById('h').innerHTML=`<h1>Error</h1><p>${e.message}</p>`;
  }
