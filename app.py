@@ -756,6 +756,11 @@ def get_products():
 def sell():
     name=request.form.get('name')
     price=int(request.form.get('price',0))
+    # FIX 4 - SAVE ORIGINAL PRICE FOR CROSSED PRICE + % OFF
+    original_price = int(request.form.get('original_price') or request.form.get('price',0))
+    if original_price < price:
+        original_price = price # if user enters smaller, fix it
+
     business=request.form.get('business')
     location=request.form.get('location')
     phone=request.form.get('phone')
@@ -777,7 +782,28 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except: pass
-    prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
+    prod = {
+        'id': int(time.time()*1000),
+        'name': name,
+        'price': price,
+        'original_price': original_price, # FIX 4 - NOW SAVED!
+        'business': business,
+        'location': location,
+        'phone': phone,
+        'seller_email': user_email,
+        'description': desc,
+        'image': images[0],
+        'images': images,
+        'main_category': main_cat,
+        'stock': stock,
+        'sold': 0,
+        'rating': 5.0,
+        'reviews': [],
+        'created': time.time(),
+        'shop_id': shop_id,
+        'shop_slug': shop_slug,
+        'promo_commission': promo_commission
+    }
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     for u in users:
         if u['phone']==phone or u['email']==user_email:
@@ -787,8 +813,7 @@ def sell():
             u['bought_coins']=int(u.get('bought',0))
             u['earned_coins']=int(u.get('earned',0))
     save_db('users.json', users)
-    return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
-
+    return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used - Original: {original_price} Selling: {price}'})
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
