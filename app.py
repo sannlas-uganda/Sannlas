@@ -206,7 +206,7 @@ def ensure_shop_for_user(user):
     shops.append(shop)
     save_db('shops.json', shops)
     return shop
-    @app.route('/product/<pid>')
+@app.route('/product/<pid>')
 def product_link(pid):
     ref = request.args.get('ref','')
     resp = make_response(render_template('index.html'))
