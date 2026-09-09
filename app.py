@@ -236,32 +236,31 @@ def ensure_shop_for_user(user):
     return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+
+# ✅ FIXED PRODUCT LINK - NOW HANDLES promo + ref!
 @app.route('/product/<pid>')
 def product_link(pid):
-    # Save the ref for tracking
     ref = request.args.get('ref','')
-    # Save click to DB
+    promo = request.args.get('promo','')
     try:
-        products = load_db('products.json',[])
-        p = next((x for x in products if str(x.get('id'))==str(pid)), None)
-        if p:
-            # Track promo click
-            clicks = load_db('promo_clicks.json',[])
-            clicks.append({'product_id':pid,'ref':ref,'time':time.time(),'ip':request.remote_addr})
-            save_db('promo_clicks.json', clicks)
+        clicks = load_db('promo_clicks.json',[])
+        clicks.append({'product_id':pid,'ref':ref,'promo':promo,'time':time.time(),'ip':request.remote_addr})
+        save_db('promo_clicks.json', clicks)
     except: pass
-
-    # Render index but with auto-open product + save ref
-    html = open('templates/index.html','r',encoding='utf-8').read() if os.path.exists('templates/index.html') else open('index.html','r',encoding='utf-8').read()
-    # Inject JS to save ref and open product
+    path = 'templates/index.html' if os.path.exists('templates/index.html') else 'index.html'
+    try:
+        html = open(path,'r',encoding='utf-8').read()
+    except:
+        html = "<html><body>Loading...<script>window.location='/?promo={{promo}}&product={{pid}}'</script></body></html>"
     inject = f"""
     <script>
     localStorage.setItem('sannlas_aff_ref','{ref}');
     localStorage.setItem('sannlas_ref_product','{pid}');
+    if('{promo}') localStorage.setItem('pending_promo','{promo}');
     window.addEventListener('load',()=>{{
         setTimeout(()=>{{
             if(typeof viewProd==='function') viewProd('{pid}');
-        }},1500);
+        }},1200);
     }});
     </script>
     </body>
@@ -273,15 +272,23 @@ def product_link(pid):
 def product_short(pid):
     return product_link(pid)
 
+# ✅ FIXED HOME - NOW HANDLES promo & product params!
 @app.route('/')
 def home():
     ref = request.args.get('ref')
+    promo = request.args.get('promo','')
+    product = request.args.get('product','')
     resp = make_response(render_template('index.html'))
     if ref:
         resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
+    if promo and product:
+        try:
+            clicks = load_db('promo_clicks.json',[])
+            clicks.append({'product_id':product,'promo':promo,'ref':ref,'time':time.time(),'ip':request.remote_addr})
+            save_db('promo_clicks.json', clicks)
+        except: pass
     return resp
-
-@app.route('/wallet')
+    @app.route('/wallet')
 def wallet_page(): 
     return redirect('/balance')
 @app.route('/balance')
@@ -388,19 +395,9 @@ def coins_balance():
     withdrawable = total - FREE_TRIAL
     if withdrawable<0: withdrawable=0
     return jsonify({
-        'success':True,
-        'coins': total,
-        'total': total,
-        'bought': bought,
-        'earned': earned,
-        'spent': spent,
-        'withdrawable': withdrawable,
-        'bought_value': bought * COIN_PRICE,
-        'earned_value': earned * COIN_PRICE,
-        'spent_value': spent * COIN_PRICE,
-        'total_value': total * COIN_PRICE,
-        'withdrawable_value': withdrawable * COIN_PRICE,
-        'can_upload': total // UPLOAD_COST
+        'success':True,'coins': total,'total': total,'bought': bought,'earned': earned,'spent': spent,'withdrawable': withdrawable,
+        'bought_value': bought * COIN_PRICE,'earned_value': earned * COIN_PRICE,'spent_value': spent * COIN_PRICE,
+        'total_value': total * COIN_PRICE,'withdrawable_value': withdrawable * COIN_PRICE,'can_upload': total // UPLOAD_COST
     })
 
 @app.route('/api/coins/buy', methods=['POST'])
@@ -634,23 +631,22 @@ def withdraw_coins():
     withdrawable = total - FREE_TRIAL
     if withdrawable<0: withdrawable=0
     if withdrawable < WITHDRAW_MIN_COINS:
-        return jsonify({"success":False,"message":f"You have {total} total (Bought {bought}+Earned {earned}-Spent {spent}), but {FREE_TRIAL} free trial not withdrawable. Withdrawable = {withdrawable}. Need {WITHDRAW_MIN_COINS}!"}),400
+        return jsonify({"success":False,"message":f"You have {total} total, but {FREE_TRIAL} free not withdrawable. Withdrawable = {withdrawable}. Need {WITHDRAW_MIN_COINS}!"}),400
     if coins > withdrawable:
-        return jsonify({"success":False,"message":f"Max withdrawable is {withdrawable} coins (Total {total} - {FREE_TRIAL} free). You tried {coins}!"}),400
+        return jsonify({"success":False,"message":f"Max withdrawable is {withdrawable} coins"}),400
     ugx = coins * COIN_PRICE
     u['spent'] = spent + coins
     u['coins'] = bought + earned - u['spent']
     if u['coins']<0: u['coins']=0
     save_db('users.json', users)
     withdraws = load_db('withdraws.json', [])
-    withdraws.append({'id': int(time.time()*1000),'email': u.get('email'),'phone': u.get('phone'),'amount': ugx,'coins': coins,'momo_number': momo,'momo_name': data.get('momo_name',''),'status': 'pending','type': 'withdrawable_total_minus_10','time': time.time(),'paid_time': None})
+    withdraws.append({'id': int(time.time()*1000),'email': u.get('email'),'phone': u.get('phone'),'amount': ugx,'coins': coins,'momo_number': momo,'momo_name': data.get('momo_name',''),'status': 'pending','type': 'withdrawable','time': time.time(),'paid_time': None})
     save_db('withdraws.json', withdraws)
     txs = load_db('coin_transactions.json', [])
-    txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo} (Withdrawable {withdrawable}=Total {total}-{FREE_TRIAL} free)', 'time': time.time(), 'status': 'withdraw_pending'})
+    txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
     save_db('coin_transactions.json', txs)
-    return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}. Withdrawable = Total {total} - {FREE_TRIAL} free trial!"})
-
-@app.route('/api/register', methods=['POST'])
+    return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}."})
+    @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     ref_code = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
@@ -677,6 +673,7 @@ def register():
     safe={k:v for k,v in user.items() if k!='password'}
     if shop: safe['shop']=shop
     return jsonify({'success':True,'user':safe})
+
 @app.route('/api/account/set-password', methods=['POST'])
 def set_password_api():
     try:
@@ -733,21 +730,18 @@ def my_sales_stats():
     return jsonify({"today":today,"week":week,"year":year,"orders":len(my_orders),"promo_coins_spent":promo_spent})
 
 @app.route('/api/login', methods=['POST'])
-
-@app.route('/api/login', methods=['POST'])
 def login():
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
     users=load_db('users.json',[])
-def check_pwd(u, pwd):
-    if u.get('password') == hash_pwd(pwd):
-        return True
-    try:
-        from werkzeug.security import check_password_hash
-        if u.get('password_hash') and check_password_hash(u.get('password_hash'), pwd):
+    def check_pwd(u, pwd):
+        if u.get('password') == hash_pwd(pwd):
             return True
-    except:
-        pass
-    return False
+        try:
+            from werkzeug.security import check_password_hash
+            if u.get('password_hash') and check_password_hash(u.get('password_hash'), pwd):
+                return True
+        except: pass
+        return False
     u=next((x for x in users if x['email']==email and check_pwd(x,pwd)), None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
     if 'bought' not in u: u['bought'] = int(u.get('bought_coins',0))
@@ -756,10 +750,7 @@ def check_pwd(u, pwd):
     if 'bought_coins' not in u: u['bought_coins']=u['bought']
     if 'earned_coins' not in u: u['earned_coins']=u['earned']
     if int(u.get('coins',0))==0 and int(u.get('bought',0))==0 and int(u.get('earned',0))==0 and not u.get('trial_given'):
-        u['earned']=10
-        u['earned_coins']=10
-        u['coins']=10
-        u['trial_given']=True
+        u['earned']=10; u['earned_coins']=10; u['coins']=10; u['trial_given']=True
     u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
     if u['coins']<0: u['coins']=0
     save_db('users.json', users)
@@ -767,8 +758,7 @@ def check_pwd(u, pwd):
     except: pass
     safe={k:v for k,v in u.items() if k!='password'}
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
-    session['phone']=u.get('phone')
-    session['email']=u.get('email')
+    session['phone']=u.get('phone'); session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
 
 @app.route('/api/products')
@@ -792,11 +782,8 @@ def get_products():
 def sell():
     name=request.form.get('name')
     price=int(request.form.get('price',0))
-    # FIX 4 - SAVE ORIGINAL PRICE FOR CROSSED PRICE + % OFF
     original_price = int(request.form.get('original_price') or request.form.get('price',0))
-    if original_price < price:
-        original_price = price # if user enters smaller, fix it
-
+    if original_price < price: original_price = price
     business=request.form.get('business')
     location=request.form.get('location')
     phone=request.form.get('phone')
@@ -818,38 +805,17 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except: pass
-    prod = {
-        'id': int(time.time()*1000),
-        'name': name,
-        'price': price,
-        'original_price': original_price, # FIX 4 - NOW SAVED!
-        'business': business,
-        'location': location,
-        'phone': phone,
-        'seller_email': user_email,
-        'description': desc,
-        'image': images[0],
-        'images': images,
-        'main_category': main_cat,
-        'stock': stock,
-        'sold': 0,
-        'rating': 5.0,
-        'reviews': [],
-        'created': time.time(),
-        'shop_id': shop_id,
-        'shop_slug': shop_slug,
-        'promo_commission': promo_commission
-    }
+    prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     for u in users:
         if u['phone']==phone or u['email']==user_email:
             u['spent'] = int(u.get('spent',0)) + UPLOAD_COST
             u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
             if u['coins']<0: u['coins']=0
-            u['bought_coins']=int(u.get('bought',0))
-            u['earned_coins']=int(u.get('earned',0))
+            u['bought_coins']=int(u.get('bought',0)); u['earned_coins']=int(u.get('earned',0))
     save_db('users.json', users)
-    return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used - Original: {original_price} Selling: {price}'})
+    return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
+
 @app.route('/api/shops')
 def list_shops():
     shops = load_db('shops.json', [])
@@ -922,18 +888,45 @@ def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
 
+# ✅ FIXED PROMO APPLY - AUTO APPROVED + CORRECT LINK!
 @app.route('/api/promote/apply', methods=['POST'])
 def promote_apply():
-    data=request.json or {}; product_id=int(data.get('product_id',0)); phone=(data.get('phone') or '').strip(); email=(data.get('email') or '').lower().strip()
-    if not phone and not email: return jsonify({"success":False,"message":"Login first"}),401
-    products=load_db('products.json',[]); prod=next((p for p in products if int(p.get('id'))==product_id),None)
-    if not prod: return jsonify({"success":False,"message":"Product not found"}),404
+    data=request.json or {}
+    product_id=str(data.get('product_id','')).strip()
+    phone=(data.get('phone') or '').strip()
+    email=(data.get('email') or '').lower().strip()
+    if not phone and not email:
+        return jsonify({"success":False,"message":"Login first"}),401
+    products=load_db('products.json',[])
+    prod=next((p for p in products if str(p.get('id'))==product_id),None)
+    if not prod:
+        return jsonify({"success":False,"message":"Product not found"}),404
     promos=load_db('promotions.json',[])
-    host = request.host_url.rstrip('/')
-    import random,string; code=f"PROMO{product_id}{phone[-3:]}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
-    new_promo={"id":int(time.time()*1000),"product_id":product_id,"product_name":prod.get('name'),"product_owner_phone":prod.get('phone'),"product_owner_email":(prod.get('seller_email') or '').lower(),"freelancer_phone":phone,"freelancer_email":email,"commission_coins":int(prod.get('promo_commission',3)),"promo_code":code,"status":"pending","sales":0,"created":time.time()}
-    promos.append(new_promo); save_db('promotions.json',promos)
-    return jsonify({"success":True,"message":f"Applied! Your link: {host}/?promo={code}&product={product_id}","promo":new_promo})
+    existing = next((p for p in promos if str(p.get('product_id'))==product_id and (p.get('freelancer_phone')==phone or p.get('freelancer_email','').lower()==email)), None)
+    if existing:
+        code = existing.get('promo_code')
+        link = f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
+        return jsonify({"success":True,"message":f"Already applied!","promo":existing,"link":link,"promo_link":link,"code":code})
+    import random,string
+    code=f"PROMO{product_id[:3]}{phone[-3:]}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
+    new_promo={
+        "id":int(time.time()*1000),
+        "product_id":product_id,
+        "product_name":prod.get('name'),
+        "product_owner_phone":prod.get('phone'),
+        "product_owner_email":(prod.get('seller_email') or '').lower(),
+        "freelancer_phone":phone,
+        "freelancer_email":email,
+        "commission_coins":int(prod.get('promo_commission',3)),
+        "promo_code":code,
+        "status":"approved",
+        "sales":0,
+        "created":time.time()
+    }
+    promos.append(new_promo)
+    save_db('promotions.json',promos)
+    link = f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
+    return jsonify({"success":True,"message":f"Applied! Earn {new_promo['commission_coins']} coins per sale! Link: {link}","promo":new_promo,"link":link,"promo_link":link,"code":code})
 
 @app.route('/api/promote/my', methods=['GET'])
 def my_promotions():
@@ -964,7 +957,7 @@ def create_order():
     if promo_code:
         promos=load_db('promotions.json',[]); users=load_db('users.json',[])
         for p in promos:
-            if p.get('promo_code')==promo_code and p.get('status')=='approve':
+            if p.get('promo_code')==promo_code and p.get('status')=='approved':
                 p['sales']=p.get('sales',0)+1
                 for u in users:
                     if str(u.get('phone'))==str(p.get('freelancer_phone')) or str(u.get('email','').lower())==str(p.get('freelancer_email','')).lower():
@@ -979,9 +972,7 @@ def create_order():
 SPIN_CONFIG_FILE='spin_config.json'
 def load_spin_config():
     default={
-        "enabled": True,
-        "cost": 1,
-        "house_edge": 15,
+        "enabled": True,"cost": 1,"house_edge": 15,
         "prizes": [
             {"name":"0x LOST 😢","multiplier":0,"coins":0,"weight":35,"color":"#ff0000"},
             {"name":"1x BACK 🪙","multiplier":1,"coins":1,"weight":25,"color":"#ffffff"},
