@@ -641,7 +641,7 @@ def register():
     safe={k:v for k,v in user.items() if k!='password'}
     if shop: safe['shop']=shop
     return jsonify({'success':True,'user':safe})
-    @app.route('/api/account/set-password', methods=['POST'])
+@app.route('/api/account/set-password', methods=['POST'])
 def set_password_api():
     try:
         data=request.json
