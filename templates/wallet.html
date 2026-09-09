@@ -14,6 +14,11 @@
 .pack.popular{border-color:red;transform:scale(1.02)}.pack.popular::before{content:"🔥 MOST POPULAR";position:absolute;top:-10px;left:10px;background:red;color:white;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:bold}
 .pack.selected{border:3px solid red!important;background:linear-gradient(#FFE0E0,#FFCC02)!important}
 .progress{width:100%;height:12px;background:#333;border-radius:10px;overflow:hidden;margin:5px 0}.fill{height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);transition:width 1s}
+.wallet-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.wallet-box{background:white;border-radius:12px;padding:10px;text-align:center;border:2px solid #000}
+.wallet-box.bought{border-color:#1976d2;background:linear-gradient(#E3F2FD,#fff)}
+.wallet-box.earned{border-color:#2e7d32;background:linear-gradient(#E8F5E9,#fff)}
+.wallet-box.total{border-color:#FFCC02;background:linear-gradient(#FFF9C4,#FFCC02);transform:scale(1.05)}
 </style>
 </head>
 <body>
@@ -29,6 +34,35 @@
 <div style="font-size:40px;font-weight:bold;margin:10px 0" id="myBal">0 coins</div>
 <div style="font-size:12px">Can upload <span id="canUpload">0</span> products (3 coins per product)</div>
 <div style="background:#FFCC02;color:#000;padding:6px;border-radius:10px;margin-top:10px;font-size:11px">Email: <span id="myEmail">-</span> | Phone: <span id="myPhone">-</span></div>
+</div>
+
+<!-- NEW BOUGHT / EARNED / TOTAL BOXES -->
+<div class="card">
+<h3 style="text-align:center;color:#8B0000">📊 Coins Breakdown</h3>
+<div class="wallet-grid">
+<div class="wallet-box bought">
+<div style="font-size:11px;color:#1976d2;font-weight:bold">🛒 BOUGHT</div>
+<div style="font-size:22px;font-weight:bold;color:#000" id="boughtCoins">0</div>
+<div style="font-size:10px">coins</div>
+<div style="font-size:10px;background:#1976d2;color:white;padding:2px 6px;border-radius:10px;margin-top:4px" id="boughtValue">UGX 0</div>
+<div style="font-size:9px;color:gray;margin-top:3px">MoMo Purchases</div>
+</div>
+<div class="wallet-box earned">
+<div style="font-size:11px;color:#2e7d32;font-weight:bold">🎁 EARNED</div>
+<div style="font-size:22px;font-weight:bold;color:#000" id="earnedCoins">0</div>
+<div style="font-size:10px">coins</div>
+<div style="font-size:10px;background:#2e7d32;color:white;padding:2px 6px;border-radius:10px;margin-top:4px" id="earnedValue">UGX 0</div>
+<div style="font-size:9px;color:gray;margin-top:3px">Spin + Promo + Bonus</div>
+</div>
+<div class="wallet-box total">
+<div style="font-size:11px;color:#8B0000;font-weight:bold">🪙 TOTAL</div>
+<div style="font-size:26px;font-weight:bold;color:#000" id="totalCoins">0</div>
+<div style="font-size:10px">coins</div>
+<div style="font-size:10px;background:#000;color:#FFCC02;padding:2px 6px;border-radius:10px;margin-top:4px" id="totalValue">UGX 0</div>
+<div style="font-size:9px;color:black;font-weight:bold;margin-top:3px" id="totalFormula">Bought+Earned-Spent</div>
+</div>
+</div>
+<div style="text-align:center;font-size:10px;color:gray;margin-top:8px">💡 Bought = MoMo payments to 0795712326 | Earned = Spin wins + Promo commissions + Free 180 bonus</div>
 </div>
 
 <div class="card">
@@ -81,7 +115,24 @@
 let currentUser=null; let selectedPack='30';
 let packs={"10":{coins:10,price:5990},"30":{coins:30,price:17970},"60":{coins:60,price:35940},"150":{coins:150,price:89850}};
 function loadUser(){let s=localStorage.getItem('sannlas_user');if(!s){alert('Login first Boss!');location.href='/';return;} currentUser=JSON.parse(s); document.getElementById('myEmail').innerText=currentUser.email; document.getElementById('myPhone').innerText=currentUser.phone; document.getElementById('momoPhone').value=currentUser.phone; loadBal(); loadLive(); loadHistory();}
-function loadBal(){fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{document.getElementById('myBal').innerText=(d.coins||0)+' coins'; document.getElementById('canUpload').innerText=Math.floor((d.coins||0)/3);});}
+function loadBal(){fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`).then(r=>r.json()).then(d=>{
+  let total = d.total || d.coins || 0;
+  let bought = d.bought || 0;
+  let earned = d.earned || 0;
+  // Fallback if old API still only sends coins
+  if(!d.bought &&!d.earned && total>0){
+    // If no breakdown, assume all is earned (free bonus)
+    earned = total;
+  }
+  document.getElementById('myBal').innerText=total+' coins';
+  document.getElementById('canUpload').innerText=Math.floor(total/3);
+  document.getElementById('boughtCoins').innerText=bought;
+  document.getElementById('boughtValue').innerText='UGX '+(bought*599).toLocaleString();
+  document.getElementById('earnedCoins').innerText=earned;
+  document.getElementById('earnedValue').innerText='UGX '+(earned*599).toLocaleString();
+  document.getElementById('totalCoins').innerText=total;
+  document.getElementById('totalValue').innerText='UGX '+(total*599).toLocaleString();
+});}
 function loadLive(){fetch('/api/coins/config').then(r=>r.json()).then(cfg=>{document.getElementById('rem').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('fill').style.width=(cfg.remaining/1000000000*100)+'%';});}
 function selectPack(id){selectedPack=id; let p=packs[id]; document.getElementById('selPackShow').innerText=`${p.coins} coins - UGX ${p.price.toLocaleString()} - Upload ${Math.floor(p.coins/3)} products`; document.querySelectorAll('.pack').forEach(el=>el.classList.remove('selected')); document.getElementById('pack-'+id).classList.add('selected');}
 function buyCoins(){let momo=document.getElementById('momoPhone').value.trim(); let tid=document.getElementById('transId').value.trim(); let st=document.getElementById('status'); if(!momo||!tid){st.innerHTML='<span style="color:red">Enter MoMo & Trans ID Boss!</span>';return;} st.innerHTML='⏳ Verifying Transaction ID...'; fetch('/api/coins/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,pack:selectedPack,momo_code:tid,momo_phone:momo})}).then(r=>r.json()).then(d=>{if(!d.success&&d.message){st.innerHTML='<span style="color:red">❌ '+d.message+'</span>';return;} st.innerHTML='<span style="color:green">✅ '+d.message+' - '+d.coins+' coins added! Now you can upload '+(Math.floor(d.coins/3)||Math.floor(packs[selectedPack].coins/3))+' products!</span>'; loadBal(); loadLive(); loadHistory(); document.getElementById('transId').value=''; setTimeout(()=>{ if(confirm('Coins added! Go upload now?')) location.href='/'; },1500);}).catch(e=>{st.innerHTML='<span style="color:red">Network error - Try again Boss!</span>';});}
