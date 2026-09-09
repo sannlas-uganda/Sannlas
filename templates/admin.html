@@ -47,15 +47,48 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
 <div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
 <div class="t" style="background:#ff6a00;color:#000" onclick="tab('withdraws',this)">💸 Withdraws <span id="cWithdraws" class="badge" style="background:#000;color:#fff">0</span></div>
+<div class="t" style="background:#FFCC02;color:#000;border:3px solid #ff0000" onclick="tab('spin',this)">🎰 Spin <span id="cSpin" class="badge" style="background:#ff0000;color:white">LIVE</span></div>
 <div class="t" style="background:#00FF00;color:#000" onclick="tab('billboard',this)">📢 Billboard</div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div>
 <div class="t" onclick="tab('sales',this)">💵 Sales</div>
 <div class="t" onclick="tab('topSellers',this)">⭐ Top Sellers</div>
 <div class="t" onclick="tab('notif',this)">🔔 Send Msg</div>
 </div>
+
 <div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Shops + Coins System</h2><div id="overviewData"></div></div></div>
 <div id="shops" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🏪 All Shops</h2><div id="shopsBox">Loading...</div></div></div>
 <div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users - Coins + Shops</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Expired</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
+
+<div id="spin" class="tabPane" style="display:none">
+<div class="card" style="border:3px solid #FFCC02;background:linear-gradient(#111,#000)">
+<h2 style="color:#FFCC02">🎰 SPIN CONTROL - sannlas.onrender.com</h2>
+<p style="font-size:11px;color:#aaa">You profit when weight of losing is high! Lower weight for 5 coins = you make more money Boss!</p>
+<div style="background:#000;padding:12px;border-radius:10px;border:2px solid #FFCC02;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<label style="color:#FFCC02"><input type="checkbox" id="spinEnabled" checked> 🟢 Enabled</label>
+<label style="color:white">Cost: <input type="number" id="spinCost" value="1" style="width:60px;background:#222"></label>
+<button onclick="loadAdminSpin()" style="background:#333">🔄 Reload</button>
+</div>
+
+<div style="background:#111;padding:10px;border-radius:8px;margin:10px 0">
+<h4 style="color:#FFCC02;margin:5px 0">🎁 Prizes - Edit Name / Coins Won / Weight (Chance)</h4>
+<div style="display:grid;grid-template-columns:2fr 1fr 1fr;font-weight:bold;font-size:11px;color:#888;padding:5px"><span>Name</span><span>Coins</span><span>Weight</span></div>
+<div id="spinPrizesEdit"></div>
+<button onclick="saveSpinConfig()" style="background:#FFCC02;color:#000;width:100%;padding:14px;border-radius:10px;font-weight:bold;margin-top:10px;font-size:16px">💾 SAVE SPIN CONFIG - LIVE NOW</button>
+<div id="spinSaveStatus" style="text-align:center;margin-top:6px"></div>
+</div>
+
+<div id="spinStats" style="background:#000;border:2px solid #00FF00;border-radius:12px;padding:12px;text-align:center;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+<div><div style="color:#aaa;font-size:11px">Total Spins</div><b id="spinTotal" style="color:white;font-size:22px">0</b></div>
+<div><div style="color:#aaa;font-size:11px">Paid Out</div><b id="spinPaid" style="color:#ff6a00;font-size:22px">0</b></div>
+<div><div style="color:#aaa;font-size:11px">YOUR PROFIT</div><b id="spinProfit" style="color:#00FF00;font-size:22px">0</b></div>
+</div>
+<p style="font-size:10px;color:#666;margin-top:8px">Profit = Total Spins * Cost - Paid Out. Set losing weights HIGH to profit Boss!</p>
+
+<h3 style="color:white;margin-top:15px">📜 Recent Spins</h3>
+<div id="spinHistoryBox" style="background:#111;padding:8px;border-radius:8px;max-height:300px;overflow:auto;font-size:12px">Loading...</div>
+</div>
+</div>
+
 <div id="coins" class="tabPane" style="display:none">
 <div class="card" style="border:3px solid #FFCC02"><h2>🪙 Coins - 1B @ 599 UGX</h2>
 <div style="background:#111;border:2px solid #00FF00;border-radius:12px;padding:12px;margin:10px 0">
@@ -84,6 +117,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <p style="font-size:10px;color:#aaa;margin:6px 0 0 0">Add = more coins to sell when 1B finished. Reduce = create scarcity!</p>
 </div>
 <div id="coinsBox">Loading...</div></div></div>
+
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products - With Shop Link</h2><div id="productsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="withdraws" class="tabPane" style="display:none"><div class="card" style="border:3px solid #ff6a00"><h2>💸 Withdraw Requests</h2><p>Users request MoMo payment. Click PAID after you send money.</p><div id="withdrawsBox">Loading...</div></div></div>
@@ -121,7 +155,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <script>
 let ALL={}; let USER_FILTER='all';
 function getPlanAmount(p){const m={"free14":0,"30":6540,"60":13090,"180":39500,"365":80000};return m[p]||0;}
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='topSellers') renderTopSellers(); if(id==='notif') loadNotifHistory(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='spin') loadAdminSpin();}
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
  if(!pwd){document.getElementById('msg').innerText='Enter password';return;}
@@ -219,6 +253,50 @@ function loadBillboard(){
    prev.innerHTML = bb.media_url? '<div style="background:red;color:white;padding:4px 8px;border-radius:5px">🔴 OFF / Expired</div>' : '<p>No billboard</p>';
  }
 }
+
+// ===== SPIN ADMIN =====
+async function loadAdminSpin(){
+ try{
+  let r=await fetch('/api/admin/spin-config');
+  let cfg=await r.json();
+  document.getElementById('spinEnabled').checked=cfg.enabled;
+  document.getElementById('spinCost').value=cfg.cost;
+  let html='';
+  (cfg.prizes||[]).forEach((p,i)=>{
+   html+=`<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:5px;margin:5px 0;align-items:center"><input value="${p.name}" id="pn_${i}" style="background:#222;padding:8px"><input type="number" value="${p.coins}" id="pc_${i}" style="background:#222;padding:8px"><input type="number" value="${p.weight}" id="pw_${i}" placeholder="chance" style="background:#222;padding:8px"></div>`;
+  });
+  document.getElementById('spinPrizesEdit').innerHTML=html;
+  // stats
+  try{
+   let rs=await fetch('/api/admin/spin-stats');
+   let s=await rs.json();
+   document.getElementById('spinTotal').innerText=s.total||0;
+   document.getElementById('spinPaid').innerText=s.paid||0;
+   document.getElementById('spinProfit').innerText=s.profit||0;
+  }catch(e){}
+  // history
+  try{
+   let rh=await fetch('/api/admin/spin-history');
+   let h=await rh.json();
+   document.getElementById('spinHistoryBox').innerHTML=h.length?h.slice().reverse().slice(0,30).map(x=>`<div style="border-bottom:1px solid #333;padding:5px 0">${new Date(x.time*1000).toLocaleString()} - ${x.phone||x.email} - ${x.prize} won ${x.won}</div>`).join(''):'No spins yet';
+  }catch(e){}
+ }catch(e){
+  document.getElementById('spinPrizesEdit').innerHTML='<p style="color:red">Spin API not yet added in app.py - Add spin routes Boss!</p>';
+ }
+}
+async function saveSpinConfig(){
+ let cfg={enabled:document.getElementById('spinEnabled').checked,cost:Number(document.getElementById('spinCost').value),prizes:[]};
+ let i=0;
+ while(document.getElementById(`pn_${i}`)){
+  cfg.prizes.push({name:document.getElementById(`pn_${i}`).value,coins:Number(document.getElementById(`pc_${i}`).value),weight:Number(document.getElementById(`pw_${i}`).value)});
+  i++;
+ }
+ document.getElementById('spinSaveStatus').innerHTML='<span style="color:yellow">⏳ Saving...</span>';
+ let r=await fetch('/api/admin/spin-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+ let d=await r.json();
+ document.getElementById('spinSaveStatus').innerHTML=d.success?`<span style="color:#00FF00">✅ ${d.message} - LIVE on sannlas.onrender.com!</span>`:`<span style="color:red">${d.message}</span>`;
+}
+
 function loadData(){
 document.getElementById('stats').innerHTML='<div class="card">Loading...</div>';
 fetch('/api/admin/data').then(r=>{
