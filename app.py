@@ -641,6 +641,38 @@ def register():
     safe={k:v for k,v in user.items() if k!='password'}
     if shop: safe['shop']=shop
     return jsonify({'success':True,'user':safe})
+    @app.route('/api/account/set-password', methods=['POST'])
+def set_password_api():
+    try:
+        data=request.json
+        email=data.get('email','').strip().lower()
+        phone=data.get('phone','')
+        pwd=data.get('password','')
+        if len(pwd)<4:
+            return jsonify({"success":False,"message":"Password too short! Min 4 chars Boss!"})
+        # find user - adapt to your DB
+        user = None
+        # if you use json file:
+        try:
+            with open('users.json','r') as f:
+                users=json.load(f)
+        except:
+            users=[]
+        for u in users:
+            if (u.get('email','').lower()==email) or (u.get('phone')==phone and phone):
+                user=u
+                break
+        if not user:
+            return jsonify({"success":False,"message":"User not found"})
+        from werkzeug.security import generate_password_hash
+        user['password_hash']=generate_password_hash(pwd)
+        user['has_password']=True
+        # save
+        with open('users.json','w') as f:
+            json.dump(users,f,indent=2)
+        return jsonify({"success":True,"message":"🔒 Password saved! Your account is now protected Boss! Only you can login!"})
+    except Exception as e:
+        return jsonify({"success":False,"message":str(e)})
 
 @app.route('/api/login', methods=['POST'])
 def login():
