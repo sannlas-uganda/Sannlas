@@ -140,8 +140,6 @@
 <div style="background:#000;border-top:3px solid #FFCC02;padding:25px;text-align:center;color:#FFCC02;font-weight:bold;margin-top:30px"><div style="font-size:18px">@sannlas 2026</div></div>
 <div class="fixed-bottom"><span onclick="goToBalance()" style="color:#FFCC02">💰 Balance (<span id="bottomCoins">0</span>)</span><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span></div>
 <script>
- <script>
-// ===== SAVE AFFILIATE REF - MUST BE FIRST! =====
 let urlRef = new URLSearchParams(window.location.search).get('ref');
 if(urlRef){
   localStorage.setItem('sannlas_aff_ref', urlRef);
@@ -157,8 +155,6 @@ if(pathMatch){
     }, 1000);
   });
 }
-// ===== END REF SAVE =====
-
 let allProducts = [];
 let cart = [];
 let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let billboardData=null;
