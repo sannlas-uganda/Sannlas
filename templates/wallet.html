@@ -137,7 +137,10 @@ function loadLive(){fetch('/api/coins/config').then(r=>r.json()).then(cfg=>{docu
 function selectPack(id){selectedPack=id; let p=packs[id]; document.getElementById('selPackShow').innerText=`${p.coins} coins - UGX ${p.price.toLocaleString()} - Upload ${Math.floor(p.coins/3)} products`; document.querySelectorAll('.pack').forEach(el=>el.classList.remove('selected')); document.getElementById('pack-'+id).classList.add('selected');}
 function buyCoins(){let momo=document.getElementById('momoPhone').value.trim(); let tid=document.getElementById('transId').value.trim(); let st=document.getElementById('status'); if(!momo||!tid){st.innerHTML='<span style="color:red">Enter MoMo & Trans ID Boss!</span>';return;} st.innerHTML='⏳ Verifying Transaction ID...'; fetch('/api/coins/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,pack:selectedPack,momo_code:tid,momo_phone:momo})}).then(r=>r.json()).then(d=>{if(!d.success&&d.message){st.innerHTML='<span style="color:red">❌ '+d.message+'</span>';return;} st.innerHTML='<span style="color:green">✅ '+d.message+' - '+d.coins+' coins added! Now you can upload '+(Math.floor(d.coins/3)||Math.floor(packs[selectedPack].coins/3))+' products!</span>'; loadBal(); loadLive(); loadHistory(); document.getElementById('transId').value=''; setTimeout(()=>{ if(confirm('Coins added! Go upload now?')) location.href='/'; },1500);}).catch(e=>{st.innerHTML='<span style="color:red">Network error - Try again Boss!</span>';});}
 function loadHistory(){fetch(`/api/admin/coin_transactions`).then(r=>r.json()).then(list=>{let mine=list.filter(t=>t.email==currentUser.email||t.phone==currentUser.phone); document.getElementById('history').innerHTML=mine.length?mine.reverse().slice(0,10).map(t=>`<div style="border-bottom:1px solid #ddd;padding:6px 0;font-size:11px">🪙 ${t.coins} coins - UGX ${t.price} - ${t.status} - ${new Date(t.time*1000).toLocaleDateString()} - ID:${t.momo_code}</div>`).join(''):'No history yet - Buy your first coins Boss!';}).catch(()=>{document.getElementById('history').innerHTML='History loading...';});}
-loadUser(); setInterval(loadLive,3000); setInterval(loadBal,3000);
+loadUser(); 
+// Don't spam server every 3 sec - 30 sec is enough
+setInterval(loadLive, 30000); 
+setInterval(loadBal, 30000);
 </script>
 </body>
 </html>
