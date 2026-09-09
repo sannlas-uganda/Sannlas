@@ -268,7 +268,47 @@ let promoComm=p.promo_commission||3;
   document.getElementById('viewPop').style.display='flex';
 }
 function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);}
-function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3>🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b style="font-size:13px">${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b style="color:green">UGX ${sub.toLocaleString()}</b></div><div style="display:flex;flex-direction:column;gap:5px;align-items:center"><div style="display:flex;gap:5px;align-items:center"><button onclick="changeQty('${it.id}', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button><span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">${it.qty||1}</span><button onclick="changeQty('${it.id}', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button></div><button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button></div></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL (${totalQty}): UGX ${total.toLocaleString()}</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX ${total.toLocaleString()}</button><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
+function openCart(){
+if(cart.length==0){alert('Cart empty Boss!');return;}
+let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
+let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);
+let ref = localStorage.getItem('sannlas_aff_ref') || new URLSearchParams(window.location.search).get('ref') || '';
+let refHtml = ref? `<div style="background:#FFF9C4;border:2px solid #25D366;padding:8px;border-radius:8px;margin-bottom:8px;text-align:center;color:green;font-weight:bold;font-size:12px">🤝 Referred by: ${ref} - Promoter will earn!</div>` : '';
+let html=`<h3>🛒 My Cart - ${totalQty} items</h3>${refHtml}`;
+cart.forEach(it=>{
+let sub=Number(it.price)*(it.qty||1);
+html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b style="font-size:13px">${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b style="color:green">UGX ${sub.toLocaleString()}</b></div><div style="display:flex;flex-direction:column;gap:5px;align-items:center"><div style="display:flex;gap:5px;align-items:center"><button onclick="changeQty('${it.id}', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button><span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">${it.qty||1}</span><button onclick="changeQty('${it.id}', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button></div><button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button></div></div>`;
+});
+html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL (${totalQty}): UGX ${total.toLocaleString()}</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX ${total.toLocaleString()}</button><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;
+document.getElementById('cartContent').innerHTML=html;
+document.getElementById('cartPop').style.display='flex';
+}
+
+function doCheckout(){
+let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+if(!u.phone){alert('Login first!'); location.href='/balance'; return;}
+let ref = localStorage.getItem('sannlas_aff_ref') || new URLSearchParams(window.location.search).get('ref') || '';
+let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);
+if(!confirm(`Confirm order Boss?\nTotal: UGX ${total.toLocaleString()}\n${ref?'Ref: '+ref:''}`)) return;
+
+fetch('/api/checkout',{
+ method:'POST',
+ headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({
+   cart:cart,
+   phone:u.phone,
+   email:u.email,
+   ref:ref,
+   product_id: cart[0]?.id,
+   promo_commission: cart[0]?.promo_commission||3
+ })
+}).then(r=>r.json()).then(d=>{
+ alert(d.message||'Order placed!');
+ cart=[]; document.getElementById('cartN').innerText='0';
+ localStorage.removeItem('sannlas_aff_ref');
+ closePop('cartPop');
+}).catch(e=>alert('Error: '+e.message));
+}
 function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1)item.qty=1;document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);openCart();}
 function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
 function applyPromote(pid,comm){
