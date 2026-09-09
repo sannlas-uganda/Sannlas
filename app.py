@@ -958,7 +958,7 @@ def create_order():
                 break
         save_db('promotions.json',promos); save_db('users.json',users)
     return jsonify({"success":True,"order":new_order})
-    @app.route('/api/checkout', methods=['POST'])
+@app.route('/api/checkout', methods=['POST'])
 def api_checkout():
     data = request.get_json() or {}
     ref = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
