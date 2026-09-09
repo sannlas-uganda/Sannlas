@@ -55,15 +55,13 @@
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:10px;margin:5px 0"><select id="gateRegRole" style="width:100%;padding:10px;margin:5px 0"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn btn-green" style="width:100%;padding:12px" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse Free</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:12px;text-align:center;font-size:20px;margin:10px 0"><button class="btn btn-green" style="width:100%" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><button class="btn" style="width:100%;background:#000;padding:12px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:10px;margin:10px 0;border:2px solid #1976d2;border-radius:8px"><button class="btn btn-blue" style="width:100%;padding:12px" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:gray;margin-top:8px" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
-
 <div class="navbar"><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px">☰</button><h3>🛍️ SANNLAS</h3></div><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"><button onclick="openPopup('spinPop')" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;padding:8px 14px;border-radius:20px;font-weight:bold;border:2px solid #000;animation:pulse 1.5s infinite;cursor:pointer;font-size:12px">🎰 SPIN & WIN</button><button class="btn" style="background:#FFCC02;color:#000" onclick="showAllShops()">🏪 Shops</button><button class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button><button class="btn" style="background:#000;border:2px solid #FFCC02;color:#FFCC02" onclick="goToBalance()">💰 Balance (<span id="myCoinsNav">0</span>)</button><button class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button><button class="btn btn-yellow" onclick="openPopup('authPop')">👤 Account</button></div></div>
-
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">1 coin = 599 UGX | Upload = 3 coins | Min Withdraw 50 coins</span><button class="btn btn-yellow" style="padding:4px 10px;font-size:10px" onclick="goToBalance()">MY BALANCE 🔥</button></div>
-<div id="liveTicker"><div id="tickerContent">🔴 LIVE: Loading real activity... • 🎰 SPIN & WIN ACTIVE • 🪙 1 coin = 599 UGX • Min Withdraw 50 coins = UGX 29,950</div></div>
+<div id="liveTicker"><div id="tickerContent">🔴 LIVE: Loading...</div></div>
 <div id="billboardBanner" onclick="billboardClick()"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu"><div class="side-header"><b>🛍️ SANNLAS MENU</b><button class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
-<button class="side-item-btn" style="background:#7b1fa2;color:#fff;margin:10px;width:calc(100% - 20px);border:2px solid #FFCC02" onclick="closeSideMenu();goToBalance()">💰 My Balance - Bought/Earned/Spent/Withdrawable</button>
+<button class="side-item-btn" style="background:#7b1fa2;color:#fff;margin:10px;width:calc(100% - 20px);border:2px solid #FFCC02" onclick="closeSideMenu();goToBalance()">💰 My Balance</button>
 <button class="side-item-btn" style="background:#000;color:#FFCC02;border:1px solid #FFCC02;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();showAllShops()">🏪 All Shops</button>
 <button class="side-item-btn" style="background:#2e7d32;color:white;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();goToMyShop()">🏪 My Shop</button>
 <button class="side-item-btn" style="background:#FFCC02;color:#000;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn 1 coin</button>
@@ -91,20 +89,17 @@
 <div class="products" id="products"></div>
 <div class="popup" id="viewPop" onclick="closePop('viewPop')"><div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div></div>
 <div class="popup" id="cartPop" onclick="closePop('cartPop')"><div class="popup-content" id="cartContent" onclick="event.stopPropagation()"></div></div>
-
-<!-- ✅ FINAL ACCOUNT WITH BALANCE + SALES + PASSWORD -->
 <div class="popup" id="authPop" onclick="closePop('authPop')">
 <div class="popup-content" onclick="event.stopPropagation()" style="max-width:500px">
 <h2 style="text-align:center">👤 My Account</h2>
 <div id="myProfileInfo" style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;margin:10px 0;text-align:center"></div>
-
 <div style="background:#f3e5f5;border:2px solid #7b1fa2;border-radius:12px;padding:12px;margin:10px 0">
 <h3 style="color:#4a148c;text-align:center;margin:0">💰 My Balance</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
 <div style="background:#e3f2fd;padding:10px;border-radius:8px;text-align:center"><b id="accBought" style="font-size:18px">0</b><br><small>BOUGHT</small></div>
 <div style="background:#e8f5e9;padding:10px;border-radius:8px;text-align:center"><b id="accEarned" style="font-size:18px">0</b><br><small>EARNED</small></div>
 <div style="background:#ffebee;padding:10px;border-radius:8px;text-align:center"><b id="accSpent" style="font-size:18px">0</b><br><small>SPENT</small></div>
-<div style="background:#fff3e0;padding:10px;border-radius:8px;text-align:center"><b id="accTotal" style="font-size:20px;color:#4a148c">0</b><br><small>TOTAL (same as Home)</small></div>
+<div style="background:#fff3e0;padding:10px;border-radius:8px;text-align:center"><b id="accTotal" style="font-size:20px;color:#4a148c">0</b><br><small>TOTAL</small></div>
 </div>
 <div style="background:#fff;border:2px dashed #7b1fa2;border-radius:10px;padding:10px;text-align:center">
 <b id="accWithdrawable" style="font-size:24px;color:#4a148c">0</b> coins withdrawable<br>
@@ -113,11 +108,10 @@
 </div>
 <button onclick="location.href='/balance'" style="width:100%;background:#7b1fa2;color:#fff;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:10px">💰 Open Full Balance & Withdraw</button>
 </div>
-
 <div style="margin:10px 0">
 <button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold">🏪 MY SHOP - View Shop</button>
 <div id="mySalesDash" style="background:#000;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin-top:10px">
-<h3 style="color:#FFCC02;text-align:center;margin:0 0 8px 0">📊 My Sales (Seller Only)</h3>
+<h3 style="color:#FFCC02;text-align:center;margin:0 0 8px 0">📊 My Sales</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
 <div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #0f0"><b id="saleToday" style="color:#0f0;font-size:14px">UGX 0</b><br><small style="color:#888">TODAY</small></div>
 <div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #FFCC02"><b id="saleWeek" style="color:#FFCC02;font-size:14px">UGX 0</b><br><small style="color:#888">THIS WEEK</small></div>
@@ -127,68 +121,24 @@
 <div style="background:#111;padding:8px;border-radius:6px"><b id="saleOrders" style="color:white">0</b><br><small style="color:#888">Total Orders</small></div>
 <div style="background:#111;padding:8px;border-radius:6px"><b id="salePromoCoins" style="color:#FFCC02">0 coins</b><br><small style="color:#888">Spent on Promo</small></div>
 </div>
-<div style="text-align:center;margin-top:8px;background:#1a1a1a;padding:6px;border-radius:6px"><small id="salePromoUgx" style="color:#FFCC02">💸 UGX 0 spent on promoters = coins</small></div>
+<div style="text-align:center;margin-top:8px;background:#1a1a1a;padding:6px;border-radius:6px"><small id="salePromoUgx" style="color:#FFCC02">💸 UGX 0 spent</small></div>
 </div>
 </div>
-
 <div style="background:#fff3cd;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:12px 0">
-<h3 style="margin:0 0 8px 0">🔒 Protect Account - Set Password</h3>
+<h3 style="margin:0 0 8px 0">🔒 Protect Account</h3>
 <input id="newPass1" type="password" placeholder="New Password (min 4)" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc">
 <input id="newPass2" type="password" placeholder="Confirm Password" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc">
 <button onclick="setMyPassword()" style="width:100%;background:#000;color:#FFCC02;padding:12px;border:none;border-radius:8px;font-weight:bold">🔒 Save My Password</button>
 <p id="passMsg" style="font-size:12px;text-align:center;margin-top:6px"></p>
 </div>
-
 <button class="btn" style="width:100%;background:#c0392b;margin-top:10px" onclick="doLogout()">Logout</button>
 <button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>
 </div>
 </div>
-
 <div class="popup" id="shopsPop" onclick="closePop('shopsPop')"><div class="popup-content" id="shopsContent" onclick="event.stopPropagation()"></div></div>
-
-<div class="popup" id="spinPop" onclick="closePop('spinPop')">
-<div class="popup-content" style="max-width:520px;background:linear-gradient(180deg,#000,#1a1a1a);border:4px solid #FFCC02;text-align:center" onclick="event.stopPropagation()">
-<h2 style="color:#FFCC02;font-size:22px">🎰 SANNLAS SPIN & WIN</h2>
-<p style="color:#0f0;font-size:11px">15% House Edge • 7 Multipliers • Stake 0-1000 • FAST 2.2s</p>
-<div class="wheel-wrap"><div class="wheel-pointer"></div><div id="spinWheel" class="wheel"></div><div class="wheel-center">🎰</div></div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:10px 0;font-size:10px">
-<div style="background:#ff0000;color:white;padding:4px;border-radius:6px">0x<br>35%</div>
-<div style="background:#fff;color:#000;padding:4px;border-radius:6px">1x<br>25%</div>
-<div style="background:#00aaff;color:white;padding:4px;border-radius:6px">1.5x<br>15%</div>
-<div style="background:#00ff00;color:#000;padding:4px;border-radius:6px">2x<br>12%</div>
-<div style="background:#FFCC02;color:#000;padding:4px;border-radius:6px">3x<br>8%</div>
-<div style="background:#aa00ff;color:white;padding:4px;border-radius:6px">5x<br>4%</div>
-<div style="background:#FFD700;color:#000;padding:4px;border-radius:6px">10x<br>1%</div>
-</div>
-<div style="background:#111;border:2px solid #333;border-radius:12px;padding:10px;display:flex;gap:8px;align-items:center">
-<input id="stakeInput" type="number" min="0" max="1000" value="10" style="flex:1;padding:12px;border-radius:8px;border:2px solid #FFCC02;background:#000;color:#FFCC02;font-weight:bold;text-align:center;font-size:18px">
-<div style="color:#888;font-size:11px;text-align:left">Fee 15%<br><span id="feePreview" style="color:#FFCC02">1.5 coins</span></div>
-</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0">
-<button onclick="setStake(0)" style="background:#333;color:white;padding:6px;border-radius:6px;border:none">FREE 0</button>
-<button onclick="setStake(10)" style="background:#222;color:#FFCC02;padding:6px;border-radius:6px;border:1px solid #FFCC02">10</button>
-<button onclick="setStake(50)" style="background:#222;color:#FFCC02;padding:6px;border-radius:6px;border:1px solid #FFCC02">50</button>
-<button onclick="setStake(100)" style="background:#FFCC02;color:#000;padding:6px;border-radius:6px;border:none;font-weight:bold">100 🔥</button>
-</div>
-<button onclick="doSpin()" id="spinBtn" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;width:100%;padding:16px;border:none;border-radius:12px;font-weight:bold;font-size:18px;margin-top:8px">🎰 SPIN NOW</button>
-<p id="spinResult" style="color:#FFCC02;font-weight:bold;margin-top:10px;font-size:14px;min-height:20px"></p>
-<div style="background:#000;border-radius:8px;padding:8px;display:flex;justify-content:space-between;font-size:11px;color:#888">
-<span>Bal: <b id="spinBal" style="color:#FFCC02">0</b></span>
-<span>Won: <b id="spinWon" style="color:#0f0">0</b></span>
-<span>Fee: <b id="spinFee" style="color:red">0</b></span>
-<span><a href="#" onclick="loadSpinHistory();return false" style="color:#FFCC02">History</a></span>
-</div>
-<button onclick="closePop('spinPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>
-</div>
-</div>
-
-<div style="background:#000;border-top:3px solid #FFCC02;padding:25px;text-align:center;color:#FFCC02;font-weight:bold;margin-top:30px">
-<div style="font-size:18px">@sannlas 2026</div>
-<div style="font-size:11px;color:#888;margin-top:6px">SANNLAS UGANDA - Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950</div>
-</div>
-
+<div class="popup" id="spinPop" onclick="closePop('spinPop')"><div class="popup-content" style="max-width:520px;background:linear-gradient(180deg,#000,#1a1a1a);border:4px solid #FFCC02;text-align:center" onclick="event.stopPropagation()"><h2 style="color:#FFCC02;font-size:22px">🎰 SANNLAS SPIN & WIN</h2><div class="wheel-wrap"><div class="wheel-pointer"></div><div id="spinWheel" class="wheel"></div><div class="wheel-center">🎰</div></div><div style="background:#111;border:2px solid #333;border-radius:12px;padding:10px;display:flex;gap:8px;align-items:center"><input id="stakeInput" type="number" min="0" max="1000" value="10" style="flex:1;padding:12px;border-radius:8px;border:2px solid #FFCC02;background:#000;color:#FFCC02;font-weight:bold;text-align:center;font-size:18px"><div style="color:#888;font-size:11px;text-align:left">Fee 15%<br><span id="feePreview" style="color:#FFCC02">1.5 coins</span></div></div><button onclick="doSpin()" id="spinBtn" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;width:100%;padding:16px;border:none;border-radius:12px;font-weight:bold;font-size:18px;margin-top:8px">🎰 SPIN NOW</button><p id="spinResult" style="color:#FFCC02;font-weight:bold;margin-top:10px;font-size:14px;min-height:20px"></p><button onclick="closePop('spinPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button></div></div>
+<div style="background:#000;border-top:3px solid #FFCC02;padding:25px;text-align:center;color:#FFCC02;font-weight:bold;margin-top:30px"><div style="font-size:18px">@sannlas 2026</div></div>
 <div class="fixed-bottom"><span onclick="goToBalance()" style="color:#FFCC02">💰 Balance (<span id="bottomCoins">0</span>)</span><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span></div>
-
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let billboardData=null;
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
@@ -204,19 +154,14 @@ async function loadMyCoins(){
   let bottom=document.getElementById('bottomCoins'); if(bottom) bottom.innerText=totalCoins;
   document.getElementById('coinsMyBal').innerText=totalCoins;
   document.getElementById('myCoinsPlan').innerText=totalCoins;
-  document.getElementById('spinBal').innerText=totalCoins;
-  // FIX - update Account balance same as home
-  if(document.getElementById('accTotal')){
-    document.getElementById('accBought').innerText=d.bought||0;
-    document.getElementById('accEarned').innerText=d.earned||0;
-    document.getElementById('accSpent').innerText=d.spent||0;
-    document.getElementById('accTotal').innerText=d.total||totalCoins;
-    document.getElementById('accWithdrawable').innerText=d.withdrawable||0;
-    document.getElementById('accWithdrawableUgx').innerText=`UGX ${(d.withdrawable_value||0).toLocaleString()}`;
-  }
+  document.getElementById('accBought').innerText=d.bought||0;
+  document.getElementById('accEarned').innerText=d.earned||0;
+  document.getElementById('accSpent').innerText=d.spent||0;
+  document.getElementById('accTotal').innerText=d.total||totalCoins;
+  document.getElementById('accWithdrawable').innerText=d.withdrawable||0;
+  document.getElementById('accWithdrawableUgx').innerText=`UGX ${(d.withdrawable_value||0).toLocaleString()}`;
  }catch(e){}
 }
-
 async function loadMySalesStats(){
  if(!currentUser) return;
  try{
@@ -227,147 +172,115 @@ async function loadMySalesStats(){
   document.getElementById('saleYear').innerText=`UGX ${(d.year||0).toLocaleString()}`;
   document.getElementById('saleOrders').innerText=d.orders||0;
   document.getElementById('salePromoCoins').innerText=(d.promo_coins_spent||0)+' coins';
-  document.getElementById('salePromoUgx').innerText=`💸 UGX ${((d.promo_coins_spent||0)*599).toLocaleString()} spent on promoters`;
- }catch(e){
-  document.getElementById('saleToday').innerText='UGX 0';
-  document.getElementById('saleWeek').innerText='UGX 0';
-  document.getElementById('saleYear').innerText='UGX 0';
- }
+  document.getElementById('salePromoUgx').innerText=`💸 UGX ${((d.promo_coins_spent||0)*599).toLocaleString()} spent`;
+ }catch(e){}
 }
-
 async function setMyPassword(){
  let p1=document.getElementById('newPass1').value.trim();
  let p2=document.getElementById('newPass2').value.trim();
  if(p1.length<4) return alert('Password min 4 chars Boss!');
  if(p1!==p2) return alert('Passwords not matching Boss!');
  try{
-  let r=await fetch('/api/account/set-password',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({email:currentUser.email, phone:currentUser.phone, password:p1})
-  });
+  let r=await fetch('/api/account/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({email:currentUser.email, phone:currentUser.phone, password:p1})});
   let d=await r.json();
-  document.getElementById('passMsg').innerText=d.message;
   alert(d.message);
-  if(d.success){
-    document.getElementById('newPass1').value='';
-    document.getElementById('newPass2').value='';
-  }
  }catch(e){ alert('Failed: '+e.message); }
 }
-
 async function showAllShops(){
   document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';
   document.getElementById('shopsPop').style.display='flex';
   try{
     let r=await fetch('/api/shops');
     let shops=await r.json();
-    shops=shops.filter(s=>(s.total_products||s.product_count||s.count||0)>0);
-    if(!shops||shops.length==0){
-      document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
-      return;
-    }
+    shops=shops.filter(s=>(s.total_products||0)>0);
     let html='<h2 style="color:#8B0000">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
     shops.forEach(s=>{
-      let count = s.total_products || s.product_count || s.count || 0;
-      let slug = s.slug || s.shop_slug || '';
-      let name = s.business_name || s.name || 'Shop';
-      let loc = s.location || 'Uganda';
-      html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+name+'</b><br><span style="font-size:11px">📍 '+loc+' | 📦 '+count+' products</span></div><a href="/shop/'+slug+'" style="text-decoration:none"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>';
+      html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+s.business_name+'</b><br><span style="font-size:11px">📍 '+(s.location||'Uganda')+' | 📦 '+(s.total_products||0)+' products</span></div><a href="/shop/'+(s.slug||s.shop_slug)+'" style="text-decoration:none"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>';
     });
     html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:15px">Close</button>';
     document.getElementById('shopsContent').innerHTML=html;
-  }catch(e){
-    document.getElementById('shopsContent').innerHTML='<p>Failed: '+e.message+'</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
-  }
+  }catch(e){document.getElementById('shopsContent').innerHTML='<p>Failed</p>';}
 }
-
-async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops');let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first');document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'});}}catch(e){alert('Failed to find shop');}}
-setInterval(loadCoinLive,30000);setInterval(loadBillboardBanner,60000);
-
-function goToBalance(){
-  let u=localStorage.getItem('sannlas_user');
-  if(!u&&!currentUser){showGate();switchGate('register');return;}
-  if(!currentUser){try{currentUser=JSON.parse(u);}catch(e){}}
-  location.href='/balance';
-}
-function goToWallet(){ goToBalance(); }
-
-function requireAuthForCoins(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}}}if(!currentUser){showGate();switchGate('register');return false;}return true;}
+async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops');let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload first');}}catch(e){}}
+function goToBalance(){location.href='/balance';}
 function requireAuthForCheckout(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}}}if(!currentUser){showGate();switchGate('register');return false;}return true;}
-function doCheckout(){if(!requireAuthForCheckout())return;let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);if(confirm(`✅ Boss Confirm Order?\nTotal: UGX ${total.toLocaleString()}`)){cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');alert('🎉 Order Placed Boss!');}}
-async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.my_coins!==undefined||d.needs_coins){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||frontFiles.length*3;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE!`;loadMyCoins();doFilter();}
+function doCheckout(){if(!requireAuthForCheckout())return;let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);if(confirm(`✅ Confirm Order? Total: UGX ${total.toLocaleString()}`)){cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');alert('🎉 Order Placed Boss!');}}
+async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||'');fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE!`;loadMyCoins();doFilter();}
 function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function closePop(id){ let el=document.getElementById(id); if(el) el.style.display='none'; }
-function openPopup(id){
- let el=document.getElementById(id);
- if(el) el.style.display='flex';
- if(id=='authPop'){ loadMyCoins(); loadMySalesStats(); }
-}
+function openPopup(id){ let el=document.getElementById(id); if(el) el.style.display='flex'; if(id=='authPop'){ loadMyCoins(); loadMySalesStats(); } }
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
-function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadLiveTicker();}
+function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();}
 function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;switchGate('otp');}else{alert(d.message);switchGate('register');}});}
 function gateVerifyOTP(){switchGate('nin');}
-function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();loadMySalesStats();}else{alert(d.message);}});}
+function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
 function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=1000000;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
+// FIX 4 - CROSSED PRICE + DISCOUNT %
 function render(){
-  if(products.length==0){
-    document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';
-    return;
-  }
+  if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';return;}
   let toShow=products.slice(0,visibleCount);
   let html = toShow.map(p=>{
-    let desc=p.description||p.desc||'';
-    let shortDesc=desc.length>60?desc.substring(0,60)+'...':desc;
-    let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
-    let badge="";
-    if(p.original_price&&Number(p.original_price)>Number(p.price)){
-      let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));
-      badge=`<div class="discount-badge">${pct}% OFF</div>`;
-      priceHtml=`UGX ${Number(p.price).toLocaleString()} <span style="text-decoration:line-through;color:gray;font-size:11px">UGX ${Number(p.original_price).toLocaleString()}</span>`;
-    }
+    let desc=p.description||p.desc||''; let shortDesc=desc.length>60?desc.substring(0,60)+'...':desc;
+    let priceHtml=`<b>UGX ${Number(p.price).toLocaleString()}</b>`;
+    let badge=""; let orig=Number(p.original_price||0); let sell=Number(p.price||0);
+    if(orig>0 && orig>sell){ let pct=Math.round((orig-sell)*100/orig); badge=`<div class="discount-badge">-${pct}% OFF</div>`; priceHtml=`<b>UGX ${sell.toLocaleString()}</b><br><span style="text-decoration:line-through;color:#888;font-size:11px">UGX ${orig.toLocaleString()}</span> <span style="background:red;color:#fff;padding:1px 5px;border-radius:4px;font-size:10px">-${pct}%</span>`; }
     let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none;display:block;margin-top:6px"><button style="width:100%;background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:6px;border-radius:15px;font-weight:bold;font-size:11px;cursor:pointer">🏪 Visit Shop</button></a>` : '';
-    let commBadge=p.promo_commission?`<div style="position:absolute;top:6px;right:6px;background:#FFCC02;color:#000;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:bold;z-index:2">💰 ${p.promo_commission} coins promo</div>` : '';
+    let commBadge=p.promo_commission?`<div style="position:absolute;top:6px;right:6px;background:#FFCC02;color:#000;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:bold;z-index:2">💰 ${p.promo_commission}c</div>` : '';
     return `<div class="card">${badge}${commBadge}<img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price" style="font-size:13px">${priceHtml}</div><div style="font-size:11px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px;border:1px solid #eee">📝 ${shortDesc||'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div>${shopBtn}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;
   }).join('');
-  if(visibleCount < products.length){
-    html += `<div style="grid-column:1/-1;text-align:center;padding:20px"><button onclick="visibleCount+=20;render()" style="width:100%;padding:15px;background:#FFCC02;color:#000;border:none;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer">🔽 Load More (${products.length - visibleCount} more) - Showing ${toShow.length} of ${products.length}</button></div>`;
-  }
   document.getElementById('products').innerHTML=html;
 }
-function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
+function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE e.g 50000 - FOR DISCOUNT %" style="border:2px dashed red;background:#ffe6e6"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
-async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
-function updateLoginUI(){
- if(currentUser){
-  document.getElementById('userInfo').style.display='block';
-  let tc = currentUser.coins || currentUser.total || 0;
-  document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${tc} coins (Total ${tc} - 10 free)`;
-  document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
-  loadMyCoins();
-  loadMySalesStats();
- }
-}
+async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}frontUploadAllProceed();}
+function updateLoginUI(){ if(currentUser){ document.getElementById('userInfo').style.display='block'; document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||0} coins`; document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}`; loadMyCoins(); loadMySalesStats(); } }
 function doLogout(){localStorage.clear();location.reload();}
-function setStake(v){document.getElementById('stakeInput').value=v;updateFee();}
-function updateFee(){let s=parseInt(document.getElementById('stakeInput').value)||0;if(s>1000){s=1000;document.getElementById('stakeInput').value=1000}if(s<0){s=0;document.getElementById('stakeInput').value=0}let fee=s==0?0:Math.floor(s*0.15);document.getElementById('feePreview').innerText=s==0?'FREE DEMO':fee+' coins fee (15%) | Play '+(s-fee)+' coins';}
-document.getElementById('stakeInput')?.addEventListener('input',updateFee);setTimeout(updateFee,500);
-const WHEEL_SEGMENTS=[{name:"0x LOST",mult:0,start:0,end:126,color:"#ff0000"},{name:"1x BACK",mult:1,start:126,end:216,color:"#ffffff"},{name:"1.5x SMALL",mult:1.5,start:216,end:270,color:"#00aaff"},{name:"2x DOUBLE",mult:2,start:270,end:313.2,color:"#00ff00"},{name:"3x TRIPLE",mult:3,start:313.2,end:342,color:"#FFCC02"},{name:"5x SUPER",mult:5,start:342,end:356.4,color:"#aa00ff"},{name:"10x JACKPOT",mult:10,start:356.4,end:360,color:"#FFD700"}];
-async function doSpin(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');showGate();return;}let stake=parseInt(document.getElementById('stakeInput').value)||0;if(stake<0)stake=0;if(stake>1000)stake=1000;let btn=document.getElementById('spinBtn');btn.disabled=true;btn.innerText='⏳ SPINNING...';document.getElementById('spinResult').innerText='🎰 Wheel spinning... stake '+stake+' coins...';let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});let d=await r.json();if(!d.success){btn.disabled=false;btn.innerText='🎰 SPIN NOW';document.getElementById('spinResult').innerText='❌ '+d.message;alert(d.message);return;}let prizeName=d.prize.name||'';let segment=WHEEL_SEGMENTS.find(s=>prizeName.includes(s.name.split(' ')[0])||d.prize.multiplier==s.mult)||WHEEL_SEGMENTS[0];if(!segment||segment.mult!=d.multiplier){segment=WHEEL_SEGMENTS.find(s=>s.mult==d.multiplier)||WHEEL_SEGMENTS[0];}let randomInside=segment.start+Math.random()*(segment.end-segment.start);let targetAngle=360-randomInside;let finalRotation=(5*360)+targetAngle;let wheel=document.getElementById('spinWheel');wheel.style.transition='transform 2.2s cubic-bezier(0.15,0.85,0.35,1.1)';wheel.style.transform=`rotate(${finalRotation}deg)`;setTimeout(()=>{btn.disabled=false;btn.innerText='🎰 SPIN NOW';document.getElementById('spinResult').innerHTML=`🎯 Pointer on <span style="background:${segment.color};color:${segment.color=='#ffffff'?'#000':'white'};padding:2px 8px;border-radius:5px">${segment.name}</span><br>Stake: ${d.stake} - Fee(15%): ${d.admin_cut} = Play: ${d.game_amount}<br>Multiplier: <b>x${d.multiplier}</b> → Won: <b style="color:#0f0">${d.won} coins</b><br>${d.won>0?'🎉 YOU WIN!':'😢 LOST - Try again!'}`;document.getElementById('spinBal').innerText=d.my_coins;document.getElementById('spinWon').innerText=d.won;document.getElementById('spinFee').innerText=d.admin_cut;document.getElementById('myCoinsNav').innerText=d.my_coins;let b=document.getElementById('bottomCoins');if(b)b.innerText=d.my_coins;document.getElementById('myCoinsPlan').innerText=d.my_coins;wheel.style.borderColor=d.won>0?'#0f0':'red';setTimeout(()=>wheel.style.borderColor='#FFCC02',1500);loadLiveTicker();},2200);}
-async function loadSpinHistory(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first');return;}let r=await fetch(`/api/spin/history?phone=${u.phone}&email=${u.email}`);let h=await r.json();if(!h.length){alert('No spins yet Boss!');return;}let txt=h.slice(0,20).map(x=>`Stake:${x.stake} ${x.prize} Won:${x.won} x${x.multiplier||''} Fee:${x.admin_cut||x.fee||0}`).join('\n');alert('🎰 Last 20 spins:\n'+txt);}
-async function loadLiveTicker(){try{let cfg=await fetch('/api/coins/config').then(r=>r.json()).catch(()=>({remaining:1000000000}));let rem=Number(cfg.remaining||0).toLocaleString();let msgs=[`🔴 LIVE: ${rem} Coins Left`,`🎰 SPIN & WIN ACTIVE`,`💰 1 coin = 599 UGX`,`⚡ FAST 2.2s SPIN`,`💸 Min Withdraw 50 coins = UGX 29,950 (Total - 10 free)`];let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(u.phone){try{let h=await fetch(`/api/spin/history?phone=${u.phone}`).then(r=>r.json());if(h&&h.length>0){let last=h[0];msgs.unshift(`🎯 You: Stake ${last.stake} → Won ${last.won}`);}}catch(e){}}document.getElementById('tickerContent').innerText=msgs.join(' • • • ') + ' • • • ';}catch(e){document.getElementById('tickerContent').innerText='🎰 SANNLAS SPIN & WIN LIVE • 🪙 Coins @ 599 UGX • Min Withdraw 50 coins';}}
-setInterval(loadLiveTicker,15000);gateCheck();
-function viewProd(id){let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p)return;let desc=p.description||p.desc||'No description added by seller';let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;if(p.original_price&&Number(p.original_price)>Number(p.price)){let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));priceHtml=`<b>UGX ${Number(p.price).toLocaleString()}</b> <span style="text-decoration:line-through;color:gray">UGX ${Number(p.original_price).toLocaleString()}</span> <span style="background:red;color:#fff;padding:2px 6px;border-radius:5px;font-size:12px">${pct}% OFF</span>`;}let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none;display:block;margin:8px 0"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold;cursor:pointer">🏪 Visit ${p.business||'Shop'} - See All Products</button></a>` : '';let promoComm=p.promo_commission||3;document.getElementById('viewContent').innerHTML=`<h2 style="color:#8B0000">${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:12px;margin:10px 0;max-height:400px;object-fit:contain;background:#f9f9f9"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">${priceHtml}</div><div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02;text-align:left"><b>📝 Description:</b><br><div style="font-size:13px;line-height:1.6;margin-top:5px;white-space:pre-wrap">${desc}</div><br><b>🏪 Business:</b> ${p.business||'Seller'}<br><b>📍 Location:</b> ${p.location||'Kampala'}<br><b>📞 Phone:</b> ${p.phone||''}</div>${shopBtn}<div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center"><p style="color:#FFCC02;font-size:13px">💰 Earn <b>${promoComm} coins = UGX ${promoComm*599}</b> per sale!</p><button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:6px">🤝 Apply to Promote & Earn</button></div><button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin:5px 0" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button><button style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
-function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);document.getElementById('cartN').innerText=totalQty;}
+async function doSpin(){}
+gateCheck();
+// FIX 3 + FIX 4 - VIEW WITH PROMOTE + COPY LINK
+function viewProd(id){
+  let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p)return;
+  let desc=p.description||p.desc||'No description'; let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
+  let orig=Number(p.original_price||0); let sell=Number(p.price||0);
+  if(orig>0 && orig>sell){ let pct=Math.round((orig-sell)*100/orig); priceHtml=`<b>UGX ${sell.toLocaleString()}</b> <span style="text-decoration:line-through;color:gray">UGX ${orig.toLocaleString()}</span> <span style="background:red;color:#fff;padding:2px 6px;border-radius:5px;font-size:12px">-${pct}% OFF 🔥</span>`; }
+  let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none;display:block;margin:8px 0"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold;cursor:pointer">🏪 Visit ${p.business||'Shop'}</button></a>` : '';
+  let promoComm=p.promo_commission||3;
+  document.getElementById('viewContent').innerHTML=`
+  <h2 style="color:#8B0000">${p.name}</h2>
+  <img src="${p.image}" style="width:100%;border-radius:12px;margin:10px 0;max-height:400px;object-fit:contain;background:#f9f9f9">
+  <div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">${priceHtml}</div>
+  <div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02;text-align:left"><b>📝 Description:</b><br><div style="font-size:13px;line-height:1.6;margin-top:5px;white-space:pre-wrap">${desc}</div></div>
+  ${shopBtn}
+  <div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center">
+    <p style="color:#FFCC02;font-size:13px">💰 Earn <b>${promoComm} coins = UGX ${promoComm*599}</b> per sale!</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;padding:12px;border:none;border-radius:8px;font-weight:bold">🤝 Apply to Promote</button>
+      <button onclick="copyProductLink('${p.id}')" style="background:#25D366;color:#fff;padding:12px;border:none;border-radius:8px;font-weight:bold">📋 Copy Link</button>
+    </div>
+  </div>
+  <button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin:5px 0" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
+  <button style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;
+  document.getElementById('viewPop').style.display='flex';
+}
+function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);}
 function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3>🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b style="font-size:13px">${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b style="color:green">UGX ${sub.toLocaleString()}</b></div><div style="display:flex;flex-direction:column;gap:5px;align-items:center"><div style="display:flex;gap:5px;align-items:center"><button onclick="changeQty('${it.id}', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button><span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">${it.qty||1}</span><button onclick="changeQty('${it.id}', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button></div><button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button></div></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL (${totalQty}): UGX ${total.toLocaleString()}</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX ${total.toLocaleString()}</button><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
 function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1)item.qty=1;document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);openCart();}
 function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
+function applyPromote(pid,comm){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{alert(d.message);});}
+function copyProductLink(pid){
+  let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+  let ref = u.phone || u.email || 'SANNLAS';
+  let link = `${window.location.origin}/product/${pid}?ref=${encodeURIComponent(ref)}`;
+  navigator.clipboard.writeText(link).then(()=>{
+    let comm = (allProducts.find(x=>x.id==pid)?.promo_commission||3);
+    alert('✅ Affiliate Link Copied Boss!\n'+link+'\n\nEarn '+comm+' coins per sale! Share to WhatsApp!');
+  }).catch(()=>{ prompt('Copy this link Boss:', link); });
+}
 </script>
-<script>function applyPromote(pid,comm){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{alert(d.message);});}</script>
 </body>
 </html>
