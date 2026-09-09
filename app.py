@@ -332,28 +332,51 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 def coins_config(): return jsonify(get_coin_config())
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
+
+# ===== FINAL FIXED BALANCE - BOUGHT / EARNED / TOTAL =====
 @app.route('/api/coins/balance')
 def coins_balance():
     email=request.args.get('email','').lower().strip()
     phone=request.args.get('phone','').strip()
     users=load_db('users.json',[])
-    u=next((x for x in users if x.get('email','').lower()==email or x.get('phone','')==phone), None)
+    u=next((x for x in users if str(x.get('email','')).lower()==email or str(x.get('phone',''))==phone), None)
     if not u:
-        return jsonify({'success':True,'coins':0,'total':0,'bought':0,'earned':0,'bought_value':0,'earned_value':0,'total_value':0,'can_upload':0})
-    
+        return jsonify({'success':True,'coins':0,'total':0,'bought':0,'earned':0,'spent':0,'bought_value':0,'earned_value':0,'total_value':0,'can_upload':0})
+
+    # Ensure fields exist for old users
+    bought = int(u.get('bought', u.get('bought_coins', 0)))
+    earned = int(u.get('earned', u.get('earned_coins', 0)))
+    spent = int(u.get('spent', 0))
     total = int(u.get('coins', 0))
-    
-    # FAST: Don't loop big files - just estimate
-    # If user has total < 180, they spent some
-    # Show: bought=0, earned=180, spent=180-total
-    bought = 0
-    earned = 180  # free bonus
-    spent = 180 - total if total < 180 else 0
-    if total > 180:
-        # They bought extra
-        bought = total - 180
-        earned = 180
-    
+
+    # Auto-fix old users: if no bought/earned but has coins, assume it's earned 180
+    if bought==0 and earned==0 and total>0:
+        # If total <=180, it's all earned free bonus
+        if total <= 180:
+            earned = total
+            spent = 180 - total
+        else:
+            earned = 180
+            bought = total - 180
+        u['bought'] = bought
+        u['earned'] = earned
+        u['spent'] = spent
+        u['bought_coins'] = bought
+        u['earned_coins'] = earned
+        u['coins'] = bought + earned - spent
+        save_db('users.json', users)
+        total = u['coins']
+
+    # Recalculate to be safe: total = bought+earned-spent
+    calc_total = bought + earned - spent
+    if calc_total!= total:
+        # Use calculated if mismatch, keep coins as source of truth but fix fields
+        if total < 0: total = 0
+        # Don't overwrite, just report calculated
+        total = calc_total if calc_total >=0 else total
+
+    if total <0: total=0
+
     return jsonify({
         'success':True,
         'coins': total,
@@ -361,11 +384,12 @@ def coins_balance():
         'bought': bought,
         'earned': earned,
         'spent': spent,
-        'bought_value': bought * 599,
-        'earned_value': earned * 599,
-        'total_value': total * 599,
-        'can_upload': total // 3
+        'bought_value': bought * COIN_PRICE,
+        'earned_value': earned * COIN_PRICE,
+        'total_value': total * COIN_PRICE,
+        'can_upload': total // UPLOAD_COST
     })
+
 @app.route('/api/coins/buy', methods=['POST'])
 def coins_buy():
     data=request.json
@@ -401,16 +425,24 @@ def coins_verify():
             cfg['remaining'] += target_tx.get('coins',0)
             cfg['sold'] = max(0, cfg.get('sold',0) - target_tx.get('coins',0))
             for u in users:
-                if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
-                    u['coins'] = max(0, u.get('coins',0) - target_tx.get('coins',0))
+                if str(u.get('email','')).lower()==str(target_tx.get('email','')).lower() or str(u.get('phone',''))==str(target_tx.get('phone','')):
+                    # Remove from bought only
+                    u['bought'] = max(0, int(u.get('bought',0)) - int(target_tx.get('coins',0)))
+                    u['bought_coins'] = u['bought']
+                    u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
             target_tx['status']='blocked_fake'
     else:
         if target_tx.get('status')!= 'verified_by_owner':
             target_tx['status']='verified_by_owner'
             for u in users:
-                if u.get('email','').lower()==target_tx.get('email','').lower() or u.get('phone','')==target_tx.get('phone',''):
-                    u['coins'] = u.get('coins',0) + target_tx.get('coins',0)
-                    u['bought_coins'] = u.get('bought_coins',0) + target_tx.get('coins',0)
+                if str(u.get('email','')).lower()==str(target_tx.get('email','')).lower() or str(u.get('phone',''))==str(target_tx.get('phone','')):
+                    # BOUGHT only
+                    u['bought'] = int(u.get('bought',0)) + int(target_tx.get('coins',0))
+                    u['bought_coins'] = u['bought']
+                    u['earned'] = int(u.get('earned',0))
+                    u['earned_coins'] = u['earned']
+                    u['spent'] = int(u.get('spent',0))
+                    u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
     return jsonify({'success':True, 'action': action})
 
@@ -426,9 +458,11 @@ def admin_add_coins():
     users = load_db('users.json', [])
     found = None
     for u in users:
-        if (email and u.get('email','').lower()==email) or (phone and u.get('phone','')==phone):
-            u['coins'] = u.get('coins',0) + coins
-            u['earned_coins'] = u.get('earned_coins',0) + coins
+        if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone):
+            # Admin gifts go to EARNED
+            u['earned'] = int(u.get('earned',0)) + coins
+            u['earned_coins'] = u['earned']
+            u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
             found = u; break
     if not found: return jsonify({'success': False, 'message': 'User not found'}),404
     save_db('users.json', users)
@@ -562,7 +596,11 @@ def api_balance():
     if not u: return jsonify({"success":False, "message":"User not found"}), 404
     txs = load_db('coin_transactions.json', [])
     my_txs = [t for t in txs if (phone and t.get('phone')==phone) or (email and t.get('email','').lower()==email)]
-    return jsonify({"success": True,"bought_coins": u.get('bought_coins',0),"earned_coins": u.get('earned_coins',0),"total_coins": u.get('coins',0),"ugx_value": u.get('coins',0)*COIN_PRICE,"history": my_txs[::-1][:30]})
+    bought = int(u.get('bought', u.get('bought_coins',0)))
+    earned = int(u.get('earned', u.get('earned_coins',0)))
+    spent = int(u.get('spent',0))
+    total = int(u.get('coins',0))
+    return jsonify({"success": True,"bought": bought,"earned": earned,"spent": spent,"bought_coins": bought,"earned_coins": earned,"total_coins": total,"coins": total,"ugx_value": total*COIN_PRICE,"bought_value": bought*COIN_PRICE,"earned_value": earned*COIN_PRICE,"history": my_txs[::-1][:30]})
 
 @app.route('/api/withdraw/coins', methods=['POST'])
 def withdraw_coins():
@@ -576,10 +614,13 @@ def withdraw_coins():
     users = load_db('users.json', [])
     u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
     if not u: return jsonify({"success":False,"message":"User not found"}),404
-    if u.get('coins',0) < coins: return jsonify({"success":False,"message":f"Not enough! You have {u.get('coins',0)} coins"}),400
+    if int(u.get('coins',0)) < coins: return jsonify({"success":False,"message":f"Not enough! You have {u.get('coins',0)} coins"}),400
     ugx = coins * COIN_PRICE
     if ugx < 5000: return jsonify({"success":False,"message":f"Min 9 coins = UGX {9*COIN_PRICE}"}),400
-    u['coins'] = u.get('coins',0) - coins
+    # Deduct from total and track as spent
+    u['spent'] = int(u.get('spent',0)) + coins
+    u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
+    if u['coins'] <0: u['coins']=0
     save_db('users.json', users)
     withdraws = load_db('withdraws.json', [])
     withdraws.append({'id': int(time.time()*1000),'email': u.get('email'),'phone': u.get('phone'),'amount': ugx,'coins': coins,'momo_number': momo,'momo_name': data.get('momo_name',''),'status': 'pending','type': 'coins','time': time.time(),'paid_time': None})
@@ -598,13 +639,16 @@ def register():
     if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email exists - Login'}),400
     import random, string
     my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
-    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':0,'bought_coins':0,'earned_coins':0,'referral_code':my_ref_code,'invited_by':ref_code}
+    # FINAL: bought=0, earned=180, spent=0, coins=180
+    user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':180,'bought':0,'earned':180,'spent':0,'bought_coins':0,'earned_coins':180,'referral_code':my_ref_code,'invited_by':ref_code}
     users.append(user)
     if ref_code:
         for ru in users:
             if ru.get('referral_code')==ref_code:
-                ru['coins'] = ru.get('coins',0) + 1
-                ru['earned_coins'] = ru.get('earned_coins',0) + 1
+                # Invite reward goes to EARNED
+                ru['earned'] = int(ru.get('earned',0)) + 1
+                ru['earned_coins'] = ru['earned']
+                ru['coins'] = int(ru.get('bought',0)) + int(ru.get('earned',0)) - int(ru.get('spent',0))
                 txs = load_db('coin_transactions.json', [])
                 txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
                 save_db('coin_transactions.json', txs)
@@ -621,6 +665,18 @@ def login():
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
     users=load_db('users.json',[]); u=next((x for x in users if x['email']==email and x['password']==hash_pwd(pwd)),None)
     if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
+    # Ensure old users have new fields
+    if 'bought' not in u:
+        u['bought'] = int(u.get('bought_coins',0))
+    if 'earned' not in u:
+        u['earned'] = int(u.get('earned_coins', u.get('coins',0)))
+    if 'spent' not in u:
+        u['spent'] = 0
+        if u.get('coins',0) < 180 and u['earned']>=180:
+            u['spent'] = 180 - int(u.get('coins',0))
+    if 'bought_coins' not in u: u['bought_coins']=u['bought']
+    if 'earned_coins' not in u: u['earned_coins']=u['earned']
+    save_db('users.json', users)
     try: ensure_shop_for_user(u)
     except: pass
     safe={k:v for k,v in u.items() if k!='password'}
@@ -645,6 +701,7 @@ def get_products():
     for p in filtered:
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
+
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name')
@@ -659,7 +716,7 @@ def sell():
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
-    if seller.get('coins',0) < UPLOAD_COST: return jsonify({'success':False,'message':f'Need {UPLOAD_COST} coins! You have {seller.get("coins",0)}','needs_coins':True,'my_coins':seller.get('coins',0)}),402
+    if int(seller.get('coins',0)) < UPLOAD_COST: return jsonify({'success':False,'message':f'Need {UPLOAD_COST} coins! You have {seller.get("coins",0)}','needs_coins':True,'my_coins':seller.get('coins',0)}),402
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -673,7 +730,12 @@ def sell():
     prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     for u in users:
-        if u['phone']==phone or u['email']==user_email: u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
+        if u['phone']==phone or u['email']==user_email:
+            u['spent'] = int(u.get('spent',0)) + UPLOAD_COST
+            u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
+            if u['coins']<0: u['coins']=0
+            u['bought_coins']=int(u.get('bought',0))
+            u['earned_coins']=int(u.get('earned',0))
     save_db('users.json', users)
     return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
 
@@ -794,13 +856,17 @@ def create_order():
             if p.get('promo_code')==promo_code and p.get('status')=='approve':
                 p['sales']=p.get('sales',0)+1
                 for u in users:
-                    if u.get('phone')==p.get('freelancer_phone') or u.get('email','').lower()==p.get('freelancer_email','').lower():
-                        u['coins']=u.get('coins',0)+p.get('commission_coins',3); break
+                    if str(u.get('phone'))==str(p.get('freelancer_phone')) or str(u.get('email','')).lower()==str(p.get('freelancer_email','')).lower():
+                        # Promo commission goes to EARNED
+                        u['earned'] = int(u.get('earned',0)) + int(p.get('commission_coins',3))
+                        u['earned_coins'] = u['earned']
+                        u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
+                        break
                 break
         save_db('promotions.json',promos); save_db('users.json',users)
     return jsonify({"success":True,"order":new_order})
 
-# ================= SPIN GAME - OPTION B - 15% HOUSE EDGE - 0-1000 STAKE =================
+# ================= SPIN GAME - EARNED ONLY =================
 SPIN_CONFIG_FILE='spin_config.json'
 def load_spin_config():
     default={
@@ -848,8 +914,11 @@ def spin_game():
     cfg=load_spin_config()
     if not cfg.get('enabled',True): return jsonify({"success":False,"message":"Spin disabled"}),400
     actual_cost = cfg.get('cost',1) if stake==0 else stake
-    if u.get('coins',0) < actual_cost: return jsonify({"success":False,"message":f"Need {actual_cost} coins, you have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
-    u['coins']-=actual_cost
+    if int(u.get('coins',0)) < actual_cost: return jsonify({"success":False,"message":f"Need {actual_cost} coins, you have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
+
+    # Deduct stake - add to spent (game cost)
+    u['spent'] = int(u.get('spent',0)) + actual_cost
+
     house_edge=cfg.get('house_edge',15)
     admin_cut = int(actual_cost * house_edge / 100) if stake>0 else actual_cost
     game_amount = actual_cost - admin_cut
@@ -862,11 +931,17 @@ def spin_game():
         if multiplier==1.5: win_amount=1
     else:
         win_amount = int(game_amount * multiplier)
-    u['coins']+=win_amount
+
+    # WIN goes to EARNED
+    u['earned'] = int(u.get('earned',0)) + win_amount
+    u['earned_coins'] = u['earned']
+    u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
+    if u['coins']<0: u['coins']=0
+
     spins=load_db('spins.json',[])
     spins.append({"phone":phone,"email":email,"stake":actual_cost,"fee":admin_cut,"admin_cut":admin_cut,"game_amount":game_amount,"cost":actual_cost,"won":win_amount,"prize":prize['name'],"multiplier":multiplier,"color":prize.get('color'),"time":time.time()})
     save_db('spins.json',spins); save_db('users.json',users)
-    return jsonify({"success":True,"prize":prize,"my_coins":u['coins'],"stake":actual_cost,"admin_cut":admin_cut,"game_amount":game_amount,"won":win_amount,"multiplier":multiplier,"message": f"{prize['name']}! Won {win_amount} coins!"})
+    return jsonify({"success":True,"prize":prize,"my_coins":u['coins'],"bought":u.get('bought',0),"earned":u.get('earned',0),"stake":actual_cost,"admin_cut":admin_cut,"game_amount":game_amount,"won":win_amount,"multiplier":multiplier,"message": f"{prize['name']}! Won {win_amount} coins!"})
 
 @app.route('/api/spin/history', methods=['GET'])
 def spin_history():
