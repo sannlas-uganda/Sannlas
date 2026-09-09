@@ -164,8 +164,7 @@ def get_coin_config():
         save_db('coin_config.json', cfg)
     return cfg
 def save_coin_config(cfg): save_db('coin_config.json', cfg)
-
-def get_billboard_config():
+    def get_billboard_config():
     cfg = load_db('billboard.json', None)
     if not cfg:
         cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time(), "expires_at": None}
@@ -182,8 +181,7 @@ def get_billboard_config():
             if datetime.now() > exp_dt:
                 cfg['active'] = False
                 save_db('billboard.json', cfg)
-        except:
-            pass
+        except: pass
     return cfg
 
 def make_shop_slug(business):
@@ -281,14 +279,11 @@ def admin_page():
     return render_template('admin.html')
 
 @app.route('/api/billboard')
-def get_billboard():
-    cfg = get_billboard_config()
-    return jsonify(cfg)
+def get_billboard(): return jsonify(get_billboard_config())
 
 @app.route('/api/admin/billboard', methods=['GET'])
 @admin_required
-def admin_get_billboard():
-    return jsonify(get_billboard_config())
+def admin_get_billboard(): return jsonify(get_billboard_config())
 
 @app.route('/api/admin/billboard', methods=['POST'])
 @admin_required
@@ -302,15 +297,11 @@ def admin_save_billboard():
     cfg['type'] = data.get('type', cfg.get('type','image'))
     if 'duration' in data:
         dur = str(data.get('duration'))
-        if dur == "0":
-            cfg['expires_at'] = None
+        if dur == "0": cfg['expires_at'] = None
         else:
-            try:
-                from datetime import datetime, timedelta
-                cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
+            try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
             except: pass
-    if 'expires_at' in data:
-        cfg['expires_at'] = data['expires_at']
+    if 'expires_at' in data: cfg['expires_at'] = data['expires_at']
     cfg['updated'] = time.time()
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
@@ -323,41 +314,17 @@ def upload_billboard():
     text = request.form.get('text','')[:200]
     link = request.form.get('link','')[:300]
     duration = request.form.get('duration','24')
-    if not file:
-        return jsonify({"error": "No file selected"}), 400
+    if not file: return jsonify({"error": "No file selected"}), 400
     data = file.read()
-    if len(data) > 12*1024*1024:
-        return jsonify({"error": "File too big! Max 12MB. Compress video Boss"}), 400
-    if len(data) == 0:
-        return jsonify({"error": "Empty file"}), 400
-    mime = file.mimetype or ''
-    if not mime:
-        if file.filename.lower().endswith(('.mp4','.mov','.webm','.avi','.m4v')):
-            mime = 'video/mp4'
-        else:
-            mime = 'image/jpeg'
+    if len(data) > 12*1024*1024: return jsonify({"error": "File too big! Max 12MB"}), 400
+    mime = file.mimetype or 'image/jpeg'
     b64 = base64.b64encode(data).decode('utf-8')
     media_url = f"data:{mime};base64,{b64}"
     filetype = 'video' if 'video' in mime else 'image'
-    if str(duration) == "0":
-        expires_at = None
-    else:
-        try:
-            expires_at = (datetime.now() + timedelta(hours=int(duration))).isoformat()
-        except:
-            expires_at = (datetime.now() + timedelta(hours=24)).isoformat()
-    cfg = {
-        "active": True,
-        "type": filetype,
-        "media_url": media_url,
-        "text": text or "Welcome to Sannlas - Shop Smart, Sell Faster",
-        "link": link or "",
-        "created": time.time(),
-        "updated": time.time(),
-        "expires_at": expires_at
-    }
+    expires_at = None if str(duration)=="0" else (datetime.now() + timedelta(hours=int(duration))).isoformat()
+    cfg = {"active": True,"type": filetype,"media_url": media_url,"text": text or "Welcome","link": link or "","created": time.time(),"updated": time.time(),"expires_at": expires_at}
     save_db('billboard.json', cfg)
-    return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg, "expires_at": expires_at})
+    return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
 
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
@@ -365,7 +332,6 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 def coins_config(): return jsonify(get_coin_config())
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
-
 @app.route('/api/coins/balance')
 def coins_balance():
     email=request.args.get('email','').lower().strip()
@@ -374,8 +340,7 @@ def coins_balance():
     u=next((x for x in users if x['email']==email or x['phone']==phone), None)
     if not u: return jsonify({'success':False,'coins':0})
     return jsonify({'success':True,'coins': u.get('coins',0)})
-
-@app.route('/api/coins/buy', methods=['POST'])
+    @app.route('/api/coins/buy', methods=['POST'])
 def coins_buy():
     data=request.json
     email=data.get('email','').lower().strip()
@@ -403,10 +368,8 @@ def coins_verify():
     target_tx = None
     for t in txs:
         if t.get('momo_code','').upper()==trans_id:
-            target_tx = t
-            break
-    if not target_tx:
-        return jsonify({'success':False,'message':'Transaction not found'}),404
+            target_tx = t; break
+    if not target_tx: return jsonify({'success':False,'message':'Transaction not found'}),404
     if action=='block_fake':
         if target_tx.get('status')!= 'blocked_fake':
             cfg['remaining'] += target_tx.get('coins',0)
@@ -433,18 +396,15 @@ def admin_add_coins():
     phone = data.get('phone','').strip()
     coins = int(data.get('coins',0))
     reason = data.get('reason','Admin refill')
-    if coins <=0:
-        return jsonify({'success': False, 'message': 'Coins must be >0'}),400
+    if coins <=0: return jsonify({'success': False, 'message': 'Coins must be >0'}),400
     users = load_db('users.json', [])
     found = None
     for u in users:
         if (email and u.get('email','').lower()==email) or (phone and u.get('phone','')==phone):
             u['coins'] = u.get('coins',0) + coins
             u['earned_coins'] = u.get('earned_coins',0) + coins
-            found = u
-            break
-    if not found:
-        return jsonify({'success': False, 'message': 'User not found'}),404
+            found = u; break
+    if not found: return jsonify({'success': False, 'message': 'User not found'}),404
     save_db('users.json', users)
     txs = load_db('coin_transactions.json', [])
     txs.append({'id': int(time.time()*1000), 'email': found.get('email'), 'phone': found.get('phone'), 'coins': coins, 'price': 0, 'momo_code': f'ADMIN-{uuid.uuid4().hex[:6].upper()}', 'reason': reason, 'time': time.time(), 'status': 'admin_gift'})
@@ -453,9 +413,7 @@ def admin_add_coins():
 
 @app.route('/api/admin/coins/config', methods=['GET'])
 @admin_required
-def admin_coin_config_get():
-    cfg = get_coin_config()
-    return jsonify(cfg)
+def admin_coin_config_get(): return jsonify(get_coin_config())
 
 @app.route('/api/admin/coins/config', methods=['POST'])
 @admin_required
@@ -464,24 +422,21 @@ def admin_update_coin_config():
     cfg = get_coin_config()
     action = data.get('action')
     if action in ('add', 'reduce'):
-        try:
-            amount = int(data.get('amount', 0))
-        except:
-            return jsonify({"success": False, "message": "Invalid amount"}), 400
-        if amount <= 0:
-            return jsonify({"success": False, "message": "Enter amount >0"}), 400
+        try: amount = int(data.get('amount', 0))
+        except: return jsonify({"success": False, "message": "Invalid amount"}), 400
+        if amount <= 0: return jsonify({"success": False, "message": "Enter amount >0"}), 400
         if action == "add":
             cfg['total'] = int(cfg.get('total', 0)) + amount
             cfg['remaining'] = int(cfg.get('remaining', 0)) + amount
             save_coin_config(cfg)
-            return jsonify({"success": True, "message": f"✅ Added {amount:,} coins. Total now {cfg['total']:,}", "config": cfg})
+            return jsonify({"success": True, "message": f"Added {amount:,} coins", "config": cfg})
         else:
             if int(cfg.get('remaining',0)) < amount:
-                return jsonify({"success": False, "message": f"Only {cfg.get('remaining',0):,} remaining! Cannot reduce {amount:,}"}), 400
+                return jsonify({"success": False, "message": f"Only {cfg.get('remaining',0):,} remaining!"}), 400
             cfg['total'] = int(cfg.get('total', 0)) - amount
             cfg['remaining'] = int(cfg.get('remaining', 0)) - amount
             save_coin_config(cfg)
-            return jsonify({"success": True, "message": f"✅ Reduced {amount:,} coins. Total now {cfg['total']:,}", "config": cfg})
+            return jsonify({"success": True, "message": f"Reduced {amount:,} coins", "config": cfg})
     if 'price' in data: cfg['price'] = int(data['price'])
     if 'upload_cost' in data: cfg['upload_cost'] = int(data['upload_cost'])
     if 'total' in data:
@@ -499,15 +454,13 @@ def request_withdraw():
     amount = int(data.get('amount',0))
     momo_number = data.get('momo_number','').strip()
     momo_name = data.get('momo_name','').strip()
-    if amount < 5000:
-        return jsonify({'success': False, 'message': 'Minimum withdraw 5000 UGX'}),400
-    if not momo_number:
-        return jsonify({'success': False, 'message': 'MoMo number required'}),400
+    if amount < 5000: return jsonify({'success': False, 'message': 'Minimum withdraw 5000 UGX'}),400
+    if not momo_number: return jsonify({'success': False, 'message': 'MoMo number required'}),400
     withdraws = load_db('withdraws.json', [])
     new_w = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'amount': amount, 'momo_number': momo_number, 'momo_name': momo_name, 'status': 'pending', 'time': time.time(), 'paid_time': None}
     withdraws.append(new_w)
     save_db('withdraws.json', withdraws)
-    return jsonify({'success': True, 'message': 'Withdraw request sent! Owner will pay to your MoMo', 'withdraw': new_w})
+    return jsonify({'success': True, 'message': 'Withdraw request sent!', 'withdraw': new_w})
 
 @app.route('/api/withdraws')
 def my_withdraws():
@@ -519,8 +472,7 @@ def my_withdraws():
 
 @app.route('/api/admin/withdraws')
 @admin_required
-def admin_withdraws():
-    return jsonify(load_db('withdraws.json', [])[::-1])
+def admin_withdraws(): return jsonify(load_db('withdraws.json', [])[::-1])
 
 @app.route('/api/admin/withdraw/action', methods=['POST'])
 @admin_required
@@ -546,12 +498,6 @@ def sales_summary():
     for o in orders:
         if (email and o.get('seller_email','').lower()==email) or (phone and o.get('seller_phone','')==phone) or (email and o.get('seller','').lower()==email):
             my_orders.append(o)
-        items = o.get('items',[]) or o.get('products',[])
-        for it in items:
-            if isinstance(it, dict):
-                if (email and it.get('seller_email','').lower()==email) or (phone and it.get('phone','')==phone):
-                    my_orders.append(o)
-                    break
     total_sales = sum(o.get('total', o.get('amount',0)) for o in my_orders)
     total_orders = len(my_orders)
     withdraws = load_db('withdraws.json', [])
@@ -561,96 +507,61 @@ def sales_summary():
     balance = total_sales - withdrawn - pending_withdraw
     return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
 
-# ===== INVITE SYSTEM =====
 @app.route('/api/my-referral')
 def my_referral_api():
     phone = request.args.get('phone','').strip() or session.get('phone','')
     email = request.args.get('email','').lower().strip() or session.get('email','')
-    if not phone and not email:
-        return jsonify({"success":False, "message":"Login first"}), 401
+    if not phone and not email: return jsonify({"success":False, "message":"Login first"}), 401
     users = load_db('users.json', [])
     u = None
     for user in users:
         if (phone and user.get('phone')==phone) or (email and user.get('email','').lower()==email):
-            u = user
-            break
-    if not u:
-        return jsonify({"success":False, "message":"User not found"}), 404
+            u = user; break
+    if not u: return jsonify({"success":False, "message":"User not found"}), 404
     if not u.get('referral_code'):
         code = f"SANN-{u.get('phone','0000')[-4:]}-{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=4))}"
         u['referral_code'] = code
         save_db('users.json', users)
-    # FIXED - uses current domain automatically
     host = request.host_url.rstrip('/')
     link = f"{host}/?ref={u['referral_code']}"
     invites = [x for x in users if x.get('invited_by')==u['referral_code']]
-    return jsonify({
-        "success": True,
-        "code": u['referral_code'],
-        "link": link,
-        "total_invites": len(invites),
-        "earned_coins": len(invites) * 1,
-        "earned_ugx": len(invites) * COIN_PRICE,
-        "invites": [{"email": i.get('email'), "phone": i.get('phone'), "business": i.get('business')} for i in invites[-20:]]
-    })
+    return jsonify({"success": True,"code": u['referral_code'],"link": link,"total_invites": len(invites),"earned_coins": len(invites) * 1,"earned_ugx": len(invites) * COIN_PRICE,"invites": [{"email": i.get('email'), "phone": i.get('phone'), "business": i.get('business')} for i in invites[-20:]]})
+
 @app.route('/api/balance')
 def api_balance():
     phone = request.args.get('phone','').strip()
     email = request.args.get('email','').lower().strip()
     users = load_db('users.json', [])
     u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
-    if not u:
-        return jsonify({"success":False, "message":"User not found"}), 404
+    if not u: return jsonify({"success":False, "message":"User not found"}), 404
     txs = load_db('coin_transactions.json', [])
     my_txs = [t for t in txs if (phone and t.get('phone')==phone) or (email and t.get('email','').lower()==email)]
-    return jsonify({
-        "success": True,
-        "bought_coins": u.get('bought_coins',0),
-        "earned_coins": u.get('earned_coins',0),
-        "total_coins": u.get('coins',0),
-        "ugx_value": u.get('coins',0)*COIN_PRICE,
-        "history": my_txs[::-1][:30]
-    })
+    return jsonify({"success": True,"bought_coins": u.get('bought_coins',0),"earned_coins": u.get('earned_coins',0),"total_coins": u.get('coins',0),"ugx_value": u.get('coins',0)*COIN_PRICE,"history": my_txs[::-1][:30]})
 
-# ===== NEW: WITHDRAW COINS TO MOMO =====
 @app.route('/api/withdraw/coins', methods=['POST'])
 def withdraw_coins():
     data = request.json or {}
-    phone = data.get('phone','').strip() or request.args.get('phone','').strip()
-    email = data.get('email','').lower().strip() or request.args.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    email = data.get('email','').lower().strip()
     coins = int(data.get('coins',0))
     momo = data.get('momo_number','').strip()
     if coins <=0: return jsonify({"success":False,"message":"Enter coins >0"}),400
     if not momo: return jsonify({"success":False,"message":"MoMo number required"}),400
     users = load_db('users.json', [])
     u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
-    if not u: return jsonify({"success":False,"message":"User not found - login"}),404
-    if u.get('coins',0) < coins:
-        return jsonify({"success":False,"message":f"Not enough! You have {u.get('coins',0)} coins"}),400
+    if not u: return jsonify({"success":False,"message":"User not found"}),404
+    if u.get('coins',0) < coins: return jsonify({"success":False,"message":f"Not enough! You have {u.get('coins',0)} coins"}),400
     ugx = coins * COIN_PRICE
-    if ugx < 5000:
-        return jsonify({"success":False,"message":f"Min 9 coins = UGX {9*COIN_PRICE}. You tried {coins} coins = UGX {ugx}"}),400
+    if ugx < 5000: return jsonify({"success":False,"message":f"Min 9 coins = UGX {9*COIN_PRICE}"}),400
     u['coins'] = u.get('coins',0) - coins
     save_db('users.json', users)
     withdraws = load_db('withdraws.json', [])
-    withdraws.append({
-        'id': int(time.time()*1000),
-        'email': u.get('email'),
-        'phone': u.get('phone'),
-        'amount': ugx,
-        'coins': coins,
-        'momo_number': momo,
-        'momo_name': data.get('momo_name',''),
-        'status': 'pending',
-        'type': 'coins',
-        'time': time.time(),
-        'paid_time': None
-    })
+    withdraws.append({'id': int(time.time()*1000),'email': u.get('email'),'phone': u.get('phone'),'amount': ugx,'coins': coins,'momo_number': momo,'momo_name': data.get('momo_name',''),'status': 'pending','type': 'coins','time': time.time(),'paid_time': None})
     save_db('withdraws.json', withdraws)
     txs = load_db('coin_transactions.json', [])
     txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
     save_db('coin_transactions.json', txs)
-    return jsonify({"success":True, "message":f"✅ Request sent! {coins} coins = UGX {ugx:,} to {momo}. Owner will pay soon!"})
+    return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}"})
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -702,31 +613,16 @@ def get_products():
     if shop_slug:
         sf = shop_slug.strip()
         exact = [p for p in filtered if p.get('shop_slug')==sf]
-        if exact:
-            filtered = exact
-        else:
-            sf_key = get_biz_key(sf.replace('-',' '))
-            fallback = []
-            for p in filtered:
-                pb = p.get('business') or ''
-                if get_biz_key(pb) == sf_key or make_shop_slug(pb) == sf:
-                    fallback.append(p)
-            filtered = fallback
+        if exact: filtered = exact
     filtered=sorted(filtered,key=lambda x:x.get('created',0),reverse=True)
     public=[]
     for p in filtered:
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
-
-@app.route('/api/sell', methods=['POST'])
+    @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name')
     price=int(request.form.get('price',0))
-    original_price=request.form.get('original_price')
-    try:
-        original_price=int(original_price) if original_price else price
-    except:
-        original_price=price
     business=request.form.get('business')
     location=request.form.get('location')
     phone=request.form.get('phone')
@@ -734,8 +630,6 @@ def sell():
     main_cat=request.form.get('main_category')
     stock=int(request.form.get('stock',10))
     promo_commission = int(request.form.get('promo_commission','3'))
-    if promo_commission <1: promo_commission=1
-    if promo_commission >10: promo_commission=10
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
@@ -749,43 +643,9 @@ def sell():
     shop_id=None; shop_slug=None
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
-    except Exception as e: print("shop fail", e)
-    prod = {
-        'id': int(time.time()*1000),
-        'name': name,
-        'price': price,
-        'original_price': original_price,
-        'business': business,
-        'location': location,
-        'phone': phone,
-        'seller_email': user_email,
-        'description': desc,
-        'desc': desc,
-        'image': images[0],
-        'images': images,
-        'main_category': main_cat,
-        'stock': stock,
-        'sold': 0,'rating': 5.0,'reviews': [],
-        'created': time.time(),
-        'shop_id': shop_id,'shop_slug': shop_slug,
-        'promo_commission': promo_commission
-    }
-    if DATABASE_URL:
-        try:
-            ensure_tables(); import json as js; conn=get_conn(); cur=conn.cursor()
-            try:
-                from psycopg.types.json import Jsonb; cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(prod)])
-            except: cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
-            conn.commit(); cur.close(); conn.close()
-        except Exception as e: return jsonify({'success':False,'message':f'Upload failed: {str(e)}'}),500
-    else:
-        products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    try:
-        shops = load_db('shops.json', [])
-        for s in shops:
-            if s.get('shop_slug')==shop_slug: s['total_products']=s.get('total_products',0)+1
-        save_db('shops.json', shops)
     except: pass
+    prod = {'id': int(time.time()*1000),'name': name,'price': price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
+    products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     for u in users:
         if u['phone']==phone or u['email']==user_email: u['coins'] = max(0, u.get('coins',0) - UPLOAD_COST)
     save_db('users.json', users)
@@ -798,97 +658,21 @@ def list_shops():
     counts = {}
     for p in products:
         slug = p.get('shop_slug')
-        if slug:
-            counts[slug] = counts.get(slug, 0) + 1
-    shop_map = {s.get('shop_slug'): s for s in shops if s.get('shop_slug')}
+        if slug: counts[slug] = counts.get(slug, 0) + 1
     for s in shops:
         slug = s.get('shop_slug')
-        cnt = counts.get(slug, 0)
-        s['total_products'] = cnt
-        s['product_count'] = cnt
-        s['name'] = s.get('business_name') or s.get('business') or s.get('name') or 'Shop'
-        s['slug'] = slug
-        s['shop_slug'] = slug
-        if not s.get('location'):
-            s['location'] = 'Uganda'
-    for slug, cnt in counts.items():
-        if slug not in shop_map:
-            sample = next((p for p in products if p.get('shop_slug') == slug), None)
-            if sample:
-                shops.append({
-                    "business_name": sample.get('business') or "Shop",
-                    "name": sample.get('business') or "Shop",
-                    "business": sample.get('business') or "Shop",
-                    "shop_slug": slug,
-                    "slug": slug,
-                    "location": sample.get('location') or "Uganda",
-                    "owner_email": sample.get('seller_email') or "",
-                    "phone": sample.get('phone') or "",
-                    "total_products": cnt,
-                    "product_count": cnt
-                })
-    no_slug = [p for p in products if not p.get('shop_slug')]
-    if no_slug:
-        from collections import defaultdict
-        biz_groups = defaultdict(list)
-        for p in no_slug:
-            key = (p.get('business') or p.get('seller_email') or 'Shop').strip()
-            biz_groups[key].append(p)
-        for biz, plist in biz_groups.items():
-            exists = any((s.get('business_name') == biz or s.get('name') == biz) for s in shops)
-            if not exists and biz:
-                slug = make_shop_slug(biz)
-                shops.append({
-                    "business_name": biz,
-                    "name": biz,
-                    "business": biz,
-                    "shop_slug": slug,
-                    "slug": slug,
-                    "location": plist[0].get('location') or "Uganda",
-                    "owner_email": plist[0].get('seller_email') or "",
-                    "phone": plist[0].get('phone') or "",
-                    "total_products": len(plist),
-                    "product_count": len(plist)
-                })
-    filtered = [s for s in shops if (s.get('total_products', 0) > 0 or s.get('product_count', 0) > 0)]
-    filtered = sorted(filtered, key=lambda x: x.get('total_products', 0), reverse=True)
-    return jsonify(filtered)
+        s['total_products'] = counts.get(slug, 0)
+    filtered = [s for s in shops if s.get('total_products',0)>0]
+    return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True))
 
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     shops = load_db('shops.json', [])
     products = load_db('products.json', [])
-    shop = next((s for s in shops if s.get('shop_slug')==slug or s.get('slug')==slug), None)
-    if shop:
-        shop_products = [p for p in products if p.get('shop_slug')==slug or p.get('shop_slug')==shop.get('shop_slug')]
-        if not shop_products:
-            bk = get_biz_key(shop.get('business_name') or '')
-            shop_products = [p for p in products if get_biz_key(p.get('business') or '')==bk]
-        shop['total_products'] = len(shop_products)
-        shop['product_count'] = len(shop_products)
-        shop['name'] = shop.get('business_name') or shop.get('name') or 'Shop'
-        shop['slug'] = shop.get('shop_slug') or slug
-        return jsonify({'success':True,'shop':shop,'products':shop_products})
+    shop = next((s for s in shops if s.get('shop_slug')==slug), None)
     shop_products = [p for p in products if p.get('shop_slug')==slug]
-    if not shop_products:
-        bk = get_biz_key(slug.replace('-',' '))
-        shop_products = [p for p in products if get_biz_key(p.get('business') or '')==bk or make_shop_slug(p.get('business') or '')==slug]
-    if shop_products:
-        sample = shop_products[0]
-        virtual_shop = {
-            "business_name": sample.get('business') or "Shop",
-            "name": sample.get('business') or "Shop",
-            "business": sample.get('business') or "Shop",
-            "shop_slug": slug,
-            "slug": slug,
-            "location": sample.get('location') or "Uganda",
-            "owner_email": sample.get('seller_email') or "",
-            "phone": sample.get('phone') or "",
-            "total_products": len(shop_products),
-            "product_count": len(shop_products),
-            "description": "Welcome to " + (sample.get('business') or "Shop") + " shop!"
-        }
-        return jsonify({'success':True,'shop':virtual_shop,'products':shop_products})
+    if shop:
+        return jsonify({'success':True,'shop':shop,'products':shop_products})
     return jsonify({'success':False,'message':'Shop not found'}),404
 
 @app.route('/api/my-products')
@@ -896,69 +680,22 @@ def my_products():
     phone=request.args.get('phone','').strip()
     email=request.args.get('email','').lower().strip()
     products=load_db('products.json', [])
-    result=[]
-    for p in products:
-        p_email = (p.get('seller_email') or '').lower()
-        p_phone = p.get('phone') or ''
-        if email and p_email == email:
-            result.append(p)
-        elif phone and p_phone == phone:
-            result.append(p)
-        elif not email and not phone:
-            result.append(p)
+    result=[p for p in products if (email and (p.get('seller_email') or '').lower()==email) or (phone and p.get('phone')==phone)]
     return jsonify(result)
 
 @app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
 def delete_prod(pid):
-    if DATABASE_URL:
-        try:
-            ensure_tables(); conn=get_conn(); cur=conn.cursor(); cur.execute("SELECT id, data FROM products"); rows=cur.fetchall()
-            for row in rows:
-                r_id, r_data = row[0], row[1]
-                if isinstance(r_data, str): r_data=json.loads(r_data)
-                if r_data.get('id')==pid: cur.execute("DELETE FROM products WHERE id=%s", (r_id,)); break
-            conn.commit(); cur.close(); conn.close()
-        except Exception as e: print(e)
-    else:
-        products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
+    products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
     return jsonify({'success':True})
 
 @app.route('/api/fix-slugs')
 def fix_slugs():
     products = load_db('products.json', [])
-    fixed = 0
     for p in products:
         b = p.get('business') or ''
-        if b:
-            new_slug = make_shop_slug(b)
-            if p.get('shop_slug')!= new_slug:
-                p['shop_slug'] = new_slug
-                fixed += 1
+        if b: p['shop_slug'] = make_shop_slug(b)
     save_db('products.json', products)
-    shops_map = {}
-    for p in products:
-        b = p.get('business') or 'Shop'
-        slug = p.get('shop_slug')
-        if slug not in shops_map:
-            shops_map[slug] = {
-                "business_name": b,
-                "name": b,
-                "business": b,
-                "shop_slug": slug,
-                "slug": slug,
-                "location": p.get('location') or "Uganda",
-                "owner_email": p.get('seller_email') or "",
-                "phone": p.get('phone') or "",
-                "total_products": 0,
-                "product_count": 0,
-                "description": f"Welcome to {b} shop!"
-            }
-    for s in shops_map.values():
-        cnt = sum(1 for p in products if p.get('shop_slug')==s['shop_slug'])
-        s['total_products']=cnt
-        s['product_count']=cnt
-    save_db('shops.json', list(shops_map.values()))
-    return jsonify({'success':True,'fixed_products':fixed,'total_shops':len(shops_map),'message':'Slugs fixed!'})
+    return jsonify({'success':True,'message':'Fixed'})
 
 @app.route('/api/admin/data')
 @admin_required
@@ -976,7 +713,6 @@ def admin_data():
         coin_rev = sum(t.get('price',0) for t in coin_transactions if t.get('status')!='blocked_fake')
         return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders)})
     except Exception as e:
-        print("ADMIN DATA ERROR:", e)
         return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'error': str(e)}), 200
 
 @app.route('/api/admin/transactions')
@@ -986,44 +722,30 @@ def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
 def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
-    # ===== PROMOTE SYSTEM - 1-10 COINS - FIXED DOMAIN =====
+
 @app.route('/api/promote/apply', methods=['POST'])
 def promote_apply():
-    data=request.json or {}
-    product_id=int(data.get('product_id',0))
-    phone=(data.get('phone') or '').strip()
-    email=(data.get('email') or '').lower().strip()
-    if not phone and not email:
-        return jsonify({"success":False,"message":"Login first"}),401
-    products=load_db('products.json',[])
-    prod=next((p for p in products if int(p.get('id'))==product_id),None)
+    data=request.json or {}; product_id=int(data.get('product_id',0)); phone=(data.get('phone') or '').strip(); email=(data.get('email') or '').lower().strip()
+    if not phone and not email: return jsonify({"success":False,"message":"Login first"}),401
+    products=load_db('products.json',[]); prod=next((p for p in products if int(p.get('id'))==product_id),None)
     if not prod: return jsonify({"success":False,"message":"Product not found"}),404
-    if (phone and prod.get('phone')==phone) or (email and (prod.get('seller_email','').lower()==email)):
-        return jsonify({"success":False,"message":"Can't promote own product"}),400
     promos=load_db('promotions.json',[])
-    exists=next((x for x in promos if int(x.get('product_id'))==product_id and (x.get('freelancer_phone')==phone or x.get('freelancer_email','').lower()==email)),None)
     host = request.host_url.rstrip('/')
-    if exists:
-        return jsonify({"success":False,"message":f"Already applied! Status: {exists.get('status')} | Link: {host}/?promo={exists.get('promo_code')}&product={product_id}"}),400
-    import random,string
-    code=f"PROMO{product_id}{phone[-3:] if phone else 'XXX'}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
-    new_promo={"id":int(time.time()*1000),"product_id":product_id,"product_name":prod.get('name'),"product_owner_phone":prod.get('phone'),"product_owner_email":(prod.get('seller_email') or '').lower(),"freelancer_phone":phone,"freelancer_email":email,"commission_coins":int(prod.get('promo_commission',3)),"commission_ugx":int(prod.get('promo_commission',3))*COIN_PRICE,"promo_code":code,"status":"pending","sales":0,"created":time.time()}
-    promos.append(new_promo)
-    save_db('promotions.json',promos)
-    return jsonify({"success":True,"message":f"✅ Applied! {new_promo['commission_coins']} coins per sale. Owner will approve. Your link: {host}/?promo={code}&product={product_id}","promo":new_promo})
+    import random,string; code=f"PROMO{product_id}{phone[-3:]}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
+    new_promo={"id":int(time.time()*1000),"product_id":product_id,"product_name":prod.get('name'),"product_owner_phone":prod.get('phone'),"product_owner_email":(prod.get('seller_email') or '').lower(),"freelancer_phone":phone,"freelancer_email":email,"commission_coins":int(prod.get('promo_commission',3)),"promo_code":code,"status":"pending","sales":0,"created":time.time()}
+    promos.append(new_promo); save_db('promotions.json',promos)
+    return jsonify({"success":True,"message":f"Applied! Your link: {host}/?promo={code}&product={product_id}","promo":new_promo})
 
 @app.route('/api/promote/my', methods=['GET'])
 def my_promotions():
     phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
-    promos=load_db('promotions.json',[])
-    result=[p for p in promos if (phone and p.get('freelancer_phone')==phone) or (email and p.get('freelancer_email','').lower()==email)]
+    promos=load_db('promotions.json',[]); result=[p for p in promos if (phone and p.get('freelancer_phone')==phone) or (email and p.get('freelancer_email','').lower()==email)]
     return jsonify(result[::-1])
 
 @app.route('/api/promote/requests', methods=['GET'])
 def promote_requests():
     phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
-    promos=load_db('promotions.json',[])
-    result=[p for p in promos if (phone and p.get('product_owner_phone')==phone) or (email and p.get('product_owner_email','').lower()==email)]
+    promos=load_db('promotions.json',[]); result=[p for p in promos if (phone and p.get('product_owner_phone')==phone) or (email and p.get('product_owner_email','').lower()==email)]
     return jsonify(result[::-1])
 
 @app.route('/api/promote/action', methods=['POST'])
@@ -1037,108 +759,112 @@ def promote_action():
 
 @app.route('/api/orders/create', methods=['POST'])
 def create_order():
-    data=request.json or {}
-    promo_code=data.get('promo_code','').strip() or request.cookies.get('promo_code','').strip()
-    product_id=data.get('product_id')
-    buyer_phone=data.get('buyer_phone','').strip()
-    buyer_email=data.get('buyer_email','').lower().strip()
-    amount=data.get('amount',0)
-    orders=load_db('orders.json',[])
-    new_order={"id":int(time.time()*1000),"product_id":product_id,"amount":amount,"buyer_phone":buyer_phone,"buyer_email":buyer_email,"promo_code":promo_code,"time":time.time(),"status":"pending"}
-    orders.append(new_order)
-    save_db('orders.json',orders)
+    data=request.json or {}; promo_code=data.get('promo_code','').strip(); product_id=data.get('product_id'); buyer_phone=data.get('buyer_phone','').strip(); buyer_email=data.get('buyer_email','').lower().strip(); amount=data.get('amount',0)
+    orders=load_db('orders.json',[]); new_order={"id":int(time.time()*1000),"product_id":product_id,"amount":amount,"buyer_phone":buyer_phone,"buyer_email":buyer_email,"promo_code":promo_code,"time":time.time(),"status":"pending"}
+    orders.append(new_order); save_db('orders.json',orders)
     if promo_code:
-        promos=load_db('promotions.json',[])
-        users=load_db('users.json',[])
+        promos=load_db('promotions.json',[]); users=load_db('users.json',[])
         for p in promos:
             if p.get('promo_code')==promo_code and p.get('status')=='approve':
                 p['sales']=p.get('sales',0)+1
                 for u in users:
                     if u.get('phone')==p.get('freelancer_phone') or u.get('email','').lower()==p.get('freelancer_email','').lower():
-                        u['coins']=u.get('coins',0)+p.get('commission_coins',3)
-                        u['earned_coins']=u.get('earned_coins',0)+p.get('commission_coins',3)
-                        break
+                        u['coins']=u.get('coins',0)+p.get('commission_coins',3); break
                 break
-        save_db('promotions.json',promos)
-        save_db('users.json',users)
+        save_db('promotions.json',promos); save_db('users.json',users)
     return jsonify({"success":True,"order":new_order})
-    # ===== SPIN GAME - 1 COIN PER SPIN =====
-@app.route('/api/spin', methods=['POST'])
-def spin_game():
-    data=request.json or {}
-    phone=(data.get('phone') or '').strip()
-    email=(data.get('email') or '').lower().strip()
-    users=load_db('users.json',[])
-    u=None
-    for user in users:
-        if (phone and user.get('phone')==phone) or (email and user.get('email','').lower()==email):
-            u=user; break
-    if not u:
-        return jsonify({"success":False,"message":"Login first"}),401
-    if u.get('coins',0) < 1:
-        return jsonify({"success":False,"message":f"Need 1 coin to spin! You have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
 
-    import random
-    cfg=load_spin_config()
-    if not cfg.get('enabled',True):
-        return jsonify({"success":False,"message":"Spin disabled by Admin"}),400
-    cost=cfg.get('cost',1)
-    if u.get('coins',0) < cost:
-        return jsonify({"success":False,"message":f"Need {cost} coin to spin! You have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
-    u['coins']=u.get('coins',0)-cost
-    prizes=cfg.get('prizes',[])
-    weights=[p.get('weight',10) for p in prizes]
-    prize=random.choices(prizes, weights=weights, k=1)[0]
-    u['coins']+=prize['coins']
-
-    spins=load_db('spins.json',[])
-    spins.append({"phone":phone,"email":email,"cost":1,"won":prize['coins'],"prize":prize['name'],"time":time.time()})
-    save_db('spins.json',spins)
-    save_db('users.json',users)
-    return jsonify({"success":True,"prize":prize,"my_coins":u['coins'],"message":f"🎰 {prize['name']}! Won {prize['coins']} coins! Balance: {u['coins']}"})
-
-@app.route('/api/spin/history', methods=['GET'])
-def spin_history():
-    phone=request.args.get('phone','').strip()
-    email=request.args.get('email','').lower().strip()
-    spins=load_db('spins.json',[])
-    result=[s for s in spins if s.get('phone')==phone or s.get('email','').lower()==email]
-    return jsonify(result[::-1][:20])
-    # ===== ADMIN SPIN CONTROL =====
+# ================= SPIN GAME - OPTION B - 15% HOUSE EDGE - 0-1000 STAKE =================
 SPIN_CONFIG_FILE='spin_config.json'
 def load_spin_config():
     default={
         "enabled": True,
         "cost": 1,
+        "house_edge": 15,
         "prizes": [
-            {"name":"Try Again 😢","coins":0,"weight":30,"color":"#333"},
-            {"name":"1 Coin Back 🪙","coins":1,"weight":25,"color":"#FFCC02"},
-            {"name":"2 Coins Win! 🎉","coins":2,"weight":15,"color":"#2e7d32"},
-            {"name":"3 Coins JACKPOT! 🔥","coins":3,"weight":8,"color":"#ff6a00"},
-            {"name":"5 Coins SUPER! 👑","coins":5,"weight":2,"color":"#8B0000"},
-            {"name":"0.5 Coin 😅","coins":0,"weight":20,"color":"#555"}
+            {"name":"0x LOST 😢","multiplier":0,"coins":0,"weight":35,"color":"#ff0000"},
+            {"name":"1x BACK 🪙","multiplier":1,"coins":1,"weight":25,"color":"#ffffff"},
+            {"name":"1.5x SMALL 🔵","multiplier":1.5,"coins":1,"weight":15,"color":"#00aaff"},
+            {"name":"2x DOUBLE 🎉","multiplier":2,"coins":2,"weight":12,"color":"#00ff00"},
+            {"name":"3x TRIPLE 🔥","multiplier":3,"coins":3,"weight":8,"color":"#FFCC02"},
+            {"name":"5x SUPER 👑","multiplier":5,"coins":5,"weight":4,"color":"#aa00ff"},
+            {"name":"10x JACKPOT 💎","multiplier":10,"coins":10,"weight":1,"color":"#FFD700"}
         ]
     }
     try:
         if os.path.exists(SPIN_CONFIG_FILE):
-            with open(SPIN_CONFIG_FILE,'r') as f: return json.load(f)
+            with open(SPIN_CONFIG_FILE,'r') as f:
+                cfg=json.load(f)
+                if "house_edge" not in cfg: cfg["house_edge"]=15
+                for p in cfg.get("prizes",[]):
+                    if "multiplier" not in p: p["multiplier"]=p.get("coins",0)
+                return cfg
     except: pass
     return default
 
+def save_spin_config(cfg):
+    with open(SPIN_CONFIG_FILE,'w') as f: json.dump(cfg,f)
+
+@app.route('/api/spin', methods=['POST'])
+def spin_game():
+    data=request.json or {}
+    phone=(data.get('phone') or '').strip()
+    email=(data.get('email') or '').lower().strip()
+    stake=int(data.get('stake',0))
+    if stake<0: stake=0
+    if stake>1000: stake=1000
+    users=load_db('users.json',[])
+    u=None
+    for user in users:
+        if (phone and user.get('phone')==phone) or (email and user.get('email','').lower()==email):
+            u=user; break
+    if not u: return jsonify({"success":False,"message":"Login first"}),401
+    cfg=load_spin_config()
+    if not cfg.get('enabled',True): return jsonify({"success":False,"message":"Spin disabled"}),400
+    actual_cost = cfg.get('cost',1) if stake==0 else stake
+    if u.get('coins',0) < actual_cost: return jsonify({"success":False,"message":f"Need {actual_cost} coins, you have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
+    u['coins']-=actual_cost
+    house_edge=cfg.get('house_edge',15)
+    admin_cut = int(actual_cost * house_edge / 100) if stake>0 else actual_cost
+    game_amount = actual_cost - admin_cut
+    if stake==0: game_amount=0
+    prizes=cfg.get('prizes',[]); weights=[p.get('weight',10) for p in prizes]
+    prize=random.choices(prizes, weights=weights, k=1)[0]
+    multiplier=prize.get('multiplier', prize.get('coins',0))
+    if stake==0:
+        win_amount = int(multiplier) if multiplier>=1 else 0
+        if multiplier==1.5: win_amount=1
+    else:
+        win_amount = int(game_amount * multiplier)
+    u['coins']+=win_amount
+    spins=load_db('spins.json',[])
+    spins.append({"phone":phone,"email":email,"stake":actual_cost,"fee":admin_cut,"admin_cut":admin_cut,"game_amount":game_amount,"cost":actual_cost,"won":win_amount,"prize":prize['name'],"multiplier":multiplier,"color":prize.get('color'),"time":time.time()})
+    save_db('spins.json',spins); save_db('users.json',users)
+    return jsonify({"success":True,"prize":prize,"my_coins":u['coins'],"stake":actual_cost,"admin_cut":admin_cut,"game_amount":game_amount,"won":win_amount,"multiplier":multiplier,"message": f"{prize['name']}! Won {win_amount} coins!"})
+
+@app.route('/api/spin/history', methods=['GET'])
+def spin_history():
+    phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
+    spins=load_db('spins.json',[]); result=[s for s in spins if s.get('phone')==phone or s.get('email','').lower()==email]
+    return jsonify(result[::-1][:20])
+
+@app.route('/api/spin-history')
+def spin_history_alias(): return spin_history()
+
 @app.route('/api/admin/spin-config', methods=['GET','POST'])
 def admin_spin_config():
-    if request.method=='GET':
-        return jsonify(load_spin_config())
-    cfg=request.json
-    with open(SPIN_CONFIG_FILE,'w') as f: json.dump(cfg,f)
+    if request.method=='GET': return jsonify(load_spin_config())
+    cfg=request.json; save_spin_config(cfg)
     return jsonify({"success":True,"message":"Saved!"})
 
-# UPDATE your existing /api/spin to use admin config:
-# Replace the prizes and weights inside spin_game with this:
-# cfg=load_spin_config()
-# if not cfg.get('enabled'): return error
-# prizes=cfg['prizes']
-# weights=[p['weight'] for p in prizes]
+@app.route('/api/admin/spin-stats')
+def spin_stats():
+    spins=load_db('spins.json',[]); total=len(spins)
+    collected=sum(s.get('stake', s.get('cost',0)) for s in spins)
+    paid=sum(s.get('won',0) for s in spins)
+    admin_cut=sum(s.get('admin_cut', s.get('fee',0)) for s in spins)
+    profit=collected - paid
+    return jsonify({"total":total,"collected":collected,"paid":paid,"profit":profit,"admin_cut":admin_cut})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
