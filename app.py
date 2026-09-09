@@ -701,7 +701,7 @@ def my_sales_stats():
 @app.route('/api/login', methods=['POST'])
 def login():
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
-   users=load_db('users.json',[])
+    users=load_db('users.json',[])
 def check_pwd(u, pwd):
     if u.get('password') == hash_pwd(pwd):
         return True
