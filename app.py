@@ -619,7 +619,7 @@ def get_products():
     for p in filtered:
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
-    @app.route('/api/sell', methods=['POST'])
+@app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name')
     price=int(request.form.get('price',0))
