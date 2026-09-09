@@ -45,6 +45,12 @@
 #billboardBanner video{max-width:100%;max-height:400px;width:100%;display:block;margin:0 auto;background:#000}
 #billboardText{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#FFCC02;padding:8px 14px;border-radius:20px;font-weight:bold;font-size:14px;max-width:90%;z-index:2}
 .discount-badge{position:absolute;top:6px;left:6px;background:red;color:#fff;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:bold;z-index:2}
+/* NEW WHEEL STYLES */
+.wheel-wrap{position:relative;width:260px;height:260px;margin:15px auto}
+.wheel{width:100%;height:100%;border-radius:50%;border:8px solid #FFCC02;transition:transform 4s cubic-bezier(0.17,0.67,0.12,0.99);background:conic-gradient(#ff0000 0deg 126deg, #ffffff 126deg 216deg, #00aaff 216deg 270deg, #00ff00 270deg 313.2deg, #FFCC02 313.2deg 342deg, #aa00ff 342deg 356.4deg, #FFD700 356.4deg 360deg)}
+.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;background:#000;border:4px solid #FFCC02;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:bold;font-size:28px;z-index:5}
+.wheel-pointer{position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:30px solid #FFCC02;z-index:6;filter:drop-shadow(0 2px 3px black)}
+.wheel-label{position:absolute;font-size:11px;font-weight:bold;color:#000;text-shadow:0 0 2px white;transform:translate(-50%,-50%)}
 </style>
 </head>
 <body>
@@ -88,14 +94,50 @@
 <div class="popup" id="cartPop"><div class="popup-content" id="cartContent"></div></div>
 <div class="popup" id="authPop"><div class="popup-content"><h2>Account</h2><div id="myProfileInfo"></div><div id="myShopBtnArea" style="margin:10px 0"></div><button class="btn" style="width:100%;background:#c0392b;margin-top:10px" onclick="doLogout()">Logout</button><button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button></div></div>
 <div class="popup" id="shopsPop"><div class="popup-content" id="shopsContent"></div></div>
-  <div style="background:linear-gradient(90deg,#000,#8B0000);border:3px solid #FFCC02;border-radius:15px;padding:15px;margin:15px auto;max-width:500px;text-align:center">
-<h2 style="color:#FFCC02">🎰 SPIN & WIN - 1 Coin!</h2>
-<div id="spinWheel" style="width:200px;height:200px;border-radius:50%;border:8px solid #FFCC02;margin:15px auto;background:conic-gradient(#FFCC02 0deg 60deg,#2e7d32 60deg 120deg,#ff6a00 120deg 180deg,#8B0000 180deg 240deg,#333 240deg 300deg,#555 300deg 360deg);display:flex;align-items:center;justify-content:center;font-size:50px;transition:transform 3s cubic-bezier(0.17,0.67,0.12,0.99)">🎰</div>
-<p style="color:white;font-size:12px">Pay 1 coin, win up to 5 coins! 👑</p>
-<button onclick="doSpin()" id="spinBtn" style="background:#FFCC02;color:#000;width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;margin-top:10px">🎰 SPIN NOW - 1 COIN</button>
-<p id="spinResult" style="color:#FFCC02;font-weight:bold;margin-top:10px"></p>
-<p style="color:#888;font-size:10px">Balance: <span id="spinBal">0</span> coins | <a href="#" onclick="loadSpinHistory()" style="color:#FFCC02">History</a></p>
+
+<!-- OPTION B WHEEL - STAKING 0-1000 + 15% EDGE -->
+<div style="background:linear-gradient(180deg,#000,#1a1a1a);border:4px solid #FFCC02;border-radius:20px;padding:18px;margin:20px auto;max-width:520px;text-align:center;box-shadow:0 0 20px #FFCC02">
+<h2 style="color:#FFCC02;font-size:22px">🎰 SANNLAS WHEEL - OPTION B</h2>
+<p style="color:#0f0;font-size:11px">15% House Edge • 7 Multipliers • Stake 0-1000</p>
+
+<div class="wheel-wrap">
+<div class="wheel-pointer"></div>
+<div id="spinWheel" class="wheel"></div>
+<div class="wheel-center">🎰</div>
 </div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:10px 0;font-size:10px">
+<div style="background:#ff0000;color:white;padding:4px;border-radius:6px">0x<br>35%</div>
+<div style="background:#fff;color:#000;padding:4px;border-radius:6px">1x<br>25%</div>
+<div style="background:#00aaff;color:white;padding:4px;border-radius:6px">1.5x<br>15%</div>
+<div style="background:#00ff00;color:#000;padding:4px;border-radius:6px">2x<br>12%</div>
+<div style="background:#FFCC02;color:#000;padding:4px;border-radius:6px">3x<br>8%</div>
+<div style="background:#aa00ff;color:white;padding:4px;border-radius:6px">5x<br>4%</div>
+<div style="background:#FFD700;color:#000;padding:4px;border-radius:6px">10x<br>1%</div>
+</div>
+
+<div style="background:#111;border:2px solid #333;border-radius:12px;padding:10px;display:flex;gap:8px;align-items:center">
+<input id="stakeInput" type="number" min="0" max="1000" value="10" placeholder="Stake 0-1000" style="flex:1;padding:12px;border-radius:8px;border:2px solid #FFCC02;background:#000;color:#FFCC02;font-weight:bold;text-align:center;font-size:18px">
+<div style="color:#888;font-size:11px;text-align:left">Fee 15%<br><span id="feePreview" style="color:#FFCC02">1.5 coins</span></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0">
+<button onclick="setStake(0)" style="background:#333;color:white;padding:6px;border-radius:6px;border:none">FREE 0</button>
+<button onclick="setStake(10)" style="background:#222;color:#FFCC02;padding:6px;border-radius:6px;border:1px solid #FFCC02">10</button>
+<button onclick="setStake(50)" style="background:#222;color:#FFCC02;padding:6px;border-radius:6px;border:1px solid #FFCC02">50</button>
+<button onclick="setStake(100)" style="background:#FFCC02;color:#000;padding:6px;border-radius:6px;border:none;font-weight:bold">100 🔥</button>
+</div>
+
+<button onclick="doSpin()" id="spinBtn" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;width:100%;padding:16px;border:none;border-radius:12px;font-weight:bold;font-size:18px;margin-top:8px;box-shadow:0 4px 0 #8B0000">🎰 SPIN NOW</button>
+<p id="spinResult" style="color:#FFCC02;font-weight:bold;margin-top:10px;font-size:14px;min-height:20px"></p>
+<div style="background:#000;border-radius:8px;padding:8px;display:flex;justify-content:space-between;font-size:11px;color:#888">
+<span>Bal: <b id="spinBal" style="color:#FFCC02">0</b> 🪙</span>
+<span>Won: <b id="spinWon" style="color:#0f0">0</b></span>
+<span>Fee: <b id="spinFee" style="color:red">0</b></span>
+<span><a href="#" onclick="loadSpinHistory();return false" style="color:#FFCC02">History</a></span>
+</div>
+<p style="color:#555;font-size:9px;margin-top:6px">0 coin = free demo (no fee, win up to 1 coin) • Staking = win = stake-fee x multiplier</p>
+</div>
+
 <div class="fixed-bottom"><span onclick="goToWallet()" style="color:#FFCC02">🪙 Wallet</span><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/balance'" style="color:#FFCC02">💰 Balance</span></div>
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=20,allProducts=[],currentUser=null,searchTimer=null;
@@ -103,48 +145,26 @@ let _oldUrls=[]; let billboardData=null;
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
 async function loadBillboardBanner(){try{let r=await fetch('/api/billboard');let bb=await r.json();billboardData=bb;let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;}else{wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;}txt.innerText=bb.text||'';}catch(e){}}
 function billboardClick(){if(billboardData&&billboardData.link){window.open(billboardData.link,'_blank');}}
-async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;}catch(e){}}
+async function loadMyCoins(){if(!currentUser)return;try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);let d=await r.json();document.getElementById('myCoinsNav').innerText=d.coins||0;document.getElementById('coinsMyBal').innerText=d.coins||0;document.getElementById('myCoinsPlan').innerText=d.coins||0;document.getElementById('spinBal').innerText=d.coins||0;}catch(e){}}
 async function showAllShops(){
   document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';
   document.getElementById('shopsPop').style.display='flex';
   try{
-    let r=await fetch('/api/shops');
-    let shops=await r.json();
-    shops = shops.filter(s => (s.product_count||0) > 0);
-    if(!shops || shops.length==0){
-      document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><p>Be first to sell!</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
-      return;
-    }
+    let r=await fetch('/api/shops'); let shops=await r.json(); shops = shops.filter(s => (s.total_products||0) > 0);
+    if(!shops || shops.length==0){ document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>'; return; }
     let html='<h2 style="color:#8B0000">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
-    shops.forEach(s=>{
-      html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+(s.name||'Shop')+'</b><br><span style="font-size:11px">📍 '+(s.location||'Uganda')+' | 📦 '+(s.product_count)+' products</span></div><a href="/shop/'+s.slug+'" style="text-decoration:none"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>';
-    });
+    shops.forEach(s=>{ html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+(s.name||'Shop')+'</b><br><span style="font-size:11px">📍 '+(s.location||'Uganda')+' | 📦 '+(s.product_count)+' products</span></div><a href="/shop/'+s.slug+'" style="text-decoration:none"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>'; });
     html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:15px">Close</button>';
     document.getElementById('shopsContent').innerHTML=html;
-  }catch(e){
-    document.getElementById('shopsContent').innerHTML='<p>Failed to load shops</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px">Close</button>';
-  }
+  }catch(e){ document.getElementById('shopsContent').innerHTML='<p>Failed</p>'; }
 }
 async function goToMyShop(){
   if(!currentUser){ showGate(); switchGate('login'); return; }
   try{
-    let r = await fetch('/api/shops');
-    let shops = await r.json();
-    let myEmail = (currentUser.email||'').toLowerCase();
-    let myPhone = currentUser.phone||'';
-    let myBiz = (currentUser.business||'').toLowerCase();
+    let r = await fetch('/api/shops'); let shops = await r.json();
+    let myEmail = (currentUser.email||'').toLowerCase(); let myPhone = currentUser.phone||'';
     let my = shops.find(s => s.owner_email && myEmail && s.owner_email.toLowerCase()==myEmail);
     if(!my) my = shops.find(s => s.phone && myPhone && s.phone==myPhone);
-    if(!my) my = shops.find(s => (s.business_name||s.name||'').toLowerCase()==myBiz);
-    if(!my){
-      let rp = await fetch(`/api/my-products?email=${encodeURIComponent(myEmail)}&phone=${encodeURIComponent(myPhone)}`);
-      let myProds = await rp.json();
-      if(myProds && myProds.length>0){
-        let slug = myProds[0].shop_slug;
-        my = shops.find(s => s.shop_slug==slug || s.slug==slug);
-        if(!my){ location.href='/shop/'+slug; return; }
-      }
-    }
     if(my){ location.href='/shop/'+(my.shop_slug||my.slug); }
     else { alert('No shop yet Boss! Upload a product first'); document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'}); }
   }catch(e){ alert('Failed to find shop'); }
@@ -233,7 +253,6 @@ function viewProd(id){
     <div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center">
     <p style="color:#FFCC02;font-size:13px">💰 Earn <b>${promoComm} coins = UGX ${promoComm*599}</b> per sale!</p>
     <button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:6px">🤝 Apply to Promote & Earn</button>
-    <p style="font-size:10px;color:#888;margin-top:5px">Link: https://sannlas.onrender.com/?promo=YOURCODE&product=${p.id}</p>
     </div>
     <button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin:5px 0" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
     <button style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;
@@ -247,22 +266,9 @@ function openCart(){
   let html=`<h3>🛒 My Cart - ${totalQty} items</h3>`;
   cart.forEach(it=>{
     let sub=Number(it.price)*(it.qty||1);
-    html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center">
-      <img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px">
-      <div style="flex:1"><b style="font-size:13px">${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b style="color:green">UGX ${sub.toLocaleString()}</b></div>
-      <div style="display:flex;flex-direction:column;gap:5px;align-items:center">
-        <div style="display:flex;gap:5px;align-items:center">
-          <button onclick="changeQty('${it.id}', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button>
-          <span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">${it.qty||1}</span>
-          <button onclick="changeQty('${it.id}', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button>
-        </div>
-        <button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button>
-      </div>
-    </div>`;
+    html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b style="font-size:13px">${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b style="color:green">UGX ${sub.toLocaleString()}</b></div><div style="display:flex;flex-direction:column;gap:5px;align-items:center"><div style="display:flex;gap:5px;align-items:center"><button onclick="changeQty('${it.id}', -1)" style="background:black;color:#FFCC02;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">−</button><span style="background:#FFCC02;color:black;padding:6px 12px;border-radius:8px;font-weight:bold;min-width:28px;text-align:center">${it.qty||1}</span><button onclick="changeQty('${it.id}', 1)" style="background:#2e7d32;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;font-weight:bold">+</button></div><button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:10px;width:100%">🗑️ Remove</button></div></div>`;
   });
-  html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL (${totalQty}): UGX ${total.toLocaleString()}</div>
-  <button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX ${total.toLocaleString()}</button>
-  <button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;
+  html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL (${totalQty}): UGX ${total.toLocaleString()}</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout - UGX ${total.toLocaleString()}</button><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue Shopping</button>`;
   document.getElementById('cartContent').innerHTML=html;
   document.getElementById('cartPop').style.display='flex';
 }
@@ -277,47 +283,69 @@ function frontPreview(input){
   document.getElementById('frontCount2').innerText=frontFiles.length;
   let box=document.getElementById('frontPreview');box.innerHTML='';
   for(let i=0;i<frontFiles.length;i++){
-    let url=URL.createObjectURL(frontFiles[i]);
-    _oldUrls.push(url);
-    box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX - e.g. 95000" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE - e.g. 150000 for crossed" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description - features, size, color, material..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;
+    let url=URL.createObjectURL(frontFiles[i]); _oldUrls.push(url);
+    box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;
   }
 }
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
-function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||0}`; document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Business: ${currentUser.business||''}`; document.getElementById('myShopBtnArea').innerHTML=`<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer">🏪 MY SHOP - View My Store</button><button onclick="showAllShops()" style="width:100%;background:#FFCC02;color:#000;border:none;padding:10px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:8px">🏪 Browse All Shops</button>`;}}
+function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${currentUser.coins||0}`; document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Business: ${currentUser.business||''}`; document.getElementById('myShopBtnArea').innerHTML=`<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer">🏪 MY SHOP</button>`;}}
 function doLogout(){localStorage.clear();location.reload();}
-  async function doSpin(){
+
+// ===== OPTION B WHEEL LOGIC =====
+function setStake(v){ document.getElementById('stakeInput').value=v; updateFee(); }
+function updateFee(){
+  let s=parseInt(document.getElementById('stakeInput').value)||0;
+  if(s>1000){s=1000;document.getElementById('stakeInput').value=1000}
+  if(s<0){s=0;document.getElementById('stakeInput').value=0}
+  let fee = s==0? 0 : Math.floor(s*0.15);
+  document.getElementById('feePreview').innerText= s==0? 'FREE DEMO' : fee+' coins fee (15%) | Play '+(s-fee)+' coins';
+}
+document.getElementById('stakeInput')?.addEventListener('input', updateFee);
+setTimeout(updateFee,500);
+
+async function doSpin(){
  let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
- if(!u.phone){ alert('Login first Boss!'); return; }
+ if(!u.phone){ alert('Login first Boss!'); showGate(); return; }
+ let stake=parseInt(document.getElementById('stakeInput').value)||0;
+ if(stake<0) stake=0; if(stake>1000) stake=1000;
  let btn=document.getElementById('spinBtn');
- btn.disabled=true; btn.innerText='⏳ Spinning...';
- document.getElementById('spinWheel').style.transform=`rotate(${Math.floor(Math.random()*2000)+1000}deg)`;
- let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email})});
+ btn.disabled=true; btn.innerText='⏳ SPINNING...';
+ let wheel=document.getElementById('spinWheel');
+ let extra=Math.floor(Math.random()*2000)+2000;
+ wheel.style.transform=`rotate(${extra}deg)`;
+ let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});
  let d=await r.json();
  setTimeout(()=>{
-   btn.disabled=false; btn.innerText='🎰 SPIN NOW - 1 COIN';
-   if(!d.success){ alert(d.message); document.getElementById('spinResult').innerText='❌ '+d.message; return; }
-   document.getElementById('spinResult').innerText=d.message;
+   btn.disabled=false; btn.innerText='🎰 SPIN NOW';
+   if(!d.success){ document.getElementById('spinResult').innerText='❌ '+d.message; alert(d.message); return; }
+   document.getElementById('spinResult').innerText=`${d.prize.name} | Stake ${d.stake} | Fee ${d.admin_cut} | Won ${d.won} coins | x${d.multiplier}`;
    document.getElementById('spinBal').innerText=d.my_coins;
+   document.getElementById('spinWon').innerText=d.won;
+   document.getElementById('spinFee').innerText=d.admin_cut;
    document.getElementById('myCoinsNav').innerText=d.my_coins;
    document.getElementById('myCoinsPlan').innerText=d.my_coins;
-   if(d.prize.coins>0) alert('🎉 '+d.prize.name+' Boss!');
- },3000);
+   if(d.won>0){ wheel.style.borderColor='#0f0'; setTimeout(()=>wheel.style.borderColor='#FFCC02',1000); }
+   else { wheel.style.borderColor='red'; setTimeout(()=>wheel.style.borderColor='#FFCC02',1000); }
+ },4000);
 }
 async function loadSpinHistory(){
  let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+ if(!u.phone){ alert('Login first'); return; }
  let r=await fetch(`/api/spin/history?phone=${u.phone}&email=${u.email}`);
  let h=await r.json();
- alert('Last spins:\\n'+h.map(x=>`${x.prize} - won ${x.won}`).join('\\n'));
+ if(!h.length){ alert('No spins yet Boss!'); return; }
+ let txt=h.slice(0,20).map(x=>`Stake:${x.stake} ${x.prize} Won:${x.won} x${x.multiplier||''} Fee:${x.admin_cut||x.fee||0}`).join('\n');
+ alert('🎰 Last 20 spins:\n'+txt);
 }
+
 gateCheck();
 </script>
 <script>
-// ===== PROMOTE SYSTEM - sannlas.onrender.com FIXED =====
 function applyPromote(pid, comm){
  let u = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
- if(!u.phone){ alert('Login first Boss! Go to Wallet'); location.href='/wallet'; return; }
- if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!\n\nLink will be: https://sannlas.onrender.com/?promo=CODE&product=${pid}`)) return;
+ if(!u.phone){ alert('Login first Boss!'); location.href='/wallet'; return; }
+ if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`)) return;
  fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid, phone:u.phone, email:u.email})})
 .then(r=>r.json()).then(d=>{alert(d.message);});
 }
