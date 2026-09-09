@@ -164,7 +164,7 @@ def get_coin_config():
         save_db('coin_config.json', cfg)
     return cfg
 def save_coin_config(cfg): save_db('coin_config.json', cfg)
-    def get_billboard_config():
+def get_billboard_config():
     cfg = load_db('billboard.json', None)
     if not cfg:
         cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time(), "expires_at": None}
