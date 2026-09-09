@@ -1078,7 +1078,7 @@ def spin_game():
     if u.get('coins',0) < 1:
         return jsonify({"success":False,"message":f"Need 1 coin to spin! You have {u.get('coins',0)}","my_coins":u.get('coins',0)}),400
 
-       import random
+    import random
     cfg=load_spin_config()
     if not cfg.get('enabled',True):
         return jsonify({"success":False,"message":"Spin disabled by Admin"}),400
