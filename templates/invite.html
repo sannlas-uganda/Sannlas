@@ -14,17 +14,54 @@
 <a href="/" style="color:#aaa;display:block;text-align:center;margin-top:15px">← Back to Shop</a>
 </div>
 <script>
-let userPhone=localStorage.getItem('user_phone')||''; let userEmail=localStorage.getItem('user_email')||'';
+// FIXED - Use correct localStorage key!
+let userPhone = '';
+let userEmail = '';
+try{
+  let u = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+  userPhone = u.phone || '';
+  userEmail = u.email || '';
+}catch(e){}
+if(!userPhone){
+  userPhone = localStorage.getItem('user_phone')||''; // fallback
+  userEmail = localStorage.getItem('user_email')||'';
+}
+
 function loadRef(){
- fetch(`/api/my-referral?phone=${userPhone}&email=${userEmail}`).then(r=>r.json()).then(d=>{
-  if(!d.success){document.getElementById('stats').innerHTML=d.message+' — Login first'; return;}
-  document.getElementById('myLink').value=d.link;
-  document.getElementById('stats').innerHTML=`<h3>👥 Invites: ${d.total_invites}</h3><h3 style="color:#00FF00">🪙 Earned: ${d.earned_coins} coins</h3><h3 style="color:#FFCC02">💵 UGX ${d.earned_ugx.toLocaleString()}</h3>`;
+ if(!userPhone && !userEmail){
+   document.getElementById('stats').innerHTML = '🔒 Please login first Boss!<br><br><a href="/" style="color:#FFCC02">Go Home & Login</a>';
+   document.getElementById('myLink').value = 'Login first to get link';
+   return;
+ }
+ fetch(`/api/my-referral?phone=${encodeURIComponent(userPhone)}&email=${encodeURIComponent(userEmail)}`).then(r=>r.json()).then(d=>{
+  if(!d.success){
+    document.getElementById('stats').innerHTML = d.message + ' — <a href="/" style="color:#FFCC02">Login first</a>';
+    document.getElementById('myLink').value = d.message;
+    return;
+  }
+  document.getElementById('myLink').value = d.link;
+  document.getElementById('stats').innerHTML = `<h3>👥 Invites: ${d.total_invites}</h3><h3 style="color:#00FF00">🪙 Earned: ${d.earned_coins} coins</h3><h3 style="color:#FFCC02">💵 UGX ${d.earned_ugx.toLocaleString()}</h3><div style="margin-top:10px;text-align:left">${(d.invites||[]).map(i=>`<div style="border-bottom:1px solid #333;padding:5px">📱 ${i.phone||''} - ${i.email||''}</div>`).join('') || '<p style="color:#888">No invites yet - Share now!</p>'}</div>`;
+ }).catch(e=>{
+   document.getElementById('stats').innerHTML = 'Error: '+e.message;
  });
 }
-function copyLink(){navigator.clipboard.writeText(document.getElementById('myLink').value); alert('Link Copied Boss!');}
-function shareWA(){window.open(`https://wa.me/?text=Join Sannlas! Earn money selling! ${document.getElementById('myLink').value}`)}
-function shareFB(){window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(document.getElementById('myLink').value)}`)}
+function copyLink(){
+  let v = document.getElementById('myLink').value;
+  if(!v || v.includes('Login') || v.includes('Loading')){ alert('Login first Boss!'); return; }
+  navigator.clipboard.writeText(v).then(()=>alert('Link Copied Boss! ✅')).catch(()=>{
+    let input = document.getElementById('myLink'); input.select(); document.execCommand('copy'); alert('Link Copied Boss! ✅');
+  });
+}
+function shareWA(){
+  let v = document.getElementById('myLink').value;
+  if(!v || v.includes('Login')){ alert('Login first'); return; }
+  window.open(`https://wa.me/?text=Join Sannlas! Earn money selling! ${encodeURIComponent(v)}`)
+}
+function shareFB(){
+  let v = document.getElementById('myLink').value;
+  if(!v || v.includes('Login')){ alert('Login first'); return; }
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(v)}`)
+}
 loadRef();
 </script>
 </body></html>
