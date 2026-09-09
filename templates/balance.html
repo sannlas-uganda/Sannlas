@@ -15,10 +15,12 @@ body{font-family:Arial;background:#f5f5f5;margin:0;padding:15px;padding-bottom:8
 .spent{background:#ffebee;color:#b71c1c}
 .total{background:#fff3e0;color:#e65100}
 .withdrawable{background:#f3e5f5;color:#4a148c;border:2px dashed #7b1fa2}
-.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;cursor:pointer}
-.btn-withdraw{background:#7b1fa2;color:#fff;margin-top:10px}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;cursor:pointer;margin:5px 0}
+.btn-withdraw{background:#7b1fa2;color:#fff}
 .btn-buy{background:#ff6f00;color:#fff}
-input{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;margin:8px 0;box-sizing:border-box}
+.btn-pack{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;text-align:left}
+.btn-pack.active{background:#FFCC02;color:#000}
+input,select{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;margin:8px 0;box-sizing:border-box}
 small{color:#666;display:block;margin-top:4px}
 h2{margin:0 0 12px 0}
 .history-item{padding:10px;border-bottom:1px solid #eee;font-size:14px}
@@ -40,30 +42,34 @@ h2{margin:0 0 12px 0}
 <div class="box bought"><b id="bought">0</b>BOUGHT<small id="boughtUgx">UGX 0</small></div>
 <div class="box earned"><b id="earned">0</b>EARNED<small id="earnedUgx">UGX 0</small></div>
 <div class="box spent"><b id="spent">0</b>SPENT<small id="spentUgx">UGX 0</small></div>
-<div class="box total"><b id="total">0</b>TOTAL<small id="totalCalc">B+E-S</small></div>
+<div class="box total"><b id="total">0</b>TOTAL<small>B+E-S</small></div>
 </div>
 
 <div class="card">
 <div class="box withdrawable">
-<b id="withdrawable" style="font-size:32px">0</b>
-WITHDRAWABLE<br>
-<small style="font-size:13px;color:#4a148c">TOTAL - 10 free trial (not withdrawable)</small>
+<b id="withdrawable" style="font-size:32px">0</b> WITHDRAWABLE<br>
+<small style="font-size:13px;color:#4a148c">TOTAL - 10 free trial</small>
 <b id="withdrawableUgx" style="margin-top:6px;font-size:18px">UGX 0</b>
-<small id="withdrawableMsg">Min withdraw: 50 coins = UGX 29,950</small>
+<small id="withdrawableMsg">Min 50 coins = UGX 29,950</small>
 </div>
+</div>
+
+<div class="card">
+<h3>🪙 Buy More Coins - MoMo 0795712326</h3>
+<div id="packs" style="display:grid;gap:8px;margin:10px 0"></div>
+<input id="buyMomoPhone" placeholder="Your MoMo Number - 256...">
+<input id="buyMomoCode" placeholder="MoMo Transaction Code (after paying)">
+<button class="btn btn-buy" onclick="buyCoins()">✅ Confirm I Paid - Submit Code</button>
+<p id="buyMsg" style="font-weight:bold"></p>
+<small style="background:#000;color:#FFCC02;padding:8px;border-radius:8px">1. Send Money to <b>0795712326</b><br>2. Enter Transaction Code above<br>3. Admin verifies = coins added instantly!</small>
 </div>
 
 <div class="card">
 <h3>💸 Withdraw Coins</h3>
-<input id="momo" placeholder="MoMo Number 077XXXXXXX">
+<input id="momo" placeholder="MoMo Number to receive 077XXXXXXX">
 <input id="coinsToWithdraw" type="number" placeholder="Coins to withdraw (min 50)">
 <button class="btn btn-withdraw" onclick="withdraw()">Withdraw to MoMo</button>
 <p id="msg" style="color:green;font-weight:bold"></p>
-</div>
-
-<div class="card">
-<h3>🪙 Buy More Coins</h3>
-<button class="btn btn-buy" onclick="location.href='/#buy-coins'">Buy Coins</button>
 </div>
 
 <div class="card">
@@ -75,36 +81,55 @@ WITHDRAWABLE<br>
 <a href="/">🏠 Home</a>
 <a href="/balance" class="active">💰 Balance</a>
 <a href="/invite">👥 Invite</a>
-<a href="/shop">🏪 Shop</a>
+<a href="/">🏪 Shops</a>
 </div>
 
 <script>
 const FREE_TRIAL = 10;
 const MIN_WITHDRAW = 50;
 const COIN_PRICE = 599;
-let myUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+let myUser = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
 if(myUser.user) myUser = myUser.user;
+let selectedPack = '10';
+
+async function loadPacks(){
+ let res = await fetch('/api/coins/packs');
+ let packs = await res.json();
+ let html='';
+ for(let id in packs){
+   let p = packs[id];
+   let isPop = id=='30'? '⭐ POPULAR' : id=='60'? '🔥' : '';
+   html+=`<button class="btn-pack ${id==selectedPack?'active':''}" onclick="selectPack('${id}')" id="pack_${id}">
+   <b>${p.coins} coins - UGX ${p.price.toLocaleString()} ${isPop}</b><br><small>${p.name} | 1 coin=599 UGX</small>
+   </button>`;
+ }
+ document.getElementById('packs').innerHTML=html;
+}
+function selectPack(id){
+ selectedPack=id;
+ document.querySelectorAll('.btn-pack').forEach(b=>b.classList.remove('active'));
+ document.getElementById('pack_'+id).classList.add('active');
+}
 
 async function loadBalance(){
- if(!myUser.email && !myUser.phone){
+ if(!myUser.email &&!myUser.phone){
    document.getElementById('history').innerHTML = 'Login first!';
    return;
  }
  const res = await fetch(`/api/coins/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);
  const d = await res.json();
- if(!d.success) return;
- document.getElementById('bought').innerText = d.bought;
- document.getElementById('boughtUgx').innerText = `UGX ${d.bought_value.toLocaleString()}`;
- document.getElementById('earned').innerText = d.earned;
- document.getElementById('earnedUgx').innerText = `UGX ${d.earned_value.toLocaleString()}`;
- document.getElementById('spent').innerText = d.spent;
- document.getElementById('spentUgx').innerText = `UGX ${d.spent_value.toLocaleString()}`;
- document.getElementById('total').innerText = d.total;
- document.getElementById('totalBal').innerText = `${d.total} Coins`;
- document.getElementById('totalUgx').innerText = `UGX ${d.total_value.toLocaleString()} (Bought ${d.bought}+Earned ${d.earned}-Spent ${d.spent})`;
- document.getElementById('withdrawable').innerText = d.withdrawable;
- document.getElementById('withdrawableUgx').innerText = `UGX ${d.withdrawable_value.toLocaleString()}`;
- document.getElementById('withdrawableMsg').innerText = d.withdrawable >= MIN_WITHDRAW ? `✅ Ready to withdraw! Min ${MIN_WITHDRAW} coins` : `Need ${MIN_WITHDRAW - d.withdrawable} more coins to withdraw (Min ${MIN_WITHDRAW})`;
+ document.getElementById('bought').innerText = d.bought||0;
+ document.getElementById('boughtUgx').innerText = `UGX ${(d.bought_value||0).toLocaleString()}`;
+ document.getElementById('earned').innerText = d.earned||0;
+ document.getElementById('earnedUgx').innerText = `UGX ${(d.earned_value||0).toLocaleString()}`;
+ document.getElementById('spent').innerText = d.spent||0;
+ document.getElementById('spentUgx').innerText = `UGX ${(d.spent_value||0).toLocaleString()}`;
+ document.getElementById('total').innerText = d.total||0;
+ document.getElementById('totalBal').innerText = `${d.total||0} Coins`;
+ document.getElementById('totalUgx').innerText = `UGX ${(d.total_value||0).toLocaleString()} (Bought ${d.bought}+Earned ${d.earned}-Spent ${d.spent})`;
+ document.getElementById('withdrawable').innerText = d.withdrawable||0;
+ document.getElementById('withdrawableUgx').innerText = `UGX ${(d.withdrawable_value||0).toLocaleString()}`;
+ document.getElementById('withdrawableMsg').innerText = (d.withdrawable||0) >= MIN_WITHDRAW? `✅ Ready to withdraw! Min ${MIN_WITHDRAW}` : `Need ${MIN_WITHDRAW - (d.withdrawable||0)} more coins (Min ${MIN_WITHDRAW})`;
 
  const res2 = await fetch(`/api/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);
  const d2 = await res2.json();
@@ -116,6 +141,23 @@ async function loadBalance(){
    });
  } else html='No transactions yet';
  document.getElementById('history').innerHTML = html;
+}
+
+async function buyCoins(){
+ let code = document.getElementById('buyMomoCode').value.trim().toUpperCase();
+ let mphone = document.getElementById('buyMomoPhone').value.trim();
+ if(!mphone) return alert('Enter your MoMo number Boss!');
+ if(!code) return alert('Enter MoMo Transaction Code after paying to 0795712326!');
+ if(!confirm(`Confirm? Pack ${selectedPack} - Code ${code} from ${mphone}`)) return;
+ let res = await fetch('/api/coins/buy',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body: JSON.stringify({email:myUser.email, phone:myUser.phone, pack:selectedPack, momo_code:code, momo_phone:mphone})
+ });
+ let d = await res.json();
+ document.getElementById('buyMsg').innerText = d.message;
+ alert(d.message);
+ if(d.success) { document.getElementById('buyMomoCode').value=''; loadBalance(); }
 }
 
 async function withdraw(){
@@ -135,6 +177,7 @@ async function withdraw(){
  if(d.success) loadBalance();
 }
 
+loadPacks();
 loadBalance();
 </script>
 </body>
