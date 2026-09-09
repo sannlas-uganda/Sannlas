@@ -644,35 +644,59 @@ def register():
 @app.route('/api/account/set-password', methods=['POST'])
 def set_password_api():
     try:
-        data=request.json
+        data=request.json or {}
         email=data.get('email','').strip().lower()
-        phone=data.get('phone','')
+        phone=data.get('phone','').strip()
         pwd=data.get('password','')
         if len(pwd)<4:
             return jsonify({"success":False,"message":"Password too short! Min 4 chars Boss!"})
-        # find user - adapt to your DB
-        user = None
-        # if you use json file:
-        try:
-            with open('users.json','r') as f:
-                users=json.load(f)
-        except:
-            users=[]
-        for u in users:
-            if (u.get('email','').lower()==email) or (u.get('phone')==phone and phone):
-                user=u
-                break
-        if not user:
-            return jsonify({"success":False,"message":"User not found"})
         from werkzeug.security import generate_password_hash
-        user['password_hash']=generate_password_hash(pwd)
-        user['has_password']=True
-        # save
-        with open('users.json','w') as f:
-            json.dump(users,f,indent=2)
-        return jsonify({"success":True,"message":"🔒 Password saved! Your account is now protected Boss! Only you can login!"})
+        users = load_db('users.json', [])
+        found=False
+        for u in users:
+            if (u.get('email','').lower()==email) or (phone and u.get('phone')==phone):
+                u['password_hash']=generate_password_hash(pwd)
+                u['password']=hash_pwd(pwd)
+                u['has_password']=True
+                found=True
+                break
+        if not found:
+            return jsonify({"success":False,"message":"User not found"})
+        save_db('users.json', users)
+        return jsonify({"success":True,"message":"🔒 Password saved! Your account is now protected Boss!"})
     except Exception as e:
         return jsonify({"success":False,"message":str(e)})
+
+@app.route('/api/my-sales/stats')
+def my_sales_stats():
+    email=request.args.get('email','').lower().strip()
+    phone=request.args.get('phone','').strip()
+    orders = load_db('orders.json', [])
+    products = load_db('products.json', [])
+    promo_spent=0
+    for p in products:
+        if (email and (p.get('seller_email','').lower()==email)) or (phone and p.get('phone')==phone):
+            promo_spent += int(p.get('promo_commission',0)) * int(p.get('sold',0))
+    import datetime
+    now = datetime.datetime.now()
+    today=0; week=0; year=0
+    my_orders=[]
+    for o in orders:
+        if (email and str(o.get('seller_email','')).lower()==email) or (phone and str(o.get('seller_phone',''))==phone) or (email and str(o.get('seller','')).lower()==email):
+            my_orders.append(o)
+    for o in my_orders:
+        amt = o.get('total', o.get('amount',0))
+        try:
+            t = o.get('time',0)
+            d = datetime.datetime.fromtimestamp(float(t)) if isinstance(t,(int,float)) else now
+        except:
+            d=now
+        if d.date()==now.date(): today+=amt
+        if (now - d).days <7: week+=amt
+        if d.year==now.year: year+=amt
+    return jsonify({"today":today,"week":week,"year":year,"orders":len(my_orders),"promo_coins_spent":promo_spent})
+
+@app.route('/api/login', methods=['POST'])
 
 @app.route('/api/login', methods=['POST'])
 def login():
