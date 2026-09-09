@@ -238,36 +238,19 @@ def ensure_shop_for_user(user):
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 @app.route('/product/<pid>')
 def product_link(pid):
-    # Save the ref for tracking
     ref = request.args.get('ref','')
-    # Save click to DB
     try:
         products = load_db('products.json',[])
         p = next((x for x in products if str(x.get('id'))==str(pid)), None)
         if p:
-            # Track promo click
             clicks = load_db('promo_clicks.json',[])
             clicks.append({'product_id':pid,'ref':ref,'time':time.time(),'ip':request.remote_addr})
             save_db('promo_clicks.json', clicks)
     except: pass
-
-    # Render index but with auto-open product + save ref
-    html = open('templates/index.html','r',encoding='utf-8').read() if os.path.exists('templates/index.html') else open('index.html','r',encoding='utf-8').read()
-    # Inject JS to save ref and open product
-    inject = f"""
-    <script>
-    localStorage.setItem('sannlas_aff_ref','{ref}');
-    localStorage.setItem('sannlas_ref_product','{pid}');
-    window.addEventListener('load',()=>{{
-        setTimeout(()=>{{
-            if(typeof viewProd==='function') viewProd('{pid}');
-        }},1500);
-    }});
-    </script>
-    </body>
-    """
-    html = html.replace('</body>', inject)
-    return html
+    resp = make_response(render_template('index.html'))
+    if ref:
+        resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
+    return resp
 
 @app.route('/p/<pid>')
 def product_short(pid):
@@ -975,6 +958,73 @@ def create_order():
                 break
         save_db('promotions.json',promos); save_db('users.json',users)
     return jsonify({"success":True,"order":new_order})
+    @app.route('/api/checkout', methods=['POST'])
+def api_checkout():
+    data = request.get_json() or {}
+    ref = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
+    phone = data.get('phone','').strip()
+    email = (data.get('email') or '').lower().strip()
+    cart = data.get('cart', [])
+    promo_commission = int(data.get('promo_commission', 3))
+    product_id = data.get('product_id') or (cart[0].get('id') if cart else None)
+
+    # Calculate total
+    total = sum(int(i.get('price',0)) * int(i.get('qty',1)) for i in cart)
+
+    # Save order
+    orders = load_db('orders.json', [])
+    new_order = {
+        'id': int(time.time()*1000),
+        'product_id': product_id,
+        'cart': cart,
+        'total': total,
+        'amount': total,
+        'buyer_phone': phone,
+        'buyer_email': email,
+        'ref': ref,
+        'promo_code': ref,
+        'time': time.time(),
+        'status': 'pending'
+    }
+    orders.append(new_order)
+    save_db('orders.json', orders)
+
+    # ===== GIVE COMMISSION TO PROMOTER =====
+    if ref:
+        try:
+            users = load_db('users.json', [])
+            for usr in users:
+                # Match ref by phone or email or referral_code
+                if str(usr.get('phone'))==str(ref) or str(usr.get('email','')).lower()==str(ref).lower() or str(usr.get('referral_code'))==str(ref):
+                    usr['earned'] = int(usr.get('earned',0)) + promo_commission
+                    usr['earned_coins'] = usr['earned']
+                    usr['coins'] = int(usr.get('bought',0)) + int(usr.get('earned',0)) - int(usr.get('spent',0))
+                    if usr['coins']<0: usr['coins']=0
+                    break
+            save_db('users.json', users)
+
+            # Track promo sale
+            sales = load_db('promo_sales.json', [])
+            sales.append({'ref':ref,'product_id':product_id,'buyer':phone,'buyer_email':email,'commission':promo_commission,'total':total,'time':time.time()})
+            save_db('promo_sales.json', sales)
+
+            # Also update promotions.json if exists
+            promos = load_db('promotions.json', [])
+            for p in promos:
+                if str(p.get('freelancer_phone'))==str(ref) or str(p.get('freelancer_email','')).lower()==str(ref).lower() or str(p.get('promo_code'))==str(ref):
+                    if str(p.get('product_id'))==str(product_id) or not product_id:
+                        p['sales'] = int(p.get('sales',0)) + 1
+            save_db('promotions.json', promos)
+
+        except Exception as e:
+            print("Promo commission error:", e)
+
+    return jsonify({'success':True,'message':f'✅ Order placed! Total UGX {total:,} - {"Promoter "+ref+" will earn!" if ref else ""}','order':new_order})
+
+# Also fix your product_link to work with render_template
+@app.route('/product/<pid>/fix')
+def product_link_fix(pid):
+    return product_link(pid)
 
 SPIN_CONFIG_FILE='spin_config.json'
 def load_spin_config():
