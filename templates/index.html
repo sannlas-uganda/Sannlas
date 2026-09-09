@@ -368,6 +368,54 @@ function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let tot
 function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1)item.qty=1;document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);openCart();}
 function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
 </script>
-<script>function applyPromote(pid,comm){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{alert(d.message);});}</script>
+
+<!-- PROMO POPUP WITH COPY + SELL - FIXED -->
+<div id="promoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;align-items:center;justify-content:center;padding:15px">
+ <div style="background:#1e1e1e;border:3px solid #FFCC02;border-radius:15px;padding:20px;max-width:500px;width:100%;text-align:center;color:white">
+  <h2 style="color:#FFCC02;margin:0 0 8px">✅ Applied to Promote!</h2>
+  <p style="color:#aaa;font-size:13px">Share this link - You earn <b style="color:#0f0" id="promoCommTxt">3 coins</b> per sale!</p>
+  <input id="promoLinkInput" readonly style="width:100%;padding:12px;border-radius:8px;background:#000;color:#FFCC02;border:2px solid #FFCC02;margin:12px 0;font-size:11px">
+  <button onclick="copyPromoLink()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer;margin:5px 0">📋 COPY LINK</button>
+  <div style="display:flex;gap:6px">
+   <button onclick="sharePromoWA()" style="flex:1;background:#25D366;color:white;padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer">📱 SELL WhatsApp</button>
+   <button onclick="sharePromoFB()" style="flex:1;background:#1877F2;color:white;padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer">📘 Facebook</button>
+  </div>
+  <button onclick="closePromoModal()" style="width:100%;background:#333;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px;cursor:pointer">Close</button>
+  <p id="promoCopyMsg" style="color:#0f0;margin-top:8px;display:none;font-weight:bold"></p>
+ </div>
+</div>
+
+<script>
+function applyPromote(pid,comm){
+  let u=null;
+  try{ u=JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
+  if(!u || !u.phone){ alert('Login first Boss!'); location.href='/balance'; return; }
+  if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`)) return;
+  fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})})
+  .then(r=>r.json()).then(d=>{
+    let link = d.link || d.promo_link || `https://sannlas.onrender.com/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;
+    document.getElementById('promoLinkInput').value = link;
+    document.getElementById('promoCommTxt').innerText = `${comm||3} coins = UGX ${(comm||3)*599}`;
+    document.getElementById('promoModal').style.display='flex';
+    document.getElementById('promoCopyMsg').style.display='none';
+  }).catch(e=>alert('Error: '+e.message));
+}
+function copyPromoLink(){
+  let v=document.getElementById('promoLinkInput').value;
+  navigator.clipboard.writeText(v).then(()=>{
+    let m=document.getElementById('promoCopyMsg'); m.style.display='block'; m.innerText='✅ Copied! Now go sell Boss! 💰';
+    setTimeout(()=>m.style.display='none',3000);
+  });
+}
+function sharePromoWA(){
+  let link=document.getElementById('promoLinkInput').value;
+  window.open(`https://wa.me/?text=${encodeURIComponent('🔥 Buy this on SANNLAS! Best price: '+link)}`,'_blank');
+}
+function sharePromoFB(){
+  let link=document.getElementById('promoLinkInput').value;
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`,'_blank');
+}
+function closePromoModal(){ document.getElementById('promoModal').style.display='none'; }
+</script>
 </body>
 </html>
