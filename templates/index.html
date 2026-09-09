@@ -304,29 +304,75 @@ function updateFee(){
 document.getElementById('stakeInput')?.addEventListener('input', updateFee);
 setTimeout(updateFee,500);
 
+// MAP WEIGHTS TO ANGLES - must match CSS conic-gradient
+const WHEEL_SEGMENTS = [
+  {name:"0x LOST", mult:0, weight:35, start:0, end:126, color:"#ff0000"},
+  {name:"1x BACK", mult:1, weight:25, start:126, end:216, color:"#ffffff"},
+  {name:"1.5x SMALL", mult:1.5, weight:15, start:216, end:270, color:"#00aaff"},
+  {name:"2x DOUBLE", mult:2, weight:12, start:270, end:313.2, color:"#00ff00"},
+  {name:"3x TRIPLE", mult:3, weight:8, start:313.2, end:342, color:"#FFCC02"},
+  {name:"5x SUPER", mult:5, weight:4, start:342, end:356.4, color:"#aa00ff"},
+  {name:"10x JACKPOT", mult:10, weight:1, start:356.4, end:360, color:"#FFD700"}
+];
+
 async function doSpin(){
  let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
  if(!u.phone){ alert('Login first Boss!'); showGate(); return; }
  let stake=parseInt(document.getElementById('stakeInput').value)||0;
  if(stake<0) stake=0; if(stake>1000) stake=1000;
+
  let btn=document.getElementById('spinBtn');
  btn.disabled=true; btn.innerText='⏳ SPINNING...';
- let wheel=document.getElementById('spinWheel');
- let extra=Math.floor(Math.random()*2000)+2000;
- wheel.style.transform=`rotate(${extra}deg)`;
+ document.getElementById('spinResult').innerText='🎰 Wheel spinning... stake '+stake+' coins...';
+
+ // 1. Call server first to know win BEFORE spinning
  let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});
  let d=await r.json();
+ if(!d.success){ btn.disabled=false; btn.innerText='🎰 SPIN NOW'; document.getElementById('spinResult').innerText='❌ '+d.message; alert(d.message); return; }
+
+ // 2. Find segment that matches server prize
+ let prizeName = d.prize.name || '';
+ let segment = WHEEL_SEGMENTS.find(s => prizeName.includes(s.name.split(' ')[0]) || d.prize.multiplier==s.mult) || WHEEL_SEGMENTS[0];
+ // fallback by multiplier
+ if(!segment || segment.mult!=d.multiplier){
+   segment = WHEEL_SEGMENTS.find(s=>s.mult==d.multiplier) || WHEEL_SEGMENTS[0];
+ }
+
+ // 3. Pick random angle INSIDE that colour segment
+ let segStart = segment.start;
+ let segEnd = segment.end;
+ let randomInside = segStart + Math.random() * (segEnd - segStart);
+ // Pointer is at top (0 deg), wheel 0 deg starts at top? Conic starts at top, so we need to rotate to bring randomInside to top
+ // To bring angle to top: rotate = 360 - randomInside
+ let targetAngle = 360 - randomInside;
+ let spins = 5; // 5 full spins
+ let finalRotation = spins*360 + targetAngle;
+
+ // 4. Spin wheel to that exact colour
+ let wheel=document.getElementById('spinWheel');
+ wheel.style.transform=`rotate(${finalRotation}deg)`;
+
  setTimeout(()=>{
    btn.disabled=false; btn.innerText='🎰 SPIN NOW';
-   if(!d.success){ document.getElementById('spinResult').innerText='❌ '+d.message; alert(d.message); return; }
-   document.getElementById('spinResult').innerText=`${d.prize.name} | Stake ${d.stake} | Fee ${d.admin_cut} | Won ${d.won} coins | x${d.multiplier}`;
+   document.getElementById('spinResult').innerHTML =
+     `🎯 Pointer on <span style="background:${segment.color};color:${segment.color=='#ffffff'?'#000':'white'};padding:2px 8px;border-radius:5px">${segment.name}</span><br>`+
+     `Stake: ${d.stake} - Fee(15%): ${d.admin_cut} = Play: ${d.game_amount}<br>`+
+     `Multiplier: <b>x${d.multiplier}</b> → Won: <b style="color:#0f0">${d.won} coins</b><br>`+
+     `${d.won>0?'🎉 YOU WIN!':'😢 LOST - Try again!'}`;
+
    document.getElementById('spinBal').innerText=d.my_coins;
    document.getElementById('spinWon').innerText=d.won;
    document.getElementById('spinFee').innerText=d.admin_cut;
    document.getElementById('myCoinsNav').innerText=d.my_coins;
    document.getElementById('myCoinsPlan').innerText=d.my_coins;
-   if(d.won>0){ wheel.style.borderColor='#0f0'; setTimeout(()=>wheel.style.borderColor='#FFCC02',1000); }
-   else { wheel.style.borderColor='red'; setTimeout(()=>wheel.style.borderColor='#FFCC02',1000); }
+
+   wheel.style.borderColor = d.won>0?'#0f0':'red';
+   setTimeout(()=>wheel.style.borderColor='#FFCC02',1500);
+
+   if(d.won>0) {
+     // Confetti effect
+     document.getElementById('spinResult').style.fontSize='16px';
+   }
  },4000);
 }
 async function loadSpinHistory(){
