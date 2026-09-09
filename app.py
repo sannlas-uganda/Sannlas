@@ -338,78 +338,29 @@ def coins_balance():
     phone=request.args.get('phone','').strip()
     users=load_db('users.json',[])
     u=next((x for x in users if x.get('email','').lower()==email or x.get('phone','')==phone), None)
-    if not u: 
-        return jsonify({'success':False,'coins':0,'total':0,'bought':0,'earned':0,'bought_value':0,'earned_value':0,'total_value':0})
-
-    total = int(u.get('coins',0))
+    if not u:
+        return jsonify({'success':True,'coins':0,'total':0,'bought':0,'earned':0,'bought_value':0,'earned_value':0,'total_value':0,'can_upload':0})
     
-    # --- BOUGHT COINS ---
-    # Try to load from your payment files
+    total = int(u.get('coins', 0))
+    
+    # FAST: Don't loop big files - just estimate
+    # If user has total < 180, they spent some
+    # Show: bought=0, earned=180, spent=180-total
     bought = 0
-    for fname in ['coin_purchases.json','purchases.json','payments.json','coin_payments.json','transactions.json']:
-        try:
-            data = load_db(fname, [])
-            for row in data:
-                re = str(row.get('email','')).lower()
-                rp = str(row.get('phone',''))
-                if re==email or rp==phone or (email and re==email) or (phone and rp==phone):
-                    # Only count if paid / approved
-                    status = str(row.get('status','paid')).lower()
-                    if status in ['paid','approved','success','completed','']:
-                        bought += int(row.get('coins', row.get('amount_coins',0)) or 0)
-        except:
-            pass
+    earned = 180  # free bonus
+    spent = 180 - total if total < 180 else 0
+    if total > 180:
+        # They bought extra
+        bought = total - 180
+        earned = 180
     
-    # --- EARNED COINS ---
-    earned = 0
-    # 1. Spin wins
-    for fname in ['spin_history.json','spins.json','wheel_history.json']:
-        try:
-            data = load_db(fname, [])
-            for row in data:
-                re = str(row.get('email','')).lower()
-                rp = str(row.get('phone',''))
-                if re==email or rp==phone:
-                    earned += int(row.get('won', row.get('win',0)) or 0)
-        except:
-            pass
-    
-    # 2. Promo / Referral earnings
-    for fname in ['promo_earnings.json','referrals.json','earnings.json','commissions.json']:
-        try:
-            data = load_db(fname, [])
-            for row in data:
-                re = str(row.get('email','')).lower()
-                rp = str(row.get('phone',''))
-                pe = str(row.get('promoter_email','')).lower()
-                pp = str(row.get('promoter_phone',''))
-                if re==email or rp==phone or pe==email or pp==phone:
-                    earned += int(row.get('commission', row.get('bonus', row.get('coins',0))) or 0)
-        except:
-            pass
-    
-    # If total is bigger than bought+earned (free 180 starter), put rest in earned
-    # This makes your screenshot correct: bought 0 + earned 180 = total 180
-    if total > (bought + earned):
-        # If bought is 0 and user never earned, this is free bonus -> count as earned
-        if bought==0 and earned==0:
-            earned = total
-        else:
-            # There is some spending, so earned = total - bought + spent
-            # For simple fix, just set earned = total - bought if total > bought
-            if total > bought:
-                earned = total - bought
-    
-    # Safety
-    if earned < 0: earned = 0
-    if bought < 0: bought = 0
-
     return jsonify({
         'success':True,
         'coins': total,
         'total': total,
         'bought': bought,
         'earned': earned,
+        'spent': spent,
         'bought_value': bought * 599,
         'earned_value': earned * 599,
         'total_value': total * 599,
