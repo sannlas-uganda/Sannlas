@@ -288,7 +288,7 @@ def home():
             save_db('promo_clicks.json', clicks)
         except: pass
     return resp
-    @app.route('/wallet')
+@app.route('/wallet')
 def wallet_page(): 
     return redirect('/balance')
 @app.route('/balance')
