@@ -236,6 +236,42 @@ def ensure_shop_for_user(user):
     return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+@app.route('/product/<pid>')
+def product_link(pid):
+    # Save the ref for tracking
+    ref = request.args.get('ref','')
+    # Save click to DB
+    try:
+        products = load_db('products.json',[])
+        p = next((x for x in products if str(x.get('id'))==str(pid)), None)
+        if p:
+            # Track promo click
+            clicks = load_db('promo_clicks.json',[])
+            clicks.append({'product_id':pid,'ref':ref,'time':time.time(),'ip':request.remote_addr})
+            save_db('promo_clicks.json', clicks)
+    except: pass
+
+    # Render index but with auto-open product + save ref
+    html = open('templates/index.html','r',encoding='utf-8').read() if os.path.exists('templates/index.html') else open('index.html','r',encoding='utf-8').read()
+    # Inject JS to save ref and open product
+    inject = f"""
+    <script>
+    localStorage.setItem('sannlas_aff_ref','{ref}');
+    localStorage.setItem('sannlas_ref_product','{pid}');
+    window.addEventListener('load',()=>{{
+        setTimeout(()=>{{
+            if(typeof viewProd==='function') viewProd('{pid}');
+        }},1500);
+    }});
+    </script>
+    </body>
+    """
+    html = html.replace('</body>', inject)
+    return html
+
+@app.route('/p/<pid>')
+def product_short(pid):
+    return product_link(pid)
 
 @app.route('/')
 def home():
