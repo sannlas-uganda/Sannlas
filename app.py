@@ -1269,8 +1269,30 @@ def icon512():
     return send_from_directory('.', 'icon-512.png')
 @app.route('/api/test-email')
 def test_email():
-    ok = send_reset_email("natelieabigail@gmail.com", "123456", "Test")
-    return jsonify({"sent": ok, "email_from": EMAIL_FROM, "has_password": bool(EMAIL_APP_PASSWORD)})
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        EMAIL_FROM_LOCAL = "natelieabigail@gmail.com"
+        EMAIL_PASS_LOCAL = os.environ.get('EMAIL_APP_PASSWORD', 'ywhe hdfs otgw zztx').replace(' ','')
+
+        msg = MIMEMultipart()
+        msg['From'] = f"Sannla Shop <{EMAIL_FROM_LOCAL}>"
+        msg['To'] = EMAIL_FROM_LOCAL
+        msg['Subject'] = "Sannla Test 123456"
+        body = "<h1>Test OK Boss!</h1><p>Code: 123456</p>"
+        msg.attach(MIMEText(body, 'html'))
+        
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
+        server.starttls()
+        server.login(EMAIL_FROM_LOCAL, EMAIL_PASS_LOCAL)
+        server.send_message(msg)
+        server.quit()
+        return jsonify({"sent": True, "msg": "Email sent to natelieabigail@gmail.com check inbox + spam!"})
+    except Exception as e:
+        import traceback
+        return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
