@@ -1267,6 +1267,10 @@ def icon192():
 @app.route('/icon-512.png')
 def icon512():
     return send_from_directory('.', 'icon-512.png')
+    @app.route('/api/test-email')
+def test_email():
+    ok = send_reset_email("natelieabigail@gmail.com", "123456", "Test")
+    return jsonify({"sent": ok, "email_from": EMAIL_FROM, "has_password": bool(EMAIL_APP_PASSWORD)})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
