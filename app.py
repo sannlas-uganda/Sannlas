@@ -953,9 +953,9 @@ def admin_data():
         wants=load_db('wants.json',[]) or []
         coin_config=get_coin_config()
         coin_rev = sum(t.get('price',0) for t in coin_transactions if t.get('status')!='blocked_fake')
-        return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'wants':wants,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders),'total_wants':len(wants)})    except Exception as e:
-        return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'total_wants':0,'error': str(e)}), 200
-
+        return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'wants':wants,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders),'total_wants':len(wants)})
+    except Exception as e:
+        return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'wants':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'total_wants':0,'error': str(e)}), 200
 @app.route('/api/admin/transactions')
 @admin_required
 def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
