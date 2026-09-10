@@ -27,23 +27,10 @@ PRODUCTS_CACHE = {"data": None, "time": 0}
 CACHE_TTL = 10
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if session.get('is_admin'):
-            return f(*args, **kwargs)
-        if request.path.startswith('/api/admin'):
-            return jsonify({'success': False, 'message': 'Admin login required'}), 401
-        return redirect('/admin/login')
-    return decorated
-
-@app.after_request
-def clarity_headers(response):
-    response.headers['X-Clarity'] = 'HD-Enabled'
-    response.headers['Cache-Control'] = 'public, max-age=0'
-    return response
-
+# === FORGOT PASSWORD SYSTEM CONFIG ===
 OWNER_EMAIL = "natelieabigail@gmail.com"
+EMAIL_FROM = "natelieabigail@gmail.com"
+EMAIL_APP_PASSWORD = "ywhe hdfs otgw zztx" # <-- YOUR 16 LETTER PASSWORD HERE! REMOVE SPACES WHEN PASTING OK? KEEP AS IS CODE WILL REMOVE SPACES
 OWNER_MOMO = "0795712326"
 COIN_PRICE = 599
 UPLOAD_COST = 3
@@ -159,6 +146,23 @@ def save_db(file, data):
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get('is_admin'):
+            return f(*args, **kwargs)
+        if request.path.startswith('/api/admin'):
+            return jsonify({'success': False, 'message': 'Admin login required'}), 401
+        return redirect('/admin/login')
+    return decorated
+
+@app.after_request
+def clarity_headers(response):
+    response.headers['X-Clarity'] = 'HD-Enabled'
+    response.headers['Cache-Control'] = 'public, max-age=0'
+    return response
+
 def get_coin_config():
     cfg = load_db('coin_config.json', None)
     if not cfg:
@@ -236,16 +240,43 @@ def ensure_shop_for_user(user):
     return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
-# ===== 🎯 WANT TO BUY SYSTEM - START =====
 WANTS_FILE = 'wants.json'
+def get_wants_data(): return load_db(WANTS_FILE, [])
+def save_wants_data(wants): save_db(WANTS_FILE, wants)
 
-def get_wants_data():
-    return load_db(WANTS_FILE, [])
+# === FORGOT PASSWORD EMAIL FUNCTION ===
+def send_reset_email(to_email, otp, user_name="Boss"):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
+        msg['To'] = to_email
+        msg['Subject'] = f"Your Sannla Reset Code is {otp}"
+        body = f"""
+        <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
+          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2 style="margin:0">🏪 Sannla</h2><p style="margin:5px 0 0 0;color:#fff">Shop Smart, Sell Faster</p></div>
+          <div style="padding:22px">
+            <h3 style="margin:0 0 10px 0">Hi {user_name},</h3>
+            <p style="color:#333">Your password reset code is:</p>
+            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px;margin:15px 0">{otp}</h1>
+            <p style="color:#666;font-size:14px">This code expires in <b>10 minutes</b>. If you didn't request this, just ignore this email.</p>
+            <p style="color:#999;font-size:12px;margin-top:20px">Don't share this code with anyone. Sannla team will never ask for it.</p>
+          </div>
+        </div>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(EMAIL_FROM, EMAIL_APP_PASSWORD.replace(' ',''))
+        server.send_message(msg)
+        server.quit()
+        print(f"Email sent to {to_email} OTP {otp}")
+        return True
+    except Exception as e:
+        print("Email error:", e)
+        return False
 
-def save_wants_data(wants):
-    save_db(WANTS_FILE, wants)
-# ===== 🎯 WANT TO BUY SYSTEM - END =====
-# ✅ FIXED PRODUCT LINK - NOW HANDLES promo + ref!
+# ===== API ROUTES - YOUR EXISTING CODE CONTINUES =====
+
 @app.route('/product/<pid>')
 def product_link(pid):
     ref = request.args.get('ref','')
@@ -280,7 +311,6 @@ def product_link(pid):
 def product_short(pid):
     return product_link(pid)
 
-# ✅ FIXED HOME - NOW HANDLES promo & product params!
 @app.route('/')
 def home():
     ref = request.args.get('ref')
@@ -656,6 +686,7 @@ def withdraw_coins():
     txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
     save_db('coin_transactions.json', txs)
     return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}."})
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
@@ -709,6 +740,95 @@ def set_password_api():
         return jsonify({"success":True,"message":"🔒 Password saved! Your account is now protected Boss!"})
     except Exception as e:
         return jsonify({"success":False,"message":str(e)})
+
+# === FORGOT PASSWORD API - NEW ===
+@app.route('/api/forgot-password', methods=['POST'])
+@limiter.limit("5 per minute")
+def forgot_password_api():
+    data = request.get_json() or {}
+    email = data.get('email','').lower().strip()
+    if not email: return jsonify({"success": False, "message": "Enter email"}), 400
+    users = load_db('users.json', [])
+    user = next((u for u in users if u.get('email','').lower()==email), None)
+    if not user:
+        return jsonify({"success": False, "message": "Email not found - Check your email Boss!"}), 404
+
+    # Load existing resets
+    resets = load_db('password_resets.json', {})
+    # Delete old for this email
+    if email in resets:
+        del resets[email]
+
+    otp = str(random.randint(100000, 999999))
+    expires_at = time.time() + 10*60 # 10 mins
+
+    resets[email] = {"otp": otp, "expires": expires_at, "tries": 0, "created": time.time()}
+    save_db('password_resets.json', resets)
+
+    # Send email in background thread so API fast
+    threading.Thread(target=send_reset_email, args=(email, otp, user.get('business','Boss'))).start()
+
+    return jsonify({"success": True, "message": f"Code sent to {email}"})
+
+@app.route('/api/reset-password', methods=['POST'])
+@limiter.limit("10 per minute")
+def reset_password_api():
+    data = request.get_json() or {}
+    email = data.get('email','').lower().strip()
+    otp = data.get('otp','').strip()
+    new_password = data.get('new_password','').strip()
+
+    if not email or not otp or not new_password:
+        return jsonify({"success": False, "message": "Fill all fields"}), 400
+    if len(new_password) < 4:
+        return jsonify({"success": False, "message": "Password min 4 chars"}), 400
+
+    resets = load_db('password_resets.json', {})
+    rec = resets.get(email)
+    if not rec:
+        return jsonify({"success": False, "message": "No reset request. Send code again."}), 400
+
+    # Check expiry
+    if time.time() > rec.get('expires',0):
+        del resets[email]
+        save_db('password_resets.json', resets)
+        return jsonify({"success": False, "message": "Code expired after 10 mins. Request new code!"}), 400
+
+    if rec.get('tries',0) >= 3:
+        del resets[email]
+        save_db('password_resets.json', resets)
+        return jsonify({"success": False, "message": "Too many wrong tries. Request new code!"}), 400
+
+    if rec.get('otp')!= otp:
+        rec['tries'] = rec.get('tries',0)+1
+        save_db('password_resets.json', resets)
+        return jsonify({"success": False, "message": f"Wrong code! {3-rec['tries']} tries left"}), 400
+
+    # OTP CORRECT - Update password
+    users = load_db('users.json', [])
+    found = False
+    for u in users:
+        if u.get('email','').lower()==email:
+            try:
+                from werkzeug.security import generate_password_hash
+                u['password_hash'] = generate_password_hash(new_password)
+            except: pass
+            u['password'] = hash_pwd(new_password)
+            u['has_password'] = True
+            found = True
+            break
+    if not found:
+        return jsonify({"success": False, "message": "User not found"}), 404
+
+    save_db('users.json', users)
+
+    # DELETE OTP AFTER USE - Important!
+    del resets[email]
+    save_db('password_resets.json', resets)
+
+    return jsonify({"success": True, "message": "Password changed! Login now Boss!"})
+
+# === END FORGOT PASSWORD ===
 
 @app.route('/api/my-sales/stats')
 def my_sales_stats():
@@ -770,19 +890,17 @@ def login():
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
     session['phone']=u.get('phone'); session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
-    # ===== 🎯 WANT TO BUY API - ADD THIS =====
+
 @app.route('/api/wants')
 def get_wants_api():
     q = request.args.get('q','').lower()
     district = request.args.get('district','').lower()
     wants = get_wants_data()
-    # Only show open wants
     filtered = [w for w in wants if w.get('status','open') == 'open']
     if q:
         filtered = [w for w in filtered if q in w.get('item','').lower() or q in w.get('note','').lower()]
     if district:
         filtered = [w for w in filtered if district in w.get('district','').lower()]
-    # Newest first
     filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
     return jsonify(filtered[:100])
 
@@ -795,12 +913,10 @@ def create_want_api():
     phone = data.get('phone','').strip()
     email = data.get('email','').lower().strip()
     note = data.get('note','').strip()
-    
     if not item:
         return jsonify({'success': False, 'message': 'What do you want to buy?'}), 400
     if not phone and not email:
         return jsonify({'success': False, 'message': 'Add phone number Boss!'}), 400
-
     wants = get_wants_data()
     new_want = {
         'id': int(time.time()*1000),
@@ -835,7 +951,6 @@ def my_wants_api():
     wants = get_wants_data()
     result = [w for w in wants if (phone and w.get('phone')==phone) or (email and w.get('email','').lower()==email)]
     return jsonify(sorted(result, key=lambda x: x.get('created',0), reverse=True))
-# ===== END WANT API =====
 
 @app.route('/api/products')
 def get_products():
@@ -956,6 +1071,7 @@ def admin_data():
         return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'wants':wants,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders),'total_wants':len(wants)})
     except Exception as e:
         return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'wants':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'total_wants':0,'error': str(e)}), 200
+
 @app.route('/api/admin/transactions')
 @admin_required
 def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
@@ -964,7 +1080,6 @@ def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
 
-# ✅ FIXED PROMO APPLY - AUTO APPROVED + CORRECT LINK!
 @app.route('/api/promote/apply', methods=['POST'])
 def promote_apply():
     data=request.json or {}
