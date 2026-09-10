@@ -1062,6 +1062,21 @@ def spin_stats():
     admin_cut=sum(s.get('admin_cut', s.get('fee',0)) for s in spins)
     profit=collected - paid
     return jsonify({"total":total,"collected":collected,"paid":paid,"profit":profit,"admin_cut":admin_cut})
+    @app.route('/manifest.json')
+def manifest():
+    return send_from_directory('.', 'manifest.json')
+
+@app.route('/sw.js')
+def sw():
+    return send_from_directory('.', 'sw.js')
+
+@app.route('/icon-192.png')
+def icon192():
+    return send_from_directory('.', 'icon-192.png')
+
+@app.route('/icon-512.png')
+def icon512():
+    return send_from_directory('.', 'icon-512.png')
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
