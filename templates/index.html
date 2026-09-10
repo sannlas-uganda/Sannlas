@@ -305,10 +305,54 @@ function openPopup(id){
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
 function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadLiveTicker();}
-function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;switchGate('otp');}else{alert(d.message);switchGate('register');}});}
+function gateDoRegister(){
+  let email=document.getElementById('gateRegEmail').value.trim(),
+      phone=document.getElementById('gateRegPhone').value.trim(),
+      pass=document.getElementById('gateRegPass').value,
+      biz=document.getElementById('gateRegBiz').value;
+  if(!email||!phone||!pass){alert('Fill all');return;}
+  switchGate('loading');
+  fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})})
+  .then(r=>r.json()).then(d=>{
+    if(d.success){
+      localStorage.setItem('sannlas_user',JSON.stringify(d.user));
+      currentUser=d.user;
+      // ✅ SHOW 10 COINS IMMEDIATELY ON HOME
+      updateLoginUI();
+      loadMyCoins();
+      document.getElementById('myCoinsNav').innerText = d.user.coins || 10;
+      document.getElementById('bottomCoins').innerText = d.user.coins || 10;
+      switchGate('otp');
+    }else{
+      alert(d.message);switchGate('register');
+    }
+  });
+}
 function gateVerifyOTP(){switchGate('nin');}
-function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();loadMyCoins();loadMySalesStats();}else{alert(d.message);}});}
-function gateUploadNIN(){hideGate();}
+function gateDoLogin(){
+  let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;
+  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})})
+  .then(r=>r.json()).then(d=>{
+    if(d.success){
+      currentUser=d.user;
+      localStorage.setItem('sannlas_user',JSON.stringify(d.user));
+      hideGate();
+      updateLoginUI();
+      loadMyCoins();
+      loadMySalesStats();
+      // ✅ FORCE SHOW
+      document.getElementById('myCoinsNav').innerText = d.user.coins;
+      document.getElementById('bottomCoins').innerText = d.user.coins;
+    }else{alert(d.message);}
+  });
+}
+ function gateUploadNIN(){
+  hideGate();
+  updateLoginUI();
+  loadMyCoins();
+  loadMySalesStats();
+  doFilter();
+}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
 function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=1000000;render();});}
 function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
