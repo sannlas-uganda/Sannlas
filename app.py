@@ -247,32 +247,52 @@ def save_wants_data(wants): save_db(WANTS_FILE, wants)
 # === FORGOT PASSWORD EMAIL FUNCTION ===
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
+        import socket
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
         msg = MIMEMultipart()
         msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
         msg['To'] = to_email
         msg['Subject'] = f"Your Sannla Reset Code is {otp}"
         body = f"""
         <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
-          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2 style="margin:0">🏪 Sannla</h2><p style="margin:5px 0 0 0;color:#fff">Shop Smart, Sell Faster</p></div>
+          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
           <div style="padding:22px">
-            <h3 style="margin:0 0 10px 0">Hi {user_name},</h3>
-            <p style="color:#333">Your password reset code is:</p>
-            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px;margin:15px 0">{otp}</h1>
-            <p style="color:#666;font-size:14px">This code expires in <b>10 minutes</b>. If you didn't request this, just ignore this email.</p>
-            <p style="color:#999;font-size:12px;margin-top:20px">Don't share this code with anyone. Sannla team will never ask for it.</p>
+            <h3>Hi {user_name},</h3>
+            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
+            <p>Expires in <b>10 mins</b></p>
           </div>
         </div>
         """
         msg.attach(MIMEText(body, 'html'))
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+
+        # FORCE IPv4 - FIX FOR RENDER!
+        pass_clean = EMAIL_APP_PASSWORD.replace(' ','')
+        # Get IPv4 only
+        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
+        if not infos:
+            raise Exception("No IPv4 for gmail")
+        af, socktype, proto, canonname, sa = infos[0]
+        sock = socket.socket(af, socktype, proto)
+        sock.settimeout(20)
+        sock.connect(sa)
+
+        server = smtplib.SMTP(timeout=20)
+        server.sock = sock
+        server._host = 'smtp.gmail.com'
+        server.ehlo()
         server.starttls()
-        server.login(EMAIL_FROM, EMAIL_APP_PASSWORD.replace(' ',''))
+        server.ehlo()
+        server.login(EMAIL_FROM, pass_clean)
         server.send_message(msg)
         server.quit()
-        print(f"Email sent to {to_email} OTP {otp}")
+        print(f"✅ Email sent to {to_email}")
         return True
     except Exception as e:
-        print("Email error:", e)
+        print(f"Email error: {e}")
+        import traceback; traceback.print_exc()
         return False
 
 # ===== API ROUTES - YOUR EXISTING CODE CONTINUES =====
