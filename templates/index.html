@@ -63,11 +63,22 @@ if ('serviceWorker' in navigator) {
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:10px;margin:5px 0"><select id="gateRegRole" style="width:100%;padding:10px;margin:5px 0"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn btn-green" style="width:100%;padding:12px" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse Free</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:12px;text-align:center;font-size:20px;margin:10px 0"><button class="btn btn-green" style="width:100%" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><button class="btn" style="width:100%;background:#000;padding:12px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:10px;margin:10px 0;border:2px solid #1976d2;border-radius:8px"><button class="btn btn-blue" style="width:100%;padding:12px" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:gray;margin-top:8px" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
-<div class="navbar"><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px">☰</button><h3>🛍️ SANNLAS</h3></div><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"><button onclick="openPopup('spinPop')" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;padding:8px 14px;border-radius:20px;font-weight:bold;border:2px solid #000;animation:pulse 1.5s infinite;cursor:pointer;font-size:12px">🎰 SPIN & WIN</button><button class="btn" style="background:#FFCC02;color:#000" onclick="showAllShops()">🏪 Shops</button><button class="btn" onclick="document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'})">+ Sell</button><button class="btn" style="background:#000;border:2px solid #FFCC02;color:#FFCC02" onclick="goToBalance()">💰 Balance (<span id="myCoinsNav">0</span>)</button><button class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button><button class="btn btn-yellow" onclick="openPopup('authPop')">👤 Account</button></div></div>
+<div class="navbar"><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px">☰</button><h3>🛍️ SANNLAS</h3></div><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"><button onclick="openPopup('spinPop')" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;padding:8px 14px;border-radius:20px;font-weight:bold;border:2px solid #000;animation:pulse 1.5s infinite;cursor:pointer;font-size:12px">🎰 SPIN & WIN</button><button class="btn" style="background:#FFCC02;color:#000" onclick="showAllShops()">🏪 Shops</button><button class="btn" onclick="openSellModal()" style="background:#8B0000">+ Sell</button>
+<button class="btn" onclick="openWantModal()" style="background:#00FF00;color:#000;border:2px solid #000;font-weight:900">🎯 WANT TO BUY</button><button class="btn" style="background:#000;border:2px solid #FFCC02;color:#FFCC02" onclick="goToBalance()">💰 Balance (<span id="myCoinsNav">0</span>)</button><button class="btn" onclick="openCart()">🛒 (<span id="cartN">0</span>)</button><button class="btn btn-yellow" onclick="openPopup('authPop')">👤 Account</button></div></div>
 
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">1 coin = 599 UGX | Upload = 3 coins | Min Withdraw 50 coins</span><button class="btn btn-yellow" style="padding:4px 10px;font-size:10px" onclick="goToBalance()">MY BALANCE 🔥</button></div>
 <div id="liveTicker"><div id="tickerContent">🔴 LIVE: Loading real activity... • 🎰 SPIN & WIN ACTIVE • 🪙 1 coin = 599 UGX • Min Withdraw 50 coins = UGX 29,950</div></div>
 <div id="billboardBanner" onclick="billboardClick()"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
+ <!-- 🔥 LIVE WANTS BOARD - NEW -->
+<div id="liveWantsBoard" style="background:linear-gradient(90deg,#000,#1a5c00);border-top:3px solid #00FF00;border-bottom:3px solid #00FF00;padding:10px;max-height:280px;overflow-y:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="color:#00FF00;margin:0">🔥 LIVE WANTS - Buyers Need This NOW! (<span id="wantsCount">0</span>)</h3>
+    <button onclick="loadWantsLive()" style="background:#00FF00;color:#000;border:none;padding:4px 10px;border-radius:10px;font-weight:bold;font-size:11px;cursor:pointer">🔄 Refresh</button>
+  </div>
+  <div id="wantsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px;">
+    <p style="color:white;text-align:center;grid-column:1/-1">⏳ Loading wants...</p>
+  </div>
+</div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu"><div class="side-header"><b>🛍️ SANNLAS MENU</b><button class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
 <button class="side-item-btn" style="background:#7b1fa2;color:#fff;margin:10px;width:calc(100% - 20px);border:2px solid #FFCC02" onclick="closeSideMenu();goToBalance()">💰 My Balance - Bought/Earned/Spent/Withdrawable</button>
@@ -75,9 +86,14 @@ if ('serviceWorker' in navigator) {
 <button class="side-item-btn" style="background:#2e7d32;color:white;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();goToMyShop()">🏪 My Shop</button>
 <button class="side-item-btn" style="background:#FFCC02;color:#000;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn 1 coin</button>
 </div>
-<div class="search-bar"><input id="searchInput" placeholder="Search..." oninput="debouncedFilter()"><button class="btn" onclick="clearFilter()" style="background:white;color:black">Clear</button></div>
-<div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>MoMo 0795712326 | sannlas.onrender.com</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none;font-size:12px"></p></div>
-<div id="frontUpload" class="front-upload"><h2 style="color:#8B0000;text-align:center">📦 SELL YOUR PRODUCTS - 3 Coins Per Product 🪙</h2>
+<div class="search-bar">
+  <input id="searchInput" placeholder="Search products or say what you want..." oninput="debouncedFilter()">
+  <button class="btn" onclick="startVoiceSearch()" id="micBtn" style="background:#FFCC02;color:#000;border-radius:50%;font-size:18px;padding:8px 12px">🎤</button>
+  <button class="btn" onclick="clearFilter()" style="background:white;color:black">Clear</button>
+</div><div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>MoMo 0795712326 | sannlas.onrender.com</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none;font-size:12px"></p></div>
+<div id="frontUpload" class="front-upload" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:99999;overflow-y:auto;padding:15px;justify-content:center;align-items:flex-start;">
+<div style="background:white;max-width:1300px;width:100%;padding:12px;border-radius:12px;margin:20px auto;">
+<button onclick="closeSellModal()" style="float:right;background:red;color:white;border:none;padding:6px 12px;border-radius:10px;font-weight:bold;cursor:pointer">✕ Close</button>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <input id="frontBiz" placeholder="Business Name" style="padding:12px;border-radius:8px;border:1px solid #ccc">
 <input id="frontLocation" placeholder="Type Location" style="padding:12px;border-radius:8px;border:1px solid #ccc">
@@ -93,6 +109,7 @@ if ('serviceWorker' in navigator) {
 <div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:white;padding:80px;font-weight:bold">👆 Select 1 photo</p></div>
 <div id="frontStatus" style="background:#000;color:#0f0;padding:8px;border-radius:8px;margin:8px 0;text-align:center">Ready - 3 coins per product</div>
 <button onclick="frontUploadAll()" class="btn btn-green" style="width:100%;padding:14px;font-size:16px">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
+</div>
 </div>
 <div class="popup" id="coinsPop"><div class="popup-content" style="max-width:500px;border:3px solid #FFCC02"><h2 style="text-align:center;color:#c0392b">🪙 Not Enough Coins!</h2><div style="background:#000;color:#FFCC02;padding:15px;border-radius:10px;text-align:center;margin:10px 0"><div style="font-size:18px">You need <b><span id="coinsNeed">0</span> coins</b> for <span id="coinsProdCount">0</span> products!</div><div style="font-size:14px;margin-top:8px">You have: <b><span id="coinsMyBal">0</span> coins</b><br>Each product = 3 coins</div></div><button class="btn btn-yellow" style="width:100%;padding:14px;font-size:16px;font-weight:bold" onclick="goToBalance()">💰 Go to Balance - Buy Coins</button><button onclick="closePop('coinsPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Cancel</button></div></div>
 <div class="products" id="products"></div>
@@ -402,6 +419,99 @@ const WHEEL_SEGMENTS=[{name:"0x LOST",mult:0,start:0,end:126,color:"#ff0000"},{n
 async function doSpin(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');showGate();return;}let stake=parseInt(document.getElementById('stakeInput').value)||0;let btn=document.getElementById('spinBtn');btn.disabled=true;btn.innerText='⏳ SPINNING...';let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});let d=await r.json();if(!d.success){btn.disabled=false;btn.innerText='🎰 SPIN NOW';alert(d.message);return;}let segment=WHEEL_SEGMENTS.find(s=>s.mult==d.multiplier)||WHEEL_SEGMENTS[0];let randomInside=segment.start+Math.random()*(segment.end-segment.start);let targetAngle=360-randomInside;let finalRotation=(5*360)+targetAngle;let wheel=document.getElementById('spinWheel');wheel.style.transform=`rotate(${finalRotation}deg)`;setTimeout(()=>{btn.disabled=false;btn.innerText='🎰 SPIN NOW';document.getElementById('spinBal').innerText=d.my_coins;document.getElementById('myCoinsNav').innerText=d.my_coins;loadLiveTicker();},2200);}
 async function loadSpinHistory(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first');return;}let r=await fetch(`/api/spin/history?phone=${u.phone}&email=${u.email}`);let h=await r.json();if(!h.length){alert('No spins yet Boss!');return;}let txt=h.slice(0,20).map(x=>`Stake:${x.stake} Won:${x.won}`).join('\n');alert(txt);}
 async function loadLiveTicker(){try{let cfg=await fetch('/api/coins/config').then(r=>r.json()).catch(()=>({remaining:1000000000}));let rem=Number(cfg.remaining||0).toLocaleString();let msgs=[`🔴 LIVE: ${rem} Coins Left`,`🎰 SPIN & WIN ACTIVE`];document.getElementById('tickerContent').innerText=msgs.join(' • ');}catch(e){}}
+ // ===== 🎯 WANT TO BUY JS =====
+function openWantModal(){
+  if(!currentUser){
+    let u=localStorage.getItem('sannlas_user');
+    if(u){try{currentUser=JSON.parse(u);}catch(e){}}
+  }
+  if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}
+  document.getElementById('wantPhone').value = currentUser.phone || '';
+  document.getElementById('wantModal').style.display='flex';
+}
+function closeWantModal(){document.getElementById('wantModal').style.display='none';}
+function openSellModal(){
+  if(!currentUser){
+    let u=localStorage.getItem('sannlas_user');
+    if(u){try{currentUser=JSON.parse(u);}catch(e){}}
+  }
+  if(!currentUser){showGate();switchGate('register');return;}
+  document.getElementById('frontUpload').style.display='flex';
+  document.getElementById('frontUpload').scrollTop=0;
+}
+function closeSellModal(){document.getElementById('frontUpload').style.display='none';}
+async function submitWant(){
+  let item=document.getElementById('wantItem').value.trim();
+  let qty=document.getElementById('wantQty').value.trim();
+  let district=document.getElementById('wantDistrict').value.trim();
+  let phone=document.getElementById('wantPhone').value.trim();
+  let note=document.getElementById('wantNote').value.trim();
+  if(!item){alert('What do you want to buy?');return;}
+  if(!phone){alert('Phone required!');return;}
+  let body={item:item,quantity:qty,district:district,phone:phone,email:currentUser?currentUser.email:'',note:note};
+  let r=await fetch('/api/want',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let d=await r.json();
+  if(d.success){
+    alert('✅ WANT posted! Sellers will see it on LIVE WANTS board!');
+    closeWantModal();
+    loadWantsLive();
+    document.getElementById('wantItem').value='';document.getElementById('wantNote').value='';
+  }else{alert(d.message);}
+}
+async function loadWantsLive(){
+  try{
+    let r=await fetch('/api/wants');
+    let wants=await r.json();
+    document.getElementById('wantsCount').innerText=wants.length;
+    if(wants.length==0){
+      document.getElementById('wantsList').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No wants yet! Be first to post 🎯</p>';
+      return;
+    }
+    let html=wants.map(w=>{
+      let time = w.created? new Date(w.created*1000).toLocaleTimeString() : '';
+      return `<div style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00">
+        <b style="color:#000">🎯 ${w.item}</b><br>
+        <small style="color:#333">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br>
+        <small style="color:#666">${w.note||''}</small><br>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <small style="color:#888">${time}</small>
+          <a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:4px 10px;border-radius:10px;font-weight:bold;text-decoration:none;font-size:11px">📞 Call Buyer</a>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('wantsList').innerHTML=html;
+  }catch(e){
+    document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load wants</p>';
+  }
+}
+// MIC VOICE SEARCH - Luganda + English
+function startVoiceSearch(){
+  let btn=document.getElementById('micBtn');
+  if(!('webkitSpeechRecognition' in window) &&!('SpeechRecognition' in window)){
+    alert('Voice search not supported on this browser! Use Chrome.');
+    return;
+  }
+  let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recog = new SpeechRecognition();
+  recog.lang = 'en-UG';
+  recog.interimResults = false;
+  btn.innerText='🔴';btn.style.background='red';btn.style.color='white';
+  recog.onresult = (e)=>{
+    let text = e.results[0][0].transcript;
+    document.getElementById('searchInput').value=text;
+    doFilter();
+    // Also check if user said "I want..." - auto open want modal
+    if(text.toLowerCase().includes('i want') || text.toLowerCase().includes('njagala')){
+      document.getElementById('wantItem').value=text;
+      openWantModal();
+    }
+  };
+  recog.onend = ()=>{btn.innerText='🎤';btn.style.background='#FFCC02';btn.style.color='#000';};
+  recog.onerror = ()=>{btn.innerText='🎤';btn.style.background='#FFCC02';btn.style.color='#000';};
+  recog.start();
+}
+setInterval(loadWantsLive,10000);
+// ===== END WANT JS =====
 setInterval(loadLiveTicker,15000);gateCheck();
 function viewProd(id){let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p)return;let desc=p.description||p.desc||'No description';let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold">🏪 Visit Shop</button></a>` : '';let promoComm=p.promo_commission||3;document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:12px;margin:10px 0"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">${priceHtml}</div><div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02"><b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}</div>${shopBtn}<div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center"><p style="color:#FFCC02;font-size:13px">💰 Earn <b>${promoComm} coins</b> per sale!</p><button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:6px">🤝 Apply to Promote & Earn</button></div><button class="btn btn-green" style="width:100%;padding:14px" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button><button style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
 function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);}
@@ -490,6 +600,20 @@ function checkPromoLink(){
 setTimeout(checkPromoLink, 1200);
 document.addEventListener('DOMContentLoaded', checkPromoLink);
 </script>
+ <!-- 🎯 WANT TO BUY MODAL -->
+<div id="wantModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;padding:15px;">
+  <div style="background:#1e1e1e;border:3px solid #00FF00;border-radius:15px;padding:20px;max-width:450px;width:100%;color:white;">
+    <h2 style="color:#00FF00;text-align:center;margin:0 0 10px">🎯 What Do You Want To Buy?</h2>
+    <p style="color:#aaa;text-align:center;font-size:12px;margin-bottom:10px">Post FREE - 0 Coins! Sellers will contact you!</p>
+    <input id="wantItem" placeholder="What item? e.g. Maize 10 bags" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
+    <input id="wantQty" placeholder="Quantity e.g. 10 bags, 5kg" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
+    <input id="wantDistrict" placeholder="Your District e.g. Kampala" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
+    <input id="wantPhone" placeholder="Phone Number e.g. 0795712326" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:2px solid #00FF00;background:#2a2a2a;color:white;">
+    <textarea id="wantNote" placeholder="More details..." rows="2" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;"></textarea>
+    <button onclick="submitWant()" style="width:100%;padding:14px;background:#00FF00;color:#000;font-weight:900;border:none;border-radius:10px;margin-top:10px;cursor:pointer;font-size:16px">🚀 POST WANT (FREE - 0 Coins)</button>
+    <button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px;cursor:pointer">Cancel</button>
+  </div>
+</div>
 
 </body>
 </html>
