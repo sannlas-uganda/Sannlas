@@ -279,7 +279,7 @@ def home():
     promo = request.args.get('promo','')
     product = request.args.get('product','')
     resp = make_response(render_template('index.html'))
-    if ref:
+      if ref:
     resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
       if promo and product:
         try:
