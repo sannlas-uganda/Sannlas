@@ -236,7 +236,15 @@ def ensure_shop_for_user(user):
     return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+# ===== 🎯 WANT TO BUY SYSTEM - START =====
+WANTS_FILE = 'wants.json'
 
+def get_wants_data():
+    return load_db(WANTS_FILE, [])
+
+def save_wants_data(wants):
+    save_db(WANTS_FILE, wants)
+# ===== 🎯 WANT TO BUY SYSTEM - END =====
 # ✅ FIXED PRODUCT LINK - NOW HANDLES promo + ref!
 @app.route('/product/<pid>')
 def product_link(pid):
@@ -762,6 +770,72 @@ def login():
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
     session['phone']=u.get('phone'); session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
+    # ===== 🎯 WANT TO BUY API - ADD THIS =====
+@app.route('/api/wants')
+def get_wants_api():
+    q = request.args.get('q','').lower()
+    district = request.args.get('district','').lower()
+    wants = get_wants_data()
+    # Only show open wants
+    filtered = [w for w in wants if w.get('status','open') == 'open']
+    if q:
+        filtered = [w for w in filtered if q in w.get('item','').lower() or q in w.get('note','').lower()]
+    if district:
+        filtered = [w for w in filtered if district in w.get('district','').lower()]
+    # Newest first
+    filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
+    return jsonify(filtered[:100])
+
+@app.route('/api/want', methods=['POST'])
+def create_want_api():
+    data = request.get_json() or {}
+    item = data.get('item','').strip()
+    quantity = data.get('quantity','').strip()
+    district = data.get('district','').strip()
+    phone = data.get('phone','').strip()
+    email = data.get('email','').lower().strip()
+    note = data.get('note','').strip()
+    
+    if not item:
+        return jsonify({'success': False, 'message': 'What do you want to buy?'}), 400
+    if not phone and not email:
+        return jsonify({'success': False, 'message': 'Add phone number Boss!'}), 400
+
+    wants = get_wants_data()
+    new_want = {
+        'id': int(time.time()*1000),
+        'item': item,
+        'quantity': quantity,
+        'district': district,
+        'phone': phone,
+        'email': email,
+        'note': note,
+        'status': 'open',
+        'created': time.time(),
+        'created_at': time.time()
+    }
+    wants.append(new_want)
+    save_wants_data(wants)
+    return jsonify({'success': True, 'message': 'WANT posted! Sellers will see it!', 'want': new_want})
+
+@app.route('/api/want/<int:wid>/close', methods=['POST'])
+def close_want_api(wid):
+    wants = get_wants_data()
+    for w in wants:
+        if w['id'] == wid:
+            w['status'] = 'closed'
+            break
+    save_wants_data(wants)
+    return jsonify({'success': True})
+
+@app.route('/api/my-wants')
+def my_wants_api():
+    phone = request.args.get('phone','').strip()
+    email = request.args.get('email','').lower().strip()
+    wants = get_wants_data()
+    result = [w for w in wants if (phone and w.get('phone')==phone) or (email and w.get('email','').lower()==email)]
+    return jsonify(sorted(result, key=lambda x: x.get('created',0), reverse=True))
+# ===== END WANT API =====
 
 @app.route('/api/products')
 def get_products():
@@ -876,11 +950,11 @@ def admin_data():
         shops=load_db('shops.json',[]) or []
         withdraws=load_db('withdraws.json',[]) or []
         billboard=get_billboard_config()
+        wants=load_db('wants.json',[]) or []
         coin_config=get_coin_config()
         coin_rev = sum(t.get('price',0) for t in coin_transactions if t.get('status')!='blocked_fake')
-        return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders)})
-    except Exception as e:
-        return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'error': str(e)}), 200
+        return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'wants':wants,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders),'total_wants':len(wants)})    except Exception as e:
+        return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'total_wants':0,'error': str(e)}), 200
 
 @app.route('/api/admin/transactions')
 @admin_required
