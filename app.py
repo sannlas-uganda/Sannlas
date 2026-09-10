@@ -1287,29 +1287,44 @@ def icon192():
 @app.route('/icon-512.png')
 def icon512():
     return send_from_directory('.', 'icon-512.png')
+def send_reset_email(to_email, otp, user_name="Boss"):
+    import requests, os
+    resend_key = os.environ.get('RESEND_API_KEY','').strip()
+    # Resend free must use onboarding@resend.dev as FROM
+    from_email = "Sannla <onboarding@resend.dev>"
+    
+    html_content = f"""
+    <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
+      <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
+      <div style="padding:22px">
+        <h3>Hi {user_name},</h3>
+        <p>Your Sannla reset code:</p>
+        <h1 style="background:#f5f5f5;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;border:2px dashed #000;font-size:32px">{otp}</h1>
+        <p>Expires in 10 mins</p>
+      </div>
+    </div>
+    """
+    if resend_key:
+        try:
+            r = requests.post("https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                json={"from": from_email, "to": [to_email], "subject": f"Your Sannla Code is {otp}", "html": html_content},
+                timeout=20)
+            print(f"Resend: {r.status_code} {r.text}")
+            if r.status_code < 300:
+                print(f"✅ Email sent to {to_email}")
+                return True
+            else:
+                print(f"Resend failed: {r.text}")
+        except Exception as e:
+            print(f"Resend error: {e}")
+    return False
+
 @app.route('/api/test-email')
 def test_email():
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
-        EMAIL_FROM_LOCAL = "natelieabigail@gmail.com"
-        EMAIL_PASS_LOCAL = os.environ.get('EMAIL_APP_PASSWORD', 'ywhe hdfs otgw zztx').replace(' ','')
-
-        msg = MIMEMultipart()
-        msg['From'] = f"Sannla Shop <{EMAIL_FROM_LOCAL}>"
-        msg['To'] = EMAIL_FROM_LOCAL
-        msg['Subject'] = "Sannla Test 123456"
-        body = "<h1>Test OK Boss!</h1><p>Code: 123456</p>"
-        msg.attach(MIMEText(body, 'html'))
-        
-        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
-        server.starttls()
-        server.login(EMAIL_FROM_LOCAL, EMAIL_PASS_LOCAL)
-        server.send_message(msg)
-        server.quit()
-        return jsonify({"sent": True, "msg": "Email sent to natelieabigail@gmail.com check inbox + spam!"})
+        ok = send_reset_email(EMAIL_FROM, "123456", "Test Boss")
+        return jsonify({"sent": ok, "has_resend": bool(os.environ.get('RESEND_API_KEY'))})
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
