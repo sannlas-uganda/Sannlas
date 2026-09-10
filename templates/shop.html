@@ -11,8 +11,31 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;padding:15px}
 .modal-box{background:#fff;border-radius:15px;max-width:400px;width:100%;overflow:hidden}
 .modal-box img{width:100%;height:250px;object-fit:cover}
+.bell-btn{position:fixed;top:15px;right:15px;background:#00FF00;color:#000;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;z-index:9999;box-shadow:0 4px 15px rgba(0,255,0,0.5);animation:pulse 2s infinite}
+.bell-btn.has-new{animation:shake 0.5s infinite;background:#ff0000;color:#fff}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}100%{transform:translateX(0)}}
+.badge-notif{position:absolute;top:-5px;right:-5px;background:red;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}
+.notif-popup{position:fixed;top:70px;right:10px;width:320px;background:white;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:9998;display:none;max-height:70vh;overflow-y:auto;border:3px solid #00FF00}
 </style></head><body>
+<!-- 🔔 NOTIFICATION BELL -->
+<div class="bell-btn" id="bellBtn" onclick="toggleNotif()" style="display:none">🔔<span class="badge-notif" id="bellCount">0</span></div>
+<div class="notif-popup" id="notifPopup">
+  <div style="background:#000;color:#00FF00;padding:12px;font-weight:bold;border-radius:12px 12px 0 0;display:flex;justify-content:space-between">🔥 New Wants For You! <span onclick="toggleNotif()" style="cursor:pointer">❌</span></div>
+  <div id="notifList" style="padding:10px"></div>
+  <button onclick="clearNotifs()" style="width:100%;background:#111;color:white;padding:8px;border-radius:0 0 12px 12px">Clear All</button>
+</div>
+<audio id="notifSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
+
 <div class="header" id="h">Loading...</div>
+
+<!-- 🎯 SMART WANTS - ONLY MATCHES THIS SHOP -->
+<div id="smartWantsBox" style="display:none;background:linear-gradient(90deg,#000,#003300);border-top:4px solid #00FF00;border-bottom:4px solid #00FF00;padding:12px;margin:0;">
+  <h3 style="color:#00FF00;margin:0 0 8px 0;text-align:center">🔥 <span id="smartWantsCount">0</span> BUYERS WANT YOUR PRODUCTS NEAR YOU! 💰</h3>
+  <p style="color:#aaa;font-size:11px;text-align:center;margin:0 0 8px 0">These buyers want what you sell in <span id="smartWantsLocation">this area</span> - Call them NOW!</p>
+  <div id="smartWantsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:400px;overflow-y:auto;"></div>
+</div>
+
 <div class="products" id="p"></div>
 
 <!-- DESCRIPTION MODAL -->
@@ -34,6 +57,8 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 let slug = (location.pathname.split('/shop/')[1] || new URLSearchParams(location.search).get('slug') || '').trim();
 slug = decodeURIComponent(slug).split('?')[0].split('/')[0];
 let allProducts = [];
+let lastWantIds = JSON.parse(localStorage.getItem('lastWants_'+slug) || '[]');
+let newWantsFound = [];
 
 function openDesc(id){
   let x = allProducts.find(p=>p.id==id);
@@ -72,6 +97,7 @@ async function load(){
     return;
   }
   allProducts = products;
+  loadSmartWants(shop, products);
   let count = products.length || shop.total_products || 0;
   document.getElementById('h').innerHTML=`<h1>🏪 ${shop.business_name||shop.name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p>${shop.description||''}</p><p>📦 ${count} Products</p><button style="background:#25D366;color:#fff" onclick="window.open('https://wa.me/${(shop.phone||'').replace(/[^0-9]/g,'')}')">💬 WhatsApp</button><button style="background:#FFCC02" onclick="navigator.clipboard.writeText(location.href);alert('Link copied')">🔗 Share</button><button onclick="location.href='/'">🏠 Home</button>`;
 
@@ -85,10 +111,98 @@ async function load(){
     if(x.original_price && x.original_price > x.price){
       priceHtml = `UGX ${x.price} <span style="text-decoration:line-through;color:gray;font-size:12px">UGX ${x.original_price}</span>`;
     }
-return `<div class="card">${badge}<img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br><span style="font-size:13px">${priceHtml}</span><br><button onclick="openDesc('${x.id}')" style="width:100%;background:#000;color:#FFCC02;padding:6px;border-radius:8px;margin-top:6px">📄 Description</button></div></div>`;  }).join('');
+    return `<div class="card">${badge}<img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br><span style="font-size:13px">${priceHtml}</span><br><button onclick="openDesc('${x.id}')" style="width:100%;background:#000;color:#FFCC02;padding:6px;border-radius:8px;margin-top:6px">📄 Description</button></div></div>`;
+  }).join('');
  }catch(e){
   document.getElementById('h').innerHTML=`<h1>Error</h1><p>${e.message}</p>`;
  }
 }
+
+async function loadSmartWants(shop, products){
+ try{
+  let r=await fetch('/api/wants');
+  let wants=await r.json();
+  if(!wants || wants.length==0) return;
+  let shopLocation = (shop.location||'').toLowerCase();
+  let productKeywords = [];
+  products.forEach(p=>{
+    let name = (p.name||'').toLowerCase();
+    name.split(' ').forEach(word=>{ if(word.length>2) productKeywords.push(word); });
+    if(p.main_category) productKeywords.push(p.main_category.toLowerCase());
+  });
+  productKeywords = [...new Set(productKeywords)];
+  let matched = wants.filter(w=>{
+    if(w.status && w.status!=='open') return false;
+    let wantItem = (w.item||'').toLowerCase();
+    let productMatch = productKeywords.length==0;
+    for(let kw of productKeywords){
+      if(kw.length<3) continue;
+      if(wantItem.includes(kw)){ productMatch = true; break; }
+    }
+    if(!productMatch){
+      for(let p of products){
+        let pName = (p.name||'').toLowerCase();
+        if(wantItem.includes(pName) || pName.includes(wantItem.split(' ')[0])){ productMatch = true; break; }
+      }
+    }
+    return productMatch;
+  });
+  if(matched.length==0) return;
+  let currentIds = matched.map(w=>w.id);
+  let trulyNew = matched.filter(w=>!lastWantIds.includes(w.id));
+  if(trulyNew.length>0 && lastWantIds.length>0){
+    newWantsFound = trulyNew;
+    document.getElementById('bellBtn').style.display='flex';
+    document.getElementById('bellBtn').classList.add('has-new');
+    document.getElementById('bellCount').innerText=trulyNew.length;
+    try{ document.getElementById('notifSound').play(); }catch(e){}
+    setTimeout(()=>{ showNotifs(trulyNew); document.getElementById('notifPopup').style.display='block'; },1500);
+  } else if(matched.length>0){
+    document.getElementById('bellBtn').style.display='flex';
+    document.getElementById('bellCount').innerText=matched.length;
+  }
+  localStorage.setItem('lastWants_'+slug, JSON.stringify(currentIds));
+  document.getElementById('smartWantsBox').style.display='block';
+  document.getElementById('smartWantsCount').innerText=matched.length;
+  document.getElementById('smartWantsLocation').innerText=shop.location||'your area';
+  let html = matched.slice(0,10).map(w=>{
+    let isNew = trulyNew.some(nw=>nw.id==w.id);
+    return `<div style="background:${isNew?'#e8ffe8':'white'};border-radius:10px;padding:10px;border-left:4px solid ${isNew?'red':'#00FF00'};position:relative">
+      ${isNew?'<span style="position:absolute;top:5px;right:5px;background:red;color:white;font-size:9px;padding:2px 6px;border-radius:10px">NEW!</span>':''}
+      <b style="color:#000;font-size:14px">🎯 ${w.item}</b><br>
+      <small style="color:#333">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br>
+      <small style="color:#666">${w.note||''}</small><br>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <a href="tel:${w.phone}" style="flex:1;background:#00FF00;color:#000;padding:6px;border-radius:10px;text-align:center;font-weight:bold;text-decoration:none;font-size:12px">📞 Call</a>
+        <a href="https://wa.me/${(w.phone||'').replace(/[^0-9]/g,'')}?text=Hi! I have ${encodeURIComponent(w.item)} you wanted! See my shop: ${encodeURIComponent(location.href)}" target="_blank" style="flex:1;background:#25D366;color:white;padding:6px;border-radius:10px;text-align:center;font-weight:bold;text-decoration:none;font-size:12px">💬 Sell NOW</a>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('smartWantsList').innerHTML=html;
+ }catch(e){ console.log(e); }
+}
+
+function toggleNotif(){
+ let p=document.getElementById('notifPopup');
+ p.style.display = p.style.display=='block'? 'none' : 'block';
+ if(p.style.display=='block' && newWantsFound.length>0) showNotifs(newWantsFound);
+}
+function showNotifs(list){
+ document.getElementById('notifList').innerHTML = list.map(w=>`
+  <div style="border-bottom:1px solid #eee;padding:8px 0">
+    <b>🎯 ${w.item}</b> <span style="background:red;color:white;font-size:9px;padding:2px 5px;border-radius:8px">NEW</span><br>
+    <small>${w.quantity||''} | ${w.district||''} | ${w.phone}</small><br>
+    <a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:4px 10px;border-radius:10px;text-decoration:none;font-size:11px;font-weight:bold">📞 Call NOW</a>
+  </div>
+ `).join('');
+}
+function clearNotifs(){
+ newWantsFound=[];
+ document.getElementById('bellCount').style.display='none';
+ document.getElementById('bellBtn').classList.remove('has-new');
+ document.getElementById('notifPopup').style.display='none';
+}
+setInterval(()=>{ if(allProducts.length>0){ let shop={location: document.querySelector('.header')?.innerText || 'Uganda'}; loadSmartWants(shop, allProducts); } },30000);
+
 load();
 </script></body></html>
