@@ -648,7 +648,7 @@ def withdraw_coins():
     txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
     save_db('coin_transactions.json', txs)
     return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}."})
-    @app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     ref_code = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
