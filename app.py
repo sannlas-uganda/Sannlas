@@ -1288,11 +1288,15 @@ def icon192():
 def icon512():
     return send_from_directory('.', 'icon-512.png')
 def send_reset_email(to_email, otp, user_name="Boss"):
-    import requests, os
-    resend_key = os.environ.get('RESEND_API_KEY','').strip()
-    # Resend free must use onboarding@resend.dev as FROM
-    from_email = "Sannla <onboarding@resend.dev>"
-    
+    import os, json, http.client, smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    # === CONFIG ===
+    EMAIL_FROM = os.environ.get('EMAIL_FROM','').strip() or "natelieabigail@gmail.com"
+    EMAIL_PASS = os.environ.get('EMAIL_APP_PASSWORD','').strip() or "ywhe hdfs otgw zztx"
+    RESEND_KEY = os.environ.get('RESEND_API_KEY','').strip()
+
     html_content = f"""
     <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
       <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
@@ -1301,30 +1305,62 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         <p>Your Sannla reset code:</p>
         <h1 style="background:#f5f5f5;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;border:2px dashed #000;font-size:32px">{otp}</h1>
         <p>Expires in 10 mins</p>
+        <p style="color:#888;font-size:12px">If you didn't request this, ignore.</p>
       </div>
     </div>
     """
-    if resend_key:
+
+    # === METHOD 1: GMAIL SMTP (Can send FROM natelieabigail@gmail.com TO ANY USER) ===
+    if EMAIL_PASS:
         try:
-            r = requests.post("https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
-                json={"from": from_email, "to": [to_email], "subject": f"Your Sannla Code is {otp}", "html": html_content},
-                timeout=20)
-            print(f"Resend: {r.status_code} {r.text}")
-            if r.status_code < 300:
-                print(f"✅ Email sent to {to_email}")
-                return True
-            else:
-                print(f"Resend failed: {r.text}")
+            print(f"📧 Trying Gmail: {EMAIL_FROM} -> {to_email}")
+            msg = MIMEMultipart()
+            msg['From'] = f"Sannla <{EMAIL_FROM}>"
+            msg['To'] = to_email
+            msg['Subject'] = f"Your Sannla Code is {otp}"
+            msg.attach(MIMEText(html_content, 'html'))
+
+            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(EMAIL_FROM, EMAIL_PASS)
+            server.sendmail(EMAIL_FROM, to_email, msg.as_string())
+            server.quit()
+            print(f"✅ Gmail SUCCESS to {to_email}")
+            return True
         except Exception as e:
-            print(f"Resend error: {e}")
+            print(f"❌ Gmail failed: {e}")
+
+    # === METHOD 2: RESEND (Backup - only works to your own email) ===
+    if RESEND_KEY:
+        try:
+            print(f"📧 Trying Resend to {to_email}")
+            conn = http.client.HTTPSConnection("api.resend.com", timeout=20)
+            payload = json.dumps({
+                "from": "Sannla <onboarding@resend.dev>",
+                "to": [to_email],
+                "subject": f"Your Sannla Code is {otp}",
+                "html": html_content
+            })
+            headers = {'Authorization': f'Bearer {RESEND_KEY}', 'Content-Type': 'application/json'}
+            conn.request("POST", "/emails", payload, headers)
+            res = conn.getresponse()
+            data = res.read().decode("utf-8")
+            print(f"Resend: {res.status} {data}")
+            if res.status < 300:
+                return True
+        except Exception as e:
+            print(f"❌ Resend failed: {e}")
+
     return False
 
 @app.route('/api/test-email')
 def test_email():
     try:
-        ok = send_reset_email(EMAIL_FROM, "123456", "Test Boss")
-        return jsonify({"sent": ok, "has_resend": bool(os.environ.get('RESEND_API_KEY'))})
+        # Test sending to YOUR email with Gmail
+        ok = send_reset_email("natelieabigail@gmail.com", "123456", "Test Boss")
+        return jsonify({"sent": ok, "from": os.environ.get('EMAIL_FROM','natelieabigail@gmail.com'), "has_pass": bool(os.environ.get('EMAIL_APP_PASSWORD'))})
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
