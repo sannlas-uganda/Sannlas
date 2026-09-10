@@ -1062,7 +1062,7 @@ def spin_stats():
     admin_cut=sum(s.get('admin_cut', s.get('fee',0)) for s in spins)
     profit=collected - paid
     return jsonify({"total":total,"collected":collected,"paid":paid,"profit":profit,"admin_cut":admin_cut})
-    @app.route('/manifest.json')
+@app.route('/manifest.json')
 def manifest():
     return send_from_directory('.', 'manifest.json')
 
