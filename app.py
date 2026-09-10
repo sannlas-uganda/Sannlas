@@ -279,9 +279,9 @@ def home():
     promo = request.args.get('promo','')
     product = request.args.get('product','')
     resp = make_response(render_template('index.html'))
-      if ref:
-    resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
-      if promo and product:
+    if ref:
+        resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
+    if promo and product:
         try:
             clicks = load_db('promo_clicks.json',[])
             clicks.append({'product_id':product,'promo':promo,'ref':ref,'time':time.time(),'ip':request.remote_addr})
