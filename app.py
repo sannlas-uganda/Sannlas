@@ -360,6 +360,47 @@ def home():
 @app.route('/wallet')
 def wallet_page():
     return redirect('/balance')
+@app.route('/wants')
+def wants_page():
+    return render_template_string("""
+<!DOCTYPE html>
+<html><head><title>WANTS - Buyers Need - SANNLAS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#0f0f0f;color:white;margin:0;padding-bottom:80px}
+.navbar{background:#000;color:white;padding:10px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10}
+.btn{padding:8px 12px;border-radius:20px;border:none;font-weight:bold;cursor:pointer}
+.card{background:#1e1e1e;border:2px solid #00FF00;border-radius:12px;padding:12px;margin:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style></head><body>
+<div class="navbar"><b>🎯 LIVE WANTS - Buyers Need NOW</b><div><a href="/"><button class="btn" style="background:#FFCC02">🏠 Home</button></a> <button class="btn" style="background:#00FF00" onclick="loadWants()">🔄 Refresh</button></div></div>
+<div style="background:#00FF00;color:#000;padding:10px;text-align:center;font-weight:bold">💡 These buyers want to BUY! Call them to sell - FREE leads Boss! Total: <span id="totalWants">0</span></div>
+<div id="wantsListPage" style="max-width:900px;margin:0 auto;padding:10px">Loading...</div>
+<script>
+async function loadWants(){
+  let box=document.getElementById('wantsListPage');
+  box.innerHTML='⏳ Loading...';
+  let r=await fetch('/api/wants');
+  let wants=await r.json();
+  document.getElementById('totalWants').innerText=wants.length;
+  if(!wants.length){ box.innerHTML='<p style="text-align:center;padding:30px">No WANTS yet! Be first to POST WANT on homepage</p>'; return; }
+  box.innerHTML=wants.slice().reverse().map(w=>{
+    let d=w.created? new Date(w.created*1000).toLocaleString():'';
+    return `<div class="card">
+      <div style="flex:1"><b style="color:#00FF00;font-size:18px">🎯 ${w.item}</b> <span style="background:${w.status=='open'?'#00FF00':'gray'};color:#000;padding:2px 8px;border-radius:10px;font-size:10px">${w.status||'open'}</span><br>
+      <small>📦 Qty: ${w.quantity||'Any'} | 📍 ${w.district||'Uganda'}</small><br>
+      <small style="color:#aaa">📝 ${w.note||''}</small><br><small style="color:#888">📅 ${d}</small><br>
+      <small style="color:#FFCC02">👤 ${w.email||'Buyer'} | 📞 <b>${w.phone}</b></small></div>
+      <div style="display:flex;flex-direction:column;gap:6px;min-width:140px">
+        <a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:10px;border-radius:20px;text-align:center;font-weight:bold;text-decoration:none">📞 Call Buyer</a>
+        <a href="https://wa.me/${w.phone}?text=Hi I have ${encodeURIComponent(w.item)} you wanted on SANNLAS - https://sannlas.onrender.com" target="_blank" style="background:#25D366;color:white;padding:10px;border-radius:20px;text-align:center;font-weight:bold;text-decoration:none">💬 WhatsApp</a>
+        <div style="background:#111;padding:6px;border-radius:8px;text-align:center;font-size:11px;color:#888">Post: ${d}</div>
+      </div></div>`;
+  }).join('');
+}
+loadWants();
+setInterval(loadWants,15000);
+</script></body></html>
+    """)
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
 @app.route('/invite')
