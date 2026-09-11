@@ -658,60 +658,62 @@ function openForgot(){ document.getElementById('forgotModal').style.display='fle
 function closeForgot(){ document.getElementById('forgotModal').style.display='none'; clearInterval(countdown); }
 function moveOtp(curr,next){ if(curr.value && next) document.getElementById(next).focus(); }
 async function sendCode(isResend=false){
-  let email = isResend? forgotEmail : document.getElementById('fEmail').value.trim();
-  if(!email) return alert("Enter email Boss!");
-  document.getElementById('sendBtn').innerText="Sending..."; document.getElementById('sendBtn').disabled=true;
+  let em = document.getElementById('fEmail').value.trim().toLowerCase();
+  if(!em || !em.includes('@')){ alert('Enter valid email Boss!'); return; }
+  forgotEmail = em;
+  document.getElementById('fMsg').innerText = '⏳ Sending...';
+  document.getElementById('sendBtn').disabled = true;
   try{
-    let r = await fetch('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    let r = await fetch('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});
     let d = await r.json();
-    if(!r.ok) throw new Error(d.message || d.error);
-    forgotEmail = email;
-    document.getElementById('forgotStage1').style.display='none';
-    document.getElementById('forgotStage2').style.display='block';
-    document.getElementById('fEmailShow').innerText=email;
-    startTimer(600);
-  }catch(e){ document.getElementById('fMsg').innerHTML=`<span style='color:red'>${e.message}</span>`; }
-  document.getElementById('sendBtn').innerText="📧 Send Code"; document.getElementById('sendBtn').disabled=false;
+    if(d.success){
+      document.getElementById('forgotStage1').style.display='none';
+      document.getElementById('forgotStage2').style.display='block';
+      document.getElementById('fEmailShow').innerText = em;
+      document.getElementById('fMsg2').innerText = d.message;
+      startTimer();
+    }else{
+      document.getElementById('fMsg').innerText = '❌ '+d.message;
+      document.getElementById('fMsg').style.color='red';
+    }
+  }catch(e){
+    document.getElementById('fMsg').innerText='❌ Failed: '+e.message;
+  }
+  document.getElementById('sendBtn').disabled = false;
 }
-function startTimer(sec){
-  clearInterval(countdown); let t=sec;
+
+function startTimer(){
+  let sec=600;
+  clearInterval(countdown);
   countdown=setInterval(()=>{
-    let m=Math.floor(t/60), s=t%60;
-    document.getElementById('timer').innerText=`Expires in ${m}:${s<10?'0':''}${s}`;
-    if(t--<=0){ clearInterval(countdown); document.getElementById('timer').innerText="Expired! Resend code."; }
+    sec--; let m=Math.floor(sec/60); let s=sec%60;
+    document.getElementById('timer').innerText=`⏰ ${m}:${s.toString().padStart(2,'0')} left`;
+    if(sec<=0){ clearInterval(countdown); document.getElementById('timer').innerText='Expired! Resend.'; }
   },1000);
 }
+
 async function resetPass(){
-  let otp = ['o1','o2','o3','o4','o5','o6'].map(id=>document.getElementById(id).value).join('');
-  let np = document.getElementById('fNewPass').value;
-  let cp = document.getElementById('fConfPass').value;
-  if(otp.length!=6) return alert("Enter 6-digit code");
-  if(np.length<4) return alert("Password min 4 chars");
-  if(np!=cp) return alert("Passwords don't match Boss!");
-  document.getElementById('resetBtn').innerText="Resetting..."; document.getElementById('resetBtn').disabled=true;
+  let o1=document.getElementById('o1').value+document.getElementById('o2').value+document.getElementById('o3').value+document.getElementById('o4').value+document.getElementById('o5').value+document.getElementById('o6').value;
+  let np=document.getElementById('fNewPass').value.trim();
+  let cp=document.getElementById('fConfPass').value.trim();
+  if(o1.length!=6){ alert('Enter 6-digit code'); return; }
+  if(np.length<4){ alert('Password min 4'); return; }
+  if(np!=cp){ alert('Passwords not match'); return; }
+  document.getElementById('resetBtn').disabled=true;
+  document.getElementById('resetBtn').innerText='⏳ Resetting...';
   try{
-    let r = await fetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:forgotEmail, otp, new_password:np})});
-    let d = await r.json();
-    if(!r.ok) throw new Error(d.message || d.error);
-    alert("✅ Password changed! Login now Boss!");
-    closeForgot(); location.reload();
-  }catch(e){ document.getElementById('fMsg2').innerHTML=`<span style='color:red'>${e.message}</span>`; }
-  document.getElementById('resetBtn').innerText="✅ Reset Password"; document.getElementById('resetBtn').disabled=false;
-}
-// AUTO ADD "Forgot?" LINK TO YOUR LOGIN FORM
-setInterval(()=>{
-  let passInputs = document.querySelectorAll('input[type="password"]');
-  passInputs.forEach(inp=>{
-    if(inp.id=='fNewPass' || inp.id=='fConfPass') return;
-    let parent = inp.parentElement;
-    if(parent && !parent.querySelector('.forgot-link-auto')){
-      let link = document.createElement('div');
-      link.className='forgot-link-auto';
-      link.innerHTML='<p style="text-align:right;margin:2px 0"><a onclick="openForgot()" style="color:#0066ff;cursor:pointer;font-size:13px;text-decoration:underline">Forgot password?</a></p>';
-      inp.insertAdjacentElement('afterend', link);
+    let r=await fetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:forgotEmail,otp:o1,new_password:np})});
+    let d=await r.json();
+    document.getElementById('fMsg2').innerText=d.message;
+    if(d.success){
+      alert('✅ '+d.message);
+      closeForgot();
+      switchGate('login');
     }
-  });
-},1000);
+  }catch(e){ alert('Failed: '+e.message); }
+  document.getElementById('resetBtn').disabled=false;
+  document.getElementById('resetBtn').innerText='✅ Reset Password';
+}
 </script>
 <!-- === END FORGOT PASSWORD === -->
 
