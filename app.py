@@ -409,7 +409,7 @@ def admin_save_billboard():
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
     cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
     cfg['type'] = data.get('type', cfg.get('type','image'))  # now supports photo/video/animated    if 'duration' in data:
-        dur = str(data.get('duration'))
+    dur = str(data.get('duration'))
         if dur == "0": cfg['expires_at'] = None
         else:
             try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
