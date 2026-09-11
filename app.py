@@ -189,6 +189,16 @@ def get_billboard_config():
                 save_db('billboard.json', cfg)
         except: pass
     return cfg
+    # ===== HERO ANIMATED STORIES SYSTEM - 3RD BILLBOARD OPTION =====
+def get_hero_stories():
+    return load_db('hero_stories.json', [])
+
+def save_hero_stories(stories):
+    save_db('hero_stories.json', stories)
+
+os.makedirs('static/uploads/hero', exist_ok=True)
+
+def make_shop_slug(business):   # <-- your old code starts here
 
 def make_shop_slug(business):
     if not business: return 'shop'
@@ -400,8 +410,7 @@ def admin_save_billboard():
     cfg['text'] = data.get('text', cfg.get('text',''))[:200]
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
     cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
-    cfg['type'] = data.get('type', cfg.get('type','image'))
-    if 'duration' in data:
+    cfg['type'] = data.get('type', cfg.get('type','image'))  # now supports photo/video/animated    if 'duration' in data:
         dur = str(data.get('duration'))
         if dur == "0": cfg['expires_at'] = None
         else:
@@ -431,6 +440,76 @@ def upload_billboard():
     cfg = {"active": True,"type": filetype,"media_url": media_url,"text": text or "Welcome","link": link or "","created": time.time(),"updated": time.time(),"expires_at": expires_at}
     save_db('billboard.json', cfg)
     return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
+    # === PUBLIC: GET ANIMATED STORIES FOR BILLBOARD ===
+@app.route('/api/hero-stories')
+def api_hero_stories():
+    stories = get_hero_stories()
+    # Sort by order
+    stories = sorted(stories, key=lambda x: x.get('order', 0))
+    return jsonify(stories)
+
+# === ADMIN: GET HERO STORIES ===
+@app.route('/api/admin/hero-stories', methods=['GET'])
+@admin_required
+def admin_get_hero_stories():
+    return jsonify(get_hero_stories())
+
+# === ADMIN: UPLOAD HERO STORY IMAGE ===
+@app.route('/api/admin/hero-stories', methods=['POST'])
+@admin_required
+def admin_add_hero_story():
+    file = request.files.get('image')
+    if not file:
+        return jsonify({'success': False, 'message': 'No image'}), 400
+    
+    # Save file to static/uploads/hero
+    filename = f"{int(time.time())}_{secure_filename(file.filename)}"
+    filepath = os.path.join('static/uploads/hero', filename)
+    file.save(filepath)
+    
+    stories = get_hero_stories()
+    new_story = {
+        'id': int(time.time()*1000),
+        'image': f"/static/uploads/hero/{filename}",
+        'title_en': request.form.get('title_en','')[:100],
+        'title_lg': request.form.get('title_lg','')[:100],
+        'subtitle_en': request.form.get('subtitle_en','')[:100],
+        'subtitle_lg': request.form.get('subtitle_lg','')[:100],
+        'order': int(request.form.get('order', len(stories))),
+        'created': time.time()
+    }
+    stories.append(new_story)
+    save_hero_stories(stories)
+    return jsonify({'success': True, 'story': new_story})
+
+@app.route('/api/admin/hero-stories/<int:sid>', methods=['DELETE'])
+@admin_required
+def admin_delete_hero_story(sid):
+    stories = get_hero_stories()
+    stories = [s for s in stories if s['id'] != sid]
+    save_hero_stories(stories)
+    return jsonify({'success': True})
+
+# === ADMIN: SET BILLBOARD TO ANIMATED TYPE ===
+@app.route('/api/admin/billboard/animated', methods=['POST'])
+@admin_required
+def admin_set_billboard_animated():
+    data = request.json or {}
+    cfg = get_billboard_config()
+    cfg['active'] = True
+    cfg['type'] = 'animated'  # THIRD OPTION!
+    cfg['text'] = data.get('text', 'Welcome')
+    cfg['link'] = data.get('link', '')
+    cfg['updated'] = time.time()
+    # Keep expires
+    if data.get('duration'):
+        dur = str(data.get('duration'))
+        if dur == "0": cfg['expires_at'] = None
+        else:
+            try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
+            except: pass
+    save_db('billboard.json', cfg)
+    return jsonify({'success': True, 'config': cfg})
 
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
