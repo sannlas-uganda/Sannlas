@@ -407,17 +407,22 @@ def admin_save_billboard():
     cfg['active'] = bool(data.get('active', cfg.get('active', False)))
     cfg['text'] = data.get('text', cfg.get('text',''))[:200]
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
-    cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
-    cfg['type'] = data.get('type', cfg.get('type','image'))  # now supports photo/video/animated    if 'duration' in data:
-    dur = str(data.get('duration'))
-        if dur == "0": cfg['expires_at'] = None
-        else:
-            try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
-            except: pass
-    if 'expires_at' in data: cfg['expires_at'] = data['expires_at']
-    cfg['updated'] = time.time()
-    save_db('billboard.json', cfg)
-    return jsonify({'success': True, 'config': cfg})
+           cfg['media_url'] = data.get('media_url', cfg.get('media_url', ''))
+        cfg['type'] = data.get('type', cfg.get('type', 'image'))
+        if 'duration' in data:
+            dur = str(data.get('duration', ''))
+            if dur == "0":
+                cfg['expires_at'] = None
+            else:
+                try:
+                    cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
+                except:
+                    pass
+        if 'expires_at' in data:
+            cfg['expires_at'] = data['expires_at']
+        cfg['updated'] = time.time()
+        save_db('billboard.json', cfg)
+        return jsonify({'success': True, 'config': cfg})
 
 @app.route('/api/upload/billboard', methods=['POST'])
 @admin_required
