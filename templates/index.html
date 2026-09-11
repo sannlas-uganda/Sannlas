@@ -484,45 +484,55 @@ async function loadWantsLive(){
     document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load wants</p>';
   }
 }
-// MIC VOICE SEARCH - Luganda + English - FIXED
-function startVoiceSearch(){
+// MIC VOICE SEARCH - FIXED for Phone Permission
+async function startVoiceSearch(){
   let btn=document.getElementById('micBtn');
+
+  // STEP 1: Ask for mic permission first (phone needs this!)
+  try{
+    let stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=>t.stop()); // stop after permission granted
+  }catch(e){
+    alert('❌ Please ALLOW microphone!\n\nGo to: Chrome > Settings > Site settings > Microphone > Allow for sannlas.onrender.com Boss!');
+    return;
+  }
+
   let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition){
     alert('❌ Voice not supported! Use Chrome browser Boss!');
     return;
   }
+
   let recog = new SpeechRecognition();
   recog.lang = 'en-US';
   recog.interimResults = false;
-  recog.maxAlternatives = 1;
 
-  btn.innerText='🔴 LISTENING...';
+  btn.innerText='🔴 LISTENING... SAY NOW!';
   btn.style.background='red';
   btn.style.color='white';
   btn.disabled=true;
+  // Vibrate phone
+  if(navigator.vibrate) navigator.vibrate(100);
 
   recog.onresult = (e)=>{
     let text = e.results[0][0].transcript;
     document.getElementById('searchInput').value=text;
     doFilter();
     let low = text.toLowerCase();
-    if(low.includes('i want') || low.includes('njagala') || low.includes('i need')){
+    if(low.includes('i want') || low.includes('njagala')){
       document.getElementById('wantItem').value=text;
-      setTimeout(()=>openWantModal(), 500);
+      setTimeout(()=>openWantModal(), 600);
     }
   };
   recog.onerror = (e)=>{
-    alert('Mic error: '+e.error+' - Allow mic permission Boss!');
     btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
+    if(e.error=='not-allowed') alert('❌ Mic BLOCKED! Click padlock icon in address bar > Permissions > Allow Mic Boss!');
+    else alert('Mic error: '+e.error);
   };
   recog.onend = ()=>{
     btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
   };
-  try{ recog.start(); }catch(err){
-    alert('Mic blocked! Allow in browser settings Boss!');
-    btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
-  }
+  recog.start();
 }
 setInterval(loadWantsLive,10000);
 // ===== END WANT JS =====
