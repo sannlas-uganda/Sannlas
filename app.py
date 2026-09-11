@@ -1439,7 +1439,7 @@ def test_email():
 def clear_billboard_crash():
     save_db('billboard.json', {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas", "link": "", "created": time.time(), "expires_at": None})
     return "<h1>✅ 502 FIXED! Billboard cleared! Go to /admin now - Delete this route after!</h1>"
-    @app.route('/clear-billboard-crash')
+@app.route('/clear-billboard-crash')
 def clear_billboard_crash():
     try:
         # Clear Postgres + file
