@@ -418,7 +418,7 @@ def admin_save_billboard():
                     cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
                 except:
                     pass
-        if 'expires_at' in data:
+    if 'expires_at' in data:
             cfg['expires_at'] = data['expires_at']
         cfg['updated'] = time.time()
         save_db('billboard.json', cfg)
