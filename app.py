@@ -409,7 +409,7 @@ def admin_save_billboard():
     cfg['text'] = data.get('text', cfg.get('text',''))[:200]
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
     cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
-       cfg['type'] = data.get('type', cfg.get('type','image'))  # now supports photo/video/animated
+    cfg['type'] = data.get('type', cfg.get('type','image'))  # now supports photo/video/animated
     if 'duration' in data:
         dur = str(data.get('duration'))
         if dur == "0": cfg['expires_at'] = None
