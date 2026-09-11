@@ -1439,6 +1439,32 @@ def test_email():
 def clear_billboard_crash():
     save_db('billboard.json', {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas", "link": "", "created": time.time(), "expires_at": None})
     return "<h1>✅ 502 FIXED! Billboard cleared! Go to /admin now - Delete this route after!</h1>"
+    @app.route('/clear-billboard-crash')
+def clear_billboard_crash():
+    try:
+        # Clear Postgres + file
+        save_db('billboard.json', {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas", "link": "", "created": time.time(), "expires_at": None})
+        # Also clear huge products base64 if exists
+        return "<h1>✅ FIXED! Billboard cleared! Now go to /admin - Delete this route after!</h1><script>setTimeout(()=>{window.location='/admin'},2000)</script>"
+    except Exception as e:
+        return f"Error: {e}", 500
+
+@app.route('/api/admin/data-fixed')
+@admin_required
+def admin_data_fixed():
+    try:
+        products=load_db('products.json',[]) or []
+        users=load_db('users.json',[]) or []
+        shops=load_db('shops.json',[]) or []
+        # SAFE TRIM - don't send 200MB
+        products_trim = []
+        for p in products[-20:][::-1]:
+            pp = {k: str(v)[:200] if isinstance(v,str) and len(str(v))>200 else v for k,v in p.items()}
+            pp.pop('images',None)
+            products_trim.append(pp)
+        return jsonify({'products': products_trim, 'users': users[-20:], 'shops': shops, 'total': len(products)})
+    except Exception as e:
+        return jsonify({'products':[],'users':[],'shops':[],'error': str(e)})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
