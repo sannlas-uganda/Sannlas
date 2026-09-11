@@ -115,22 +115,49 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products</h2><div id="productsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="withdraws" class="tabPane" style="display:none"><div class="card" style="border:3px solid #ff6a00"><h2>💸 Withdraw Requests</h2><div id="withdrawsBox">Loading...</div></div></div>
-<div id="billboard" class="tabPane" style="display:none"><div class="card" style="border:3px solid #00FF00"><h2>📢 Billboard</h2>
+<!-- 3 BUTTONS -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0">
+  <button onclick="setBBType('image')" id="bbBtnImg" style="padding:12px;background:#FFCC02;color:#000;font-weight:bold;border-radius:8px;border:none">🖼️ PHOTO</button>
+  <button onclick="setBBType('video')" id="bbBtnVid" style="padding:12px;background:#333;color:white;font-weight:bold;border-radius:8px;border:1px solid #FFCC02">🎥 VIDEO</button>
+  <button onclick="setBBType('animated')" id="bbBtnAnim" style="padding:12px;background:#333;color:white;font-weight:bold;border-radius:8px;border:1px solid #FFCC02">🔥 ANIMATED</button>
+</div>
+
+<!-- NORMAL: PHOTO / VIDEO -->
+<div id="bbNormalBox">
 <div style="background:#000;padding:12px;border-radius:10px;border:1px solid #333">
-<div style="background:#111;padding:10px;border-radius:8px;border:2px dashed #00FF00;margin-bottom:10px">
-<b style="color:#00FF00">📁 Image OR Video</b><br>
+<div style="background:#111;padding:10px;border-radius:8px;border:2px dashed #FFCC02;margin-bottom:10px">
+<b style="color:#FFCC02">📁 Photo OR Video</b><br>
 <input type="file" id="bbFileInput" accept="image/*,video/*" style="background:#222;margin-top:8px;width:95%">
 <select id="bbDuration" style="width:98%;background:#222;color:white;margin-top:8px">
   <option value="3">3 Hours</option><option value="12">12 Hours</option><option value="24" selected>24 Hours</option><option value="72">3 Days</option><option value="168">7 Days</option><option value="720">30 Days</option><option value="0">Forever</option>
 </select>
 <input id="bbText" placeholder="Banner Text" style="width:95%;margin-top:8px">
 <input id="bbLink" placeholder="Link" style="width:95%">
-<button onclick="uploadBillboardFile()" style="background:#FFCC02;color:#000;width:100%;margin-top:10px">🚀 UPLOAD</button>
+<button onclick="uploadBillboardFile()" style="background:#FFCC02;color:#000;width:100%;margin-top:10px">🚀 UPLOAD PHOTO/VIDEO</button>
 <button onclick="turnOffBillboard()" style="background:#333;color:white;width:100%;margin-top:8px">❌ TURN OFF</button>
 <div id="bbUploadStatus" style="margin-top:8px;font-weight:bold;text-align:center"></div>
 </div>
 <div id="bbPreview" style="margin-top:10px;background:#222;padding:10px;border-radius:8px"></div>
 </div>
+</div>
+
+<!-- ANIMATED STORIES -->
+<div id="bbAnimBox" style="display:none">
+<div style="background:#000;padding:12px;border-radius:10px;border:2px solid #FFCC02">
+<h4 style="color:#FFCC02;margin:5px 0">🔥 Animated Stories - Upload Multiple Images</h4>
+<input type="file" id="heroStoryFile" accept="image/*" style="width:95%;background:#222;padding:8px;border-radius:8px">
+<input id="heroStoryTitle" placeholder="Title e.g. Super Sale!" style="width:95%;margin-top:6px">
+<input id="heroStorySub" placeholder="Subtitle e.g. 50% OFF" style="width:95%;margin-top:6px">
+<button onclick="uploadHeroStoryAdmin()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:8px">➕ ADD STORY IMAGE</button>
+<div id="heroStoriesList" style="margin-top:10px;display:grid;gap:8px"></div>
+<hr style="margin:15px 0;border:1px solid #333">
+<input id="bbTextAnim" placeholder="Main Banner Text (optional)" style="width:95%">
+<button onclick="activateAnimated()" style="width:100%;background:#ff6a00;color:white;padding:14px;border:none;border-radius:8px;font-weight:bold;margin-top:8px">🚀 ACTIVATE ANIMATED MODE LIVE!</button>
+<button onclick="turnOffBillboard()" style="background:#333;color:white;width:100%;margin-top:8px">❌ TURN OFF BILLBOARD</button>
+<div id="bbAnimStatus" style="margin-top:8px;font-weight:bold;text-align:center"></div>
+</div>
+</div>
+
 </div></div>
 
 <div id="wants" class="tabPane" style="display:none">
@@ -171,8 +198,67 @@ function loadWithdraws(){ let withdraws=ALL.withdraws||[]; document.getElementBy
 function withdrawAction(id,action){if(!confirm(action+' '+id+'?'))return;fetch('/api/admin/withdraw/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})}).then(()=>loadData());}
 async function uploadBillboardFile(){ const fileInput=document.getElementById('bbFileInput'); const file=fileInput.files[0]; if(!file){alert('Choose file');return;} if(file.size>12*1024*1024){alert('Max 12MB');return;} const form=new FormData(); form.append('file',file); form.append('text',document.getElementById('bbText').value.trim()); form.append('link',document.getElementById('bbLink').value.trim()); form.append('duration',document.getElementById('bbDuration').value); document.getElementById('bbUploadStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>'; try{ const res=await fetch('/api/upload/billboard',{method:'POST',body:form}); const data=await res.json(); if(data.success){document.getElementById('bbUploadStatus').innerHTML='<span style="color:#00FF00">✅ LIVE!</span>'; loadData();} else document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+(data.error||'fail')+'</span>'; }catch(e){document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+e.message+'</span>';}}
 async function turnOffBillboard(){ if(!confirm('Turn OFF?')) return; await fetch('/api/admin/billboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:false})}); document.getElementById('bbPreview').innerHTML=''; loadData();}
-function loadBillboard(){ let bb=ALL.billboard||{active:false,media_url:'',text:''}; document.getElementById('bbText').value=bb.text||''; document.getElementById('bbLink').value=bb.link||''; let prev=document.getElementById('bbPreview'); if(bb.media_url && bb.active){ if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" controls style="max-width:100%;max-height:200px" autoplay muted loop></video><p>${bb.text||''}</p>`; else prev.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:200px"><p>${bb.text||''}</p>`; } else prev.innerHTML='<p>No billboard</p>';}
-
+let bbCurrentType = 'image';
+function setBBType(type){
+  bbCurrentType = type;
+  document.getElementById('bbBtnImg').style.background = type=='image'?'#FFCC02':'#333';
+  document.getElementById('bbBtnImg').style.color = type=='image'?'#000':'white';
+  document.getElementById('bbBtnVid').style.background = type=='video'?'#FFCC02':'#333';
+  document.getElementById('bbBtnVid').style.color = type=='video'?'#000':'white';
+  document.getElementById('bbBtnAnim').style.background = type=='animated'?'#FFCC02':'#333';
+  document.getElementById('bbBtnAnim').style.color = type=='animated'?'#000':'white';
+  document.getElementById('bbNormalBox').style.display = type=='animated'?'none':'block';
+  document.getElementById('bbAnimBox').style.display = type=='animated'?'block':'none';
+  if(type=='animated') loadHeroStoriesAdmin();
+}
+function loadBillboard(){
+ let bb=ALL.billboard||{active:false,media_url:'',text:''};
+ document.getElementById('bbText').value=bb.text||'';
+ document.getElementById('bbLink').value=bb.link||'';
+ if(document.getElementById('bbTextAnim')) document.getElementById('bbTextAnim').value=bb.text||'';
+ // Detect current type
+ if(bb.type) setBBType(bb.type);
+ let prev=document.getElementById('bbPreview');
+ if(bb.media_url && bb.active && bb.type!=='animated'){
+  if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" controls style="max-width:100%;max-height:200px" autoplay muted loop></video><p>${bb.text||''}</p>`;
+  else prev.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:200px"><p>${bb.text||''}</p>`;
+ } else if(bb.type=='animated' && bb.active){
+  prev.innerHTML=`<p style="color:#FFCC02">🔥 Animated Mode ACTIVE - ${bb.text||''}</p>`;
+  loadHeroStoriesAdmin();
+ } else prev.innerHTML='<p>No billboard</p>';
+}
+async function uploadHeroStoryAdmin(){
+  let file=document.getElementById('heroStoryFile').files[0];
+  if(!file) return alert('Select image Boss!');
+  let fd=new FormData();
+  fd.append('image', file);
+  fd.append('title_en', document.getElementById('heroStoryTitle').value);
+  fd.append('subtitle_en', document.getElementById('heroStorySub').value);
+  document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>';
+  let r=await fetch('/api/admin/hero-stories',{method:'POST', body:fd});
+  let d=await r.json();
+  if(d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">✅ Added!</span>'; document.getElementById('heroStoryFile').value=''; loadHeroStoriesAdmin(); }
+  else document.getElementById('bbAnimStatus').innerHTML='<span style="color:red">'+d.message+'</span>';
+}
+async function loadHeroStoriesAdmin(){
+  let r=await fetch('/api/admin/hero-stories');
+  let stories=await r.json();
+  let list=document.getElementById('heroStoriesList');
+  if(!stories.length){ list.innerHTML='<p style="color:#aaa">No stories yet - Add images!</p>'; return; }
+  list.innerHTML=stories.map(s=>`<div style="display:flex;gap:8px;background:#222;padding:8px;border-radius:8px;align-items:center"><img src="${s.image}" style="width:55px;height:55px;object-fit:cover;border-radius:6px"><div style="flex:1"><b style="color:#FFCC02">${s.title_en||'No title'}</b><br><small style="color:#aaa">${s.subtitle_en||''}</small></div><button onclick="deleteHeroStoryAdmin(${s.id})" style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px">🗑️</button></div>`).join('');
+}
+async function deleteHeroStoryAdmin(id){
+  if(!confirm('Delete this story?')) return;
+  await fetch(`/api/admin/hero-stories/${id}`,{method:'DELETE'});
+  loadHeroStoriesAdmin();
+}
+async function activateAnimated(){
+  let text=document.getElementById('bbTextAnim').value||document.getElementById('bbText').value||'Welcome';
+  document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Activating...</span>';
+  let r=await fetch('/api/admin/billboard/animated',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:text})});
+  let d=await r.json();
+  if(d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">🔥 ANIMATED LIVE ON HOMEPAGE!</span>'; loadData(); }
+}
 // ===== SPIN ADMIN B =====
 async function loadAdminSpin(){
  try{
