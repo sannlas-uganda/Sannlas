@@ -362,7 +362,7 @@ def home():
 def wallet_page():
     return redirect('/balance')
 @app.route('/balance')
-def balance_page(): return render_template('balance.html')
+def balance_page(): return render_template('balance.html') 
 @app.route('/invite')
 def invite_page(): return render_template('invite.html')
 @app.route('/shop/<slug>')
