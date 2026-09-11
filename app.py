@@ -1435,6 +1435,53 @@ def test_email():
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
+@app.route('/api/admin/data')
+@admin_required
+def admin_data():
+    try:
+        products = load_db('products.json', []) or []
+        users = load_db('users.json', []) or []
+        shops = load_db('shops.json', []) or []
+        transactions = load_db('transactions.json', []) or []
+        billboard = load_db('billboard.json', {}) or {}
+        featured = load_db('featured.json', {}) or {}
+        orders = load_db('orders.json', []) or []
+        contacts = load_db('contacts.json', []) or []
+        coin_transactions = load_db('coin_transactions.json', []) or []
+        coin_config = load_db('coin_config.json', {"total":1000000000,"remaining":1000000000,"sold":0}) or {}
+        withdraws = load_db('withdraws.json', []) or []
+        wants = load_db('wants.json', []) or []
+
+        # TRIM - delete 200MB base64 crash
+        safe_products = []
+        for p in products[-50:][::-1]:
+            np = dict(p)
+            if 'images' in np: del np['images']
+            if 'image' in np and len(str(np.get('image',''))) > 500:
+                np['image'] = ""
+            safe_products.append(np)
+
+        if billboard.get('media_url','') and len(str(billboard.get('media_url',''))) > 1000:
+            billboard['media_url'] = ""
+            billboard['active'] = False
+
+        return jsonify({
+            'products': safe_products,
+            'users': users[-100:],
+            'shops': shops,
+            'transactions': transactions[-50:],
+            'billboard': billboard,
+            'featured': featured,
+            'orders': orders[-50:],
+            'contacts': contacts[-50:],
+            'coin_transactions': coin_transactions[-50:],
+            'coin_config': coin_config,
+            'coin_revenue': load_db('coin_revenue.json', 0),
+            'withdraws': withdraws[-50:],
+            'wants': wants[-50:]
+        })
+    except Exception as e:
+        return jsonify({'products':[],'users':[],'shops':[],'orders':[],'contacts':[],'coin_transactions':[],'coin_config':{},'withdraws':[],'wants':[],'billboard':{},'featured':{},'error': str(e)})
         
 @app.route('/clear-billboard-crash')
 def clear_billboard_crash():
