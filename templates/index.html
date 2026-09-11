@@ -440,16 +440,19 @@ function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.re
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
 function updateLoginUI(){
- if(currentUser){
-  document.getElementById('userInfo').style.display='block';
-  let tc = currentUser.coins || currentUser.total || 0;
-  document.getElementById('userInfo').innerHTML=`✅ ${currentUser.email} | 🪙 ${tc} coins`;
-  document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
-  loadMyCoins();
-  loadMySalesStats();
- }
+  if(currentUser){
+    document.getElementById('userInfo').style.display='block';
+    let tc = currentUser.coins || currentUser.total || 0;
+    document.getElementById('userInfo').innerHTML=`${currentUser.email} | 🪙 ${tc} coins`;
+    document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
+    try{ loadMyCoins(); }catch(e){}
+    try{ loadMySalesStats(); }catch(e){}
+  }
 }
- function doLogout(){localStorage.clear();location.reload();}
+
+function loadMyCoins(){}
+function loadMySalesStats(){}
+function doLogout(){localStorage.clear();location.reload();}
 function setStake(v){document.getElementById('stakeInput').value=v;updateFee();}
 function updateFee(){let s=parseInt(document.getElementById('stakeInput').value)||0;if(s>1000){s=1000;document.getElementById('stakeInput').value=1000}if(s<0){s=0;document.getElementById('stakeInput').value=0}let fee=s==0?0:Math.floor(s*0.15);document.getElementById('feePreview').innerText=s==0?'FREE DEMO':fee+' coins fee';}
 document.getElementById('stakeInput')?.addEventListener('input',updateFee);setTimeout(updateFee,500);
