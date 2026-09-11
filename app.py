@@ -1435,10 +1435,7 @@ def test_email():
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
-@app.route('/clear-billboard-crash')
-def clear_billboard_crash():
-    save_db('billboard.json', {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas", "link": "", "created": time.time(), "expires_at": None})
-    return "<h1>✅ 502 FIXED! Billboard cleared! Go to /admin now - Delete this route after!</h1>"
+        
 @app.route('/clear-billboard-crash')
 def clear_billboard_crash():
     try:
