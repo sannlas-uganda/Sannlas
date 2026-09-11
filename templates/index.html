@@ -213,8 +213,67 @@ if ('serviceWorker' in navigator) {
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let billboardData=null;
 async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
-async function loadBillboardBanner(){try{let r=await fetch('/api/billboard');let bb=await r.json();billboardData=bb;let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;}else{wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;}txt.innerText=bb.text||'';}catch(e){}}
-function billboardClick(){if(billboardData&&billboardData.link){window.open(billboardData.link,'_blank');}}
+// ===== NEW BILLBOARD 3 OPTIONS - Photo + Video + Animated =====
+async function loadBillboardBanner(){
+  try{
+    let r = await fetch('/api/billboard');
+    let bb = await r.json();
+    billboardData = bb;
+    let banner = document.getElementById('billboardBanner');
+    let wrap = document.getElementById('billboardMediaWrap');
+    let txt = document.getElementById('billboardText');
+    if(!bb ||!bb.active){
+      banner.classList.remove('active'); return;
+    }
+    if(bb.type!== 'animated' &&!bb.media_url){
+      banner.classList.remove('active'); return;
+    }
+    banner.classList.add('active');
+    if(bb.type == 'image'){
+      wrap.innerHTML = `<img src="${bb.media_url}" alt="Billboard">`;
+      txt.innerText = bb.text || ''; txt.style.display = 'block';
+    }
+    else if(bb.type == 'video'){
+      wrap.innerHTML = `<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;
+      txt.innerText = bb.text || ''; txt.style.display = 'block';
+    }
+    else if(bb.type == 'animated'){
+      txt.style.display = 'none';
+      let r2 = await fetch('/api/hero-stories');
+      let stories = await r2.json();
+      if(!stories.length){
+        wrap.innerHTML = `<div style="padding:30px;color:white;text-align:center">No stories yet! Add in Admin > Hero Stories</div>`; return;
+      }
+      wrap.innerHTML = `
+        <div id="heroStoryBox" style="position:relative;width:100%;height:400px;background:#000;overflow:hidden">
+          <div id="storyProgress" style="position:absolute;top:8px;left:8px;right:8px;display:flex;gap:4px;z-index:10"></div>
+          <img id="storyImg" style="width:100%;height:100%;object-fit:cover">
+          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.9));padding:20px;color:white">
+            <h2 id="storyTitle" style="color:#FFCC02;margin:0;font-size:18px"></h2>
+            <p id="storySub" style="margin:5px 0 0 0;font-size:13px"></p>
+            <div style="margin-top:8px;font-size:11px;background:rgba(255,204,2,0.2);display:inline-block;padding:4px 8px;border-radius:10px">🔥 ${stories.length} Stories • Auto-play</div>
+          </div>
+        </div>
+      `;
+      const progressEl = document.getElementById('storyProgress');
+      progressEl.innerHTML = stories.map((_,i)=>`<div style="flex:1;height:3px;background:rgba(255,255,255,0.3);border-radius:3px"><div id="prog-${i}" style="height:100%;width:0%;background:#FFCC02"></div></div>`).join('');
+      let current = 0;
+      function showStory(idx){
+        const s = stories[idx];
+        document.getElementById('storyImg').src = s.image;
+        document.getElementById('storyTitle').textContent = s.title_en || bb.text || '';
+        document.getElementById('storySub').textContent = s.subtitle_en || '';
+      }
+      showStory(0); let prog = 0;
+      if(window.heroInterval) clearInterval(window.heroInterval);
+      window.heroInterval = setInterval(()=>{
+        prog++; const bar = document.getElementById(`prog-${current}`);
+        if(bar) bar.style.width = prog + '%';
+        if(prog >= 100){ prog = 0; if(bar) bar.style.width='0%'; current=(current+1)%stories.length; showStory(current); }
+      },50);
+    }
+  }catch(e){ console.log('billboard error', e); }
+}function billboardClick(){if(billboardData&&billboardData.link){window.open(billboardData.link,'_blank');}}
 async function loadMyCoins(){
  if(!currentUser) return;
  try{
