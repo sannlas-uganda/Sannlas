@@ -442,37 +442,22 @@ async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Bo
 function updateLoginUI(){
   if(currentUser){
     let coins = currentUser.coins || currentUser.total || 0;
-    
-    // 1. Top email bar
     document.getElementById('userInfo').style.display='block';
     document.getElementById('userInfo').innerHTML=`${currentUser.email} | 🪙 ${coins} coins`;
     document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
-
-    // 2. FIX ALL Balance buttons (top + bottom)
-    document.querySelectorAll('*').forEach(el=>{
-      if(el.childElementCount===0 && el.textContent.includes('Balance (0)')){
-         el.textContent = el.textContent.replace('Balance (0)', `Balance (${coins})`);
-      }
-      if(el.childElementCount===0 && el.textContent.match(/Balance \(\d+\)/)){
-         if(!el.textContent.includes(`Balance (${coins})`)){
-           el.textContent = `💰 Balance (${coins})`;
-           // bottom nav has no icon
-           if(el.textContent.includes('Invite')===false && el.parentElement && el.parentElement.textContent.includes('Invite')){}
-         }
+    let bottom = document.getElementById('bottomCoins');
+    if(bottom) bottom.innerText = coins;
+    let top = document.getElementById('topCoins') || document.getElementById('balanceCoins') || document.getElementById('topBalance') || document.getElementById('myCoins');
+    if(top) top.innerText = coins;
+    document.querySelectorAll('span').forEach(s=>{
+      if(s.textContent.includes('Balance (0)')){
+        s.innerHTML = `💰 Balance (<span id="topCoins">${coins}</span>)`;
       }
     });
-
-    // 3. Direct fix for common IDs
-    ['balanceBtn','balanceTop','balanceBottom','myBalance','myBalanceBtn'].forEach(id=>{
-      let b = document.getElementById(id);
-      if(b) b.innerHTML = b.innerHTML.replace(/\(0\)/, `(${coins})`).replace(/Balance.*/, `💰 Balance (${coins})`);
-    });
-
     try{ loadMyCoins(); }catch(e){}
     try{ loadMySalesStats(); }catch(e){}
   }
 }
-
 function loadMyCoins(){}
 function loadMySalesStats(){}
 function doLogout(){localStorage.clear();location.reload();}
