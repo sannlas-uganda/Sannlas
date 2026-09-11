@@ -198,8 +198,8 @@ def save_hero_stories(stories):
 
 os.makedirs('static/uploads/hero', exist_ok=True)
 
-def make_shop_slug(business):   # <-- your old code starts here
-
+def make_shop_slug(business):   
+    
 def make_shop_slug(business):
     if not business: return 'shop'
     base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
