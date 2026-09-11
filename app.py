@@ -407,7 +407,7 @@ def admin_save_billboard():
     cfg['active'] = bool(data.get('active', cfg.get('active', False)))
     cfg['text'] = data.get('text', cfg.get('text',''))[:200]
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
-           cfg['media_url'] = data.get('media_url', cfg.get('media_url', ''))
+        cfg['media_url'] = data.get('media_url', cfg.get('media_url', ''))
         cfg['type'] = data.get('type', cfg.get('type', 'image'))
         if 'duration' in data:
             dur = str(data.get('duration', ''))
