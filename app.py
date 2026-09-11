@@ -17,6 +17,22 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
 os.makedirs('static/billboards', exist_ok=True)
 
+@app.route('/manifest.json')
+def serve_manifest():
+    return send_from_directory('.', 'manifest.json')
+
+@app.route('/icon-192.png')
+def serve_icon1():
+    return send_from_directory('.', 'icon-192.png')
+
+@app.route('/icon-512.png')
+def serve_icon2():
+    return send_from_directory('.', 'icon-512.png')
+
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('.', 'sw.js')
+
 Talisman(app, content_security_policy=None, force_https=False)
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
 CORS(app, origins=["https://sannlas.onrender.com"])
