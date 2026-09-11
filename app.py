@@ -1288,79 +1288,58 @@ def icon192():
 def icon512():
     return send_from_directory('.', 'icon-512.png')
 def send_reset_email(to_email, otp, user_name="Boss"):
-    import os, json, http.client, smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+    try:
+        import socket, smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        import os
 
-    # === CONFIG ===
-    EMAIL_FROM = os.environ.get('EMAIL_FROM','').strip() or "natelieabigail@gmail.com"
-    EMAIL_PASS = os.environ.get('EMAIL_APP_PASSWORD','').strip() or "ywhe hdfs otgw zztx"
-    RESEND_KEY = os.environ.get('RESEND_API_KEY','').strip()
+        EMAIL_FROM = os.environ.get('EMAIL_FROM','').strip() or "natelieabigail@gmail.com"
+        EMAIL_PASS = (os.environ.get('EMAIL_APP_PASSWORD','').strip() or "ywhe hdfs otgw zztx").replace(' ','')
 
-    html_content = f"""
-    <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
-      <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
-      <div style="padding:22px">
-        <h3>Hi {user_name},</h3>
-        <p>Your Sannla reset code:</p>
-        <h1 style="background:#f5f5f5;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;border:2px dashed #000;font-size:32px">{otp}</h1>
-        <p>Expires in 10 mins</p>
-        <p style="color:#888;font-size:12px">If you didn't request this, ignore.</p>
-      </div>
-    </div>
-    """
+        html_content = f"""
+        <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
+          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
+          <div style="padding:22px">
+            <h3>Hi {user_name},</h3>
+            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
+            <p>Expires in 10 mins</p>
+          </div>
+        </div>
+        """
+        msg = MIMEMultipart()
+        msg['From'] = f"Sannla <{EMAIL_FROM}>"
+        msg['To'] = to_email
+        msg['Subject'] = f"Your Sannla Code is {otp}"
+        msg.attach(MIMEText(html_content, 'html'))
 
-    # === METHOD 1: GMAIL SMTP (Can send FROM natelieabigail@gmail.com TO ANY USER) ===
-    if EMAIL_PASS:
-        try:
-            print(f"📧 Trying Gmail: {EMAIL_FROM} -> {to_email}")
-            msg = MIMEMultipart()
-            msg['From'] = f"Sannla <{EMAIL_FROM}>"
-            msg['To'] = to_email
-            msg['Subject'] = f"Your Sannla Code is {otp}"
-            msg.attach(MIMEText(html_content, 'html'))
-
-            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(EMAIL_FROM, EMAIL_PASS)
-            server.sendmail(EMAIL_FROM, to_email, msg.as_string())
-            server.quit()
-            print(f"✅ Gmail SUCCESS to {to_email}")
-            return True
-        except Exception as e:
-            print(f"❌ Gmail failed: {e}")
-
-    # === METHOD 2: RESEND (Backup - only works to your own email) ===
-    if RESEND_KEY:
-        try:
-            print(f"📧 Trying Resend to {to_email}")
-            conn = http.client.HTTPSConnection("api.resend.com", timeout=20)
-            payload = json.dumps({
-                "from": "Sannla <onboarding@resend.dev>",
-                "to": [to_email],
-                "subject": f"Your Sannla Code is {otp}",
-                "html": html_content
-            })
-            headers = {'Authorization': f'Bearer {RESEND_KEY}', 'Content-Type': 'application/json'}
-            conn.request("POST", "/emails", payload, headers)
-            res = conn.getresponse()
-            data = res.read().decode("utf-8")
-            print(f"Resend: {res.status} {data}")
-            if res.status < 300:
-                return True
-        except Exception as e:
-            print(f"❌ Resend failed: {e}")
-
-    return False
+        # FORCE IPv4 - FIX FOR RENDER!
+        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
+        af, socktype, proto, canonname, sa = infos[0]
+        sock = socket.socket(af, socktype, proto)
+        sock.settimeout(20)
+        sock.connect(sa)
+        server = smtplib.SMTP(timeout=20)
+        server.sock = sock
+        server._host = 'smtp.gmail.com'
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(EMAIL_FROM, EMAIL_PASS)
+        server.send_message(msg)
+        server.quit()
+        print(f"✅ Email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        import traceback; traceback.print_exc()
+        return False
 
 @app.route('/api/test-email')
 def test_email():
     try:
-        # Test sending to YOUR email with Gmail
         ok = send_reset_email("natelieabigail@gmail.com", "123456", "Test Boss")
-        return jsonify({"sent": ok, "from": os.environ.get('EMAIL_FROM','natelieabigail@gmail.com'), "has_pass": bool(os.environ.get('EMAIL_APP_PASSWORD'))})
+        return jsonify({"sent": ok, "from": os.environ.get('EMAIL_FROM','natelieabigail@gmail.com')})
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
