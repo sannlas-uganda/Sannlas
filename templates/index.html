@@ -380,8 +380,18 @@ function openPopup(id){
 }
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
-function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadLiveTicker();}
-function gateDoRegister(){
+function gateCheck(){
+  let u=localStorage.getItem('sannlas_user');
+  if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}
+  hideGate();
+  loadCoinLive();
+  loadBillboardBanner();
+  doFilter();
+  loadLiveTicker();
+  loadWantsLive();
+  loadWantsCountNav();
+}
+ function gateDoRegister(){
   let email=document.getElementById('gateRegEmail').value.trim(),
       phone=document.getElementById('gateRegPhone').value.trim(),
       pass=document.getElementById('gateRegPass').value,
