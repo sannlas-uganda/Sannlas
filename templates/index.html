@@ -484,31 +484,45 @@ async function loadWantsLive(){
     document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load wants</p>';
   }
 }
-// MIC VOICE SEARCH - Luganda + English
+// MIC VOICE SEARCH - Luganda + English - FIXED
 function startVoiceSearch(){
   let btn=document.getElementById('micBtn');
-  if(!('webkitSpeechRecognition' in window) &&!('SpeechRecognition' in window)){
-    alert('Voice search not supported on this browser! Use Chrome.');
+  let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    alert('❌ Voice not supported! Use Chrome browser Boss!');
     return;
   }
-  let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recog = new SpeechRecognition();
-  recog.lang = 'en-UG';
+  recog.lang = 'en-US';
   recog.interimResults = false;
-  btn.innerText='🔴';btn.style.background='red';btn.style.color='white';
+  recog.maxAlternatives = 1;
+
+  btn.innerText='🔴 LISTENING...';
+  btn.style.background='red';
+  btn.style.color='white';
+  btn.disabled=true;
+
   recog.onresult = (e)=>{
     let text = e.results[0][0].transcript;
     document.getElementById('searchInput').value=text;
     doFilter();
-    // Also check if user said "I want..." - auto open want modal
-    if(text.toLowerCase().includes('i want') || text.toLowerCase().includes('njagala')){
+    let low = text.toLowerCase();
+    if(low.includes('i want') || low.includes('njagala') || low.includes('i need')){
       document.getElementById('wantItem').value=text;
-      openWantModal();
+      setTimeout(()=>openWantModal(), 500);
     }
   };
-  recog.onend = ()=>{btn.innerText='🎤';btn.style.background='#FFCC02';btn.style.color='#000';};
-  recog.onerror = ()=>{btn.innerText='🎤';btn.style.background='#FFCC02';btn.style.color='#000';};
-  recog.start();
+  recog.onerror = (e)=>{
+    alert('Mic error: '+e.error+' - Allow mic permission Boss!');
+    btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
+  };
+  recog.onend = ()=>{
+    btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
+  };
+  try{ recog.start(); }catch(err){
+    alert('Mic blocked! Allow in browser settings Boss!');
+    btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
+  }
 }
 setInterval(loadWantsLive,10000);
 // ===== END WANT JS =====
