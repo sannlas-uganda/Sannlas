@@ -1454,6 +1454,26 @@ def admin_data_fixed():
         return jsonify({'products': products_trim, 'users': users[-20:], 'shops': shops, 'total': len(products)})
     except Exception as e:
         return jsonify({'products':[],'users':[],'shops':[],'error': str(e)})
+@app.route('/compress-neon-now')
+def compress_neon_now():
+    from PIL import Image
+    import io, base64
+    products = load_db('products.json', [])
+    save_db('products_backup.json', products) # backup!
+    for p in products:
+        s = str(p.get('image',''))
+        if len(s) > 5000:
+            try:
+                if "," in s: s = s.split(",")[1]
+                im = Image.open(io.BytesIO(base64.b64decode(s)))
+                im.thumbnail((600,600))
+                if im.mode in ('RGBA','P'): im = im.convert('RGB')
+                buf = io.BytesIO()
+                im.save(buf, format='JPEG', quality=60, optimize=True)
+                p['image'] = f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
+            except: pass
+    save_db('products.json', products)
+    return f"Done! {len(products)} products compressed! Refresh homepage now!"
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
