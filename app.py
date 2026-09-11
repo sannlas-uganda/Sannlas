@@ -375,6 +375,7 @@ def wants_page():
     if not rows:
       rows = '<p style="text-align:center;padding:30px">No WANTS yet Boss!</p>'
     return '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>WANTS - SANNLAS</title></head><body style="background:#0f0f0f;color:white;font-family:Arial;margin:0"><div style="background:#000;padding:10px;display:flex;justify-content:space-between;position:sticky;top:0"><b>🎯 LIVE WANTS - '+str(len(wants))+' Buyers</b><a href="/"><button style="background:#FFCC02;padding:8px 12px;border-radius:20px;font-weight:bold">🏠 Home</button></a></div><div style="background:#00FF00;color:#000;padding:8px;text-align:center;font-weight:bold">Call buyers to sell - FREE leads!</div>'+rows+'</body></html>'
+
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
 @app.route('/invite')
