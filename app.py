@@ -1169,21 +1169,23 @@ def fix_slugs():
 @admin_required
 def admin_data():
     try:
-        products=load_db('products.json',[]) or []
-        users=load_db('users.json',[]) or []
-        orders=load_db('orders.json',[]) or []
-        contacts=load_db('contacts.json',[]) or []
-        coin_transactions=load_db('coin_transactions.json',[]) or []
-        shops=load_db('shops.json',[]) or []
-        withdraws=load_db('withdraws.json',[]) or []
-        billboard=get_billboard_config()
-        wants=load_db('wants.json',[]) or []
-        coin_config=get_coin_config()
-        coin_rev = sum(t.get('price',0) for t in coin_transactions if t.get('status')!='blocked_fake')
-        return jsonify({'products':products,'users':users,'orders':orders,'contacts':contacts,'coin_transactions':coin_transactions,'shops':shops,'withdraws':withdraws,'wants':wants,'billboard':billboard,'coin_config':coin_config,'coin_revenue':coin_rev,'total_revenue':0,'total_sellers':len(users),'total_orders':len(orders),'total_wants':len(wants)})
+        products = load_db('products.json', []) or []
+        users = load_db('users.json', []) or []
+        shops = load_db('shops.json', []) or []
+        billboard = load_db('billboard.json', {}) or {}
+        # TRIM - never send base64!
+        safe_products = []
+        for p in products[-50:][::-1]:
+            np = dict(p)
+            if 'images' in np: del np['images']
+            if 'image' in np and len(str(np.get('image',''))) > 500: np['image']=""
+            safe_products.append(np)
+        if billboard.get('media_url','') and len(str(billboard.get('media_url','')))>1000:
+            billboard['media_url']=""
+            billboard['active']=False
+        return jsonify({'products':safe_products,'users':users[-100:],'shops':shops,'billboard':billboard,'orders':load_db('orders.json',[]) or [] ,'contacts':load_db('contacts.json',[]) or [],'coin_transactions':load_db('coin_transactions.json',[]) or [],'coin_config':load_db('coin_config.json',{}) or {},'withdraws':load_db('withdraws.json',[]) or [],'wants':load_db('wants.json',[]) or []})
     except Exception as e:
-        return jsonify({'products':[],'users':[],'orders':[],'contacts':[],'coin_transactions':[],'shops':[],'withdraws':[],'wants':[],'billboard':{},'coin_config':{"total":1000000000,"remaining":1000000000,"sold":0,"price":599},"coin_revenue":0,'total_revenue':0,'total_sellers':0,'total_orders':0,'total_wants':0,'error': str(e)}), 200
-
+        return jsonify({'products':[],'users':[],'shops':[],'error':str(e)})
 @app.route('/api/admin/transactions')
 @admin_required
 def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
@@ -1435,63 +1437,6 @@ def test_email():
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
-@app.route('/api/admin/data')
-@admin_required
-def admin_data():
-    try:
-        products = load_db('products.json', []) or []
-        users = load_db('users.json', []) or []
-        shops = load_db('shops.json', []) or []
-        transactions = load_db('transactions.json', []) or []
-        billboard = load_db('billboard.json', {}) or {}
-        featured = load_db('featured.json', {}) or {}
-        orders = load_db('orders.json', []) or []
-        contacts = load_db('contacts.json', []) or []
-        coin_transactions = load_db('coin_transactions.json', []) or []
-        coin_config = load_db('coin_config.json', {"total":1000000000,"remaining":1000000000,"sold":0}) or {}
-        withdraws = load_db('withdraws.json', []) or []
-        wants = load_db('wants.json', []) or []
-
-        # TRIM - delete 200MB base64 crash
-        safe_products = []
-        for p in products[-50:][::-1]:
-            np = dict(p)
-            if 'images' in np: del np['images']
-            if 'image' in np and len(str(np.get('image',''))) > 500:
-                np['image'] = ""
-            safe_products.append(np)
-
-        if billboard.get('media_url','') and len(str(billboard.get('media_url',''))) > 1000:
-            billboard['media_url'] = ""
-            billboard['active'] = False
-
-        return jsonify({
-            'products': safe_products,
-            'users': users[-100:],
-            'shops': shops,
-            'transactions': transactions[-50:],
-            'billboard': billboard,
-            'featured': featured,
-            'orders': orders[-50:],
-            'contacts': contacts[-50:],
-            'coin_transactions': coin_transactions[-50:],
-            'coin_config': coin_config,
-            'coin_revenue': load_db('coin_revenue.json', 0),
-            'withdraws': withdraws[-50:],
-            'wants': wants[-50:]
-        })
-    except Exception as e:
-        return jsonify({'products':[],'users':[],'shops':[],'orders':[],'contacts':[],'coin_transactions':[],'coin_config':{},'withdraws':[],'wants':[],'billboard':{},'featured':{},'error': str(e)})
-        
-@app.route('/clear-billboard-crash')
-def clear_billboard_crash():
-    try:
-        # Clear Postgres + file
-        save_db('billboard.json', {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas", "link": "", "created": time.time(), "expires_at": None})
-        # Also clear huge products base64 if exists
-        return "<h1>✅ FIXED! Billboard cleared! Now go to /admin - Delete this route after!</h1><script>setTimeout(()=>{window.location='/admin'},2000)</script>"
-    except Exception as e:
-        return f"Error: {e}", 500
 
 @app.route('/api/admin/data-fixed')
 @admin_required
