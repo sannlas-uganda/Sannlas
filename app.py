@@ -176,14 +176,16 @@ def get_billboard_config():
         cfg = {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas - Shop Smart, Sell Faster", "link": "", "created": time.time(), "expires_at": None}
         save_db('billboard.json', cfg)
         return cfg
+    media = cfg.get('media_url','')
+    if media.startswith('data:') and len(media) > 300000:
+        print("HUGE billboard - auto disabling to prevent 502")
+        cfg['active'] = False
+        cfg['media_url'] = ""
+        save_db('billboard.json', cfg)
     exp = cfg.get('expires_at')
     if exp and cfg.get('active'):
         try:
-            from datetime import datetime
-            if isinstance(exp, str):
-                exp_dt = datetime.fromisoformat(exp)
-            else:
-                exp_dt = datetime.fromtimestamp(float(exp))
+            exp_dt = datetime.fromisoformat(exp) if isinstance(exp, str) else datetime.fromtimestamp(float(exp))
             if datetime.now() > exp_dt:
                 cfg['active'] = False
                 save_db('billboard.json', cfg)
@@ -402,47 +404,56 @@ def admin_get_billboard(): return jsonify(get_billboard_config())
 @app.route('/api/admin/billboard', methods=['POST'])
 @admin_required
 def admin_save_billboard():
-    data = request.json or {}
-    cfg = get_billboard_config()
-    cfg['active'] = bool(data.get('active', cfg.get('active', False)))
-    cfg['text'] = data.get('text', cfg.get('text',''))[:200]
-    cfg['link'] = data.get('link', cfg.get('link',''))[:300]
-    cfg['media_url'] = data.get('media_url', cfg.get('media_url', ''))
-    cfg['type'] = data.get('type', cfg.get('type', 'image'))
-    if 'duration' in data:
+    try:
+        data = request.json or {}
+        cfg = get_billboard_config()
+        cfg['active'] = bool(data.get('active', cfg.get('active', False)))
+        cfg['text'] = data.get('text', cfg.get('text',''))[:200]
+        cfg['link'] = data.get('link', cfg.get('link',''))[:300]
+        new_media = data.get('media_url','')
+        if new_media.startswith('data:') and len(new_media) > 300000:
+            return jsonify({"success": False, "message": "Image too big! Max 300KB"}), 400
+        if 'media_url' in data:
+            cfg['media_url'] = data.get('media_url', cfg.get('media_url', ''))
+        cfg['type'] = data.get('type', cfg.get('type', 'image'))
+        if 'duration' in data:
             dur = str(data.get('duration', ''))
-            if dur == "0":
-                cfg['expires_at'] = None
+            if dur == "0": cfg['expires_at'] = None
             else:
-                try:
-                    cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
-                except:
-                    pass
-    if 'expires_at' in data:
-        cfg['expires_at'] = data['expires_at']
+                try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
+                except: pass
+        if 'expires_at' in data:
+            cfg['expires_at'] = data['expires_at']
         cfg['updated'] = time.time()
         save_db('billboard.json', cfg)
         return jsonify({'success': True, 'config': cfg})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/upload/billboard', methods=['POST'])
 @admin_required
 def upload_billboard():
-    from datetime import datetime, timedelta
-    file = request.files.get('file')
-    text = request.form.get('text','')[:200]
-    link = request.form.get('link','')[:300]
-    duration = request.form.get('duration','24')
-    if not file: return jsonify({"error": "No file selected"}), 400
-    data = file.read()
-    if len(data) > 12*1024*1024: return jsonify({"error": "File too big! Max 12MB"}), 400
-    mime = file.mimetype or 'image/jpeg'
-    b64 = base64.b64encode(data).decode('utf-8')
-    media_url = f"data:{mime};base64,{b64}"
-    filetype = 'video' if 'video' in mime else 'image'
-    expires_at = None if str(duration)=="0" else (datetime.now() + timedelta(hours=int(duration))).isoformat()
-    cfg = {"active": True,"type": filetype,"media_url": media_url,"text": text or "Welcome","link": link or "","created": time.time(),"updated": time.time(),"expires_at": expires_at}
-    save_db('billboard.json', cfg)
-    return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
+    try:
+        file = request.files.get('file')
+        text = request.form.get('text','')[:200]
+        link = request.form.get('link','')[:300]
+        duration = request.form.get('duration','24')
+        if not file: return jsonify({"error": "No file selected"}), 400
+        data = file.read()
+        if len(data) > 2*1024*1024:
+            return jsonify({"error": "File too big! Max 2MB (was 12MB causing 502)!"}), 400
+        filename = f"{int(time.time())}_{secure_filename(file.filename)}"
+        filepath = os.path.join('static/billboards', filename)
+        os.makedirs('static/billboards', exist_ok=True)
+        open(filepath, 'wb').write(data)
+        media_url = f"/static/billboards/{filename}"
+        filetype = 'video' if 'video' in (file.mimetype or '') else 'image'
+        expires_at = None if str(duration)=="0" else (datetime.now() + timedelta(hours=int(duration))).isoformat()
+        cfg = {"active": True,"type": filetype,"media_url": media_url,"text": text or "Welcome","link": link or "","created": time.time(),"updated": time.time(),"expires_at": expires_at}
+        save_db('billboard.json', cfg)
+        return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     # === PUBLIC: GET ANIMATED STORIES FOR BILLBOARD ===
 @app.route('/api/hero-stories')
 def api_hero_stories():
@@ -1424,6 +1435,10 @@ def test_email():
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
+        @app.route('/clear-billboard-crash')
+def clear_billboard_crash():
+    save_db('billboard.json', {"active": False, "type": "image", "media_url": "", "text": "Welcome to Sannlas", "link": "", "created": time.time(), "expires_at": None})
+    return "<h1>✅ 502 FIXED! Billboard cleared! Go to /admin now - Delete this route after!</h1>"
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
