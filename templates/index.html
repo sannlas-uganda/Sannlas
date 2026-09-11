@@ -70,8 +70,19 @@ if ('serviceWorker' in navigator) {
 <div id="liveTicker"><div id="tickerContent">🔴 LIVE: Loading real activity... • 🎰 SPIN & WIN ACTIVE • 🪙 1 coin = 599 UGX • Min Withdraw 50 coins = UGX 29,950</div></div>
 <div id="billboardBanner" onclick="billboardClick()"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
  <!-- 🔥 LIVE WANTS BOARD - NEW -->
-<div id="liveWantsBoard" style="background:linear-gradient(90deg,#000,#1a5c00);border-top:3px solid #00FF00;border-bottom:3px solid #00FF00;padding:10px;max-height:280px;overflow-y:auto;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
+<!-- 🔥 NEW PRO LIVE WANTS BOARD -->
+<div id="liveWantsBoard" style="background:#000;border:2px solid #00FF00;border-radius:12px;margin:10px;padding:10px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <h3 style="color:#00FF00;margin:0;font-size:15px">🔥 LIVE WANTS - Buyers Need NOW! (<span id="wantsCount">0</span>)</h3>
+    <div style="display:flex;gap:5px">
+      <button onclick="loadWantsLive()" style="background:#00FF00;color:#000;border:none;padding:5px 10px;border-radius:20px;font-weight:bold;font-size:11px;cursor:pointer">🔄</button>
+      <button onclick="openWantsPage()" style="background:#000;color:#00FF00;border:1px solid #00FF00;padding:5px 10px;border-radius:20px;font-weight:bold;font-size:11px;cursor:pointer">View All</button>
+    </div>
+  </div>
+  <div id="wantsList" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory">
+    <p style="color:white;text-align:center;width:100%">⏳ Loading wants...</p>
+  </div>
+</div>  <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="color:#00FF00;margin:0">🔥 LIVE WANTS - Buyers Need This NOW! (<span id="wantsCount">0</span>)</h3>
     <button onclick="loadWantsLive()" style="background:#00FF00;color:#000;border:none;padding:4px 10px;border-radius:10px;font-weight:bold;font-size:11px;cursor:pointer">🔄 Refresh</button>
   </div>
@@ -545,27 +556,32 @@ async function loadWantsLive(){
   try{
     let r=await fetch('/api/wants');
     let wants=await r.json();
-    document.getElementById('wantsCount').innerText=wants.length;
-    if(wants.length==0){
-      document.getElementById('wantsList').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No wants yet! Be first to post 🎯</p>';
+    // REMOVE DUPLICATES - same item + phone
+    let unique = [];
+    let seen = new Set();
+    for(let w of wants){
+      let key = w.item.toLowerCase()+w.phone;
+      if(!seen.has(key)){ seen.add(key); unique.push(w); }
+    }
+    document.getElementById('wantsCount').innerText=unique.length;
+    if(document.getElementById('wantsCountNav')) document.getElementById('wantsCountNav').innerText=unique.length;
+    if(unique.length==0){
+      document.getElementById('wantsList').innerHTML='<p style="color:#888;text-align:center;width:100%">No wants yet! Post first 🎯</p>';
       return;
     }
-    let html=wants.map(w=>{
-      let time = w.created? new Date(w.created*1000).toLocaleTimeString() : '';
-      return `<div style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00">
-        <b style="color:#000">🎯 ${w.item}</b><br>
-        <small style="color:#333">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br>
-        <small style="color:#666">${w.note||''}</small><br>
-        <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <small style="color:#888">${time}</small>
-          <a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:4px 10px;border-radius:10px;font-weight:bold;text-decoration:none;font-size:11px">📞 Call Buyer</a>
-        </div>
+    let html=unique.slice(0,10).map(w=>{
+      return `<div style="min-width:220px;max-width:220px;background:white;border-radius:12px;padding:10px;scroll-snap-align:start;border-left:4px solid #00FF00;flex-shrink:0">
+        <b style="color:#000;font-size:13px">🎯 ${w.item.substring(0,25)}</b><br>
+        <small style="color:#333">📦 ${w.quantity||'Any'} | 📍 ${w.district||'Kampala'}</small><br>
+        <small style="color:#666;font-size:11px">${(w.note||'').substring(0,40)}</small><br>
+        <div style="margin-top:6px"><a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:6px 12px;border-radius:20px;font-weight:bold;text-decoration:none;font-size:11px;display:block;text-align:center">📞 Call Buyer</a></div>
       </div>`;
     }).join('');
     document.getElementById('wantsList').innerHTML=html;
   }catch(e){
-    document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load wants</p>';
+    document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load</p>';
   }
+}
 }
 // MIC VOICE SEARCH - FIXED for Phone Permission
 async function startVoiceSearch(){
