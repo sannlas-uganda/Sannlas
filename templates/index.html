@@ -441,10 +441,33 @@ function compressImage(file){return new Promise((res)=>{let img=new Image();img.
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
 function updateLoginUI(){
   if(currentUser){
+    let coins = currentUser.coins || currentUser.total || 0;
+    
+    // 1. Top email bar
     document.getElementById('userInfo').style.display='block';
-    let tc = currentUser.coins || currentUser.total || 0;
-    document.getElementById('userInfo').innerHTML=`${currentUser.email} | 🪙 ${tc} coins`;
+    document.getElementById('userInfo').innerHTML=`${currentUser.email} | 🪙 ${coins} coins`;
     document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
+
+    // 2. FIX ALL Balance buttons (top + bottom)
+    document.querySelectorAll('*').forEach(el=>{
+      if(el.childElementCount===0 && el.textContent.includes('Balance (0)')){
+         el.textContent = el.textContent.replace('Balance (0)', `Balance (${coins})`);
+      }
+      if(el.childElementCount===0 && el.textContent.match(/Balance \(\d+\)/)){
+         if(!el.textContent.includes(`Balance (${coins})`)){
+           el.textContent = `💰 Balance (${coins})`;
+           // bottom nav has no icon
+           if(el.textContent.includes('Invite')===false && el.parentElement && el.parentElement.textContent.includes('Invite')){}
+         }
+      }
+    });
+
+    // 3. Direct fix for common IDs
+    ['balanceBtn','balanceTop','balanceBottom','myBalance','myBalanceBtn'].forEach(id=>{
+      let b = document.getElementById(id);
+      if(b) b.innerHTML = b.innerHTML.replace(/\(0\)/, `(${coins})`).replace(/Balance.*/, `💰 Balance (${coins})`);
+    });
+
     try{ loadMyCoins(); }catch(e){}
     try{ loadMySalesStats(); }catch(e){}
   }
