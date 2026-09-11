@@ -189,15 +189,6 @@ def get_billboard_config():
                 save_db('billboard.json', cfg)
         except: pass
     return cfg
-    # ===== HERO ANIMATED STORIES SYSTEM - 3RD BILLBOARD OPTION =====
-def get_hero_stories():
-    return load_db('hero_stories.json', [])
-
-def save_hero_stories(stories):
-    save_db('hero_stories.json', stories)
-
-# Ensure hero upload folder
-os.makedirs('static/uploads/hero', exist_ok=True)
 
 def make_shop_slug(business):
     if not business: return 'shop'
@@ -360,22 +351,6 @@ def home():
 @app.route('/wallet')
 def wallet_page():
     return redirect('/balance')
-@app.route('/wants')
-def wants_page():
-    wants = load_data(WANTS_FILE, [])
-    rows = ""
-    for w in reversed(wants):
-        item = w.get('item','')
-        qty = w.get('quantity','Any')
-        district = w.get('district','Uganda')
-        phone = w.get('phone','')
-        note = w.get('note','')
-        email = w.get('email','Buyer')
-        rows += '<div style="background:#111;border:2px solid #00FF00;border-radius:12px;padding:12px;margin:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px"><div style="flex:1"><b style="color:#00FF00;font-size:18px">🎯 '+item+'</b><br><small>📦 '+qty+' | 📍 '+district+'</small><br><small style="color:#aaa">📝 '+note+'</small><br><small style="color:#FFCC02">👤 '+email+' | 📞 '+phone+'</small></div><div style="display:flex;flex-direction:column;gap:6px;min-width:140px"><a href="tel:'+phone+'" style="background:#00FF00;color:#000;padding:10px;border-radius:20px;text-align:center;font-weight:bold;text-decoration:none">📞 Call Buyer</a><a href="https://wa.me/'+phone+'" target="_blank" style="background:#25D366;color:white;padding:10px;border-radius:20px;text-align:center;font-weight:bold;text-decoration:none">💬 WhatsApp</a></div></div>'
-    if not rows:
-      rows = '<p style="text-align:center;padding:30px">No WANTS yet Boss!</p>'
-    return '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>WANTS - SANNLAS</title></head><body style="background:#0f0f0f;color:white;font-family:Arial;margin:0"><div style="background:#000;padding:10px;display:flex;justify-content:space-between;position:sticky;top:0"><b>🎯 LIVE WANTS - '+str(len(wants))+' Buyers</b><a href="/"><button style="background:#FFCC02;padding:8px 12px;border-radius:20px;font-weight:bold">🏠 Home</button></a></div><div style="background:#00FF00;color:#000;padding:8px;text-align:center;font-weight:bold">Call buyers to sell - FREE leads!</div>'+rows+'</body></html>'
-
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
 @app.route('/invite')
@@ -425,7 +400,7 @@ def admin_save_billboard():
     cfg['text'] = data.get('text', cfg.get('text',''))[:200]
     cfg['link'] = data.get('link', cfg.get('link',''))[:300]
     cfg['media_url'] = data.get('media_url', cfg.get('media_url',''))
-    cfg['type'] = data.get('type', cfg.get('type','image'))  # now supports photo/video/animated
+    cfg['type'] = data.get('type', cfg.get('type','image'))
     if 'duration' in data:
         dur = str(data.get('duration'))
         if dur == "0": cfg['expires_at'] = None
@@ -456,76 +431,6 @@ def upload_billboard():
     cfg = {"active": True,"type": filetype,"media_url": media_url,"text": text or "Welcome","link": link or "","created": time.time(),"updated": time.time(),"expires_at": expires_at}
     save_db('billboard.json', cfg)
     return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
-    # === PUBLIC: GET ANIMATED STORIES FOR BILLBOARD ===
-@app.route('/api/hero-stories')
-def api_hero_stories():
-    stories = get_hero_stories()
-    # Sort by order
-    stories = sorted(stories, key=lambda x: x.get('order', 0))
-    return jsonify(stories)
-
-# === ADMIN: GET HERO STORIES ===
-@app.route('/api/admin/hero-stories', methods=['GET'])
-@admin_required
-def admin_get_hero_stories():
-    return jsonify(get_hero_stories())
-
-# === ADMIN: UPLOAD HERO STORY IMAGE ===
-@app.route('/api/admin/hero-stories', methods=['POST'])
-@admin_required
-def admin_add_hero_story():
-    file = request.files.get('image')
-    if not file:
-        return jsonify({'success': False, 'message': 'No image'}), 400
-    
-    # Save file to static/uploads/hero
-    filename = f"{int(time.time())}_{secure_filename(file.filename)}"
-    filepath = os.path.join('static/uploads/hero', filename)
-    file.save(filepath)
-    
-    stories = get_hero_stories()
-    new_story = {
-        'id': int(time.time()*1000),
-        'image': f"/static/uploads/hero/{filename}",
-        'title_en': request.form.get('title_en','')[:100],
-        'title_lg': request.form.get('title_lg','')[:100],
-        'subtitle_en': request.form.get('subtitle_en','')[:100],
-        'subtitle_lg': request.form.get('subtitle_lg','')[:100],
-        'order': int(request.form.get('order', len(stories))),
-        'created': time.time()
-    }
-    stories.append(new_story)
-    save_hero_stories(stories)
-    return jsonify({'success': True, 'story': new_story})
-
-@app.route('/api/admin/hero-stories/<int:sid>', methods=['DELETE'])
-@admin_required
-def admin_delete_hero_story(sid):
-    stories = get_hero_stories()
-    stories = [s for s in stories if s['id'] != sid]
-    save_hero_stories(stories)
-    return jsonify({'success': True})
-
-# === ADMIN: SET BILLBOARD TO ANIMATED TYPE ===
-@app.route('/api/admin/billboard/animated', methods=['POST'])
-@admin_required
-def admin_set_billboard_animated():
-    data = request.json or {}
-    cfg = get_billboard_config()
-    cfg['active'] = True
-    cfg['type'] = 'animated'  # THIRD OPTION!
-    cfg['text'] = data.get('text', 'Welcome')
-    cfg['link'] = data.get('link', '')
-    cfg['updated'] = time.time()
-    # Keep expires
-    if data.get('duration'):
-        dur = str(data.get('duration'))
-        if dur == "0": cfg['expires_at'] = None
-        else:
-            try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
-            except: pass
-    save_db('billboard.json', cfg)
-    return jsonify({'success': True, 'config': cfg})
 
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
@@ -801,8 +706,7 @@ def withdraw_coins():
     txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
     save_db('coin_transactions.json', txs)
     return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}."})
-
-@app.route('/api/register', methods=['POST'])
+    @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
     ref_code = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
