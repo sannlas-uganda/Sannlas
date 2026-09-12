@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WANTS - Reverse Auction | SANNLAS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;padding-bottom:80px}
+.navbar{background:#000;color:#fff;padding:10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:12}
+.btn{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer}
+.btn-yellow{background:#FFCC02;color:#000;border-color:#000}
+.search-bar{background:#111;padding:10px;display:flex;gap:6px;position:sticky;top:50px;z-index:11}
+.search-bar input, .search-bar select{padding:10px;border-radius:20px;border:none;flex:1}
+.wants-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;padding:10px}
+.want-card{background:#fff;border-radius:12px;overflow:hidden;border-left:5px solid #00FF00;cursor:pointer}
+.want-card .top{padding:10px;display:flex;justify-content:space-between}
+.badge-live{background:#00FF00;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold}
+.price-box{background:#000;color:#FFCC02;padding:8px 10px;border-radius:8px;text-align:center;font-weight:bold}
+.offer-count{background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="navbar">
+<div><a href="/" style="color:#FFCC02;text-decoration:none;font-weight:bold">🛍️ SANNLAS</a> | 🔥 WANTS AUCTION</div>
+<div><button class="btn btn-yellow" onclick="location.href='/'">Home</button></div>
+</div>
+
+<div class="search-bar">
+<input id="q" placeholder="Search wants... e.g. iPhone, maize" oninput="loadWants()">
+<select id="district" onchange="loadWants()"><option value="">All Districts</option><option>Kampala</option><option>Wakiso</option><option>Mukono</option><option>Mbarara</option><option>Gulu</option></select>
+<select id="sort" onchange="loadWants()"><option value="newest">Newest</option><option value="most_offers">Most Offers 🔥</option><option value="lowest_budget">Low Budget</option></select>
+</div>
+
+<div style="background:#000;color:#FFCC02;padding:8px;text-align:center;font-weight:bold;border-bottom:3px solid #FFCC02">
+🔥 REVERSE AUCTION - Sellers compete, lowest price wins! <span id="totalWants">0</span> open wants
+</div>
+
+<div id="wantsGrid" class="wants-grid">
+<p style="color:white;text-align:center;grid-column:1/-1;padding:30px">⏳ Loading auction wants...</p>
+</div>
+
+<script>
+async function loadWants(){
+ let q=document.getElementById('q').value;
+ let district=document.getElementById('district').value;
+ let sort=document.getElementById('sort').value;
+ let url=`/api/wants?q=${encodeURIComponent(q)}&district=${encodeURIComponent(district)}&sort=${sort}`;
+ let r=await fetch(url); let wants=await r.json();
+ document.getElementById('totalWants').innerText=wants.length;
+ if(wants.length==0){
+   document.getElementById('wantsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center;padding:30px">No wants matching - be first to post! 🎯<br><a href="/" style="color:#FFCC02">Post Want on Home</a></p>';
+   return;
+ }
+ document.getElementById('wantsGrid').innerHTML=wants.map(w=>{
+   let lowest = w.lowest_offer ? `UGX ${Number(w.lowest_offer).toLocaleString()}` : 'No offers yet';
+   let expire = w.expires_at ? Math.max(0, Math.floor((w.expires_at*1000 - Date.now())/3600000)) : '--';
+   return `<div class="want-card" onclick="location.href='/wants/${w.id}'">
+     <div class="top">
+       <div><b>🎯 ${w.title||w.item}</b><br><small>📦 ${w.quantity||'1'} | 📍 ${w.district} | ⏰ ${expire}h left</small><br><small style="color:#666">${(w.description||w.note||'').slice(0,60)}</small></div>
+       <div style="text-align:right"><span class="badge-live">LIVE AUCTION</span><br><div style="margin-top:5px"><span class="offer-count">💬 ${w.offers_count||0} offers</span></div></div>
+     </div>
+     <div style="display:flex;justify-content:space-between;padding:8px;background:#FFF9C4">
+       <div><small>Budget:</small><br><b>${w.min_budget?`UGX ${Number(w.min_budget).toLocaleString()}`:''} - ${w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable'}</b></div>
+       <div class="price-box">Lowest:<br>${lowest}</div>
+     </div>
+   </div>`;
+ }).join('');
+}
+loadWants();
+setInterval(loadWants,15000);
+</script>
+</body>
+</html>
