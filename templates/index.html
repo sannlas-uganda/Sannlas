@@ -503,13 +503,19 @@ async function submitWant(){
   let district=document.getElementById('wantDistrict').value.trim();
   let phone=document.getElementById('wantPhone').value.trim();
   let note=document.getElementById('wantNote').value.trim();
-  if(!item){alert('What do you want to buy?');return;}
+  if(!item){alert('What do you want?');return;}
   if(!phone){alert('Phone required!');return;}
-  let body={item:item,quantity:qty,district:district,phone:phone,email:currentUser?currentUser.email:'',note:note};
-  let r=await fetch('/api/want',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let body={
+    title:item, item:item, quantity:qty, district:district,
+    phone:phone, email:currentUser?currentUser.email:'',
+    description:note, note:note,
+    category:'General', min_budget:0, max_budget:0,
+    delivery_type:'both', urgency:'3days'
+  };
+  let r=await fetch('/api/wants',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let d=await r.json();
   if(d.success){
-    alert('✅ WANT posted! Sellers will see it on LIVE WANTS board!');
+    alert('✅ WANT posted! Sellers will auction now!');
     closeWantModal();
     loadWantsLive();
     document.getElementById('wantItem').value='';document.getElementById('wantNote').value='';
@@ -517,28 +523,33 @@ async function submitWant(){
 }
 async function loadWantsLive(){
   try{
-    let r=await fetch('/api/wants');
+    let r=await fetch('/api/wants?sort=most_offers');
     let wants=await r.json();
     document.getElementById('wantsCount').innerText=wants.length;
     if(wants.length==0){
       document.getElementById('wantsList').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No wants yet! Be first to post 🎯</p>';
       return;
     }
-    let html=wants.map(w=>{
-      let time = w.created? new Date(w.created*1000).toLocaleTimeString() : '';
-      return `<div style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00">
-        <b style="color:#000">🎯 ${w.item}</b><br>
-        <small style="color:#333">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br>
-        <small style="color:#666">${w.note||''}</small><br>
-        <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <small style="color:#888">${time}</small>
-          <a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:4px 10px;border-radius:10px;font-weight:bold;text-decoration:none;font-size:11px">📞 Call Buyer</a>
+    let html=wants.slice(0,12).map(w=>{
+      let lowest = w.lowest_offer ? `UGX ${Number(w.lowest_offer).toLocaleString()}` : 'No bids';
+      let budget = w.max_budget ? `UGX ${Number(w.max_budget).toLocaleString()}` : 'Negotiable';
+      return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer">
+        <div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div>
+        <small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 Budget ${budget}</small><br>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;align-items:center">
+          <span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">Lowest: ${lowest}</span>
+          <span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">💬 ${w.offers_count||0} offers</span>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:4px">
+          <button style="flex:1;background:#000;color:#FFCC02;border:none;padding:6px;border-radius:15px;font-size:11px;font-weight:bold">🏆 View Auction</button>
+          <a href="tel:${w.phone}" onclick="event.stopPropagation()" style="flex:1;background:#00FF00;color:#000;padding:6px;border-radius:15px;font-weight:bold;text-decoration:none;text-align:center;font-size:11px">📞 Call</a>
         </div>
       </div>`;
     }).join('');
+    html+=`<div onclick="location.href='/wants'" style="grid-column:1/-1;background:linear-gradient(90deg,#000,#1a5c00);color:#00FF00;padding:12px;border-radius:10px;text-align:center;font-weight:bold;border:2px solid #00FF00;cursor:pointer">🔥 View All ${wants.length} Wants Auction →</div>`;
     document.getElementById('wantsList').innerHTML=html;
   }catch(e){
-    document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load wants</p>';
+    document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load</p>';
   }
 }
 // MIC VOICE SEARCH - FIXED for Phone Permission
