@@ -247,8 +247,24 @@ function gateVerifyOTP(){switchGate('nin');}
 function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();updateLoginUI();doFilter();}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
-function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url,{signal:AbortSignal.timeout(7000)}).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=1000000;render();}).catch(()=>{});}
-function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
+function doFilter(){
+  let q=document.getElementById('searchInput').value;
+  let url='/api/products';
+  if(q) url+=`?q=${encodeURIComponent(q)}`;
+  fetch(url)
+  .then(r=>r.json())
+  .then(d=>{
+    allProducts=d; 
+    products=d; 
+    visibleCount=10000; 
+    render();
+    console.log('Products loaded:', d.length);
+  })
+  .catch(e=>{ 
+    console.log('Products error', e);
+    document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">⚠️ Failed to load - Refresh Boss! Error: '+e.message+'</p>';
+  });
+}function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
 function render(){if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';return;}let toShow=products.slice(0,visibleCount);let html=toShow.map(p=>{let desc=p.description||p.desc||'';let shortDesc=desc.length>60?desc.substring(0,60)+'...':desc;let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;let badge="";if(p.original_price&&Number(p.original_price)>Number(p.price)){let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));badge=`<div class="discount-badge">${pct}% OFF</div>`;priceHtml=`UGX ${Number(p.price).toLocaleString()} <span style="text-decoration:line-through;color:gray;font-size:11px">UGX ${Number(p.original_price).toLocaleString()}</span>`;}let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none;display:block;margin-top:6px"><button style="width:100%;background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:6px;border-radius:15px;font-weight:bold;font-size:11px">🏪 Visit Shop</button></a>` : '';return `<div class="card">${badge}<img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price" style="font-size:13px">${priceHtml}</div><div style="font-size:11px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px">📝 ${shortDesc||'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div>${shopBtn}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;}).join('');if(visibleCount<products.length){html+=`<div style="grid-column:1/-1;text-align:center;padding:20px"><button onclick="visibleCount+=20;render()" style="width:100%;padding:15px;background:#FFCC02;color:#000;border:none;border-radius:12px;font-weight:900;font-size:16px">🔽 Load More</button></div>`;}document.getElementById('products').innerHTML=html;}
 function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
