@@ -130,6 +130,12 @@ async function loadBalance(){
  document.getElementById('withdrawable').innerText = d.withdrawable||0;
  document.getElementById('withdrawableUgx').innerText = `UGX ${(d.withdrawable_value||0).toLocaleString()}`;
  document.getElementById('withdrawableMsg').innerText = (d.withdrawable||0) >= MIN_WITHDRAW? `✅ Ready to withdraw! Min ${MIN_WITHDRAW}` : `Need ${MIN_WITHDRAW - (d.withdrawable||0)} more coins (Min ${MIN_WITHDRAW})`;
+ 
+ // SYNC to index page so top/bottom match!
+let allData = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+if(allData.user) allData.user.coins = d.total;
+else allData.coins = d.total;
+localStorage.setItem('sannlas_user', JSON.stringify(allData));
 
  const res2 = await fetch(`/api/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);
  const d2 = await res2.json();
