@@ -250,9 +250,255 @@ def ensure_shop_for_user(user):
     return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
+# ============================================
+# SANNLAS SUPER PRO REVERSE AUCTION SYSTEM 2.0
+# ============================================
 WANTS_FILE = 'wants.json'
+OFFERS_FILE = 'offers.json'
+
 def get_wants_data(): return load_db(WANTS_FILE, [])
 def save_wants_data(wants): save_db(WANTS_FILE, wants)
+def get_offers_data(): return load_db(OFFERS_FILE, [])
+def save_offers_data(offers): save_db(OFFERS_FILE, offers)
+
+@app.route('/api/wants')
+def get_wants_api():
+    q = request.args.get('q','').lower()
+    district = request.args.get('district','').lower()
+    category = request.args.get('category','').lower()
+    budget_min = request.args.get('budget_min','')
+    sort = request.args.get('sort','newest')
+    wants = get_wants_data()
+    offers = get_offers_data()
+    filtered = [w for w in wants if w.get('status','open') == 'open']
+    if q:
+        filtered = [w for w in filtered if q in w.get('title','').lower() or q in w.get('description','').lower() or q in w.get('category','').lower() or q in w.get('item','').lower()]
+    if district:
+        filtered = [w for w in filtered if district in w.get('district','').lower()]
+    if category and category!= 'all':
+        filtered = [w for w in filtered if category in w.get('category','').lower()]
+    if budget_min:
+        try:
+            bm = int(budget_min)
+            filtered = [w for w in filtered if int(w.get('max_budget',0)) >= bm]
+        except: pass
+    for w in filtered:
+        w_offers = [o for o in offers if str(o.get('want_id')) == str(w['id'])]
+        w['offers_count'] = len(w_offers)
+        w['lowest_offer'] = min([o['price'] for o in w_offers], default=None)
+    if sort == 'lowest_budget':
+        filtered = sorted(filtered, key=lambda x: x.get('min_budget',0))
+    elif sort == 'most_offers':
+        filtered = sorted(filtered, key=lambda x: x.get('offers_count',0), reverse=True)
+    else:
+        filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
+    return jsonify(filtered[:150])
+
+@app.route('/api/wants/<int:wid>')
+def get_single_want_api(wid):
+    wants = get_wants_data()
+    offers = get_offers_data()
+    want = next((w for w in wants if w['id'] == wid), None)
+    if not want:
+        return jsonify({'success':False,'message':'Want not found'}),404
+    w_offers = [o for o in offers if str(o.get('want_id')) == str(wid)]
+    w_offers = sorted(w_offers, key=lambda x: x.get('price', 999999999))
+    shops = load_db('shops.json', [])
+    for o in w_offers:
+        shop = next((s for s in shops if s.get('shop_slug') == o.get('shop_slug')), None)
+        if shop:
+            o['shop'] = {'name': shop.get('business_name'), 'verified': shop.get('verified', False)}
+    want['offers'] = w_offers
+    want['offers_count'] = len(w_offers)
+    if w_offers:
+        want['lowest_offer'] = w_offers[0]['price']
+    return jsonify(want)
+
+@app.route('/api/wants', methods=['POST'])
+def create_want_pro_api():
+    data = request.get_json() or {}
+    title = data.get('title','').strip() or data.get('item','').strip()
+    category = data.get('category','General').strip()
+    description = data.get('description','').strip() or data.get('note','').strip()
+    quantity = data.get('quantity','1').strip()
+    min_budget = int(data.get('min_budget') or data.get('budget_min') or 0)
+    max_budget = int(data.get('max_budget') or data.get('budget_max') or 0)
+    district = data.get('district','Kampala').strip()
+    delivery = data.get('delivery_type','pickup').strip()
+    urgency = data.get('urgency','3days').strip()
+    phone = data.get('phone','').strip()
+    email = data.get('email','').lower().strip()
+    image = data.get('image','')[:500000] if data.get('image') else ''
+    if not title:
+        return jsonify({'success': False, 'message': 'What do you want? Enter title Boss!'}), 400
+    if not phone and not email:
+        return jsonify({'success': False, 'message': 'Add phone number!'}), 400
+    wants = get_wants_data()
+    expire_hours = {'24h': 24, '3days': 72, '7days': 168}.get(urgency, 72)
+    new_want = {
+        'id': int(time.time()*1000),
+        'title': title,
+        'item': title,
+        'category': category,
+        'description': description,
+        'note': description,
+        'quantity': quantity,
+        'min_budget': min_budget,
+        'max_budget': max_budget,
+        'district': district,
+        'delivery_type': delivery,
+        'urgency': urgency,
+        'image': image,
+        'phone': phone,
+        'email': email,
+        'status': 'open',
+        'offers_count': 0,
+        'lowest_offer': None,
+        'winner_offer_id': None,
+        'created': time.time(),
+        'expires_at': time.time() + (expire_hours * 3600)
+    }
+    wants.append(new_want)
+    save_wants_data(wants)
+    return jsonify({'success': True, 'message': 'WANT posted! Sellers will auction now!', 'want': new_want})
+
+@app.route('/api/want', methods=['POST'])
+def create_want_old_compat():
+    return create_want_pro_api()
+
+@app.route('/api/wants/<int:wid>/offers', methods=['POST'])
+def place_offer_api(wid):
+    data = request.get_json() or {}
+    price = int(data.get('price',0))
+    delivery_time = data.get('delivery_time','Same day').strip()[:100]
+    message = data.get('message','').strip()[:500]
+    warranty = data.get('warranty','No warranty').strip()[:100]
+    phone = data.get('phone','').strip()
+    email = data.get('email','').lower().strip()
+    shop_slug = data.get('shop_slug','').strip()
+    if price <= 0:
+        return jsonify({'success': False, 'message': 'Enter valid price'}), 400
+    if not phone and not email:
+        return jsonify({'success': False, 'message': 'Login first'}), 401
+    wants = get_wants_data()
+    offers = get_offers_data()
+    want = next((w for w in wants if w['id'] == wid), None)
+    if not want:
+        return jsonify({'success': False, 'message': 'Want not found'}), 404
+    if want.get('status')!= 'open':
+        return jsonify({'success': False, 'message': 'This want is closed'}), 400
+    existing = next((o for o in offers if str(o.get('want_id'))==str(wid) and ((phone and o.get('seller_phone')==phone) or (email and o.get('seller_email','').lower()==email))), None)
+    users = load_db('users.json', [])
+    seller = next((u for u in users if (phone and u.get('phone')==phone) or (email and u.get('email','').lower()==email)), None)
+    if not seller:
+        return jsonify({'success': False, 'message': 'Register first'}), 402
+    if existing:
+        existing['price'] = price
+        existing['delivery_time'] = delivery_time
+        existing['message'] = message
+        existing['warranty'] = warranty
+        existing['updated'] = time.time()
+        existing['status'] = 'pending'
+        save_offers_data(offers)
+    else:
+        if int(seller.get('coins',0)) < 1:
+            return jsonify({'success': False, 'message': 'Need 1 coin to place offer!', 'needs_coins': True}), 402
+        seller['spent'] = int(seller.get('spent',0)) + 1
+        seller['coins'] = int(seller.get('bought',0)) + int(seller.get('earned',0)) - int(seller.get('spent',0))
+        if seller['coins'] < 0: seller['coins'] = 0
+        save_db('users.json', users)
+        new_offer = {
+            'id': int(time.time()*1000),
+            'want_id': wid,
+            'seller_phone': phone,
+            'seller_email': email,
+            'shop_slug': shop_slug,
+            'price': price,
+            'delivery_time': delivery_time,
+            'message': message,
+            'warranty': warranty,
+            'status': 'pending',
+            'created': time.time(),
+            'updated': time.time()
+        }
+        offers.append(new_offer)
+        save_offers_data(offers)
+        existing = new_offer
+    for w in wants:
+        if w['id'] == wid:
+            w_offers = [o for o in offers if str(o.get('want_id'))==str(wid)]
+            w['offers_count'] = len(w_offers)
+            if w_offers:
+                w['lowest_offer'] = min([o['price'] for o in w_offers])
+            break
+    save_wants_data(wants)
+    return jsonify({'success': True, 'message': 'Offer placed!', 'offer': existing})
+
+@app.route('/api/offers/<int:oid>/accept', methods=['POST'])
+def accept_offer_api(oid):
+    data = request.get_json() or {}
+    phone = data.get('phone','').strip()
+    email = data.get('email','').lower().strip()
+    wants = get_wants_data()
+    offers = get_offers_data()
+    offer = next((o for o in offers if o['id'] == oid), None)
+    if not offer:
+        return jsonify({'success': False, 'message': 'Offer not found'}), 404
+    want = next((w for w in wants if str(w['id']) == str(offer.get('want_id'))), None)
+    if not want:
+        return jsonify({'success': False, 'message': 'Want not found'}), 404
+    if not ((phone and want.get('phone')==phone) or (email and want.get('email','').lower()==email)):
+        return jsonify({'success': False, 'message': 'Only buyer can accept'}), 403
+    for o in offers:
+        if str(o.get('want_id')) == str(want['id']):
+            if o['id'] == oid:
+                o['status'] = 'accepted'
+            else:
+                o['status'] = 'outbid'
+    want['status'] = 'closed'
+    want['winner_offer_id'] = oid
+    want['winner_price'] = offer['price']
+    want['closed_at'] = time.time()
+    save_offers_data(offers)
+    save_wants_data(wants)
+    return jsonify({'success': True, 'message': f"Accepted! Seller {offer.get('seller_phone')} will contact you", 'want': want, 'winner': offer})
+
+@app.route('/api/my-wants')
+def my_wants_pro_api():
+    phone = request.args.get('phone','').strip()
+    email = request.args.get('email','').lower().strip()
+    wants = get_wants_data()
+    offers = get_offers_data()
+    result = [w for w in wants if (phone and w.get('phone')==phone) or (email and w.get('email','').lower()==email)]
+    for w in result:
+        w['offers_count'] = len([o for o in offers if str(o.get('want_id'))==str(w['id'])])
+    return jsonify(sorted(result, key=lambda x: x.get('created',0), reverse=True))
+
+@app.route('/api/my-offers')
+def my_offers_api():
+    phone = request.args.get('phone','').strip()
+    email = request.args.get('email','').lower().strip()
+    offers = get_offers_data()
+    result = [o for o in offers if (phone and o.get('seller_phone')==phone) or (email and o.get('seller_email','').lower()==email)]
+    return jsonify(sorted(result, key=lambda x: x.get('created',0), reverse=True))
+
+@app.route('/api/want/<int:wid>/close', methods=['POST'])
+def close_want_pro_api(wid):
+    wants = get_wants_data()
+    for w in wants:
+        if w['id'] == wid:
+            w['status'] = 'closed'
+            break
+    save_wants_data(wants)
+    return jsonify({'success': True})
+
+@app.route('/wants')
+def wants_page():
+    return render_template('wants.html')
+
+@app.route('/wants/<int:wid>')
+def want_detail_page(wid):
+    return render_template('want_detail.html')
 
 # === FORGOT PASSWORD EMAIL FUNCTION ===
 def send_reset_email(to_email, otp, user_name="Boss"):
@@ -261,7 +507,6 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         import smtplib
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
-
         msg = MIMEMultipart()
         msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
         msg['To'] = to_email
@@ -277,10 +522,7 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         </div>
         """
         msg.attach(MIMEText(body, 'html'))
-
-        # FORCE IPv4 - FIX FOR RENDER!
         pass_clean = EMAIL_APP_PASSWORD.replace(' ','')
-        # Get IPv4 only
         infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
         if not infos:
             raise Exception("No IPv4 for gmail")
@@ -288,7 +530,6 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         sock = socket.socket(af, socktype, proto)
         sock.settimeout(20)
         sock.connect(sa)
-
         server = smtplib.SMTP(timeout=20)
         server.sock = sock
         server._host = 'smtp.gmail.com'
@@ -306,7 +547,6 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         return False
 
 # ===== API ROUTES - YOUR EXISTING CODE CONTINUES =====
-
 @app.route('/product/<pid>')
 def product_link(pid):
     ref = request.args.get('ref','')
@@ -362,7 +602,7 @@ def home():
 def wallet_page():
     return redirect('/balance')
 @app.route('/balance')
-def balance_page(): return render_template('balance.html') 
+def balance_page(): return render_template('balance.html')
 @app.route('/invite')
 def invite_page(): return render_template('invite.html')
 @app.route('/shop/<slug>')
@@ -441,7 +681,7 @@ def upload_billboard():
         if not file: return jsonify({"error": "No file selected"}), 400
         data = file.read()
         if len(data) > 2*1024*1024:
-            return jsonify({"error": "File too big! Max 2MB (was 12MB causing 502)!"}), 400
+            return jsonify({"error": "File too big! Max 2MB"}), 400
         filename = f"{int(time.time())}_{secure_filename(file.filename)}"
         filepath = os.path.join('static/billboards', filename)
         os.makedirs('static/billboards', exist_ok=True)
@@ -454,33 +694,27 @@ def upload_billboard():
         return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    # === PUBLIC: GET ANIMATED STORIES FOR BILLBOARD ===
+
 @app.route('/api/hero-stories')
 def api_hero_stories():
     stories = get_hero_stories()
-    # Sort by order
     stories = sorted(stories, key=lambda x: x.get('order', 0))
     return jsonify(stories)
 
-# === ADMIN: GET HERO STORIES ===
 @app.route('/api/admin/hero-stories', methods=['GET'])
 @admin_required
 def admin_get_hero_stories():
     return jsonify(get_hero_stories())
 
-# === ADMIN: UPLOAD HERO STORY IMAGE ===
 @app.route('/api/admin/hero-stories', methods=['POST'])
 @admin_required
 def admin_add_hero_story():
     file = request.files.get('image')
     if not file:
         return jsonify({'success': False, 'message': 'No image'}), 400
-    
-    # Save file to static/uploads/hero
     filename = f"{int(time.time())}_{secure_filename(file.filename)}"
     filepath = os.path.join('static/uploads/hero', filename)
     file.save(filepath)
-    
     stories = get_hero_stories()
     new_story = {
         'id': int(time.time()*1000),
@@ -500,22 +734,20 @@ def admin_add_hero_story():
 @admin_required
 def admin_delete_hero_story(sid):
     stories = get_hero_stories()
-    stories = [s for s in stories if s['id'] != sid]
+    stories = [s for s in stories if s['id']!= sid]
     save_hero_stories(stories)
     return jsonify({'success': True})
 
-# === ADMIN: SET BILLBOARD TO ANIMATED TYPE ===
 @app.route('/api/admin/billboard/animated', methods=['POST'])
 @admin_required
 def admin_set_billboard_animated():
     data = request.json or {}
     cfg = get_billboard_config()
     cfg['active'] = True
-    cfg['type'] = 'animated'  # THIRD OPTION!
+    cfg['type'] = 'animated'
     cfg['text'] = data.get('text', 'Welcome')
     cfg['link'] = data.get('link', '')
     cfg['updated'] = time.time()
-    # Keep expires
     if data.get('duration'):
         dur = str(data.get('duration'))
         if dur == "0": cfg['expires_at'] = None
@@ -531,7 +763,6 @@ def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 def coins_config(): return jsonify(get_coin_config())
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
-
 @app.route('/api/coins/balance')
 def coins_balance():
     email=request.args.get('email','').lower().strip()
@@ -799,6 +1030,7 @@ def withdraw_coins():
     txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
     save_db('coin_transactions.json', txs)
     return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}."})
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
@@ -853,7 +1085,6 @@ def set_password_api():
     except Exception as e:
         return jsonify({"success":False,"message":str(e)})
 
-# === FORGOT PASSWORD API - NEW ===
 @app.route('/api/forgot-password', methods=['POST'])
 @limiter.limit("5 per minute")
 def forgot_password_api():
@@ -864,22 +1095,14 @@ def forgot_password_api():
     user = next((u for u in users if u.get('email','').lower()==email), None)
     if not user:
         return jsonify({"success": False, "message": "Email not found - Check your email Boss!"}), 404
-
-    # Load existing resets
     resets = load_db('password_resets.json', {})
-    # Delete old for this email
     if email in resets:
         del resets[email]
-
     otp = str(random.randint(100000, 999999))
-    expires_at = time.time() + 10*60 # 10 mins
-
+    expires_at = time.time() + 10*60
     resets[email] = {"otp": otp, "expires": expires_at, "tries": 0, "created": time.time()}
     save_db('password_resets.json', resets)
-
-    # Send email in background thread so API fast
     threading.Thread(target=send_reset_email, args=(email, otp, user.get('business','Boss'))).start()
-
     return jsonify({"success": True, "message": f"Code sent to {email}"})
 
 @app.route('/api/reset-password', methods=['POST'])
@@ -889,34 +1112,26 @@ def reset_password_api():
     email = data.get('email','').lower().strip()
     otp = data.get('otp','').strip()
     new_password = data.get('new_password','').strip()
-
     if not email or not otp or not new_password:
         return jsonify({"success": False, "message": "Fill all fields"}), 400
     if len(new_password) < 4:
         return jsonify({"success": False, "message": "Password min 4 chars"}), 400
-
     resets = load_db('password_resets.json', {})
     rec = resets.get(email)
     if not rec:
         return jsonify({"success": False, "message": "No reset request. Send code again."}), 400
-
-    # Check expiry
     if time.time() > rec.get('expires',0):
         del resets[email]
         save_db('password_resets.json', resets)
         return jsonify({"success": False, "message": "Code expired after 10 mins. Request new code!"}), 400
-
     if rec.get('tries',0) >= 3:
         del resets[email]
         save_db('password_resets.json', resets)
         return jsonify({"success": False, "message": "Too many wrong tries. Request new code!"}), 400
-
     if rec.get('otp')!= otp:
         rec['tries'] = rec.get('tries',0)+1
         save_db('password_resets.json', resets)
         return jsonify({"success": False, "message": f"Wrong code! {3-rec['tries']} tries left"}), 400
-
-    # OTP CORRECT - Update password
     users = load_db('users.json', [])
     found = False
     for u in users:
@@ -931,16 +1146,10 @@ def reset_password_api():
             break
     if not found:
         return jsonify({"success": False, "message": "User not found"}), 404
-
     save_db('users.json', users)
-
-    # DELETE OTP AFTER USE - Important!
     del resets[email]
     save_db('password_resets.json', resets)
-
     return jsonify({"success": True, "message": "Password changed! Login now Boss!"})
-
-# === END FORGOT PASSWORD ===
 
 @app.route('/api/my-sales/stats')
 def my_sales_stats():
@@ -1002,68 +1211,6 @@ def login():
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
     session['phone']=u.get('phone'); session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
-
-@app.route('/api/wants')
-def get_wants_api():
-    q = request.args.get('q','').lower()
-    district = request.args.get('district','').lower()
-    wants = get_wants_data()
-    filtered = [w for w in wants if w.get('status','open') == 'open']
-    if q:
-        filtered = [w for w in filtered if q in w.get('item','').lower() or q in w.get('note','').lower()]
-    if district:
-        filtered = [w for w in filtered if district in w.get('district','').lower()]
-    filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
-    return jsonify(filtered[:100])
-
-@app.route('/api/want', methods=['POST'])
-def create_want_api():
-    data = request.get_json() or {}
-    item = data.get('item','').strip()
-    quantity = data.get('quantity','').strip()
-    district = data.get('district','').strip()
-    phone = data.get('phone','').strip()
-    email = data.get('email','').lower().strip()
-    note = data.get('note','').strip()
-    if not item:
-        return jsonify({'success': False, 'message': 'What do you want to buy?'}), 400
-    if not phone and not email:
-        return jsonify({'success': False, 'message': 'Add phone number Boss!'}), 400
-    wants = get_wants_data()
-    new_want = {
-        'id': int(time.time()*1000),
-        'item': item,
-        'quantity': quantity,
-        'district': district,
-        'phone': phone,
-        'email': email,
-        'note': note,
-        'status': 'open',
-        'created': time.time(),
-        'created_at': time.time()
-    }
-    wants.append(new_want)
-    save_wants_data(wants)
-    return jsonify({'success': True, 'message': 'WANT posted! Sellers will see it!', 'want': new_want})
-
-@app.route('/api/want/<int:wid>/close', methods=['POST'])
-def close_want_api(wid):
-    wants = get_wants_data()
-    for w in wants:
-        if w['id'] == wid:
-            w['status'] = 'closed'
-            break
-    save_wants_data(wants)
-    return jsonify({'success': True})
-
-@app.route('/api/my-wants')
-def my_wants_api():
-    phone = request.args.get('phone','').strip()
-    email = request.args.get('email','').lower().strip()
-    wants = get_wants_data()
-    result = [w for w in wants if (phone and w.get('phone')==phone) or (email and w.get('email','').lower()==email)]
-    return jsonify(sorted(result, key=lambda x: x.get('created',0), reverse=True))
-
 @app.route('/api/products')
 def get_products():
     q = request.args.get('q','').lower()
