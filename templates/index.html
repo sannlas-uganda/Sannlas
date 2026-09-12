@@ -439,26 +439,36 @@ function render(){
 function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
-function updateLoginUI(){
+async function updateLoginUI(){
   if(currentUser){
-    let coins = currentUser.coins || currentUser.total || 0;
     document.getElementById('userInfo').style.display='block';
-    document.getElementById('userInfo').innerHTML=`${currentUser.email} | 🪙 ${coins} coins`;
+    document.getElementById('userInfo').innerHTML=`${currentUser.email} | Loading...`;
     document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
-    let bottom = document.getElementById('bottomCoins');
-    if(bottom) bottom.innerText = coins;
-    let top = document.getElementById('topCoins') || document.getElementById('balanceCoins') || document.getElementById('topBalance') || document.getElementById('myCoins');
-    if(top) top.innerText = coins;
-    document.querySelectorAll('span').forEach(s=>{
-      if(s.textContent.includes('Balance (0)')){
-        s.innerHTML = `💰 Balance (<span id="topCoins">${coins}</span>)`;
-      }
-    });
-    try{ loadMyCoins(); }catch(e){}
-    try{ loadMySalesStats(); }catch(e){}
+
+    // GET REAL BALANCE FROM SERVER - SAME AS BALANCE PAGE!
+    try{
+      const res = await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`);
+      const d = await res.json();
+      let coins = d.total || 0;
+      
+      // UPDATE ALL DISPLAYS WITH SAME NUMBER!
+      document.getElementById('userInfo').innerHTML=`${currentUser.email} | ${coins} coins`;
+      ['bottomCoins','topCoins','balanceCoins','myCoins','myCoinsBalance'].forEach(id=>{
+        let el = document.getElementById(id);
+        if(el) el.innerText = coins;
+      });
+      // Fix Balance (0) button
+      document.body.innerHTML = document.body.innerHTML.replace(/Balance \(0\)/g, `Balance (${coins})`);
+      
+      // Save to localStorage so bottom/top stay synced
+      currentUser.coins = coins;
+      localStorage.setItem('sannlas_user', JSON.stringify(currentUser));
+    }catch(e){
+      console.log('Balance fetch failed', e);
+    }
   }
 }
-function loadMyCoins(){}
+function loadMyCoins(){} // disabled - we now load in updateLoginUI
 function loadMySalesStats(){}
 function doLogout(){localStorage.clear();location.reload();}
 function setStake(v){document.getElementById('stakeInput').value=v;updateFee();}
