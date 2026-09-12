@@ -450,6 +450,12 @@ async function updateLoginUI(){
       const res = await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`);
       const d = await res.json();
       let coins = d.total || 0;
+     
+     // Update ALL balance IDs that exist on your site
+['myCoinsNav','bottomCoins','topCoins','myCoins','balanceCoins'].forEach(id=>{
+  let el = document.getElementById(id);
+  if(el) el.innerText = coins;
+});
       
       // UPDATE ALL DISPLAYS WITH SAME NUMBER!
       document.getElementById('userInfo').innerHTML=`${currentUser.email} | ${coins} coins`;
