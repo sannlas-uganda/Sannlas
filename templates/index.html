@@ -70,14 +70,22 @@ if ('serviceWorker' in navigator) {
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">1 coin = 599 UGX | Upload = 3 coins | Min Withdraw 50 coins</span><button class="btn btn-yellow" style="padding:4px 10px;font-size:10px" onclick="goToBalance()">MY BALANCE 🔥</button></div>
 <div id="liveTicker"><div id="tickerContent">🔴 LIVE: Loading real activity... • 🎰 SPIN & WIN ACTIVE • 🪙 1 coin = 599 UGX • Min Withdraw 50 coins = UGX 29,950</div></div>
 <div id="billboardBanner"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
-<div id="liveWantsBoard" style="background:linear-gradient(90deg,#000,#1a5c00);border-top:3px solid #00FF00;border-bottom:3px solid #00FF00;padding:10px;max-height:280px;overflow-y:auto;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <h3 style="color:#00FF00;margin:0">🔥 LIVE WANTS - Buyers Need This NOW! (<span id="wantsCount">0</span>)</h3>
-    <button onclick="loadWantsLiveSafe()" style="background:#00FF00;color:#000;border:none;padding:4px 10px;border-radius:10px;font-weight:bold;font-size:11px;cursor:pointer">🔄 Refresh</button>
+<!-- HIDDEN from home now - will show inside WANTS popup only -->
+<div id="liveWantsBoard" style="display:none"></div>
+
+<!-- NEW WANTS POPUP - Clean home screen -->
+<div class="popup" id="wantsPop" onclick="closePop('wantsPop')">
+<div class="popup-content" style="max-width:600px;background:#000;border:3px solid #00FF00" onclick="event.stopPropagation()">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2 style="color:#00FF00;margin:0">🔥 LIVE WANTS (<span id="wantsCount2">0</span>)</h2>
+    <button onclick="closePop('wantsPop')" style="background:white;color:black;padding:4px 10px;border:none;border-radius:8px;font-weight:bold">✕</button>
   </div>
-  <div id="wantsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px;">
-    <p style="color:white;text-align:center;grid-column:1/-1">⏳ Loading wants...</p>
+  <button onclick="openWantModal()" style="width:100%;background:#00FF00;color:#000;padding:12px;border:none;border-radius:10px;font-weight:900;margin:10px 0">+ POST NEW WANT (FREE)</button>
+  <div id="wantsList2" style="display:grid;grid-template-columns:1fr;gap:8px;max-height:60vh;overflow-y:auto">
+    <p style="color:white;text-align:center">⏳ Loading wants...</p>
   </div>
+  <button onclick="location.href='/wants'" style="width:100%;background:#111;color:#00FF00;border:2px solid #00FF00;padding:10px;border-radius:10px;margin-top:10px;font-weight:bold">View All Wants →</button>
+</div>
 </div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu"><div class="side-header"><b>🛍️ SANNLAS MENU</b><button class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
@@ -168,7 +176,7 @@ if ('serviceWorker' in navigator) {
 </div>
 <div class="fixed-bottom">
 <span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span>
-<span onclick="openWantModal()" style="background:#00FF00;color:#000;padding:6px 12px;border-radius:15px;font-weight:900;animation:pulse 1.5s infinite">🎯 WANT?</span>
+<span onclick="openWantsList()" style="background:#00FF00;color:#000;padding:6px 12px;border-radius:15px;font-weight:900;animation:pulse 1.5s infinite">🎯 WANTS (<span id="wantsCount">0</span>)</span>
 <span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span>
 <span id="cartN" onclick="openCart()" style="color:white">🛒 0</span>
 </div>
@@ -284,23 +292,34 @@ async function loadWantsLive(){
   if(isLoadingWants) return;
   isLoadingWants=true;
   try{
-    let r=await fetch('/api/wants?sort=most_offers',{signal:AbortSignal.timeout(6000)});
+    let r=await fetch('/api/wants?sort=most_offers');
     let wants=await r.json();
-    document.getElementById('wantsCount').innerText=wants.length;
-    if(wants.length==0){document.getElementById('wantsList').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No wants yet! Be first 🎯</p>';}
-    else{
-      let html=wants.slice(0,12).map(w=>{
-        let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';
-        let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';
-        return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 Budget ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px;align-items:center"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">💬 ${w.offers_count||0} offers</span></div><div style="margin-top:6px;display:flex;gap:4px"><button style="flex:1;background:#000;color:#FFCC02;border:none;padding:6px;border-radius:15px;font-size:11px;font-weight:bold">🏆 View Auction</button><a href="tel:${w.phone}" onclick="event.stopPropagation()" style="flex:1;background:#00FF00;color:#000;padding:6px;border-radius:15px;font-weight:bold;text-decoration:none;text-align:center;font-size:11px">📞 Call</a></div></div>`;
-      }).join('');
-      html+=`<div onclick="location.href='/wants'" style="grid-column:1/-1;background:linear-gradient(90deg,#000,#1a5c00);color:#00FF00;padding:12px;border-radius:10px;text-align:center;font-weight:bold;border:2px solid #00FF00;cursor:pointer">🔥 View All ${wants.length} Wants Auction →</div>`;
-      document.getElementById('wantsList').innerHTML=html;
-    }
+    let countEl=document.getElementById('wantsCount');
+    let countEl2=document.getElementById('wantsCount2');
+    if(countEl) countEl.innerText=wants.length;
+    if(countEl2) countEl2.innerText=wants.length;
+    
+    let html = wants.slice(0,20).map(w=>{
+      let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';
+      let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';
+      return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;
+    }).join('');
+    if(wants.length==0) html='<p style="color:white;text-align:center">No wants yet! Be first 🎯</p>';
+    
+    let list1=document.getElementById('wantsList');
+    let list2=document.getElementById('wantsList2');
+    if(list1) list1.innerHTML=html;
+    if(list2) list2.innerHTML=html;
   }catch(e){}
   isLoadingWants=false;
 }
 async function loadWantsLiveSafe(){ await loadWantsLive(); }
+
+// NEW: Open WANTS popup (not post directly)
+function openWantsList(){
+  document.getElementById('wantsPop').style.display='flex';
+  loadWantsLiveSafe();
+}
 
 function openWantModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}document.getElementById('wantPhone').value=currentUser.phone||'';document.getElementById('wantModal').style.display='flex';}
 function closeWantModal(){document.getElementById('wantModal').style.display='none';}
