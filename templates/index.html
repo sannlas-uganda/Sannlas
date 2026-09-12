@@ -87,7 +87,7 @@ if ('serviceWorker' in navigator) {
 <button class="side-item-btn" style="background:#FFCC02;color:#000;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn 1 coin</button>
 </div>
 <div class="search-bar">
-  <input id="searchInput" placeholder="Search products or say what you want..." oninput="debouncedFilter()">
+  <input id="searchInput"<button class="btn" onclick="openWantModal()" style="background:#00FF00;color:#000;font-weight:bold">🎯 WANT TO BUY?</button> placeholder="Search products or say what you want..." oninput="debouncedFilter()">
   <button class="btn" onclick="startVoiceSearch()" id="micBtn" style="background:#FFCC02;color:#000;border-radius:50%;font-size:18px;padding:8px 12px">🎤</button>
   <button class="btn" onclick="clearFilter()" style="background:white;color:black">Clear</button>
 </div><div class="hero"><h1>Welcome to SANNLAS UGANDA</h1><p>MoMo 0795712326 | sannlas.onrender.com</p><p id="userInfo" style="background:#FFCC02;color:#000;padding:5px;border-radius:10px;margin-top:5px;display:none;font-size:12px"></p></div>
@@ -166,8 +166,12 @@ if ('serviceWorker' in navigator) {
 <div style="font-size:18px">@sannlas 2026</div>
 <div style="font-size:11px;color:#888;margin-top:6px">SANNLAS UGANDA - Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950</div>
 </div>
-<div class="fixed-bottom"><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span><span id="cartN" onclick="openCart()" style="color:white">🛒 0</span></div>
-
+<div class="fixed-bottom">
+<span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span>
+<span onclick="openWantModal()" style="background:#00FF00;color:#000;padding:6px 12px;border-radius:15px;font-weight:900;animation:pulse 1.5s infinite">🎯 WANT?</span>
+<span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span>
+<span id="cartN" onclick="openCart()" style="color:white">🛒 0</span>
+</div>
 <!-- PROMO MODAL -->
 <div id="promoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;align-items:center;justify-content:center;padding:15px">
  <div style="background:#1e1e1e;border:3px solid #FFCC02;border-radius:15px;padding:20px;max-width:500px;width:100%;text-align:center;color:white">
