@@ -1641,25 +1641,6 @@ def serve_icon2():
 @app.route('/sw.js')
 def serve_sw():
     return send_from_directory('.', 'sw.js')
-@app.route('/manifest.json')
-def manifest():
-    return {
-        "name": "SANNLAS UGANDA",
-        "short_name": "SANNLAS",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#000",
-        "theme_color": "#ff6b00",
-        "icons": [{"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"}]
-    }
-
-@app.route('/sw.js')
-def sw():
-    return "self.addEventListener('fetch', e => {});", 200, {'Content-Type': 'application/javascript'}
-
-@app.route('/icon-192.png')
-def icon():
-    return "", 204
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
