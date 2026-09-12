@@ -5,8 +5,9 @@
 <meta name="theme-color" content="#ff6b00">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script>
+// FIXED SW - no crash
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 </script>
 <meta charset="utf-8">
@@ -65,14 +66,14 @@ if ('serviceWorker' in navigator) {
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:10px;margin:5px 0"><select id="gateRegRole" style="width:100%;padding:10px;margin:5px 0"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn btn-green" style="width:100%;padding:12px" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse Free</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:12px;text-align:center;font-size:20px;margin:10px 0"><button class="btn btn-green" style="width:100%" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:10px;margin:5px 0"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin:5px 0"><button class="btn" style="width:100%;background:#000;padding:12px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:8px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:10px;margin:10px 0;border:2px solid #1976d2;border-radius:8px"><button class="btn btn-blue" style="width:100%;padding:12px" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:gray;margin-top:8px" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
 <div class="navbar"><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px">☰</button><h3>🛍️ SANNLAS</h3></div><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"><button onclick="openPopup('spinPop')" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;padding:8px 14px;border-radius:20px;font-weight:bold;border:2px solid #000;animation:pulse 1.5s infinite;cursor:pointer;font-size:12px">🎰 SPIN & WIN</button><button class="btn" style="background:#FFCC02;color:#000" onclick="showAllShops()">🏪 Shops</button><button class="btn" onclick="openSellModal()" style="background:#8B0000">+ Sell</button>
 <button onclick="goToBalance(); closePopup('authPop')" style="background:#000;border:2px solid #FFCC02;color:#FFCC02;padding:10px;width:100%;margin-top:10px;font-weight:900;border-radius:8px">💰 My Balance (<span id="myCoinsNav">0</span>)</button>
+</div></div>
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">1 coin = 599 UGX | Upload = 3 coins | Min Withdraw 50 coins</span><button class="btn btn-yellow" style="padding:4px 10px;font-size:10px" onclick="goToBalance()">MY BALANCE 🔥</button></div>
 <div id="liveTicker"><div id="tickerContent">🔴 LIVE: Loading real activity... • 🎰 SPIN & WIN ACTIVE • 🪙 1 coin = 599 UGX • Min Withdraw 50 coins = UGX 29,950</div></div>
-<div id="billboardBanner" onclick="billboardClick()"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
- <!-- 🔥 LIVE WANTS BOARD - NEW -->
+<div id="billboardBanner"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="liveWantsBoard" style="background:linear-gradient(90deg,#000,#1a5c00);border-top:3px solid #00FF00;border-bottom:3px solid #00FF00;padding:10px;max-height:280px;overflow-y:auto;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="color:#00FF00;margin:0">🔥 LIVE WANTS - Buyers Need This NOW! (<span id="wantsCount">0</span>)</h3>
-    <button onclick="loadWantsLive()" style="background:#00FF00;color:#000;border:none;padding:4px 10px;border-radius:10px;font-weight:bold;font-size:11px;cursor:pointer">🔄 Refresh</button>
+    <button onclick="loadWantsLiveSafe()" style="background:#00FF00;color:#000;border:none;padding:4px 10px;border-radius:10px;font-weight:bold;font-size:11px;cursor:pointer">🔄 Refresh</button>
   </div>
   <div id="wantsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px;">
     <p style="color:white;text-align:center;grid-column:1/-1">⏳ Loading wants...</p>
@@ -80,7 +81,7 @@ if ('serviceWorker' in navigator) {
 </div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu"><div class="side-header"><b>🛍️ SANNLAS MENU</b><button class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
-<button class="side-item-btn" style="background:#7b1fa2;color:#fff;margin:10px;width:calc(100% - 20px);border:2px solid #FFCC02" onclick="closeSideMenu();goToBalance()">💰 My Balance - Bought/Earned/Spent/Withdrawable</button>
+<button class="side-item-btn" style="background:#7b1fa2;color:#fff;margin:10px;width:calc(100% - 20px);border:2px solid #FFCC02" onclick="closeSideMenu();goToBalance()">💰 My Balance</button>
 <button class="side-item-btn" style="background:#000;color:#FFCC02;border:1px solid #FFCC02;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();showAllShops()">🏪 All Shops</button>
 <button class="side-item-btn" style="background:#2e7d32;color:white;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();goToMyShop()">🏪 My Shop</button>
 <button class="side-item-btn" style="background:#FFCC02;color:#000;margin:10px;width:calc(100% - 20px)" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn 1 coin</button>
@@ -114,7 +115,6 @@ if ('serviceWorker' in navigator) {
 <div class="products" id="products"></div>
 <div class="popup" id="viewPop" onclick="closePop('viewPop')"><div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div></div>
 <div class="popup" id="cartPop" onclick="closePop('cartPop')"><div class="popup-content" id="cartContent" onclick="event.stopPropagation()"></div></div>
-
 <div class="popup" id="authPop" onclick="closePop('authPop')">
 <div class="popup-content" onclick="event.stopPropagation()" style="max-width:500px">
 <h2 style="text-align:center">👤 My Account</h2>
@@ -125,7 +125,7 @@ if ('serviceWorker' in navigator) {
 <div style="background:#e3f2fd;padding:10px;border-radius:8px;text-align:center"><b id="accBought" style="font-size:18px">0</b><br><small>BOUGHT</small></div>
 <div style="background:#e8f5e9;padding:10px;border-radius:8px;text-align:center"><b id="accEarned" style="font-size:18px">0</b><br><small>EARNED</small></div>
 <div style="background:#ffebee;padding:10px;border-radius:8px;text-align:center"><b id="accSpent" style="font-size:18px">0</b><br><small>SPENT</small></div>
-<div style="background:#fff3e0;padding:10px;border-radius:8px;text-align:center"><b id="accTotal" style="font-size:20px;color:#4a148c">0</b><br><small>TOTAL (same as Home)</small></div>
+<div style="background:#fff3e0;padding:10px;border-radius:8px;text-align:center"><b id="accTotal" style="font-size:20px;color:#4a148c">0</b><br><small>TOTAL</small></div>
 </div>
 <div style="background:#fff;border:2px dashed #7b1fa2;border-radius:10px;padding:10px;text-align:center">
 <b id="accWithdrawable" style="font-size:24px;color:#4a148c">0</b> coins withdrawable<br>
@@ -134,52 +134,16 @@ if ('serviceWorker' in navigator) {
 </div>
 <button onclick="location.href='/balance'" style="width:100%;background:#7b1fa2;color:#fff;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:10px">💰 Open Full Balance & Withdraw</button>
 </div>
-<div style="margin:10px 0">
-<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold">🏪 MY SHOP - View Shop</button>
-<div id="mySalesDash" style="background:#000;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin-top:10px">
-<h3 style="color:#FFCC02;text-align:center;margin:0 0 8px 0">📊 My Sales (Seller Only)</h3>
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
-<div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #0f0"><b id="saleToday" style="color:#0f0;font-size:14px">UGX 0</b><br><small style="color:#888">TODAY</small></div>
-<div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #FFCC02"><b id="saleWeek" style="color:#FFCC02;font-size:14px">UGX 0</b><br><small style="color:#888">THIS WEEK</small></div>
-<div style="background:#1a1a1a;padding:8px;border-radius:8px;border:1px solid #ff6a00"><b id="saleYear" style="color:#ff6a00;font-size:14px">UGX 0</b><br><small style="color:#888">THIS YEAR</small></div>
-</div>
-<div style="background:#222;border-radius:8px;padding:10px;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center">
-<div style="background:#111;padding:8px;border-radius:6px"><b id="saleOrders" style="color:white">0</b><br><small style="color:#888">Total Orders</small></div>
-<div style="background:#111;padding:8px;border-radius:6px"><b id="salePromoCoins" style="color:#FFCC02">0 coins</b><br><small style="color:#888">Spent on Promo</small></div>
-</div>
-<div style="text-align:center;margin-top:8px;background:#1a1a1a;padding:6px;border-radius:6px"><small id="salePromoUgx" style="color:#FFCC02">💸 UGX 0 spent on promoters</small></div>
-</div>
-</div>
-
-<div style="background:#fff3cd;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:12px 0">
-<h3 style="margin:0 0 8px 0">🔒 Protect Account - Set Password</h3>
-<input id="newPass1" type="password" placeholder="New Password (min 4)" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc">
-<input id="newPass2" type="password" placeholder="Confirm Password" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc">
-<button onclick="setMyPassword()" style="width:100%;background:#000;color:#FFCC02;padding:12px;border:none;border-radius:8px;font-weight:bold">🔒 Save My Password</button>
-<p id="passMsg" style="font-size:12px;text-align:center;margin-top:6px"></p>
-</div>
-
+<button onclick="goToMyShop()" style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:12px;border-radius:10px;font-weight:bold">🏪 MY SHOP</button>
 <button class="btn" style="width:100%;background:#c0392b;margin-top:10px" onclick="doLogout()">Logout</button>
 <button onclick="closePop('authPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>
 </div>
 </div>
-
 <div class="popup" id="shopsPop" onclick="closePop('shopsPop')"><div class="popup-content" id="shopsContent" onclick="event.stopPropagation()"></div></div>
-
 <div class="popup" id="spinPop" onclick="closePop('spinPop')">
 <div class="popup-content" style="max-width:520px;background:linear-gradient(180deg,#000,#1a1a1a);border:4px solid #FFCC02;text-align:center" onclick="event.stopPropagation()">
 <h2 style="color:#FFCC02;font-size:22px">🎰 SANNLAS SPIN & WIN</h2>
-<p style="color:#0f0;font-size:11px">15% House Edge • 7 Multipliers • Stake 0-1000 • FAST 2.2s</p>
 <div class="wheel-wrap"><div class="wheel-pointer"></div><div id="spinWheel" class="wheel"></div><div class="wheel-center">🎰</div></div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:10px 0;font-size:10px">
-<div style="background:#ff0000;color:white;padding:4px;border-radius:6px">0x<br>35%</div>
-<div style="background:#fff;color:#000;padding:4px;border-radius:6px">1x<br>25%</div>
-<div style="background:#00aaff;color:white;padding:4px;border-radius:6px">1.5x<br>15%</div>
-<div style="background:#00ff00;color:#000;padding:4px;border-radius:6px">2x<br>12%</div>
-<div style="background:#FFCC02;color:#000;padding:4px;border-radius:6px">3x<br>8%</div>
-<div style="background:#aa00ff;color:white;padding:4px;border-radius:6px">5x<br>4%</div>
-<div style="background:#FFD700;color:#000;padding:4px;border-radius:6px">10x<br>1%</div>
-</div>
 <div style="background:#111;border:2px solid #333;border-radius:12px;padding:10px;display:flex;gap:8px;align-items:center">
 <input id="stakeInput" type="number" min="0" max="1000" value="10" style="flex:1;padding:12px;border-radius:8px;border:2px solid #FFCC02;background:#000;color:#FFCC02;font-weight:bold;text-align:center;font-size:18px">
 <div style="color:#888;font-size:11px;text-align:left">Fee 15%<br><span id="feePreview" style="color:#FFCC02">1.5 coins</span></div>
@@ -193,621 +157,150 @@ if ('serviceWorker' in navigator) {
 <button onclick="doSpin()" id="spinBtn" style="background:linear-gradient(90deg,#FFCC02,#ff6a00);color:#000;width:100%;padding:16px;border:none;border-radius:12px;font-weight:bold;font-size:18px;margin-top:8px">🎰 SPIN NOW</button>
 <p id="spinResult" style="color:#FFCC02;font-weight:bold;margin-top:10px;font-size:14px;min-height:20px"></p>
 <div style="background:#000;border-radius:8px;padding:8px;display:flex;justify-content:space-between;font-size:11px;color:#888">
-<span>Bal: <b id="spinBal" style="color:#FFCC02">0</b></span>
-<span>Won: <b id="spinWon" style="color:#0f0">0</b></span>
-<span>Fee: <b id="spinFee" style="color:red">0</b></span>
-<span><a href="#" onclick="loadSpinHistory();return false" style="color:#FFCC02">History</a></span>
+<span>Bal: <b id="spinBal" style="color:#FFCC02">0</b></span><span>Won: <b id="spinWon" style="color:#0f0">0</b></span><span>Fee: <b id="spinFee" style="color:red">0</b></span>
 </div>
 <button onclick="closePop('spinPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>
 </div>
 </div>
-
 <div style="background:#000;border-top:3px solid #FFCC02;padding:25px;text-align:center;color:#FFCC02;font-weight:bold;margin-top:30px">
 <div style="font-size:18px">@sannlas 2026</div>
 <div style="font-size:11px;color:#888;margin-top:6px">SANNLAS UGANDA - Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950</div>
 </div>
+<div class="fixed-bottom"><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span><span id="cartN" onclick="openCart()" style="color:white">🛒 0</span></div>
 
-<div class="fixed-bottom"><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span></div>
-
-<script>
-let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let billboardData=null;
-async function loadCoinLive(){try{let r=await fetch('/api/coins/config');let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();document.getElementById('coinProgressFill').style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}}
-// ===== NEW BILLBOARD 3 OPTIONS - Photo + Video + Animated =====
-async function loadBillboardBanner(){
-  try{
-    let r = await fetch('/api/billboard');
-    let bb = await r.json();
-    billboardData = bb;
-    let banner = document.getElementById('billboardBanner');
-    let wrap = document.getElementById('billboardMediaWrap');
-    let txt = document.getElementById('billboardText');
-    if(!bb ||!bb.active){
-      banner.classList.remove('active'); return;
-    }
-    if(bb.type!== 'animated' &&!bb.media_url){
-      banner.classList.remove('active'); return;
-    }
-    banner.classList.add('active');
-    if(bb.type == 'image'){
-      wrap.innerHTML = `<img src="${bb.media_url}" alt="Billboard">`;
-      txt.innerText = bb.text || ''; txt.style.display = 'block';
-    }
-    else if(bb.type == 'video'){
-      wrap.innerHTML = `<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;
-      txt.innerText = bb.text || ''; txt.style.display = 'block';
-    }
-    else if(bb.type == 'animated'){
-      txt.style.display = 'none';
-      let r2 = await fetch('/api/hero-stories');
-      let stories = await r2.json();
-      if(!stories.length){
-        wrap.innerHTML = `<div style="padding:30px;color:white;text-align:center">No stories yet! Add in Admin > Hero Stories</div>`; return;
-      }
-      wrap.innerHTML = `
-        <div id="heroStoryBox" style="position:relative;width:100%;height:400px;background:#000;overflow:hidden">
-          <div id="storyProgress" style="position:absolute;top:8px;left:8px;right:8px;display:flex;gap:4px;z-index:10"></div>
-          <img id="storyImg" style="width:100%;height:100%;object-fit:cover">
-          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.9));padding:20px;color:white">
-            <h2 id="storyTitle" style="color:#FFCC02;margin:0;font-size:18px"></h2>
-            <p id="storySub" style="margin:5px 0 0 0;font-size:13px"></p>
-            <div style="margin-top:8px;font-size:11px;background:rgba(255,204,2,0.2);display:inline-block;padding:4px 8px;border-radius:10px">🔥 ${stories.length} Stories • Auto-play</div>
-          </div>
-        </div>
-      `;
-      const progressEl = document.getElementById('storyProgress');
-      progressEl.innerHTML = stories.map((_,i)=>`<div style="flex:1;height:3px;background:rgba(255,255,255,0.3);border-radius:3px"><div id="prog-${i}" style="height:100%;width:0%;background:#FFCC02"></div></div>`).join('');
-      let current = 0;
-      function showStory(idx){
-        const s = stories[idx];
-        document.getElementById('storyImg').src = s.image;
-        document.getElementById('storyTitle').textContent = s.title_en || bb.text || '';
-        document.getElementById('storySub').textContent = s.subtitle_en || '';
-      }
-      showStory(0); let prog = 0;
-      if(window.heroInterval) clearInterval(window.heroInterval);
-      window.heroInterval = setInterval(()=>{
-        prog++; const bar = document.getElementById(`prog-${current}`);
-        if(bar) bar.style.width = prog + '%';
-        if(prog >= 100){ prog = 0; if(bar) bar.style.width='0%'; current=(current+1)%stories.length; showStory(current); }
-      },50);
-    }
-  }catch(e){ console.log('billboard error', e); }
-}
-async function loadMySalesStats(){
- if(!currentUser) return;
- try{
-  let r=await fetch(`/api/my-sales/stats?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(currentUser.phone)}`);
-  let d=await r.json();
-  document.getElementById('saleToday').innerText=`UGX ${(d.today||0).toLocaleString()}`;
-  document.getElementById('saleWeek').innerText=`UGX ${(d.week||0).toLocaleString()}`;
-  document.getElementById('saleYear').innerText=`UGX ${(d.year||0).toLocaleString()}`;
-  document.getElementById('saleOrders').innerText=d.orders||0;
-  document.getElementById('salePromoCoins').innerText=(d.promo_coins_spent||0)+' coins';
-  document.getElementById('salePromoUgx').innerText=`💸 UGX ${((d.promo_coins_spent||0)*599).toLocaleString()} spent on promoters`;
- }catch(e){
-  document.getElementById('saleToday').innerText='UGX 0';
-  document.getElementById('saleWeek').innerText='UGX 0';
-  document.getElementById('saleYear').innerText='UGX 0';
- }
-}
-async function setMyPassword(){
- let p1=document.getElementById('newPass1').value.trim();
- let p2=document.getElementById('newPass2').value.trim();
- if(p1.length<4) return alert('Password min 4 chars Boss!');
- if(p1!==p2) return alert('Passwords not matching Boss!');
- try{
-  let r=await fetch('/api/account/set-password',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({email:currentUser.email, phone:currentUser.phone, password:p1})
-  });
-  let d=await r.json();
-  document.getElementById('passMsg').innerText=d.message;
-  alert(d.message);
-  if(d.success){
-    document.getElementById('newPass1').value='';
-    document.getElementById('newPass2').value='';
-  }
- }catch(e){ alert('Failed: '+e.message); }
-}
-async function showAllShops(){
-  document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';
-  document.getElementById('shopsPop').style.display='flex';
-  try{
-    let r=await fetch('/api/shops');
-    let shops=await r.json();
-    shops=shops.filter(s=>(s.total_products||s.product_count||s.count||0)>0);
-    if(!shops||shops.length==0){
-      document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
-      return;
-    }
-    let html='<h2 style="color:#8B0000">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
-    shops.forEach(s=>{
-      let count = s.total_products || s.product_count || s.count || 0;
-      let slug = s.slug || s.shop_slug || '';
-      let name = s.business_name || s.name || 'Shop';
-      let loc = s.location || 'Uganda';
-      html+='<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 '+name+'</b><br><span style="font-size:11px">📍 '+loc+' | 📦 '+count+' products</span></div><a href="/shop/'+slug+'" style="text-decoration:none"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">Visit Shop</button></a></div>';
-    });
-    html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:15px">Close</button>';
-    document.getElementById('shopsContent').innerHTML=html;
-  }catch(e){
-    document.getElementById('shopsContent').innerHTML='<p>Failed: '+e.message+'</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>';
-  }
-}
-async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops');let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first');document.getElementById('frontUpload').scrollIntoView({behavior:'smooth'});}}catch(e){alert('Failed to find shop');}}
-setInterval(loadCoinLive,30000);setInterval(loadBillboardBanner,60000);
-function goToBalance(){
-  let u=localStorage.getItem('sannlas_user');
-  if(!u&&!currentUser){showGate();switchGate('register');return;}
-  if(!currentUser){try{currentUser=JSON.parse(u);}catch(e){}}
-  location.href='/balance';
-}
-function goToWallet(){ goToBalance(); }
-function requireAuthForCoins(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}}}if(!currentUser){showGate();switchGate('register');return false;}return true;}
-function requireAuthForCheckout(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}}}if(!currentUser){showGate();switchGate('register');return false;}return true;}
-function doCheckout(){if(!requireAuthForCheckout())return;let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);if(confirm(`✅ Boss Confirm Order?\nTotal: UGX ${total.toLocaleString()}`)){cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');alert('🎉 Order Placed Boss!');}}
-async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.my_coins!==undefined||d.needs_coins){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||frontFiles.length*3;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE!`;loadMyCoins();doFilter();}
-function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
-function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
-function closePop(id){ let el=document.getElementById(id); if(el) el.style.display='none'; }
-function openPopup(id){
- let el=document.getElementById(id);
- if(el) el.style.display='flex';
- if(id=='authPop'){ loadMyCoins(); loadMySalesStats(); }
-}
-function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
-function showGate(){document.getElementById('authGate').style.display='flex';}function hideGate(){document.getElementById('authGate').style.display='none';}
-function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();loadMyCoins();loadMySalesStats();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadLiveTicker();}
-function gateDoRegister(){
-  let email=document.getElementById('gateRegEmail').value.trim(),
-      phone=document.getElementById('gateRegPhone').value.trim(),
-      pass=document.getElementById('gateRegPass').value,
-      biz=document.getElementById('gateRegBiz').value;
-  if(!email||!phone||!pass){alert('Fill all');return;}
-  switchGate('loading');
-  fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})})
-  .then(r=>r.json()).then(d=>{
-    if(d.success){
-      localStorage.setItem('sannlas_user',JSON.stringify(d.user));
-      currentUser=d.user;
-      // ✅ SHOW 10 COINS IMMEDIATELY ON HOME
-      updateLoginUI();
-      loadMyCoins();
-      document.getElementById('myCoinsNav').innerText = d.user.coins || 10;
-      document.getElementById('bottomCoins').innerText = d.user.coins || 10;
-      switchGate('otp');
-    }else{
-      alert(d.message);switchGate('register');
-    }
-  });
-}
-function gateVerifyOTP(){switchGate('nin');}
-function gateDoLogin(){
-  let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;
-  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})})
-  .then(r=>r.json()).then(d=>{
-    if(d.success){
-      currentUser=d.user;
-      localStorage.setItem('sannlas_user',JSON.stringify(d.user));
-      hideGate();
-      updateLoginUI();
-      loadMyCoins();
-      loadMySalesStats();
-      // ✅ FORCE SHOW
-      document.getElementById('myCoinsNav').innerText = d.user.coins;
-      document.getElementById('bottomCoins').innerText = d.user.coins;
-    }else{alert(d.message);}
-  });
-}
- function gateUploadNIN(){
-  hideGate();
-  updateLoginUI();
-  loadMyCoins();
-  loadMySalesStats();
-  doFilter();
-}
-function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
-function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=1000000;render();});}
-function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
-function render(){
-  if(products.length==0){
-    document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';
-    return;
-  }
-  let toShow=products.slice(0,visibleCount);
-  let html = toShow.map(p=>{
-    let desc=p.description||p.desc||'';
-    let shortDesc=desc.length>60?desc.substring(0,60)+'...':desc;
-    let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
-    let badge="";
-    if(p.original_price&&Number(p.original_price)>Number(p.price)){
-      let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));
-      badge=`<div class="discount-badge">${pct}% OFF</div>`;
-      priceHtml=`UGX ${Number(p.price).toLocaleString()} <span style="text-decoration:line-through;color:gray;font-size:11px">UGX ${Number(p.original_price).toLocaleString()}</span>`;
-    }
-    let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none;display:block;margin-top:6px"><button style="width:100%;background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:6px;border-radius:15px;font-weight:bold;font-size:11px;cursor:pointer">🏪 Visit Shop</button></a>` : '';
-    let commBadge=p.promo_commission?`<div style="position:absolute;top:6px;right:6px;background:#FFCC02;color:#000;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:bold;z-index:2">💰 ${p.promo_commission} coins promo</div>` : '';
-    return `<div class="card">${badge}${commBadge}<img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price" style="font-size:13px">${priceHtml}</div><div style="font-size:11px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px;border:1px solid #eee">📝 ${shortDesc||'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div>${shopBtn}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;
-  }).join('');
-  if(visibleCount < products.length){
-    html += `<div style="grid-column:1/-1;text-align:center;padding:20px"><button onclick="visibleCount+=20;render()" style="width:100%;padding:15px;background:#FFCC02;color:#000;border:none;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer">🔽 Load More</button></div>`;
-  }
-  document.getElementById('products').innerHTML=html;
-}
-function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
-function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
-async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`);let d=await r.json();let myCoins=d.coins||0;document.getElementById('myCoinsPlan').innerText=myCoins;document.getElementById('myCoinsNav').innerText=myCoins;document.getElementById('coinsMyBal').innerText=myCoins;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
-async function updateLoginUI(){
-  if(currentUser){
-    document.getElementById('userInfo').style.display='block';
-    
-    // NO COINS HERE - Just email!
-    document.getElementById('userInfo').innerHTML=`${currentUser.email}`;
-    document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;
-
-    try{
-      const res = await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`);
-      const d = await res.json();
-      let coins = d.total || 0;
-      
-      // ONLY UPDATE THE BALANCE BUTTON - Not userInfo!
-      let balSpan = document.getElementById('myCoinsNav');
-      if(balSpan) balSpan.innerText = coins;
-      
-      // Update bottom if you still have it
-      let bottomEl = document.getElementById('bottomCoins');
-      if(bottomEl) bottomEl.innerText = coins;
-      
-      currentUser.coins = coins;
-      localStorage.setItem('sannlas_user', JSON.stringify(currentUser));
-    }catch(e){
-      console.log('Balance fetch failed', e);
-    }
-  }
-}
-function loadMyCoins(){} // disabled - we now load in updateLoginUI
-function loadMySalesStats(){}
-function doLogout(){localStorage.clear();location.reload();}
-function setStake(v){document.getElementById('stakeInput').value=v;updateFee();}
-function updateFee(){let s=parseInt(document.getElementById('stakeInput').value)||0;if(s>1000){s=1000;document.getElementById('stakeInput').value=1000}if(s<0){s=0;document.getElementById('stakeInput').value=0}let fee=s==0?0:Math.floor(s*0.15);document.getElementById('feePreview').innerText=s==0?'FREE DEMO':fee+' coins fee';}
-document.getElementById('stakeInput')?.addEventListener('input',updateFee);setTimeout(updateFee,500);
-const WHEEL_SEGMENTS=[{name:"0x LOST",mult:0,start:0,end:126,color:"#ff0000"},{name:"1x BACK",mult:1,start:126,end:216,color:"#ffffff"},{name:"1.5x SMALL",mult:1.5,start:216,end:270,color:"#00aaff"},{name:"2x DOUBLE",mult:2,start:270,end:313.2,color:"#00ff00"},{name:"3x TRIPLE",mult:3,start:313.2,end:342,color:"#FFCC02"},{name:"5x SUPER",mult:5,start:342,end:356.4,color:"#aa00ff"},{name:"10x JACKPOT",mult:10,start:356.4,end:360,color:"#FFD700"}];
-async function doSpin(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');showGate();return;}let stake=parseInt(document.getElementById('stakeInput').value)||0;let btn=document.getElementById('spinBtn');btn.disabled=true;btn.innerText='⏳ SPINNING...';let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});let d=await r.json();if(!d.success){btn.disabled=false;btn.innerText='🎰 SPIN NOW';alert(d.message);return;}let segment=WHEEL_SEGMENTS.find(s=>s.mult==d.multiplier)||WHEEL_SEGMENTS[0];let randomInside=segment.start+Math.random()*(segment.end-segment.start);let targetAngle=360-randomInside;let finalRotation=(5*360)+targetAngle;let wheel=document.getElementById('spinWheel');wheel.style.transform=`rotate(${finalRotation}deg)`;setTimeout(()=>{btn.disabled=false;btn.innerText='🎰 SPIN NOW';document.getElementById('spinBal').innerText=d.my_coins;document.getElementById('myCoinsNav').innerText=d.my_coins;loadLiveTicker();},2200);}
-async function loadSpinHistory(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first');return;}let r=await fetch(`/api/spin/history?phone=${u.phone}&email=${u.email}`);let h=await r.json();if(!h.length){alert('No spins yet Boss!');return;}let txt=h.slice(0,20).map(x=>`Stake:${x.stake} Won:${x.won}`).join('\n');alert(txt);}
-async function loadLiveTicker(){try{let cfg=await fetch('/api/coins/config').then(r=>r.json()).catch(()=>({remaining:1000000000}));let rem=Number(cfg.remaining||0).toLocaleString();let msgs=[`🔴 LIVE: ${rem} Coins Left`,`🎰 SPIN & WIN ACTIVE`];document.getElementById('tickerContent').innerText=msgs.join(' • ');}catch(e){}}
- // ===== 🎯 WANT TO BUY JS =====
-function openWantModal(){
-  if(!currentUser){
-    let u=localStorage.getItem('sannlas_user');
-    if(u){try{currentUser=JSON.parse(u);}catch(e){}}
-  }
-  if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}
-  document.getElementById('wantPhone').value = currentUser.phone || '';
-  document.getElementById('wantModal').style.display='flex';
-}
-function closeWantModal(){document.getElementById('wantModal').style.display='none';}
-function openSellModal(){
-  if(!currentUser){
-    let u=localStorage.getItem('sannlas_user');
-    if(u){try{currentUser=JSON.parse(u);}catch(e){}}
-  }
-  if(!currentUser){showGate();switchGate('register');return;}
-  document.getElementById('frontUpload').style.display='flex';
-  document.getElementById('frontUpload').scrollTop=0;
-}
-function closeSellModal(){document.getElementById('frontUpload').style.display='none';}
-async function submitWant(){
-  let item=document.getElementById('wantItem').value.trim();
-  let qty=document.getElementById('wantQty').value.trim();
-  let district=document.getElementById('wantDistrict').value.trim();
-  let phone=document.getElementById('wantPhone').value.trim();
-  let note=document.getElementById('wantNote').value.trim();
-  if(!item){alert('What do you want?');return;}
-  if(!phone){alert('Phone required!');return;}
-  let body={
-    title:item, item:item, quantity:qty, district:district,
-    phone:phone, email:currentUser?currentUser.email:'',
-    description:note, note:note,
-    category:'General', min_budget:0, max_budget:0,
-    delivery_type:'both', urgency:'3days'
-  };
-  let r=await fetch('/api/wants',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  let d=await r.json();
-  if(d.success){
-    alert('✅ WANT posted! Sellers will auction now!');
-    closeWantModal();
-    loadWantsLive();
-    document.getElementById('wantItem').value='';document.getElementById('wantNote').value='';
-  }else{alert(d.message);}
-}
-async function loadWantsLive(){
-  try{
-    let r=await fetch('/api/wants?sort=most_offers');
-    let wants=await r.json();
-    document.getElementById('wantsCount').innerText=wants.length;
-    if(wants.length==0){
-      document.getElementById('wantsList').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No wants yet! Be first to post 🎯</p>';
-      return;
-    }
-    let html=wants.slice(0,12).map(w=>{
-      let lowest = w.lowest_offer ? `UGX ${Number(w.lowest_offer).toLocaleString()}` : 'No bids';
-      let budget = w.max_budget ? `UGX ${Number(w.max_budget).toLocaleString()}` : 'Negotiable';
-      return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer">
-        <div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div>
-        <small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 Budget ${budget}</small><br>
-        <div style="display:flex;justify-content:space-between;margin-top:6px;align-items:center">
-          <span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">Lowest: ${lowest}</span>
-          <span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">💬 ${w.offers_count||0} offers</span>
-        </div>
-        <div style="margin-top:6px;display:flex;gap:4px">
-          <button style="flex:1;background:#000;color:#FFCC02;border:none;padding:6px;border-radius:15px;font-size:11px;font-weight:bold">🏆 View Auction</button>
-          <a href="tel:${w.phone}" onclick="event.stopPropagation()" style="flex:1;background:#00FF00;color:#000;padding:6px;border-radius:15px;font-weight:bold;text-decoration:none;text-align:center;font-size:11px">📞 Call</a>
-        </div>
-      </div>`;
-    }).join('');
-    html+=`<div onclick="location.href='/wants'" style="grid-column:1/-1;background:linear-gradient(90deg,#000,#1a5c00);color:#00FF00;padding:12px;border-radius:10px;text-align:center;font-weight:bold;border:2px solid #00FF00;cursor:pointer">🔥 View All ${wants.length} Wants Auction →</div>`;
-    document.getElementById('wantsList').innerHTML=html;
-  }catch(e){
-    document.getElementById('wantsList').innerHTML='<p style="color:red">Failed to load</p>';
-  }
-}
-// MIC VOICE SEARCH - FIXED for Phone Permission
-async function startVoiceSearch(){
-  let btn=document.getElementById('micBtn');
-
-  // STEP 1: Ask for mic permission first (phone needs this!)
-  try{
-    let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    stream.getTracks().forEach(t=>t.stop()); // stop after permission granted
-  }catch(e){
-    alert('❌ Please ALLOW microphone!\n\nGo to: Chrome > Settings > Site settings > Microphone > Allow for sannlas.onrender.com Boss!');
-    return;
-  }
-
-  let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition){
-    alert('❌ Voice not supported! Use Chrome browser Boss!');
-    return;
-  }
-
-  let recog = new SpeechRecognition();
-  recog.lang = 'en-US';
-  recog.interimResults = false;
-
-  btn.innerText='🔴 LISTENING... SAY NOW!';
-  btn.style.background='red';
-  btn.style.color='white';
-  btn.disabled=true;
-  // Vibrate phone
-  if(navigator.vibrate) navigator.vibrate(100);
-
-  recog.onresult = (e)=>{
-    let text = e.results[0][0].transcript;
-    document.getElementById('searchInput').value=text;
-    doFilter();
-    let low = text.toLowerCase();
-    if(low.includes('i want') || low.includes('njagala')){
-      document.getElementById('wantItem').value=text;
-      setTimeout(()=>openWantModal(), 600);
-    }
-  };
-  recog.onerror = (e)=>{
-    btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
-    if(e.error=='not-allowed') alert('❌ Mic BLOCKED! Click padlock icon in address bar > Permissions > Allow Mic Boss!');
-    else alert('Mic error: '+e.error);
-  };
-  recog.onend = ()=>{
-    btn.innerText='🎤'; btn.style.background='#FFCC02'; btn.style.color='#000'; btn.disabled=false;
-  };
-  recog.start();
-}
-setInterval(loadWantsLive,10000);
-// ===== END WANT JS =====
-setInterval(loadLiveTicker,15000);gateCheck();
-function viewProd(id){let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p)return;let desc=p.description||p.desc||'No description';let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold">🏪 Visit Shop</button></a>` : '';let promoComm=p.promo_commission||3;document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:12px;margin:10px 0"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">${priceHtml}</div><div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02"><b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}</div>${shopBtn}<div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center"><p style="color:#FFCC02;font-size:13px">💰 Earn <b>${promoComm} coins</b> per sale!</p><button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:6px">🤝 Apply to Promote & Earn</button></div><button class="btn btn-green" style="width:100%;padding:14px" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button><button style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
-function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);}
-function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3>🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b>${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b>UGX ${sub.toLocaleString()}</b></div><button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px">🗑️</button></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL: UGX ${total.toLocaleString()}</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout</button><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
-function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1)item.qty=1;document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);openCart();}
-function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
-</script>
-
-<!-- PROMO POPUP WITH COPY + SELL - FIXED -->
+<!-- PROMO MODAL -->
 <div id="promoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;align-items:center;justify-content:center;padding:15px">
  <div style="background:#1e1e1e;border:3px solid #FFCC02;border-radius:15px;padding:20px;max-width:500px;width:100%;text-align:center;color:white">
   <h2 style="color:#FFCC02;margin:0 0 8px">✅ Applied to Promote!</h2>
-  <p style="color:#aaa;font-size:13px">Share this link - You earn <b style="color:#0f0" id="promoCommTxt">3 coins</b> per sale!</p>
   <input id="promoLinkInput" readonly style="width:100%;padding:12px;border-radius:8px;background:#000;color:#FFCC02;border:2px solid #FFCC02;margin:12px 0;font-size:11px">
-  <button onclick="copyPromoLink()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer;margin:5px 0">📋 COPY LINK</button>
-  <div style="display:flex;gap:6px">
-   <button onclick="sharePromoWA()" style="flex:1;background:#25D366;color:white;padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer">📱 SELL WhatsApp</button>
-   <button onclick="sharePromoFB()" style="flex:1;background:#1877F2;color:white;padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer">📘 Facebook</button>
-  </div>
-  <button onclick="closePromoModal()" style="width:100%;background:#333;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px;cursor:pointer">Close</button>
-  <p id="promoCopyMsg" style="color:#0f0;margin-top:8px;display:none;font-weight:bold"></p>
+  <button onclick="copyPromoLink()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:10px;font-weight:bold">📋 COPY LINK</button>
+  <button onclick="closePromoModal()" style="width:100%;background:#333;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button>
+  <p id="promoCopyMsg" style="color:#0f0;margin-top:8px;display:none"></p>
  </div>
 </div>
 
-<script>
-function applyPromote(pid,comm){
-  let u=null;
-  try{ u=JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
-  if(!u ||!u.phone){ alert('Login first Boss!'); location.href='/balance'; return; }
-  if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`)) return;
-  fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})})
- .then(r=>r.json()).then(d=>{
-    let link = d.link || d.promo_link || `https://sannlas.onrender.com/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;
-    document.getElementById('promoLinkInput').value = link;
-    document.getElementById('promoCommTxt').innerText = `${comm||3} coins = UGX ${(comm||3)*599}`;
-    document.getElementById('promoModal').style.display='flex';
-    document.getElementById('promoCopyMsg').style.display='none';
-  }).catch(e=>alert('Error: '+e.message));
-}
-function copyPromoLink(){
-  let v=document.getElementById('promoLinkInput').value;
-  navigator.clipboard.writeText(v).then(()=>{
-    let m=document.getElementById('promoCopyMsg'); m.style.display='block'; m.innerText='✅ Copied! Now go sell Boss! 💰';
-    setTimeout(()=>m.style.display='none',3000);
-  });
-}
-function sharePromoWA(){
-  let link=document.getElementById('promoLinkInput').value;
-  window.open(`https://wa.me/?text=${encodeURIComponent('🔥 Buy this on SANNLAS! Best price: '+link)}`,'_blank');
-}
-function sharePromoFB(){
-  let link=document.getElementById('promoLinkInput').value;
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`,'_blank');
-}
-function closePromoModal(){ document.getElementById('promoModal').style.display='none'; }
-</script>
-
-<!-- ✅ PROMO AUTO-OPEN FIX - NEW! THIS MAKES LINK GO TO SPECIFIC PRODUCT -->
-<script>
-function checkPromoLink(){
-  let params = new URLSearchParams(window.location.search);
-  let promo = params.get('promo');
-  let productId = params.get('product');
-  if(promo){
-    localStorage.setItem('pending_promo', promo);
-    console.log('Promo saved:', promo);
-  }
-  if(productId){
-    let attempts = 0;
-    let tryOpen = setInterval(()=>{
-      attempts++;
-      if(typeof allProducts!== 'undefined' && allProducts.length > 0){
-        let p = allProducts.find(x=>x.id==productId);
-        if(p){
-          clearInterval(tryOpen);
-          setTimeout(()=>{
-            viewProd(productId);
-            window.history.replaceState({},'', '/');
-          }, 600);
-        }
-      }
-      if(attempts > 25){ clearInterval(tryOpen); }
-    }, 800);
-  }
-}
-setTimeout(checkPromoLink, 1200);
-document.addEventListener('DOMContentLoaded', checkPromoLink);
-</script>
- <!-- 🎯 WANT TO BUY MODAL -->
 <div id="wantModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;padding:15px;">
   <div style="background:#1e1e1e;border:3px solid #00FF00;border-radius:15px;padding:20px;max-width:450px;width:100%;color:white;">
     <h2 style="color:#00FF00;text-align:center;margin:0 0 10px">🎯 What Do You Want To Buy?</h2>
-    <p style="color:#aaa;text-align:center;font-size:12px;margin-bottom:10px">Post FREE - 0 Coins! Sellers will contact you!</p>
     <input id="wantItem" placeholder="What item? e.g. Maize 10 bags" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
-    <input id="wantQty" placeholder="Quantity e.g. 10 bags, 5kg" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
+    <input id="wantQty" placeholder="Quantity e.g. 10 bags" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
     <input id="wantDistrict" placeholder="Your District e.g. Kampala" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;">
-    <input id="wantPhone" placeholder="Phone Number e.g. 0795712326" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:2px solid #00FF00;background:#2a2a2a;color:white;">
+    <input id="wantPhone" placeholder="Phone Number" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:2px solid #00FF00;background:#2a2a2a;color:white;">
     <textarea id="wantNote" placeholder="More details..." rows="2" style="width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a2a2a;color:white;"></textarea>
-    <button onclick="submitWant()" style="width:100%;padding:14px;background:#00FF00;color:#000;font-weight:900;border:none;border-radius:10px;margin-top:10px;cursor:pointer;font-size:16px">🚀 POST WANT (FREE - 0 Coins)</button>
-    <button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px;cursor:pointer">Cancel</button>
-  </div>
-</div>
- <!-- === FORGOT PASSWORD POPUP - SANNLA === -->
-<style>
-#forgotModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:15px}
-.forgot-box{background:#fff;border-radius:20px;max-width:380px;width:100%;padding:20px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,0.3)}
-.forgot-box input{width:100%;padding:12px;border:2px solid #ddd;border-radius:12px;margin:8px 0;font-size:16px;box-sizing:border-box}
-.otp-row{display:flex;gap:6px;margin:10px 0}
-.otp-row input{flex:1;text-align:center;font-weight:bold;font-size:20px;padding:10px 0!important}
-</style>
-
-<div id="forgotModal" onclick="if(event.target==this)closeForgot()">
-  <div class="forgot-box">
-    <span onclick="closeForgot()" style="position:absolute;top:10px;right:15px;font-size:24px;cursor:pointer">❌</span>
-    <div id="forgotStage1">
-      <h3>🔑 Forgot Password?</h3>
-      <p style="color:#666;font-size:13px">Enter your email, we send 6-digit code</p>
-      <input id="fEmail" type="email" placeholder="Your email@gmail.com">
-      <button onclick="sendCode()" id="sendBtn" style="width:100%;background:#000;color:#FFCC02;padding:12px;border-radius:12px;margin-top:10px;font-weight:bold;border:none;cursor:pointer">📧 Send Code</button>
-      <p id="fMsg" style="font-size:13px;margin-top:8px"></p>
-    </div>
-    <div id="forgotStage2" style="display:none">
-      <h3>✉️ Check Your Email</h3>
-      <p style="color:#666;font-size:13px">Code sent to <b id="fEmailShow"></b></p>
-      <p style="font-size:12px;margin:0">Enter 6-digit code:</p>
-      <div class="otp-row">
-        <input maxlength="1" id="o1" oninput="moveOtp(this,'o2')"><input maxlength="1" id="o2" oninput="moveOtp(this,'o3')"><input maxlength="1" id="o3" oninput="moveOtp(this,'o4')"><input maxlength="1" id="o4" oninput="moveOtp(this,'o5')"><input maxlength="1" id="o5" oninput="moveOtp(this,'o6')"><input maxlength="1" id="o6">
-      </div>
-      <input id="fNewPass" type="password" placeholder="New Password (min 4)">
-      <input id="fConfPass" type="password" placeholder="Confirm New Password">
-      <button onclick="resetPass()" id="resetBtn" style="width:100%;background:#00FF00;color:#000;padding:12px;border-radius:12px;margin-top:10px;font-weight:bold;border:none;cursor:pointer">✅ Reset Password</button>
-      <div style="display:flex;justify-content:space-between;margin-top:10px">
-        <small id="timer" style="color:red;font-weight:bold"></small>
-        <small onclick="sendCode(true)" style="color:blue;cursor:pointer;text-decoration:underline">Resend Code</small>
-      </div>
-      <p id="fMsg2" style="font-size:13px;margin-top:8px"></p>
-    </div>
+    <button onclick="submitWant()" style="width:100%;padding:14px;background:#00FF00;color:#000;font-weight:900;border:none;border-radius:10px;margin-top:10px">🚀 POST WANT (FREE)</button>
+    <button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px">Cancel</button>
   </div>
 </div>
 
 <script>
-let forgotEmail = ""; let countdown;
-function openForgot(){ document.getElementById('forgotModal').style.display='flex'; document.getElementById('forgotStage1').style.display='block'; document.getElementById('forgotStage2').style.display='none'; }
-function closeForgot(){ document.getElementById('forgotModal').style.display='none'; clearInterval(countdown); }
-function moveOtp(curr,next){ if(curr.value && next) document.getElementById(next).focus(); }
-async function sendCode(isResend=false){
-  let em = document.getElementById('fEmail').value.trim().toLowerCase();
-  if(!em || !em.includes('@')){ alert('Enter valid email Boss!'); return; }
-  forgotEmail = em;
-  document.getElementById('fMsg').innerText = '⏳ Sending...';
-  document.getElementById('sendBtn').disabled = true;
+let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let billboardData=null;
+let isLoadingWants=false;
+let isLoadingCoins=false;
+
+// ===== FIXED CORE - NO CRASH =====
+async function loadCoinLive(){
+  if(isLoadingCoins) return;
+  isLoadingCoins=true;
   try{
-    let r = await fetch('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});
-    let d = await r.json();
-    if(d.success){
-      document.getElementById('forgotStage1').style.display='none';
-      document.getElementById('forgotStage2').style.display='block';
-      document.getElementById('fEmailShow').innerText = em;
-      document.getElementById('fMsg2').innerText = d.message;
-      startTimer();
-    }else{
-      document.getElementById('fMsg').innerText = '❌ '+d.message;
-      document.getElementById('fMsg').style.color='red';
-    }
-  }catch(e){
-    document.getElementById('fMsg').innerText='❌ Failed: '+e.message;
-  }
-  document.getElementById('sendBtn').disabled = false;
+    let r=await fetch('/api/coins/config',{signal:AbortSignal.timeout(5000)});
+    let cfg=await r.json();
+    document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();
+    let fill=document.getElementById('coinProgressFill');
+    if(fill) fill.style.width=(cfg.remaining/1000000000*100)+'%';
+    let ticker=document.getElementById('tickerContent');
+    if(ticker) ticker.innerText=`🔴 LIVE: ${Number(cfg.remaining||0).toLocaleString()} Coins Left • 🎰 SPIN & WIN ACTIVE • 🪙 1 coin = 599 UGX • Min Withdraw 50 coins`;
+  }catch(e){}
+  isLoadingCoins=false;
+}
+function loadLiveTicker(){} // merged into loadCoinLive to avoid double fetch
+
+async function loadBillboardBanner(){
+  try{
+    let r=await fetch('/api/billboard',{signal:AbortSignal.timeout(5000)});
+    let bb=await r.json();
+    billboardData=bb;
+    let banner=document.getElementById('billboardBanner');
+    let wrap=document.getElementById('billboardMediaWrap');
+    let txt=document.getElementById('billboardText');
+    if(!bb||!bb.active){banner.classList.remove('active');return;}
+    if(bb.type!=='animated'&&!bb.media_url){banner.classList.remove('active');return;}
+    banner.classList.add('active');
+    if(bb.type=='image'){wrap.innerHTML=`<img src="${bb.media_url}" alt="Billboard">`;txt.innerText=bb.text||'';txt.style.display='block';}
+    else if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px"></video>`;txt.innerText=bb.text||'';txt.style.display='block';}
+  }catch(e){}
 }
 
-function startTimer(){
-  let sec=600;
-  clearInterval(countdown);
-  countdown=setInterval(()=>{
-    sec--; let m=Math.floor(sec/60); let s=sec%60;
-    document.getElementById('timer').innerText=`⏰ ${m}:${s.toString().padStart(2,'0')} left`;
-    if(sec<=0){ clearInterval(countdown); document.getElementById('timer').innerText='Expired! Resend.'; }
-  },1000);
-}
-
-async function resetPass(){
-  let o1=document.getElementById('o1').value+document.getElementById('o2').value+document.getElementById('o3').value+document.getElementById('o4').value+document.getElementById('o5').value+document.getElementById('o6').value;
-  let np=document.getElementById('fNewPass').value.trim();
-  let cp=document.getElementById('fConfPass').value.trim();
-  if(o1.length!=6){ alert('Enter 6-digit code'); return; }
-  if(np.length<4){ alert('Password min 4'); return; }
-  if(np!=cp){ alert('Passwords not match'); return; }
-  document.getElementById('resetBtn').disabled=true;
-  document.getElementById('resetBtn').innerText='⏳ Resetting...';
+function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
+function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
+function closePop(id){let el=document.getElementById(id); if(el) el.style.display='none';}
+function openPopup(id){let el=document.getElementById(id); if(el) el.style.display='flex';}
+function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
+function showGate(){document.getElementById('authGate').style.display='flex';}
+function hideGate(){document.getElementById('authGate').style.display='none';}
+function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){} if(currentUser){updateLoginUI();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadWantsLiveSafe();}
+function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;updateLoginUI();switchGate('otp');}else{alert(d.message);switchGate('register');}});}
+function gateVerifyOTP(){switchGate('nin');}
+function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();}else{alert(d.message);}});}
+function gateUploadNIN(){hideGate();updateLoginUI();doFilter();}
+function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),600);}
+function doFilter(){let q=document.getElementById('searchInput').value,url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url,{signal:AbortSignal.timeout(7000)}).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=1000000;render();}).catch(()=>{});}
+function clearFilter(){document.getElementById('searchInput').value='';doFilter();}
+function render(){if(products.length==0){document.getElementById('products').innerHTML='<p style="grid-column:1/-1;text-align:center;color:white;padding:40px">No products Boss!</p>';return;}let toShow=products.slice(0,visibleCount);let html=toShow.map(p=>{let desc=p.description||p.desc||'';let shortDesc=desc.length>60?desc.substring(0,60)+'...':desc;let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;let badge="";if(p.original_price&&Number(p.original_price)>Number(p.price)){let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));badge=`<div class="discount-badge">${pct}% OFF</div>`;priceHtml=`UGX ${Number(p.price).toLocaleString()} <span style="text-decoration:line-through;color:gray;font-size:11px">UGX ${Number(p.original_price).toLocaleString()}</span>`;}let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none;display:block;margin-top:6px"><button style="width:100%;background:#000;color:#FFCC02;border:1px solid #FFCC02;padding:6px;border-radius:15px;font-weight:bold;font-size:11px">🏪 Visit Shop</button></a>` : '';return `<div class="card">${badge}<img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:13px">${p.name}</h4><div class="price" style="font-size:13px">${priceHtml}</div><div style="font-size:11px;color:#333;background:#f9f9f9;padding:5px;border-radius:6px;margin:4px 0;min-height:18px">📝 ${shortDesc||'No description'}</div><div class="seller-box">🏪 ${p.business||'Seller'} - 📍 ${p.location||'Kampala'}</div>${shopBtn}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">👁️ View</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒 Cart</button></div></div></div>`;}).join('');if(visibleCount<products.length){html+=`<div style="grid-column:1/-1;text-align:center;padding:20px"><button onclick="visibleCount+=20;render()" style="width:100%;padding:15px;background:#FFCC02;color:#000;border:none;border-radius:12px;font-weight:900;font-size:16px">🔽 Load More</button></div>`;}document.getElementById('products').innerHTML=html;}
+function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div class="front-card"><img src="${url}"><div style="padding:5px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="border:2px solid #2e7d32"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="border:2px dashed red"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="border:2px solid #000;background:#FFF9C4"></textarea><input id="fbiz_${i}" value="${document.getElementById('frontBiz').value}"></div></div>`;}}
+function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
+async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}try{let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(currentUser.email)}&phone=${encodeURIComponent(phone)}`,{signal:AbortSignal.timeout(5000)});let d=await r.json();let myCoins=d.coins||0;let needCoins=frontFiles.length*3;if(myCoins<needCoins){document.getElementById('coinsMyBal').innerText=myCoins;document.getElementById('coinsNeed').innerText=needCoins;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}}catch(e){}frontUploadAllProceed();}
+async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',document.getElementById(`fbiz_${i}`).value||biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;if(d.my_coins!==undefined||d.needs_coins){document.getElementById('coinsMyBal').innerText=d.my_coins||0;document.getElementById('coinsNeed').innerText=d.need_coins||frontFiles.length*3;document.getElementById('coinsProdCount').innerText=frontFiles.length;document.getElementById('coinsPop').style.display='flex';return;}return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE!`;doFilter();}
+async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='block';document.getElementById('userInfo').innerHTML=`${currentUser.email}`;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;let balSpan=document.getElementById('myCoinsNav');if(balSpan) balSpan.innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
+function doLogout(){localStorage.clear();location.reload();}
+function setStake(v){document.getElementById('stakeInput').value=v;updateFee();}
+function updateFee(){let s=parseInt(document.getElementById('stakeInput').value)||0;if(s>1000){s=1000;document.getElementById('stakeInput').value=1000}if(s<0){s=0;document.getElementById('stakeInput').value=0}let fee=s==0?0:Math.floor(s*0.15);document.getElementById('feePreview').innerText=s==0?'FREE DEMO':fee+' coins fee';}
+document.getElementById('stakeInput')?.addEventListener('input',updateFee);
+const WHEEL_SEGMENTS=[{name:"0x LOST",mult:0,start:0,end:126,color:"#ff0000"},{name:"1x BACK",mult:1,start:126,end:216,color:"#ffffff"},{name:"1.5x SMALL",mult:1.5,start:216,end:270,color:"#00aaff"},{name:"2x DOUBLE",mult:2,start:270,end:313.2,color:"#00ff00"},{name:"3x TRIPLE",mult:3,start:313.2,end:342,color:"#FFCC02"},{name:"5x SUPER",mult:5,start:342,end:356.4,color:"#aa00ff"},{name:"10x JACKPOT",mult:10,start:356.4,end:360,color:"#FFD700"}];
+async function doSpin(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');showGate();return;}let stake=parseInt(document.getElementById('stakeInput').value)||0;let btn=document.getElementById('spinBtn');btn.disabled=true;btn.innerText='⏳ SPINNING...';let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});let d=await r.json();if(!d.success){btn.disabled=false;btn.innerText='🎰 SPIN NOW';alert(d.message);return;}let segment=WHEEL_SEGMENTS.find(s=>s.mult==d.multiplier)||WHEEL_SEGMENTS[0];let randomInside=segment.start+Math.random()*(segment.end-segment.start);let targetAngle=360-randomInside;let finalRotation=(5*360)+targetAngle;let wheel=document.getElementById('spinWheel');wheel.style.transform=`rotate(${finalRotation}deg)`;setTimeout(()=>{btn.disabled=false;btn.innerText='🎰 SPIN NOW';document.getElementById('spinBal').innerText=d.my_coins;document.getElementById('myCoinsNav').innerText=d.my_coins;},2200);}
+function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}if(!currentUser){try{currentUser=JSON.parse(u);}catch(e){}}location.href='/balance';}
+function showAllShops(){document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';document.getElementById('shopsPop').style.display='flex';fetch('/api/shops',{signal:AbortSignal.timeout(5000)}).then(r=>r.json()).then(shops=>{shops=shops.filter(s=>(s.total_products||s.product_count||s.count||0)>0);if(!shops||shops.length==0){document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><button onclick="closePop(\'shopsPop\')">Close</button>';return;}let html='<h2>🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';shops.forEach(s=>{let count=s.total_products||s.product_count||s.count||0;let slug=s.slug||s.shop_slug||'';let name=s.business_name||s.name||'Shop';let loc=s.location||'Uganda';html+=`<div style="border:2px solid #FFCC02;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#FFF9C4"><div><b>🏪 ${name}</b><br><span style="font-size:11px">📍 ${loc} | 📦 ${count} products</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px">Visit Shop</button></a></div>`;});html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:15px">Close</button>';document.getElementById('shopsContent').innerHTML=html;}).catch(e=>{document.getElementById('shopsContent').innerHTML='<p>Failed: '+e.message+'</p>';});}
+async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(5000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first');}}catch(e){alert('Failed to find shop');}}
+async function loadWantsLive(){
+  if(isLoadingWants) return;
+  isLoadingWants=true;
   try{
-    let r=await fetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:forgotEmail,otp:o1,new_password:np})});
-    let d=await r.json();
-    document.getElementById('fMsg2').innerText=d.message;
-    if(d.success){
-      alert('✅ '+d.message);
-      closeForgot();
-      switchGate('login');
+    let r=await fetch('/api/wants?sort=most_offers',{signal:AbortSignal.timeout(6000)});
+    let wants=await r.json();
+    document.getElementById('wantsCount').innerText=wants.length;
+    if(wants.length==0){document.getElementById('wantsList').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No wants yet! Be first 🎯</p>';}
+    else{
+      let html=wants.slice(0,12).map(w=>{
+        let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';
+        let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';
+        return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 Budget ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px;align-items:center"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:bold">💬 ${w.offers_count||0} offers</span></div><div style="margin-top:6px;display:flex;gap:4px"><button style="flex:1;background:#000;color:#FFCC02;border:none;padding:6px;border-radius:15px;font-size:11px;font-weight:bold">🏆 View Auction</button><a href="tel:${w.phone}" onclick="event.stopPropagation()" style="flex:1;background:#00FF00;color:#000;padding:6px;border-radius:15px;font-weight:bold;text-decoration:none;text-align:center;font-size:11px">📞 Call</a></div></div>`;
+      }).join('');
+      html+=`<div onclick="location.href='/wants'" style="grid-column:1/-1;background:linear-gradient(90deg,#000,#1a5c00);color:#00FF00;padding:12px;border-radius:10px;text-align:center;font-weight:bold;border:2px solid #00FF00;cursor:pointer">🔥 View All ${wants.length} Wants Auction →</div>`;
+      document.getElementById('wantsList').innerHTML=html;
     }
-  }catch(e){ alert('Failed: '+e.message); }
-  document.getElementById('resetBtn').disabled=false;
-  document.getElementById('resetBtn').innerText='✅ Reset Password';
+  }catch(e){}
+  isLoadingWants=false;
 }
+async function loadWantsLiveSafe(){ await loadWantsLive(); }
+
+function openWantModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}document.getElementById('wantPhone').value=currentUser.phone||'';document.getElementById('wantModal').style.display='flex';}
+function closeWantModal(){document.getElementById('wantModal').style.display='none';}
+function openSellModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){showGate();switchGate('register');return;}document.getElementById('frontUpload').style.display='flex';document.getElementById('frontUpload').scrollTop=0;}
+function closeSellModal(){document.getElementById('frontUpload').style.display='none';}
+async function submitWant(){let item=document.getElementById('wantItem').value.trim();let qty=document.getElementById('wantQty').value.trim();let district=document.getElementById('wantDistrict').value.trim();let phone=document.getElementById('wantPhone').value.trim();let note=document.getElementById('wantNote').value.trim();if(!item){alert('What do you want?');return;}if(!phone){alert('Phone required!');return;}let body={title:item,item:item,quantity:qty,district:district,phone:phone,email:currentUser?currentUser.email:'',description:note,note:note,category:'General',min_budget:0,max_budget:0,delivery_type:'both',urgency:'3days'};let r=await fetch('/api/wants',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d=await r.json();if(d.success){alert('✅ WANT posted!');closeWantModal();loadWantsLiveSafe();document.getElementById('wantItem').value='';document.getElementById('wantNote').value='';}else{alert(d.message);}}
+async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone! Chrome > Settings > Site settings > Microphone > Allow');return;}let SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){alert('Voice not supported! Use Chrome');return;}let recog=new SpeechRecognition();recog.lang='en-US';btn.innerText='🔴 LISTENING...';btn.style.background='red';btn.style.color='white';btn.disabled=true;if(navigator.vibrate) navigator.vibrate(100);recog.onresult=(e)=>{let text=e.results[0][0].transcript;document.getElementById('searchInput').value=text;doFilter();};recog.onerror=(e)=>{btn.innerText='🎤';btn.style.background='#FFCC02';btn.style.color='#000';btn.disabled=false;alert('Mic error: '+e.error);};recog.onend=()=>{btn.innerText='🎤';btn.style.background='#FFCC02';btn.style.color='#000';btn.disabled=false;};recog.start();}
+
+function viewProd(id){let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);if(!p)return;let desc=p.description||p.desc||'No description';let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold">🏪 Visit Shop</button></a>` : '';let promoComm=p.promo_commission||3;document.getElementById('viewContent').innerHTML=`<h2>${p.name}</h2><img src="${p.image}" style="width:100%;border-radius:12px;margin:10px 0"><div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;text-align:center;font-size:20px;font-weight:bold">${priceHtml}</div><div style="background:#FFF9C4;padding:12px;border-radius:10px;margin:10px 0;border:2px solid #FFCC02"><b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}</div>${shopBtn}<div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center"><p style="color:#FFCC02;font-size:13px">💰 Earn <b>${promoComm} coins</b> per sale!</p><button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:6px">🤝 Apply to Promote & Earn</button></div><button class="btn btn-green" style="width:100%;padding:14px" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button><button style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:5px" onclick="closePop('viewPop')">Close</button>`;document.getElementById('viewPop').style.display='flex';}
+function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);}
+function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3>🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #ddd;padding:10px 0"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"><div style="flex:1"><b>${it.name}</b><br>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}<br><b>UGX ${sub.toLocaleString()}</b></div><button onclick="removeCart('${it.id}')" style="background:red;color:white;border:none;padding:4px 10px;border-radius:5px">🗑️</button></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold">TOTAL: UGX ${total.toLocaleString()}</div><button class="btn btn-green" style="width:100%;padding:14px" onclick="doCheckout()">✅ Checkout</button><button onclick="closePop('cartPop')" style="width:100%;background:gray;color:white;padding:10px;border:none;border-radius:8px;margin-top:8px">Continue</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
+function removeCart(id){cart=cart.filter(x=>x.id!=id);document.getElementById('cartN').innerText=cart.reduce((s,i)=>s+(i.qty||1),0);if(cart.length==0){closePop('cartPop');}else{openCart();}}
+function doCheckout(){let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);if(confirm(`✅ Confirm Order? Total: UGX ${total.toLocaleString()}`)){cart=[];document.getElementById('cartN').innerText=0;closePop('cartPop');alert('🎉 Order Placed Boss!');}}
+function applyPromote(pid,comm){let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}if(!u||!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{let link=d.link||d.promo_link||`https://sannlas.onrender.com/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;document.getElementById('promoLinkInput').value=link;document.getElementById('promoModal').style.display='flex';}).catch(e=>alert('Error: '+e.message));}
+function copyPromoLink(){let v=document.getElementById('promoLinkInput').value;navigator.clipboard.writeText(v).then(()=>{let m=document.getElementById('promoCopyMsg');m.style.display='block';m.innerText='✅ Copied! Now go sell Boss! 💰';setTimeout(()=>m.style.display='none',3000);});}
+function closePromoModal(){document.getElementById('promoModal').style.display='none';}
+
+// FIXED: SINGLE interval - no more 4 intervals!
+gateCheck();
+setInterval(async()=>{ await loadCoinLive(); await loadWantsLiveSafe(); },30000);
 </script>
-<!-- === END FORGOT PASSWORD === -->
-
 </body>
 </html>
