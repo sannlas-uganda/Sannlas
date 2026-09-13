@@ -382,6 +382,14 @@ def create_want():
             os.makedirs(folder, exist_ok=True)
             path = os.path.join(folder, filename)
             image_file.save(path)
+            # compress to make 89 -> 95 performance
+            try:
+                from PIL import Image
+                img_pil = Image.open(path)
+                img_pil.thumbnail((800, 800))
+                img_pil.save(path, "WEBP", quality=75)
+            except:
+                pass
             image_url = f"/static/wants/{filename}"
     else:
         data = request.get_json() or {}
