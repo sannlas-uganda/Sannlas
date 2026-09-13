@@ -99,8 +99,7 @@ async function load(){
   allProducts = products;
   loadSmartWants(shop, products);
   let count = products.length || shop.total_products || 0;
-  document.getElementById('h').innerHTML=`<h1>🏪 ${shop.business_name||shop.name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p>${shop.description||''}</p><p>📦 ${count} Products</p><button style="background:#25D366;color:#fff" onclick="window.open('https://wa.me/${(shop.phone||'').replace(/[^0-9]/g,'')}')">💬 WhatsApp</button><button style="background:#FFCC02" onclick="navigator.clipboard.writeText(location.href);alert('Link copied')">🔗 Share</button><button onclick="location.href='/'">🏠 Home</button>`;
-
+  document.getElementById('h').innerHTML=`<h1>🏪 ${shop.business_name||shop.name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p>${shop.description||''}</p><p>📦 ${count} Products</p><button style="background:#25D366;color:#fff;padding:10px 18px;border:none;border-radius:10px;font-weight:900" onclick="unlockChatAndOpenWhatsApp('${shop.slug||shop.shop_slug||''}','${(shop.phone||'').replace(/[^0-9]/g,'')}','${shop.business_name||shop.name||'Shop'}')">💬 WhatsApp - 1 Coin</button><button style="background:#FFCC02;padding:10px 18px;border:none;border-radius:10px;font-weight:900" onclick="navigator.clipboard.writeText(location.href);alert('Link copied')">🔗 Share</button><button onclick="location.href='/'" style="background:#000;color:#FFCC02;padding:10px 18px;border:none;border-radius:10px">🏠 Home</button>`;
   document.getElementById('p').innerHTML=products.map(x=>{
     let badge = "";
     if(x.original_price && x.original_price > x.price){
