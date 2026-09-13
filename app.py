@@ -1027,7 +1027,7 @@ def api_balance():
     withdrawable = total - FREE_TRIAL
     if withdrawable<0: withdrawable=0
     return jsonify({"success": True,"bought": bought,"earned": earned,"spent": spent,"withdrawable": withdrawable,"bought_coins": bought,"earned_coins": earned,"total_coins": total,"coins": total,"ugx_value": total*COIN_PRICE,"bought_value": bought*COIN_PRICE,"earned_value": earned*COIN_PRICE,"spent_value": spent*COIN_PRICE,"withdrawable_value": withdrawable*COIN_PRICE,"history": my_txs[::-1][:30]})
-    @app.route('/api/withdraw/coins', methods=['POST'])
+@app.route('/api/withdraw/coins', methods=['POST'])
 def withdraw_coins():
     data = request.json or {}
     phone = data.get('phone','').strip()
