@@ -193,8 +193,55 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 <div class="popup" id="spinPop" onclick="closePop('spinPop')"><div class="popup-content" style="max-width:500px;background:#111;border:3px solid #FFCC02;text-align:center" onclick="event.stopPropagation()"><h2 style="color:#FFCC02">🎰 SPIN & WIN</h2><div style="position:relative;width:260px;height:260px;margin:15px auto"><div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:30px solid #FFCC02;z-index:6"></div><div id="spinWheel" style="width:100%;height:100%;border-radius:50%;border:8px solid #FFCC02;transition:transform 2.2s cubic-bezier(0.15,0.85,0.35,1.1);background:conic-gradient(#ff0000 0deg 126deg, #fff 126deg 216deg, #00aaff 216deg 270deg, #00ff00 270deg 313deg, #FFCC02 313deg 342deg, #aa00ff 342deg 356deg, #FFD700 356deg 360deg)"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;background:#000;border:4px solid #FFCC02;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:bold;font-size:28px;z-index:5">🎰</div></div><div style="background:#222;border-radius:12px;padding:10px;display:flex;gap:8px;align-items:center"><input id="stakeInput" type="number" min="0" max="1000" value="10" style="flex:1;padding:12px;border-radius:10px;border:2px solid #FFCC02;background:#000;color:#FFCC02;font-weight:bold;text-align:center;font-size:18px"><div style="color:#888;font-size:11px">Fee 15%<br><span id="feePreview" style="color:#FFCC02">1.5 coins</span></div></div><button onclick="doSpin()" id="spinBtn" style="background:#FFCC02;color:#000;width:100%;padding:16px;border:none;border-radius:12px;font-weight:900;font-size:18px;margin-top:10px">🎰 SPIN NOW</button><button onclick="closePop('spinPop')" style="width:100%;background:#333;color:white;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button></div></div>
 
 <div id="promoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;align-items:center;justify-content:center;padding:15px"><div style="background:#111;border:3px solid #FFCC02;border-radius:16px;padding:20px;max-width:500px;width:100%;text-align:center;color:white"><h2 style="color:#FFCC02">✅ Applied to Promote!</h2><input id="promoLinkInput" readonly style="width:100%;padding:12px;border-radius:10px;background:#000;color:#FFCC02;border:2px solid #FFCC02;margin:12px 0;font-size:11px"><button onclick="copyPromoLink()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:10px;font-weight:900">📋 COPY LINK</button><button onclick="closePromoModal()" style="width:100%;background:#333;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button><p id="promoCopyMsg" style="color:#0f0;margin-top:8px;display:none"></p></div></div>
-<div id="wantModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;padding:15px;"><div style="background:#111;border:3px solid #00FF00;border-radius:16px;padding:20px;max-width:450px;width:100%;color:white;"><h2 style="color:#00FF00;text-align:center;margin:0 0 10px">🎯 What Do You Want To Buy?</h2><input id="wantItem" placeholder="What item? e.g. Maize 10 bags" style="width:100%;padding:12px;margin:6px 0;border-radius:10px;border:none;background:#222;color:white;"><input id="wantQty" placeholder="Quantity" style="width:100%;padding:12px;margin:6px 0;border-radius:10px;border:none;background:#222;color:white;"><input id="wantDistrict" placeholder="Your District" style="width:100%;padding:12px;margin:6px 0;border-radius:10px;border:none;background:#222;color:white;"><input id="wantPhone" placeholder="Phone Number" style="width:100%;padding:12px;margin:6px 0;border-radius:10px;border:2px solid #00FF00;background:#222;color:white;"><textarea id="wantNote" placeholder="More details..." rows="2" style="width:100%;padding:12px;margin:6px 0;border-radius:10px;border:none;background:#222;color:white;"></textarea><button onclick="submitWant()" style="width:100%;padding:14px;background:#00FF00;color:#000;font-weight:900;border:none;border-radius:10px;margin-top:10px">🚀 POST WANT (FREE)</button><button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px">Cancel</button></div></div>
+<div id="wantModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;padding:10px;overflow-y:auto;">
+<div style="background:#111;border:3px solid #00FF00;border-radius:16px;padding:16px;max-width:480px;width:100%;color:white;max-height:95vh;overflow-y:auto;">
+<h2 style="color:#00FF00;text-align:center;margin:0 0 12px;font-size:18px">🎯 What Do You Want To Buy?</h2>
 
+<input id="wantItem" placeholder="What item? e.g. Maize 10 bags" style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:none;background:#222;color:white;">
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0;">
+<input id="wantQty" placeholder="Qty e.g. 10 bags" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
+<input id="wantDistrict" placeholder="District e.g. Kampala" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
+</div>
+
+<!-- NEW: PRICE RANGE -->
+<label style="font-size:11px;color:#00FF00;font-weight:800;margin-top:8px;display:block;">💰 YOUR BUDGET / PRICE RANGE (UGX)</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0;">
+<input id="wantPriceMin" type="number" placeholder="Min e.g. 50000" style="padding:12px;border-radius:10px;border:2px solid #333;background:#222;color:white;">
+<input id="wantPriceMax" type="number" placeholder="Max e.g. 150000" style="padding:12px;border-radius:10px;border:2px solid #00FF00;background:#222;color:white;">
+</div>
+
+<input id="wantPhone" placeholder="Phone e.g. 0755..." style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:2px solid #00FF00;background:#222;color:white;">
+
+<!-- NEW: PHOTO UPLOAD -->
+<label style="font-size:11px;color:#00FF00;font-weight:800;margin-top:8px;display:block;">📸 Upload / Take Photo of What You Want (Optional)</label>
+<div style="border:2px dashed #00FF00;border-radius:10px;padding:8px;margin:5px 0;background:#1a1a1a;text-align:center;">
+<input type="file" id="wantImage" accept="image/*" capture="environment" style="width:100%;color:#aaa;font-size:12px;">
+<img id="wantPreview" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px;display:none;">
+</div>
+
+<textarea id="wantNote" placeholder="More details, quality, size, color..." rows="3" style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:none;background:#222;color:white;"></textarea>
+
+<!-- NEW: EXPIRY TIME -->
+<label style="font-size:11px;color:#FFCC02;font-weight:800;margin-top:8px;display:block;">⏰ When Do You Need It? Auto-Delete After</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0;">
+<select id="wantExpiryHours" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
+<option value="6">6 Hours</option>
+<option value="12">12 Hours</option>
+<option value="24" selected>24 Hours (1 Day)</option>
+<option value="48">2 Days</option>
+<option value="72">3 Days</option>
+<option value="168">7 Days</option>
+<option value="720">30 Days</option>
+</select>
+<input id="wantExpiryDate" type="datetime-local" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
+</div>
+<p style="font-size:10px;color:#888;margin:2px 0 8px;">⚠️ If time reaches, Want will be auto-deleted from site & database</p>
+
+<button onclick="submitWant()" id="wantSubmitBtn" style="width:100%;padding:14px;background:#00FF00;color:#000;font-weight:900;border:none;border-radius:10px;margin-top:8px">🚀 POST WANT (FREE)</button>
+<button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px">Cancel</button>
+</div>
+</div>
 <div style="background:#000;border-top:3px solid #FFCC02;padding:24px;text-align:center;color:#FFCC02;font-weight:700;margin-top:30px"><div>@ SANNLAS UGANDA 2026 - Premium Marketplace</div><div style="font-size:11px;color:#666;margin-top:6px">SANNLAS UGANDA - Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950 | Upload FREE | Swipe rows ↔️</div></div>
 <div class="fixed-bottom"><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="openWantsList()" style="background:#00FF00;color:#000;padding:6px 12px;border-radius:15px;font-weight:900;animation:pulse 1.5s infinite">🎯 WANTS (<span id="wantsCount">0</span>)</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span><span id="cartN" onclick="openCart()" style="color:white">🛒 0</span></div>
 
@@ -304,9 +351,98 @@ async function loadWantsLiveSafe(){await loadWantsLive();}
 function openWantsList(){document.getElementById('wantsPop').style.display='flex';loadWantsLiveSafe();}
 function openWantModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}document.getElementById('wantPhone').value=currentUser.phone||'';document.getElementById('wantModal').style.display='flex';}
 function closeWantModal(){document.getElementById('wantModal').style.display='none';}
-function openSellModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){showGate();switchGate('register');return;}document.getElementById('frontUpload').style.display='flex';document.getElementById('frontUpload').scrollTop=0;}
-function closeSellModal(){document.getElementById('frontUpload').style.display='none';}
-async function submitWant(){let item=document.getElementById('wantItem').value.trim();let qty=document.getElementById('wantQty').value.trim();let district=document.getElementById('wantDistrict').value.trim();let phone=document.getElementById('wantPhone').value.trim();let note=document.getElementById('wantNote').value.trim();if(!item){alert('What do you want?');return;}if(!phone){alert('Phone required!');return;}let body={title:item,item:item,quantity:qty,district:district,phone:phone,email:currentUser?currentUser.email:'',description:note,note:note,category:'General',min_budget:0,max_budget:0,delivery_type:'both',urgency:'3days'};let r=await fetch('/api/wants',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d=await r.json();if(d.success){alert('✅ WANT posted!');closeWantModal();loadWantsLiveSafe();}else{alert(d.message);}}
+
+// Preview photo when selected
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='wantImage'){
+    let file = e.target.files[0];
+    if(file){
+      let url = URL.createObjectURL(file);
+      let img = document.getElementById('wantPreview');
+      if(img){ img.src = url; img.style.display='block'; }
+    }
+  }
+});
+
+function compressWantImage(file){
+  return new Promise((res)=>{
+    let img=new Image();
+    img.onload=()=>{
+      let canvas=document.createElement('canvas');
+      let maxW=500; let w=img.width,h=img.height;
+      if(w>maxW){h=h*maxW/w;w=maxW;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob((blob)=>{
+        res(new File([blob], file.name.replace(/\.[^/.]+$/,"")+".webp", {type:'image/webp'}));
+      },'image/webp',0.5);
+      URL.revokeObjectURL(img.src);
+    };
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+async function submitWant(){
+  let item=document.getElementById('wantItem')?.value.trim()||'';
+  let qty=document.getElementById('wantQty')?.value.trim()||'1';
+  let district=document.getElementById('wantDistrict')?.value.trim()||'Kampala';
+  let phone=document.getElementById('wantPhone')?.value.trim()||'';
+  let note=document.getElementById('wantNote')?.value.trim()||'';
+  let minPrice=document.getElementById('wantPriceMin')?.value.trim()||'0';
+  let maxPrice=document.getElementById('wantPriceMax')?.value.trim()||'0';
+  let expiryHours=document.getElementById('wantExpiryHours')?.value||'24';
+  let expiryDate=document.getElementById('wantExpiryDate')?.value||'';
+
+  if(!item){alert('What do you want?');return;}
+  if(!phone){alert('Phone required!');return;}
+
+  let btn=document.getElementById('wantSubmitBtn');
+  if(btn){btn.disabled=true; btn.innerText='⏳ Uploading...';}
+
+  let expiresAt = null;
+  if(expiryDate){
+    expiresAt = new Date(expiryDate).toISOString();
+  }else{
+    let d = new Date();
+    d.setHours(d.getHours()+parseInt(expiryHours));
+    expiresAt = d.toISOString();
+  }
+
+  try{
+    let form = new FormData();
+    form.append('title', item);
+    form.append('item', item);
+    form.append('quantity', qty);
+    form.append('district', district);
+    form.append('phone', phone);
+    form.append('email', currentUser?currentUser.email:'');
+    form.append('description', note);
+    form.append('note', note);
+    form.append('min_budget', minPrice);
+    form.append('max_budget', maxPrice);
+    form.append('expires_at', expiresAt);
+    form.append('expiry_hours', expiryHours);
+
+    let imgFile=document.getElementById('wantImage')?.files[0];
+    if(imgFile){
+      let compressed = await compressWantImage(imgFile);
+      form.append('image', compressed);
+    }
+
+    let r=await fetch('/api/wants',{method:'POST',body:form});
+    let d=await r.json();
+    if(d.success){
+      alert('✅ WANT posted! Will auto-delete at: '+new Date(expiresAt).toLocaleString());
+      closeWantModal();
+      if(document.getElementById('wantItem')) document.getElementById('wantItem').value='';
+      if(document.getElementById('wantImage')) document.getElementById('wantImage').value='';
+      let prev=document.getElementById('wantPreview');
+      if(prev) prev.style.display='none';
+      loadWantsLiveSafe();
+    }else{alert(d.message);}
+  }catch(e){alert('Failed: '+e.message);}
+  if(btn){btn.disabled=false; btn.innerText='🚀 POST WANT (FREE)';}
+}
 async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone!');return;}let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported! Use Chrome');return;}let recog=new SR();recog.lang='en-US';btn.innerText='🔴';btn.disabled=true;recog.onresult=(e)=>{let t=e.results[0][0].transcript;document.getElementById('searchInput').value=t;doFilter();};recog.onend=()=>{btn.innerText='🎤';btn.disabled=false;};recog.start();}
 function viewProd(id){
   let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);
