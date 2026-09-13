@@ -281,6 +281,7 @@ BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming"
 
 WANTS_FILE = 'wants.json'
 OFFERS_FILE = 'offers.json'
+CHAT_UNLOCKS_FILE = 'chat_unlocks.json'
 
 def get_wants_data(): return load_db(WANTS_FILE, [])
 def save_wants_data(wants): save_db(WANTS_FILE, wants)
@@ -1433,6 +1434,91 @@ def fix_slugs():
         if b: p['shop_slug'] = make_shop_slug(b)
     save_db('products.json', products)
     return jsonify({'success':True,'message':'Fixed'})
+    
+    # ============ CHAT UNLOCK 1 COIN SYSTEM - OPTION A ============
+def get_chat_unlocks():
+    return load_db(CHAT_UNLOCKS_FILE, [])
+
+def save_chat_unlocks(data):
+    save_db(CHAT_UNLOCKS_FILE, data)
+
+@app.route('/api/chat/unlock', methods=['POST'])
+def chat_unlock():
+    try:
+        d=request.json or {}
+        buyer=d.get('buyer_email','').lower().strip()
+        shop=d.get('shop_slug','').strip()
+        if not buyer or not shop:
+            return jsonify(success=False, error="Missing buyer or shop"),400
+        
+        unlocks = get_chat_unlocks()
+        exists = next((u for u in unlocks if u.get('buyer_email')==buyer and u.get('seller_shop')==shop), None)
+        if exists:
+            # Already unlocked
+            users = load_db('users.json', [])
+            u = next((x for x in users if x.get('email','').lower()==buyer), None)
+            bal = int(u.get('coins',0)) if u else 0
+            return jsonify(success=True, already=True, new_balance=bal)
+        
+        # Check balance
+        users = load_db('users.json', [])
+        user = next((x for x in users if x.get('email','').lower()==buyer), None)
+        if not user:
+            return jsonify(success=False, error="User not found, login first!"),404
+        
+        bought = int(user.get('bought',0))
+        earned = int(user.get('earned',0))
+        spent = int(user.get('spent',0))
+        total = bought + earned - spent
+        if total < 1:
+            return jsonify(success=False, error="You need 1 coin (599 UGX). Buy coins first!"),402
+        
+        # Deduct 1 coin
+        user['spent'] = spent + 1
+        user['coins'] = bought + earned - user['spent']
+        if user['coins']<0: user['coins']=0
+        save_db('users.json', users)
+        
+        # Save unlock
+        unlocks.append({
+            "id": int(time.time()*1000),
+            "buyer_email": buyer,
+            "seller_shop": shop,
+            "created": time.time()
+        })
+        save_chat_unlocks(unlocks)
+        
+        # Log transaction
+        txs = load_db('coin_transactions.json', [])
+        txs.append({
+            "id": int(time.time()*1000),
+            "email": buyer,
+            "phone": user.get('phone',''),
+            "coins": -1,
+            "price": 0,
+            "momo_code": f"CHAT-{shop[:6].upper()}",
+            "reason": f"Unlock chat with {shop}",
+            "time": time.time(),
+            "status": "chat_unlock"
+        })
+        save_db('coin_transactions.json', txs)
+        
+        return jsonify(success=True, new_balance=user['coins'])
+    except Exception as e:
+        print("chat_unlock error:", e)
+        return jsonify(success=False, error=str(e)),500
+
+@app.route('/api/chat/check-unlock')
+def check_unlock():
+    buyer=request.args.get('buyer','').lower().strip()
+    shop=request.args.get('shop','').strip()
+    if not buyer or not shop:
+        return jsonify(unlocked=False)
+    unlocks = get_chat_unlocks()
+    exists = next((u for u in unlocks if u.get('buyer_email')==buyer and u.get('seller_shop')==shop), None)
+    return jsonify(unlocked=bool(exists))
+
+# ============ END CHAT UNLOCK ============
 
 @app.route('/api/admin/data')
 @admin_required
@@ -1451,7 +1537,7 @@ def admin_data():
         if billboard.get('media_url','') and len(str(billboard.get('media_url','')))>1000:
             billboard['media_url']=""
             billboard['active']=False
-        return jsonify({'products':safe_products,'users':users[-100:],'shops':shops,'billboard':billboard,'orders':load_db('orders.json',[]) or [],'orders_v2':load_db('orders_v2.json',[]) or [],'contacts':load_db('contacts.json',[]) or [],'coin_transactions':load_db('coin_transactions.json',[]) or [],'coin_config':load_db('coin_config.json',{}) or {},'withdraws':load_db('withdraws.json',[]) or [],'wants':load_db('wants.json',[]) or []})
+        return jsonify({'products':safe_products,'users':users[-100:],'shops':shops,'billboard':billboard,'orders':load_db('orders.json',[]) or [],'orders_v2':load_db('orders_v2.json',[]) or [],'contacts':load_db('contacts.json',[]) or [],'coin_transactions':load_db('coin_transactions.json',[]) or [],'coin_config':load_db('coin_config.json',{}) or {},'withdraws':load_db('withdraws.json',[]) or [],'wants':load_db('wants.json',[]) or [],'chat_unlocks':load_db('chat_unlocks.json',[]) or []})
     except Exception as e:
         return jsonify({'products':[],'users':[],'shops':[],'error':str(e)})
 
