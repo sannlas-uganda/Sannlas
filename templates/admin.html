@@ -6,7 +6,6 @@
 <style>
 body{font-family:Arial;padding:0;background:#0f0f0f;color:white;margin:0}
 .card{background:#1e1e1e;padding:15px;margin:12px;border-radius:10px;border:1px solid #333}
-h1{color:#ff3333;text-align:center}
 input,select,textarea{padding:12px;width:95%;border-radius:8px;border:none;margin:8px 0;background:#2a2a2a;color:white;font-size:16px}
 button{padding:12px 20px;background:#ff0000;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin:3px}
 .stat{display:inline-block;margin:6px;padding:12px;background:#222;border:1px solid #333;border-radius:8px;min-width:110px;text-align:center}
@@ -18,7 +17,6 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 .t.active{background:#ff0000}
 .badge{background:#ff6a00;padding:2px 8px;border-radius:10px;font-size:11px}
 .yellow-box{background:#FFCC02;color:#000;padding:5px 8px;border-radius:8px;font-weight:bold;border:1px solid #000;font-size:11px}
-.green-box{background:#00FF00;color:#000;padding:5px 8px;border-radius:8px;font-weight:bold;border:1px solid #000;font-size:11px}
 .prod-row{display:flex;gap:10px;border-bottom:1px solid #333;padding:10px 0;align-items:center}
 .prod-row img{width:55px;height:55px;object-fit:cover;border-radius:8px}
 .shop-card{background:#111;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
@@ -38,6 +36,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <h2 style="margin:0">SANNLAS - OPTION B - 15% PROFIT</h2>
 <div><a href="/" style="color:white">Shop</a> | <a href="#" onclick="logout()" style="color:#ffaaaa">Logout</a></div>
 </div>
+<div id="errorTop" style="display:none;background:#1a0000;border:2px solid red;color:#ff6666;padding:10px;margin:10px;border-radius:8px"></div>
 <div id="stats" style="padding:10px"></div>
 <div class="tabs">
 <div class="t active" onclick="tab('overview',this)">📊 Overview</div>
@@ -59,30 +58,24 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="spin" class="tabPane" style="display:none">
 <div class="card" style="border:3px solid #FFCC02;background:linear-gradient(#111,#000)">
 <h2 style="color:#FFCC02">🎰 OPTION B - STAKING + 15% HOUSE EDGE</h2>
-<p style="font-size:11px;color:#0f0">Profit Formula: stake x 15% = YOUR FEE | Player wins = (stake-fee) x multiplier. You never lose Boss!</p>
-<div style="background:#000;padding:12px;border-radius:10px;border:2px solid #FFCC02;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:center">
+<div style="background:#000;padding:12px;border-radius:10px;border:2px solid #FFCC02;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
 <label style="color:#FFCC02"><input type="checkbox" id="spinEnabled" checked> 🟢 Enabled</label>
-<label style="color:white">Cost (free): <input type="number" id="spinCost" value="1" style="width:60px;background:#222"></label>
-<label style="color:#FFCC02">House Edge %: <input type="number" id="spinEdge" value="15" style="width:60px;background:#222;color:#FFCC02;font-weight:bold"></label>
+<label style="color:white">Cost: <input type="number" id="spinCost" value="1" style="width:60px;background:#222"></label>
+<label style="color:#FFCC02">Edge %: <input type="number" id="spinEdge" value="15" style="width:60px;background:#222;color:#FFCC02;font-weight:bold"></label>
 </div>
-
 <div style="background:#111;padding:10px;border-radius:8px;margin:10px 0">
-<h4 style="color:#FFCC02;margin:5px 0">🎁 7 Multipliers - Multiplier = how many x game amount they win</h4>
-<div style="display:grid;grid-template-columns:2fr 0.8fr 0.8fr 0.8fr;font-weight:bold;font-size:11px;color:#888;padding:5px"><span>Name</span><span>Mult x</span><span>Weight</span><span>Color</span></div>
+<h4 style="color:#FFCC02;margin:5px 0">🎁 7 Multipliers</h4>
 <div id="spinPrizesEdit"></div>
-<button onclick="saveSpinConfig()" style="background:#FFCC02;color:#000;width:100%;padding:14px;border-radius:10px;font-weight:bold;margin-top:10px;font-size:16px">💾 SAVE - LIVE NOW ON sannlas.onrender.com</button>
+<button onclick="saveSpinConfig()" style="background:#FFCC02;color:#000;width:100%;padding:14px;border-radius:10px;font-weight:bold;margin-top:10px">💾 SAVE LIVE</button>
 <div id="spinSaveStatus" style="text-align:center;margin-top:6px"></div>
 </div>
-
 <div id="spinStats" style="background:#000;border:2px solid #00FF00;border-radius:12px;padding:12px;text-align:center;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
 <div><div style="color:#aaa;font-size:10px">Total Spins</div><b id="spinTotal" style="color:white;font-size:20px">0</b></div>
 <div><div style="color:#aaa;font-size:10px">Collected</div><b id="spinCollected" style="color:#FFCC02;font-size:20px">0</b></div>
-<div><div style="color:#aaa;font-size:10px">Paid to Users</div><b id="spinPaid" style="color:#ff6a00;font-size:20px">0</b></div>
+<div><div style="color:#aaa;font-size:10px">Paid</div><b id="spinPaid" style="color:#ff6a00;font-size:20px">0</b></div>
 <div><div style="color:#aaa;font-size:10px">YOUR PROFIT</div><b id="spinProfit" style="color:#00FF00;font-size:22px">0</b><br><span style="font-size:9px;color:#888">+ fees: <b id="spinFees" style="color:red">0</b></span></div>
 </div>
-<p style="font-size:10px;color:#666;margin-top:8px">Example: stake 100 coins, fee 15%, game 85. If hit 2x → user wins 170. You keep fee 15 always! Profit = fees + (collected-fee - paid)</p>
-
-<h3 style="color:white;margin-top:15px">📜 Recent Spins - Stake / Fee / Won</h3>
+<h3 style="color:white;margin-top:15px">📜 Recent Spins</h3>
 <div id="spinHistoryBox" style="background:#111;padding:8px;border-radius:8px;max-height:350px;overflow:auto;font-size:11px">Loading...</div>
 </div>
 </div>
@@ -90,114 +83,111 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="coins" class="tabPane" style="display:none">
 <div class="card" style="border:3px solid #FFCC02"><h2>🪙 Coins - 1B @ 599 UGX</h2>
 <div style="background:#111;border:2px solid #00FF00;border-radius:12px;padding:12px;margin:10px 0">
-<h3 style="color:#00FF00;margin:0 0 8px 0">➕ Add Coins to User</h3>
+<h3 style="color:#00FF00;margin:0 0 8px 0">➕ Add Coins</h3>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
 <input id="addCoinEmail" placeholder="User Email" style="flex:1;min-width:180px">
 <input id="addCoinPhone" placeholder="Or Phone" style="flex:1;min-width:120px">
-<input id="addCoinAmount" type="number" placeholder="Coins e.g 10" style="width:100px">
+<input id="addCoinAmount" type="number" placeholder="Coins" style="width:100px">
 </div>
 <input id="addCoinReason" placeholder="Reason">
 <button onclick="adminAddCoins()" style="width:100%;background:#00FF00;color:#000">💰 Add Coins</button>
 <div id="addCoinStatus" style="margin-top:5px;font-size:12px"></div>
 </div>
-<div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center"><div style="font-size:13px;color:#FFCC02">🔴 LIVE REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#222;padding:8px;border-radius:8px"><div>SOLD</div><b style="color:#FFCC02" id="coinsSoldShow">0</b></div><div style="background:#222;padding:8px;border-radius:8px"><div>PRICE</div><b style="color:#00FF00">599</b></div><div style="background:#222;padding:8px;border-radius:8px"><div>REV</div><b style="color:#FFCC02" id="coinsRevShow">0</b></div></div></div>
-<div style="background:#111;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:10px 0">
-<h3 style="color:#FFCC02;margin:0 0 8px 0">⚙️ COIN BANK CONTROL</h3>
-<div style="display:flex;gap:5px;flex-wrap:wrap">
-<input id="coinAdjustAmount" type="number" placeholder="Amount" style="flex:1;min-width:120px;background:#2a2a2a;color:white;padding:12px;border-radius:8px;border:none">
-<select id="coinAdjustAction" style="width:130px;background:#2a2a2a;color:white;padding:12px;border-radius:8px;border:none"><option value="add">➕ ADD</option><option value="reduce">➖ REDUCE</option></select>
-<button onclick="adjustCoins()" style="background:#FFCC02;color:#000;flex:1;padding:12px;border-radius:8px;font-weight:bold">Apply</button>
-</div>
-<div id="coinAdjustStatus" style="margin-top:6px;font-size:12px"></div>
-</div>
+<div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center"><div style="font-size:13px;color:#FFCC02">🔴 LIVE REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div></div>
 <div id="coinsBox">Loading...</div></div></div>
 
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products</h2><div id="productsBox">Loading...</div></div></div>
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="withdraws" class="tabPane" style="display:none"><div class="card" style="border:3px solid #ff6a00"><h2>💸 Withdraw Requests</h2><div id="withdrawsBox">Loading...</div></div></div>
-<!-- 3 BUTTONS -->
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0">
-  <button onclick="setBBType('image')" id="bbBtnImg" style="padding:12px;background:#FFCC02;color:#000;font-weight:bold;border-radius:8px;border:none">🖼️ PHOTO</button>
-  <button onclick="setBBType('video')" id="bbBtnVid" style="padding:12px;background:#333;color:white;font-weight:bold;border-radius:8px;border:1px solid #FFCC02">🎥 VIDEO</button>
-  <button onclick="setBBType('animated')" id="bbBtnAnim" style="padding:12px;background:#333;color:white;font-weight:bold;border-radius:8px;border:1px solid #FFCC02">🔥 ANIMATED</button>
-</div>
 
-<!-- NORMAL: PHOTO / VIDEO -->
+<div id="billboard" class="tabPane" style="display:none">
+<div class="card">
+<h2>📢 Billboard</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0">
+<button onclick="setBBType('image')" id="bbBtnImg" style="padding:12px;background:#FFCC02;color:#000;font-weight:bold">🖼️ PHOTO</button>
+<button onclick="setBBType('video')" id="bbBtnVid" style="padding:12px;background:#333;color:white">🎥 VIDEO</button>
+<button onclick="setBBType('animated')" id="bbBtnAnim" style="padding:12px;background:#333;color:white">🔥 ANIMATED</button>
+</div>
 <div id="bbNormalBox">
 <div style="background:#000;padding:12px;border-radius:10px;border:1px solid #333">
-<div style="background:#111;padding:10px;border-radius:8px;border:2px dashed #FFCC02;margin-bottom:10px">
 <b style="color:#FFCC02">📁 Photo OR Video</b><br>
 <input type="file" id="bbFileInput" accept="image/*,video/*" style="background:#222;margin-top:8px;width:95%">
-<select id="bbDuration" style="width:98%;background:#222;color:white;margin-top:8px">
-  <option value="3">3 Hours</option><option value="12">12 Hours</option><option value="24" selected>24 Hours</option><option value="72">3 Days</option><option value="168">7 Days</option><option value="720">30 Days</option><option value="0">Forever</option>
-</select>
+<select id="bbDuration" style="width:98%;background:#222;color:white;margin-top:8px"><option value="24" selected>24 Hours</option><option value="72">3 Days</option><option value="0">Forever</option></select>
 <input id="bbText" placeholder="Banner Text" style="width:95%;margin-top:8px">
 <input id="bbLink" placeholder="Link" style="width:95%">
-<button onclick="uploadBillboardFile()" style="background:#FFCC02;color:#000;width:100%;margin-top:10px">🚀 UPLOAD PHOTO/VIDEO</button>
+<button onclick="uploadBillboardFile()" style="background:#FFCC02;color:#000;width:100%;margin-top:10px">🚀 UPLOAD</button>
 <button onclick="turnOffBillboard()" style="background:#333;color:white;width:100%;margin-top:8px">❌ TURN OFF</button>
 <div id="bbUploadStatus" style="margin-top:8px;font-weight:bold;text-align:center"></div>
 </div>
 <div id="bbPreview" style="margin-top:10px;background:#222;padding:10px;border-radius:8px"></div>
 </div>
-</div>
-
-<!-- ANIMATED STORIES -->
 <div id="bbAnimBox" style="display:none">
 <div style="background:#000;padding:12px;border-radius:10px;border:2px solid #FFCC02">
-<h4 style="color:#FFCC02;margin:5px 0">🔥 Animated Stories - Upload Multiple Images</h4>
+<h4 style="color:#FFCC02">🔥 Animated Stories</h4>
 <input type="file" id="heroStoryFile" accept="image/*" style="width:95%;background:#222;padding:8px;border-radius:8px">
-<input id="heroStoryTitle" placeholder="Title e.g. Super Sale!" style="width:95%;margin-top:6px">
-<input id="heroStorySub" placeholder="Subtitle e.g. 50% OFF" style="width:95%;margin-top:6px">
-<button onclick="uploadHeroStoryAdmin()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:8px">➕ ADD STORY IMAGE</button>
+<input id="heroStoryTitle" placeholder="Title" style="width:95%;margin-top:6px">
+<input id="heroStorySub" placeholder="Subtitle" style="width:95%;margin-top:6px">
+<button onclick="uploadHeroStoryAdmin()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:8px;font-weight:bold;margin-top:8px">➕ ADD STORY</button>
 <div id="heroStoriesList" style="margin-top:10px;display:grid;gap:8px"></div>
 <hr style="margin:15px 0;border:1px solid #333">
-<input id="bbTextAnim" placeholder="Main Banner Text (optional)" style="width:95%">
-<button onclick="activateAnimated()" style="width:100%;background:#ff6a00;color:white;padding:14px;border:none;border-radius:8px;font-weight:bold;margin-top:8px">🚀 ACTIVATE ANIMATED MODE LIVE!</button>
-<button onclick="turnOffBillboard()" style="background:#333;color:white;width:100%;margin-top:8px">❌ TURN OFF BILLBOARD</button>
+<input id="bbTextAnim" placeholder="Main Banner Text" style="width:95%">
+<button onclick="activateAnimated()" style="width:100%;background:#ff6a00;color:white;padding:14px;border:none;border-radius:8px;font-weight:bold;margin-top:8px">🚀 ACTIVATE ANIMATED LIVE!</button>
+<button onclick="turnOffBillboard()" style="background:#333;color:white;width:100%;margin-top:8px">❌ TURN OFF</button>
 <div id="bbAnimStatus" style="margin-top:8px;font-weight:bold;text-align:center"></div>
 </div>
 </div>
-
-</div></div>
-
-<div id="wants" class="tabPane" style="display:none">
-<div class="card" style="border:3px solid #00FF00">
-<h2 style="color:#00FF00">🎯 LIVE WANTS - What Buyers Need! <span id="wantsTotalHeader">0</span></h2>
-<div style="background:#FFF9C4;border:2px solid #00FF00;border-radius:10px;padding:8px;margin:10px 0;color:#000;font-size:12px">
-💡 Buyers posted FREE (0 coins)! Call them to sell! Updates every 10 sec!
-</div>
-<div id="wantsBox" style="display:grid;gap:10px">Loading...</div>
 </div>
 </div>
 
+<div id="wants" class="tabPane" style="display:none"><div class="card" style="border:3px solid #00FF00"><h2 style="color:#00FF00">🎯 LIVE WANTS <span id="wantsTotalHeader">0</span></h2><div id="wantsBox" style="display:grid;gap:10px">Loading...</div></div></div>
 <div id="contacts" class="tabPane" style="display:none"><div class="card"><h2>📧 Messages</h2><div id="contactsBox">Loading...</div></div></div>
 </div>
+
 <script>
 let ALL={}; let USER_FILTER='all';
+
+// ===== SAFE FETCH - FIXES RED ERROR =====
+async function safeFetchJson(url, options={}){
+  try{
+    let r = await fetch(url, options);
+    let txt = await r.text();
+    if(!txt || txt.trim()=="") return null;
+    try{ return JSON.parse(txt); }
+    catch(e){ console.warn("Invalid JSON from",url,txt.slice(0,200)); return null; }
+  }catch(e){
+    console.warn("Fetch failed",url,e);
+    return null;
+  }
+}
+function showErrorTop(msg){
+  let el=document.getElementById('errorTop');
+  if(!el) return;
+  if(!msg){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.innerText=msg;
+}
+
 function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='spin') loadAdminSpin(); if(id==='wants') renderWants();}
+
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
  if(!pwd){document.getElementById('msg').innerText='Enter password';return;}
- try{
-  let res=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
-  let d=await res.json();
-  if(d.success){localStorage.setItem('sannlas_admin','ok');showAdmin();}
-  else document.getElementById('msg').innerText=d.message||'Wrong!';
- }catch(e){document.getElementById('msg').innerText='Server error';}
+ let d = await safeFetchJson('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+ if(d && d.success){localStorage.setItem('sannlas_admin','ok');showAdmin();}
+ else document.getElementById('msg').innerText=(d && d.message) || 'Wrong! Server waking, try again 10sec';
 }
 function showAdmin(){document.getElementById('loginBox').style.display='none';document.getElementById('adminContent').style.display='block';loadData();}
 async function logout(){await fetch('/admin/logout');localStorage.removeItem('sannlas_admin');location.reload();}
 function filterUsers(f){USER_FILTER=f; renderUsers();}
 function renderShops(){let shops=ALL.shops||[]; let box=document.getElementById('shopsBox'); if(!shops.length){box.innerHTML='<p>No shops</p>';return;} box.innerHTML=shops.map(s=>`<div class="shop-card"><div><b>🏪 ${s.business_name||'Shop'}</b><br><span style="font-size:11px">Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${s.shop_slug||''}</code> | 📦 ${s.total_products||0}</span></div><div><a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a></div></div>`).join('');}
 function renderUsers(){let users=ALL.users||[]; let filtered=users; if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000); if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000); document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business</th><th>Coins</th><th>Status</th></tr>'+filtered.map(u=>{let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;padding:3px 6px;border-radius:5px">✅</span>'; return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span></td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${statusBadge}</td></tr>`}).join('')+'</table>':'No users';}
-function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; let rev = ALL.coin_revenue || 0; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsSoldShow').innerText=Number(cfg.sold||0).toLocaleString(); document.getElementById('coinsRevShow').innerText='UGX '+Number(rev).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Coins</th><th>Trans ID</th><th>Status</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td>${t.status||''}</td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
+function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
-async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins || coins<=0){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let res=await fetch('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); let d=await res.json(); document.getElementById('addCoinStatus').innerHTML=d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${d.message}</span>`; if(d.success) loadData();}
-async function adjustCoins(){ let amount = parseInt(document.getElementById('coinAdjustAmount').value); let action = document.getElementById('coinAdjustAction').value; if(!amount || amount<=0){ alert('Enter amount'); return; } if(!confirm(`${action} ${amount.toLocaleString()}?`)) return; document.getElementById('coinAdjustStatus').innerHTML = '<span style="color:yellow">⏳...</span>'; let res = await fetch('/api/admin/coins/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action, amount})}); let d = await res.json(); document.getElementById('coinAdjustStatus').innerHTML = d.success? `<span style="color:#00FF00">${d.message}</span>` : `<span style="color:red">${d.message}</span>`; if(d.success) loadData();}
+async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let d = await safeFetchJson('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); document.getElementById('addCoinStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${(d && d.message)||'Server waking, retry'}</span>`; if(d && d.success) loadData();}
 function loadWithdraws(){ let withdraws=ALL.withdraws||[]; document.getElementById('cWithdraws').innerText=withdraws.length; let box=document.getElementById('withdrawsBox'); if(!withdraws.length){box.innerHTML='<p>No withdraws</p>';return;} box.innerHTML='<table><tr><th>User</th><th>Amount</th><th>MoMo</th><th>Status</th><th>Action</th></tr>'+withdraws.slice().reverse().map(w=>`<tr><td style="font-size:11px">${w.email}</td><td><b style="color:#00FF00">UGX ${Number(w.amount).toLocaleString()}</b></td><td><b>${w.momo_number}</b></td><td>${w.status}</td><td>${w.status=='pending'?`<button style="background:#00FF00;color:#000;font-size:10px" onclick="withdrawAction(${w.id},'paid')">✅ PAID</button>`:''}</td></tr>`).join('')+'</table>';}
 function withdrawAction(id,action){if(!confirm(action+' '+id+'?'))return;fetch('/api/admin/withdraw/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})}).then(()=>loadData());}
-async function uploadBillboardFile(){ const fileInput=document.getElementById('bbFileInput'); const file=fileInput.files[0]; if(!file){alert('Choose file');return;} if(file.size>12*1024*1024){alert('Max 12MB');return;} const form=new FormData(); form.append('file',file); form.append('text',document.getElementById('bbText').value.trim()); form.append('link',document.getElementById('bbLink').value.trim()); form.append('duration',document.getElementById('bbDuration').value); document.getElementById('bbUploadStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>'; try{ const res=await fetch('/api/upload/billboard',{method:'POST',body:form}); const data=await res.json(); if(data.success){document.getElementById('bbUploadStatus').innerHTML='<span style="color:#00FF00">✅ LIVE!</span>'; loadData();} else document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+(data.error||'fail')+'</span>'; }catch(e){document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+e.message+'</span>';}}
-async function turnOffBillboard(){ if(!confirm('Turn OFF?')) return; await fetch('/api/admin/billboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:false})}); document.getElementById('bbPreview').innerHTML=''; loadData();}
+async function uploadBillboardFile(){ const fileInput=document.getElementById('bbFileInput'); const file=fileInput.files[0]; if(!file){alert('Choose file');return;} const form=new FormData(); form.append('file',file); form.append('text',document.getElementById('bbText').value.trim()); form.append('link',document.getElementById('bbLink').value.trim()); form.append('duration',document.getElementById('bbDuration').value); document.getElementById('bbUploadStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>'; let d = await safeFetchJson('/api/upload/billboard',{method:'POST',body:form}); if(d && d.success){document.getElementById('bbUploadStatus').innerHTML='<span style="color:#00FF00">✅ LIVE!</span>'; loadData();} else document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+(d?d.error:'Server waking, retry')+'</span>';}
+async function turnOffBillboard(){ if(!confirm('Turn OFF?')) return; await safeFetchJson('/api/admin/billboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:false})}); document.getElementById('bbPreview').innerHTML=''; loadData();}
 let bbCurrentType = 'image';
 function setBBType(type){
   bbCurrentType = type;
@@ -216,16 +206,13 @@ function loadBillboard(){
  document.getElementById('bbText').value=bb.text||'';
  document.getElementById('bbLink').value=bb.link||'';
  if(document.getElementById('bbTextAnim')) document.getElementById('bbTextAnim').value=bb.text||'';
- // Detect current type
  if(bb.type) setBBType(bb.type);
  let prev=document.getElementById('bbPreview');
  if(bb.media_url && bb.active && bb.type!=='animated'){
-  if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" controls style="max-width:100%;max-height:200px" autoplay muted loop></video><p>${bb.text||''}</p>`;
+  if(bb.type=='video') prev.innerHTML=`<video src="${bb.media_url}" controls style="max-width:100%;max-height:200px" muted loop></video><p>${bb.text||''}</p>`;
   else prev.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:200px"><p>${bb.text||''}</p>`;
- } else if(bb.type=='animated' && bb.active){
-  prev.innerHTML=`<p style="color:#FFCC02">🔥 Animated Mode ACTIVE - ${bb.text||''}</p>`;
-  loadHeroStoriesAdmin();
- } else prev.innerHTML='<p>No billboard</p>';
+ } else if(bb.type=='animated' && bb.active){ prev.innerHTML=`<p style="color:#FFCC02">🔥 Animated ACTIVE</p>`; }
+ else prev.innerHTML='<p>No billboard</p>';
 }
 async function uploadHeroStoryAdmin(){
   let file=document.getElementById('heroStoryFile').files[0];
@@ -235,100 +222,68 @@ async function uploadHeroStoryAdmin(){
   fd.append('title_en', document.getElementById('heroStoryTitle').value);
   fd.append('subtitle_en', document.getElementById('heroStorySub').value);
   document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>';
-  let r=await fetch('/api/admin/hero-stories',{method:'POST', body:fd});
-  let d=await r.json();
-  if(d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">✅ Added!</span>'; document.getElementById('heroStoryFile').value=''; loadHeroStoriesAdmin(); }
-  else document.getElementById('bbAnimStatus').innerHTML='<span style="color:red">'+d.message+'</span>';
+  let d=await safeFetchJson('/api/admin/hero-stories',{method:'POST', body:fd});
+  if(d && d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">✅ Added!</span>'; document.getElementById('heroStoryFile').value=''; loadHeroStoriesAdmin(); }
+  else document.getElementById('bbAnimStatus').innerHTML='<span style="color:red">'+((d && d.message)||'Failed, retry')+'</span>';
 }
 async function loadHeroStoriesAdmin(){
-  let r=await fetch('/api/admin/hero-stories');
-  let stories=await r.json();
+  let stories=await safeFetchJson('/api/admin/hero-stories');
+  if(!stories){ document.getElementById('heroStoriesList').innerHTML='<p style="color:#aaa">Retrying... Render waking</p>'; return; }
   let list=document.getElementById('heroStoriesList');
-  if(!stories.length){ list.innerHTML='<p style="color:#aaa">No stories yet - Add images!</p>'; return; }
+  if(!stories.length){ list.innerHTML='<p style="color:#aaa">No stories yet</p>'; return; }
   list.innerHTML=stories.map(s=>`<div style="display:flex;gap:8px;background:#222;padding:8px;border-radius:8px;align-items:center"><img src="${s.image}" style="width:55px;height:55px;object-fit:cover;border-radius:6px"><div style="flex:1"><b style="color:#FFCC02">${s.title_en||'No title'}</b><br><small style="color:#aaa">${s.subtitle_en||''}</small></div><button onclick="deleteHeroStoryAdmin(${s.id})" style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px">🗑️</button></div>`).join('');
 }
-async function deleteHeroStoryAdmin(id){
-  if(!confirm('Delete this story?')) return;
-  await fetch(`/api/admin/hero-stories/${id}`,{method:'DELETE'});
-  loadHeroStoriesAdmin();
-}
-async function activateAnimated(){
-  let text=document.getElementById('bbTextAnim').value||document.getElementById('bbText').value||'Welcome';
-  document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Activating...</span>';
-  let r=await fetch('/api/admin/billboard/animated',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:text})});
-  let d=await r.json();
-  if(d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">🔥 ANIMATED LIVE ON HOMEPAGE!</span>'; loadData(); }
-}
-// ===== SPIN ADMIN B =====
+async function deleteHeroStoryAdmin(id){ if(!confirm('Delete?')) return; await fetch(`/api/admin/hero-stories/${id}`,{method:'DELETE'}); loadHeroStoriesAdmin(); }
+async function activateAnimated(){ let text=document.getElementById('bbTextAnim').value||document.getElementById('bbText').value||'Welcome'; document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Activating...</span>'; let d=await safeFetchJson('/api/admin/billboard/animated',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:text})}); if(d && d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">🔥 LIVE!</span>'; loadData(); } else document.getElementById('bbAnimStatus').innerHTML='<span style="color:red">Failed</span>'; }
+
 async function loadAdminSpin(){
- try{
-  let r=await fetch('/api/admin/spin-config'); let cfg=await r.json();
-  document.getElementById('spinEnabled').checked=cfg.enabled;
-  document.getElementById('spinCost').value=cfg.cost;
-  document.getElementById('spinEdge').value=cfg.house_edge||15;
-  let html='';
-  (cfg.prizes||[]).forEach((p,i)=>{
-   html+=`<div style="display:grid;grid-template-columns:2fr 0.8fr 0.8fr 0.8fr;gap:5px;margin:5px 0;align-items:center"><input value="${p.name}" id="pn_${i}" style="background:#222;padding:8px"><input type="number" step="0.5" value="${p.multiplier||p.coins}" id="pm_${i}" style="background:#222;padding:8px"><input type="number" value="${p.weight}" id="pw_${i}" style="background:#222;padding:8px"><input value="${p.color||'#fff'}" id="pcol_${i}" style="background:#222;padding:8px"></div>`;
-  });
-  document.getElementById('spinPrizesEdit').innerHTML=html;
-  let rs=await fetch('/api/admin/spin-stats'); let s=await rs.json();
-  document.getElementById('spinTotal').innerText=s.total||0;
-  document.getElementById('spinCollected').innerText=s.collected||0;
-  document.getElementById('spinPaid').innerText=s.paid||0;
-  document.getElementById('spinProfit').innerText=s.profit||0;
-  document.getElementById('spinFees').innerText=s.admin_cut||0;
-  let rh=await fetch('/api/spin/history?all=1');
-  try{
-   let r2=await fetch('/api/admin/data'); let d2=await r2.json();
-   // use spins file via admin endpoint alternative
-  }catch(e){}
-  // load history from spins.json via stats endpoint includes recent?
-  let rHist=await fetch('/api/admin/spin-config'); // dummy to keep
-  document.getElementById('spinHistoryBox').innerHTML=`<div style="color:#aaa">Total ${s.total} spins | Collected ${s.collected} | Paid ${s.paid} | Profit ${s.profit} | Fees ${s.admin_cut}<br><br>Recent spins loaded from server logs - check spins.json</div>`;
- }catch(e){ document.getElementById('spinPrizesEdit').innerHTML='<p style="color:red">Add spin routes in app.py first Boss!</p>'; }
+ let cfg=await safeFetchJson('/api/admin/spin-config');
+ if(!cfg){ document.getElementById('spinPrizesEdit').innerHTML='<p style="color:yellow">⏳ Render waking... retry in 5 sec</p>'; setTimeout(loadAdminSpin,5000); return; }
+ document.getElementById('spinEnabled').checked=cfg.enabled;
+ document.getElementById('spinCost').value=cfg.cost;
+ document.getElementById('spinEdge').value=cfg.house_edge||15;
+ let html=''; (cfg.prizes||[]).forEach((p,i)=>{ html+=`<div style="display:grid;grid-template-columns:2fr 0.8fr 0.8fr 0.8fr;gap:5px;margin:5px 0;align-items:center"><input value="${p.name}" id="pn_${i}" style="background:#222;padding:8px"><input type="number" step="0.5" value="${p.multiplier||p.coins}" id="pm_${i}" style="background:#222;padding:8px"><input type="number" value="${p.weight}" id="pw_${i}" style="background:#222;padding:8px"><input value="${p.color||'#fff'}" id="pcol_${i}" style="background:#222;padding:8px"></div>`; });
+ document.getElementById('spinPrizesEdit').innerHTML=html;
+ let s=await safeFetchJson('/api/admin/spin-stats');
+ if(s){ document.getElementById('spinTotal').innerText=s.total||0; document.getElementById('spinCollected').innerText=s.collected||0; document.getElementById('spinPaid').innerText=s.paid||0; document.getElementById('spinProfit').innerText=s.profit||0; document.getElementById('spinFees').innerText=s.admin_cut||0; }
+ document.getElementById('spinHistoryBox').innerHTML=`<div style="color:#aaa">Total ${s?s.total:0} spins | Profit ${s?s.profit:0}</div>`;
 }
 async function saveSpinConfig(){
  let cfg={enabled:document.getElementById('spinEnabled').checked,cost:Number(document.getElementById('spinCost').value),house_edge:Number(document.getElementById('spinEdge').value)||15,prizes:[]};
  let i=0; while(document.getElementById(`pn_${i}`)){ cfg.prizes.push({name:document.getElementById(`pn_${i}`).value,multiplier:parseFloat(document.getElementById(`pm_${i}`).value)||0,coins:parseFloat(document.getElementById(`pm_${i}`).value)||0,weight:Number(document.getElementById(`pw_${i}`).value),color:document.getElementById(`pcol_${i}`).value}); i++; }
  document.getElementById('spinSaveStatus').innerHTML='<span style="color:yellow">⏳ Saving...</span>';
- let r=await fetch('/api/admin/spin-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
- let d=await r.json();
- document.getElementById('spinSaveStatus').innerHTML=d.success?`<span style="color:#00FF00">✅ Saved! Edge ${cfg.house_edge}% LIVE!</span>`:`<span style="color:red">${d.message}</span>`;
+ let d=await safeFetchJson('/api/admin/spin-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+ document.getElementById('spinSaveStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ Saved! Edge ${cfg.house_edge}% LIVE!</span>`:`<span style="color:red">${(d && d.message)||'Failed, Render waking'}</span>`;
 }
 
-function loadData(){
-document.getElementById('stats').innerHTML='<div class="card">Loading...</div>';
-fetch('/api/admin/data').then(r=>{ if(r.status==401){localStorage.removeItem('sannlas_admin');document.getElementById('loginBox').style.display='block';document.getElementById('adminContent').style.display='none';throw new Error('Login required');} return r.json()}).then(d=>{ALL=d; let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; let withdraws=d.withdraws||[]; let wants=d.wants||[]; document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length; 
-let wantsEl=document.getElementById('cWants'); if(wantsEl) wantsEl.innerText=wants.length;
-let wantsHeader=document.getElementById('wantsTotalHeader'); if(wantsHeader) wantsHeader.innerText=wants.length;
-document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div>`; document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">Spin Profit see Spin tab - 15% edge!</p></div>`; renderUsers(); renderShops(); loadCoinsTab(); loadWithdraws(); loadBillboard(); renderWants(); document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages'; document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td></tr>`).join('')+'</table>':'No orders'; document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button></div></div>`).join(''):'No products';}).catch(e=>{document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid red"><h3 style="color:red">${e.message}</h3></div>`;});}
+async function loadData(){
+ document.getElementById('stats').innerHTML='<div class="card">⏳ Loading... Render may be waking (wait 15 sec)</div>';
+ let d = await safeFetchJson('/api/admin/data');
+ if(!d){
+   showErrorTop('');
+   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid yellow"><h3 style="color:yellow">⏳ Server Waking...</h3><p>Render free tier sleeps. Wait 10 sec then click <button onclick="loadData()" style="background:yellow;color:black">RELOAD</button></p></div>`;
+   return;
+ }
+ showErrorTop('');
+ ALL=d;
+ let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; let withdraws=d.withdraws||[]; let wants=d.wants||[];
+ document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length; 
+ let wantsEl=document.getElementById('cWants'); if(wantsEl) wantsEl.innerText=wants.length;
+ let wantsHeader=document.getElementById('wantsTotalHeader'); if(wantsHeader) wantsHeader.innerText=wants.length;
+ document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div>`;
+ document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p></div>`;
+ renderUsers(); renderShops(); loadCoinsTab(); loadWithdraws(); loadBillboard(); renderWants();
+ document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages';
+ document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td></tr>`).join('')+'</table>':'No orders';
+ document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button></div></div>`).join(''):'No products';
+}
 function delProd(id){if(!confirm('Delete '+id+'?'))return;fetch('/api/delete-product/'+id,{method:'DELETE'}).then(()=>loadData());}
-  function renderWants(){
- let wants=ALL.wants||[];
- let box=document.getElementById('wantsBox');
- if(!box) return;
- if(!wants.length){ box.innerHTML='<p style="text-align:center;padding:20px;background:#111;border-radius:10px">No WANTS yet Boss!</p>'; return; }
- box.innerHTML=wants.slice().reverse().map(w=>{
-  let date=w.created? new Date(w.created*1000).toLocaleString() : '';
-  return `<div style="background:#111;border:2px solid #00FF00;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-   <div style="flex:1">
-    <b style="color:#00FF00;font-size:15px">🎯 ${w.item}</b> <span style="background:${w.status=='open'?'#00FF00':'gray'};color:#000;padding:2px 8px;border-radius:10px;font-size:10px">${w.status||'open'}</span><br>
-    <small style="color:white">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br>
-    <small style="color:#aaa">📝 ${w.note||'No note'} | 📅 ${date}</small><br>
-    <small style="color:#FFCC02">👤 ${w.email||''} | 📞 <b>${w.phone||''}</b></small>
-   </div>
-   <div style="display:flex;flex-direction:column;gap:5px;min-width:120px">
-    <a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:8px 12px;border-radius:20px;text-decoration:none;font-weight:bold;text-align:center;font-size:12px">📞 Call Buyer</a>
-    <a href="https://wa.me/${w.phone}?text=Hi I have ${encodeURIComponent(w.item)} you wanted on SANNLAS! - https://sannlas.onrender.com" target="_blank" style="background:#25D366;color:white;padding:8px 12px;border-radius:20px;text-decoration:none;font-weight:bold;text-align:center;font-size:12px">💬 WhatsApp</a>
-    <button onclick="closeWantAdmin(${w.id})" style="background:red;color:white;padding:6px 10px;border-radius:10px;border:none;font-weight:bold;cursor:pointer;font-size:11px">❌ Close</button>
-   </div>
-  </div>`;
- }).join('');
+function renderWants(){
+ let wants=ALL.wants||[]; let box=document.getElementById('wantsBox'); if(!box) return;
+ if(!wants.length){ box.innerHTML='<p style="text-align:center;padding:20px;background:#111;border-radius:10px">No WANTS yet</p>'; return; }
+ box.innerHTML=wants.slice().reverse().map(w=>{ let date=w.created? new Date(w.created*1000).toLocaleString() : ''; return `<div style="background:#111;border:2px solid #00FF00;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="flex:1"><b style="color:#00FF00;font-size:15px">🎯 ${w.item}</b><br><small style="color:white">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br><small style="color:#FFCC02">📞 <b>${w.phone||''}</b></small></div><div style="display:flex;flex-direction:column;gap:5px;min-width:120px"><a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:8px 12px;border-radius:20px;text-decoration:none;font-weight:bold;text-align:center;font-size:12px">📞 Call</a><button onclick="closeWantAdmin(${w.id})" style="background:red;color:white;padding:6px 10px;border-radius:10px;border:none;font-weight:bold;cursor:pointer;font-size:11px">❌ Close</button></div></div>`; }).join('');
 }
-function closeWantAdmin(id){
- if(!confirm('Close this WANT Boss?')) return;
- fetch('/api/want/'+id+'/close',{method:'POST'}).then(()=>{ ALL.wants=(ALL.wants||[]).map(w=>w.id==id?{...w,status:'closed'}:w); renderWants(); loadData(); });
-}
+function closeWantAdmin(id){ if(!confirm('Close this WANT?')) return; fetch('/api/want/'+id+'/close',{method:'POST'}).then(()=>{ ALL.wants=(ALL.wants||[]).map(w=>w.id==id?{...w,status:'closed'}:w); renderWants(); loadData(); });}
 if(localStorage.getItem('sannlas_admin')==='ok')showAdmin();
 </script>
 </body>
