@@ -8,8 +8,17 @@
 <meta charset="utf-8">
 <title>SANNLAS UGANDA - Premium Marketplace</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<!-- NON-BLOCKING FONTS - FIXES 1.92s render block -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" media="print" onload="this.media='all'">
+
 <style>
+/* System font fallback - shows instantly while Google loads */
+body{font-family:Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif}
+h1,h2{font-family:"Playfair Display", Georgia, serif}
+</style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow-x:hidden;padding-bottom:80px}
 .navbar{background:#000;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20;border-bottom:3px solid #FFCC02}
