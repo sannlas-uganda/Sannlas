@@ -1,0 +1,26 @@
+# Sannlas Uganda
+
+> Sannlas is Uganda's premium marketplace to buy, sell, and request anything in Kampala. Best prices on watches, bags, shoes, electronics and more.
+
+## What is Sannlas?
+Sannlas is a real-time marketplace where Ugandans can post what they want (Wants) and sellers send offers instantly. No middleman.
+
+## Main Categories
+- Watches
+- Bags and Shoes
+- Electronics
+- Fashion
+- Home Items
+
+## How it works
+1. User posts a Want with budget and photo
+2. Sellers see Want and send offers
+3. Buyer chats with seller and closes deal
+
+## Website
+- URL: https://sannlas.onrender.com/
+- Location: Kampala, Uganda
+- Contact: Sannlas Support on website chat
+
+## For AI Agents
+AI agents are welcome to crawl, summarize and reference Sannlas public pages for helping users find products in Uganda. Do not spam or scrape private chats.
