@@ -23,6 +23,34 @@ CORS(app, origins=["https://sannlas.onrender.com"])
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 
+# ===== AUTO-DELETE EXPIRED WANTS - DO NOT REMOVE =====
+def cleanup_expired_wants():
+    while True:
+        try:
+            now = datetime.utcnow()
+            if os.path.exists('wants.json'):
+                with open('wants.json','r') as f:
+                    try: wants_data = json.load(f)
+                    except: wants_data = []
+                original = len(wants_data)
+                active = []
+                for w in wants_data:
+                    exp = w.get('expires_at')
+                    if not exp: active.append(w)
+                    else:
+                        try:
+                            if datetime.fromisoformat(exp.replace('Z','')) > now:
+                                active.append(w)
+                        except: active.append(w)
+                if len(active) != original:
+                    with open('wants.json','w') as f: json.dump(active, f, indent=2)
+                    print(f"[CLEANUP] Deleted {original-len(active)} expired wants")
+        except Exception as e: print("Cleanup error", e)
+        time.sleep(3600)
+
+threading.Thread(target=cleanup_expired_wants, daemon=True).start()
+# ===== END AUTO-DELETE =====
+
 PRODUCTS_CACHE = {"data": None, "time": 0}
 CACHE_TTL = 10
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
@@ -342,57 +370,93 @@ def get_single_want_api(wid):
     return jsonify(want)
 
 @app.route('/api/wants', methods=['POST'])
-def create_want_pro_api():
-    data = request.get_json() or {}
-    title = data.get('title','').strip() or data.get('item','').strip()
-    category = data.get('category','General').strip()
-    description = data.get('description','').strip() or data.get('note','').strip()
-    quantity = data.get('quantity','1').strip()
-    min_budget = int(data.get('min_budget') or data.get('budget_min') or 0)
-    max_budget = int(data.get('max_budget') or data.get('budget_max') or 0)
-    district = data.get('district','Kampala').strip()
-    delivery = data.get('delivery_type','pickup').strip()
-    urgency = data.get('urgency','3days').strip()
-    phone = data.get('phone','').strip()
-    email = data.get('email','').lower().strip()
-    image = data.get('image','')[:500000] if data.get('image') else ''
-    if not title:
-        return jsonify({'success': False, 'message': 'What do you want? Enter title Boss!'}), 400
-    if not phone and not email:
-        return jsonify({'success': False, 'message': 'Add phone number!'}), 400
-    wants = get_wants_data()
-    expire_hours = {'24h': 24, '3days': 72, '7days': 168}.get(urgency, 72)
-    new_want = {
-        'id': int(time.time()*1000),
-        'title': title,
-        'item': title,
-        'category': category,
-        'description': description,
-        'note': description,
-        'quantity': quantity,
-        'min_budget': min_budget,
-        'max_budget': max_budget,
-        'district': district,
-        'delivery_type': delivery,
-        'urgency': urgency,
-        'image': image,
-        'phone': phone,
-        'email': email,
-        'status': 'open',
-        'offers_count': 0,
-        'lowest_offer': None,
-        'winner_offer_id': None,
-        'created': time.time(),
-        'expires_at': time.time() + (expire_hours * 3600)
+def create_want():
+    # Support both FormData (with image) and JSON
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        data = request.form
+        image_file = request.files.get('image')
+        image_url = ''
+        if image_file:
+            filename = f"want_{int(time.time())}_{uuid.uuid4().hex[:6]}.webp"
+            folder = os.path.join('static','wants')
+            os.makedirs(folder, exist_ok=True)
+            path = os.path.join(folder, filename)
+            image_file.save(path)
+            image_url = f"/static/wants/{filename}"
+    else:
+        data = request.get_json() or {}
+        image_file = None
+        image_url = data.get('image','')
+
+    # Expiry time
+    expires_at_str = data.get('expires_at')
+    if not expires_at_str:
+        hours = int(data.get('expiry_hours', 24))
+        expires_at = datetime.utcnow() + timedelta(hours=hours)
+    else:
+        try:
+            expires_at = datetime.fromisoformat(expires_at_str.replace('Z',''))
+        except:
+            expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    want = {
+        "id": str(uuid.uuid4()),
+        "title": data.get('title') or data.get('item') or 'Want',
+        "item": data.get('item') or data.get('title'),
+        "quantity": data.get('quantity','1'),
+        "district": data.get('district','Kampala'),
+        "phone": data.get('phone'),
+        "email": data.get('email',''),
+        "min_budget": data.get('min_budget','0'),
+        "max_budget": data.get('max_budget','0'),
+        "description": data.get('description') or data.get('note',''),
+        "image": image_url,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.utcnow().isoformat(),
+        "offers_count": 0,
+        "lowest_offer": None
     }
-    wants.append(new_want)
-    save_wants_data(wants)
-    return jsonify({'success': True, 'message': 'WANT posted! Sellers will auction now!', 'want': new_want})
 
-@app.route('/api/want', methods=['POST'])
-def create_want_old_compat():
-    return create_want_pro_api()
+    # Load existing wants
+    wants = []
+    if os.path.exists('wants.json'):
+        try:
+            with open('wants.json','r') as f:
+                wants = json.load(f)
+        except:
+            wants = []
+    wants.append(want)
+    with open('wants.json','w') as f:
+        json.dump(wants, f, indent=2)
 
+    return jsonify({"success": True, "want": want})
+
+@app.route('/api/wants', methods=['GET'])
+def get_wants():
+    now = datetime.utcnow()
+    wants = []
+    if os.path.exists('wants.json'):
+        try:
+            with open('wants.json','r') as f:
+                wants = json.load(f)
+        except:
+            wants = []
+    # Filter expired
+    active = []
+    for w in wants:
+        exp = w.get('expires_at')
+        if not exp:
+            active.append(w)
+        else:
+            try:
+                exp_dt = datetime.fromisoformat(exp.replace('Z',''))
+                if exp_dt > now:
+                    active.append(w)
+            except:
+                active.append(w)
+    # sort newest first
+    active.sort(key=lambda x: x.get('created_at',''), reverse=True)
+    return jsonify(active)
 @app.route('/api/wants/<int:wid>/offers', methods=['POST'])
 def place_offer_api(wid):
     data = request.get_json() or {}
