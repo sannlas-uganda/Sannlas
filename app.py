@@ -1906,6 +1906,18 @@ def spin_stats():
     admin_cut=sum(s.get('admin_cut', s.get('fee',0)) for s in spins)
     profit=collected - paid
     return jsonify({"total":total,"collected":collected,"paid":paid,"profit":profit,"admin_cut":admin_cut})
+    
+@app.route('/llms.txt')
+def llms_txt():
+    return send_from_directory('.', 'llms.txt', mimetype='text/markdown')
+
+@app.route('/robots.txt')
+def robots_txt():
+    return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.onrender.com/sitemap.xml", mimetype="text/plain")
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('.', 'manifest.json', mimetype='application/manifest+json')
 
 @app.route('/manifest.json')
 def manifest():
@@ -2012,10 +2024,6 @@ def compress_neon_now():
             except: pass
     save_db('products.json', products)
     return f"Done! {len(products)} products compressed! Refresh homepage now!"
-
-@app.route('/manifest.json')
-def serve_manifest():
-    return send_from_directory('.', 'manifest.json')
 
 @app.route('/favicon.ico')
 def serve_favicon():
