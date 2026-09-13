@@ -255,7 +255,49 @@ function setStake(v){document.getElementById('stakeInput').value=v;let fee=v==0?
 const WHEEL_SEGMENTS=[{name:"0x LOST",mult:0,start:0,end:126},{name:"1x BACK",mult:1,start:126,end:216},{name:"1.5x SMALL",mult:1.5,start:216,end:270},{name:"2x DOUBLE",mult:2,start:270,end:313.2},{name:"3x TRIPLE",mult:3,start:313.2,end:342},{name:"5x SUPER",mult:5,start:342,end:356.4},{name:"10x JACKPOT",mult:10,start:356.4,end:360}];
 async function doSpin(){let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!u.phone){alert('Login first Boss!');showGate();return;}let stake=parseInt(document.getElementById('stakeInput').value)||0;let btn=document.getElementById('spinBtn');btn.disabled=true;btn.innerText='⏳ SPINNING...';let r=await fetch('/api/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:u.phone,email:u.email,stake:stake})});let d=await r.json();if(!d.success){btn.disabled=false;btn.innerText='🎰 SPIN NOW';alert(d.message);return;}let segment=WHEEL_SEGMENTS.find(s=>s.mult==d.multiplier)||WHEEL_SEGMENTS[0];let randomInside=segment.start+Math.random()*(segment.end-segment.start);let targetAngle=360-randomInside;let finalRotation=(5*360)+targetAngle;let wheel=document.getElementById('spinWheel');wheel.style.transform=`rotate(${finalRotation}deg)`;setTimeout(()=>{btn.disabled=false;btn.innerText='🎰 SPIN NOW';document.getElementById('myCoinsNav').innerText=d.my_coins;},2200);}
 function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
-function showAllShops(){document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';document.getElementById('shopsPop').style.display='flex';fetch('/api/shops').then(r=>r.json()).then(shops=>{shops=shops.filter(s=>(s.total_products||s.product_count||s.count||0)>0);if(!shops||shops.length==0){document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><button onclick="closePop(\'shopsPop\')">Close</button>';return;}let html='<h2 style="font-weight:800">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';shops.forEach(s=>{let count=s.total_products||s.product_count||s.count||0;let slug=s.slug||s.shop_slug||'';let name=s.business_name||s.name||'Shop';let loc=s.location||'Uganda';html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count} products</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></a></div>`;});html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';document.getElementById('shopsContent').innerHTML=html;}).catch(e=>{document.getElementById('shopsContent').innerHTML='<p>Failed: '+e.message+'</p>';});}
+async function showAllShops(){
+  document.getElementById('shopsContent').innerHTML = '<h3>⏳ Loading Shops... Render waking (15 sec)...</h3><p style="font-size:12px;color:#888">Free server sleeps, first load is slow. Please wait Boss.</p>';
+  document.getElementById('shopsPop').style.display='flex';
+  
+  // NO TIMEOUT - let Render wake up slowly
+  for(let attempt=1; attempt<=3; attempt++){
+    try{
+      let r = await fetch('/api/shops'); // NO signal timeout!
+      if(!r.ok) throw new Error('Server '+r.status);
+      let text = await r.text();
+      if(!text) throw new Error('Empty response, retrying...');
+      let shops = JSON.parse(text);
+      
+      shops = shops.filter(s=> (s.total_products||s.product_count||s.count||0) > 0);
+      
+      if(!shops || shops.length==0){
+        document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><p>Upload first product FREE to create shop</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>';
+        return;
+      }
+      
+      let html='<h2 style="font-weight:800">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
+      shops.forEach(s=>{
+        let count=s.total_products||s.product_count||s.count||0;
+        let slug=s.slug||s.shop_slug||'';
+        let name=s.business_name||s.name||'Shop';
+        let loc=s.location||'Uganda';
+        html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count} products</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></a></div>`;
+      });
+      html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';
+      document.getElementById('shopsContent').innerHTML=html;
+      return; // success, stop retrying
+      
+    }catch(e){
+      console.log('Shops attempt '+attempt+' failed: '+e.message);
+      if(attempt < 3){
+        document.getElementById('shopsContent').innerHTML = `<h3>⏳ Waking server... Attempt ${attempt}/3</h3><p style="color:#666;font-size:12px">${e.message}<br>Retrying in 3 sec...</p>`;
+        await new Promise(res=>setTimeout(res,3000));
+      } else {
+        document.getElementById('shopsContent').innerHTML = `<div style="text-align:center;padding:20px"><h3 style="color:red">⚠️ Server sleeping</h3><p style="font-size:13px">Render free sleeps after 15min.<br>Click reload to wake it.</p><button onclick="showAllShops()" style="background:#FFCC02;color:#000;padding:12px 20px;border:none;border-radius:10px;font-weight:900;margin-top:10px">🔄 TRY AGAIN</button><button onclick="closePop('shopsPop')" style="background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;width:100%">Close</button></div>`;
+      }
+    }
+  }
+}
 async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(8000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first - FREE now!');}}catch(e){alert('Failed to find shop');}}
 async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{let r=await fetch('/api/wants?sort=most_offers');let wants=await r.json();document.getElementById('wantsCount').innerText=wants.length;document.getElementById('wantsCount2').innerText=wants.length;let html=wants.slice(0,20).map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;}).join('');if(wants.length==0)html='<p style="color:white;text-align:center">No wants yet! Be first 🎯</p>';let list2=document.getElementById('wantsList2');if(list2)list2.innerHTML=html;}catch(e){}isLoadingWants=false;}
 async function loadWantsLiveSafe(){await loadWantsLive();}
