@@ -30,10 +30,11 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
 # === FORGOT PASSWORD SYSTEM CONFIG ===
 OWNER_EMAIL = "natelieabigail@gmail.com"
 EMAIL_FROM = "natelieabigail@gmail.com"
-EMAIL_APP_PASSWORD = "ywhe hdfs otgw zztx" # <-- YOUR 16 LETTER PASSWORD HERE! REMOVE SPACES WHEN PASTING OK? KEEP AS IS CODE WILL REMOVE SPACES
+EMAIL_APP_PASSWORD = "ywhe hdfs otgw zztx"
 OWNER_MOMO = "0795712326"
 COIN_PRICE = 599
-UPLOAD_COST = 3
+UPLOAD_COST = 0 # <-- CHANGED TO FREE! Was 3
+ORDER_VIEW_COST = 2 # NEW - Seller pays 2 coins to see buyer
 TOTAL_COINS = 1000000000
 WITHDRAW_MIN_COINS = 50
 FREE_TRIAL = 10
@@ -168,8 +169,35 @@ def get_coin_config():
     if not cfg:
         cfg = {"total": TOTAL_COINS, "remaining": TOTAL_COINS, "sold": 0, "price": COIN_PRICE, "upload_cost": UPLOAD_COST}
         save_db('coin_config.json', cfg)
+    # Force free upload
+    cfg['upload_cost'] = 0
     return cfg
+
 def save_coin_config(cfg): save_db('coin_config.json', cfg)
+
+# === NEW HELPER FOR 2 COINS UNLOCK ===
+def get_user_coins_balance(email, phone):
+    users = load_db('users.json', [])
+    u = next((x for x in users if (email and str(x.get('email','')).lower()==email.lower()) or (phone and str(x.get('phone',''))==phone)), None)
+    if not u: return 0, None
+    bought = int(u.get('bought',0))
+    earned = int(u.get('earned',0))
+    spent = int(u.get('spent',0))
+    total = bought + earned - spent
+    if total<0: total=0
+    return total, u
+
+def deduct_coins_balance(email, phone, amount):
+    users = load_db('users.json', [])
+    for u in users:
+        if (email and str(u.get('email','')).lower()==email.lower()) or (phone and str(u.get('phone',''))==phone):
+            u['spent'] = int(u.get('spent',0)) + amount
+            u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
+            if u['coins']<0: u['coins']=0
+            save_db('users.json', users)
+            return True, u
+    return False, None
+
 def get_billboard_config():
     cfg = load_db('billboard.json', None)
     if not cfg:
@@ -191,7 +219,7 @@ def get_billboard_config():
                 save_db('billboard.json', cfg)
         except: pass
     return cfg
-    # ===== HERO ANIMATED STORIES SYSTEM - 3RD BILLBOARD OPTION =====
+
 def get_hero_stories():
     return load_db('hero_stories.json', [])
 
@@ -199,7 +227,7 @@ def save_hero_stories(stories):
     save_db('hero_stories.json', stories)
 
 os.makedirs('static/uploads/hero', exist_ok=True)
-  
+
 def make_shop_slug(business):
     if not business: return 'shop'
     base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
@@ -250,9 +278,7 @@ def ensure_shop_for_user(user):
     return shop
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
-# ============================================
-# SANNLAS SUPER PRO REVERSE AUCTION SYSTEM 2.0
-# ============================================
+
 WANTS_FILE = 'wants.json'
 OFFERS_FILE = 'offers.json'
 
@@ -500,7 +526,6 @@ def wants_page():
 def want_detail_page(wid):
     return render_template('want_detail.html')
 
-# === FORGOT PASSWORD EMAIL FUNCTION ===
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
         import socket
@@ -546,7 +571,6 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         import traceback; traceback.print_exc()
         return False
 
-# ===== API ROUTES - YOUR EXISTING CODE CONTINUES =====
 @app.route('/product/<pid>')
 def product_link(pid):
     ref = request.args.get('ref','')
@@ -770,7 +794,7 @@ def coins_balance():
     users=load_db('users.json',[])
     u=next((x for x in users if str(x.get('email','')).lower()==email or str(x.get('phone',''))==phone), None)
     if not u:
-        return jsonify({'success':True,'coins':0,'total':0,'bought':0,'earned':0,'spent':0,'bought_value':0,'earned_value':0,'total_value':0,'spent_value':0,'withdrawable':0,'can_upload':0})
+        return jsonify({'success':True,'coins':0,'total':0,'bought':0,'earned':0,'spent':0,'bought_value':0,'earned_value':0,'total_value':0,'spent_value':0,'withdrawable':0,'can_upload':9999})
     bought = int(u.get('bought', u.get('bought_coins', 0)))
     earned = int(u.get('earned', u.get('earned_coins', 0)))
     spent = int(u.get('spent', 0))
@@ -781,7 +805,7 @@ def coins_balance():
     return jsonify({
         'success':True,'coins': total,'total': total,'bought': bought,'earned': earned,'spent': spent,'withdrawable': withdrawable,
         'bought_value': bought * COIN_PRICE,'earned_value': earned * COIN_PRICE,'spent_value': spent * COIN_PRICE,
-        'total_value': total * COIN_PRICE,'withdrawable_value': withdrawable * COIN_PRICE,'can_upload': total // UPLOAD_COST
+        'total_value': total * COIN_PRICE,'withdrawable_value': withdrawable * COIN_PRICE,'can_upload': 9999
     })
 
 @app.route('/api/coins/buy', methods=['POST'])
@@ -886,7 +910,7 @@ def admin_update_coin_config():
             save_coin_config(cfg)
             return jsonify({"success": True, "message": f"Reduced {amount:,} coins", "config": cfg})
     if 'price' in data: cfg['price'] = int(data['price'])
-    if 'upload_cost' in data: cfg['upload_cost'] = int(data['upload_cost'])
+    if 'upload_cost' in data: cfg['upload_cost'] = 0
     if 'total' in data:
         diff = int(data['total']) - cfg.get('total', TOTAL_COINS)
         cfg['total'] = int(data['total'])
@@ -942,18 +966,29 @@ def sales_summary():
     email = request.args.get('email','').lower().strip()
     phone = request.args.get('phone','').strip()
     orders = load_db('orders.json', [])
-    my_orders = []
+    products = load_db('products.json', [])
+    promo_spent=0
+    for p in products:
+        if (email and (p.get('seller_email','').lower()==email)) or (phone and p.get('phone')==phone):
+            promo_spent += int(p.get('promo_commission',0)) * int(p.get('sold',0))
+    import datetime
+    now = datetime.datetime.now()
+    today=0; week=0; year=0
+    my_orders=[]
     for o in orders:
-        if (email and o.get('seller_email','').lower()==email) or (phone and o.get('seller_phone','')==phone) or (email and o.get('seller','').lower()==email):
+        if (email and str(o.get('seller_email','')).lower()==email) or (phone and str(o.get('seller_phone',''))==phone) or (email and str(o.get('seller','')).lower()==email):
             my_orders.append(o)
-    total_sales = sum(o.get('total', o.get('amount',0)) for o in my_orders)
-    total_orders = len(my_orders)
-    withdraws = load_db('withdraws.json', [])
-    my_withdraws = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
-    withdrawn = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='paid')
-    pending_withdraw = sum(w.get('amount',0) for w in my_withdraws if w.get('status')=='pending')
-    balance = total_sales - withdrawn - pending_withdraw
-    return jsonify({'success': True, 'total_sales': total_sales, 'total_orders': total_orders, 'withdrawn': withdrawn, 'pending_withdraw': pending_withdraw, 'balance': max(0,balance), 'orders': my_orders[-20:], 'withdraws': my_withdraws[-10:]})
+    for o in my_orders:
+        amt = o.get('total', o.get('amount',0))
+        try:
+            t = o.get('time',0)
+            d = datetime.datetime.fromtimestamp(float(t)) if isinstance(t,(int,float)) else now
+        except:
+            d=now
+        if d.date()==now.date(): today+=amt
+        if (now - d).days <7: week+=amt
+        if d.year==now.year: year+=amt
+    return jsonify({"today":today,"week":week,"year":year,"orders":len(my_orders),"promo_coins_spent":promo_spent})
 
 @app.route('/api/my-referral')
 def my_referral_api():
@@ -992,8 +1027,7 @@ def api_balance():
     withdrawable = total - FREE_TRIAL
     if withdrawable<0: withdrawable=0
     return jsonify({"success": True,"bought": bought,"earned": earned,"spent": spent,"withdrawable": withdrawable,"bought_coins": bought,"earned_coins": earned,"total_coins": total,"coins": total,"ugx_value": total*COIN_PRICE,"bought_value": bought*COIN_PRICE,"earned_value": earned*COIN_PRICE,"spent_value": spent*COIN_PRICE,"withdrawable_value": withdrawable*COIN_PRICE,"history": my_txs[::-1][:30]})
-
-@app.route('/api/withdraw/coins', methods=['POST'])
+    @app.route('/api/withdraw/coins', methods=['POST'])
 def withdraw_coins():
     data = request.json or {}
     phone = data.get('phone','').strip()
@@ -1156,6 +1190,7 @@ def my_sales_stats():
     email=request.args.get('email','').lower().strip()
     phone=request.args.get('phone','').strip()
     orders = load_db('orders.json', [])
+    orders_v2 = load_db('orders_v2.json', [])
     products = load_db('products.json', [])
     promo_spent=0
     for p in products:
@@ -1165,13 +1200,13 @@ def my_sales_stats():
     now = datetime.datetime.now()
     today=0; week=0; year=0
     my_orders=[]
-    for o in orders:
+    for o in orders + orders_v2:
         if (email and str(o.get('seller_email','')).lower()==email) or (phone and str(o.get('seller_phone',''))==phone) or (email and str(o.get('seller','')).lower()==email):
             my_orders.append(o)
     for o in my_orders:
         amt = o.get('total', o.get('amount',0))
         try:
-            t = o.get('time',0)
+            t = o.get('time',0) or o.get('created_at',0)
             d = datetime.datetime.fromtimestamp(float(t)) if isinstance(t,(int,float)) else now
         except:
             d=now
@@ -1211,6 +1246,7 @@ def login():
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
     session['phone']=u.get('phone'); session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
+
 @app.route('/api/products')
 def get_products():
     q = request.args.get('q','').lower()
@@ -1244,7 +1280,7 @@ def sell():
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
-    if int(seller.get('coins',0)) < UPLOAD_COST: return jsonify({'success':False,'message':f'Need {UPLOAD_COST} coins! You have {seller.get("coins",0)}','needs_coins':True,'my_coins':seller.get('coins',0)}),402
+    # === FREE UPLOAD NOW - NO COINS CHECK ===
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -1257,14 +1293,8 @@ def sell():
     except: pass
     prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    for u in users:
-        if u['phone']==phone or u['email']==user_email:
-            u['spent'] = int(u.get('spent',0)) + UPLOAD_COST
-            u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
-            if u['coins']<0: u['coins']=0
-            u['bought_coins']=int(u.get('bought',0)); u['earned_coins']=int(u.get('earned',0))
-    save_db('users.json', users)
-    return jsonify({'success':True,'message':f'Added! {UPLOAD_COST} coins used'})
+    # NO COIN DEDUCTION - FREE!
+    return jsonify({'success':True,'message':f'Product added FREE! Now sellers pay 2 coins when buyer orders'})
 
 @app.route('/api/shops')
 def list_shops():
@@ -1320,7 +1350,6 @@ def admin_data():
         users = load_db('users.json', []) or []
         shops = load_db('shops.json', []) or []
         billboard = load_db('billboard.json', {}) or {}
-        # TRIM - never send base64!
         safe_products = []
         for p in products[-50:][::-1]:
             np = dict(p)
@@ -1330,14 +1359,21 @@ def admin_data():
         if billboard.get('media_url','') and len(str(billboard.get('media_url','')))>1000:
             billboard['media_url']=""
             billboard['active']=False
-        return jsonify({'products':safe_products,'users':users[-100:],'shops':shops,'billboard':billboard,'orders':load_db('orders.json',[]) or [] ,'contacts':load_db('contacts.json',[]) or [],'coin_transactions':load_db('coin_transactions.json',[]) or [],'coin_config':load_db('coin_config.json',{}) or {},'withdraws':load_db('withdraws.json',[]) or [],'wants':load_db('wants.json',[]) or []})
+        return jsonify({'products':safe_products,'users':users[-100:],'shops':shops,'billboard':billboard,'orders':load_db('orders.json',[]) or [],'orders_v2':load_db('orders_v2.json',[]) or [],'contacts':load_db('contacts.json',[]) or [],'coin_transactions':load_db('coin_transactions.json',[]) or [],'coin_config':load_db('coin_config.json',{}) or {},'withdraws':load_db('withdraws.json',[]) or [],'wants':load_db('wants.json',[]) or []})
     except Exception as e:
         return jsonify({'products':[],'users':[],'shops':[],'error':str(e)})
+
 @app.route('/api/admin/transactions')
 @admin_required
 def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
+
 @app.route('/api/orders')
-def get_orders(): return jsonify(load_db('orders.json', [])[::-1])
+def get_orders():
+    # Combine both order types
+    old = load_db('orders.json', [])
+    new = load_db('orders_v2.json', [])
+    return jsonify((old + new)[::-1])
+
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
 
@@ -1401,9 +1437,69 @@ def promote_action():
     save_db('promotions.json',promos)
     return jsonify({"success":True,"message":f"Promoter {action}d!"})
 
+# ============================================
+# NEW ORDERS SYSTEM - BUYER OK -> SELLER PAYS 2 COINS
+# ============================================
 @app.route('/api/orders/create', methods=['POST'])
 def create_order():
-    data=request.json or {}; promo_code=data.get('promo_code','').strip(); product_id=data.get('product_id'); buyer_phone=data.get('buyer_phone','').strip(); buyer_email=data.get('buyer_email','').lower().strip(); amount=data.get('amount',0)
+    data=request.json or {}
+    # NEW CART FLOW - from new checkout
+    if 'items' in data and 'buyer' in data:
+        buyer = data.get('buyer', {})
+        items = data.get('items', [])
+        buyer_name = buyer.get('name','')
+        buyer_phone = buyer.get('phone','')
+        buyer_district = buyer.get('district','Kampala')
+        buyer_email = buyer.get('email','').lower()
+        if not buyer_name or not buyer_phone:
+            return jsonify({"success":False,"message":"Enter buyer name & phone"}),400
+        if not items:
+            return jsonify({"success":False,"message":"Cart empty"}),400
+
+        products = load_db('products.json', [])
+        orders_v2 = load_db('orders_v2.json', [])
+        order_group = f"ORD{int(time.time())}"
+
+        # Group items by seller
+        sellers_map = {}
+        for it in items:
+            prod = next((p for p in products if str(p.get('id'))==str(it.get('id'))), None)
+            if not prod: continue
+            seller_email = (prod.get('seller_email') or '').lower()
+            seller_phone = prod.get('phone','')
+            seller_key = seller_email or seller_phone
+            if not seller_key: continue
+            if seller_key not in sellers_map:
+                sellers_map[seller_key] = {"seller_email": seller_email, "seller_phone": seller_phone, "items": [], "total": 0}
+            sellers_map[seller_key]["items"].append({"id": it.get('id'), "name": it.get('name'), "price": it.get('price'), "qty": int(it.get('qty',1)), "image": it.get('image','')})
+            sellers_map[seller_key]["total"] += float(it.get('price',0)) * int(it.get('qty',1))
+
+        created = []
+        for seller_key, sdata in sellers_map.items():
+            order_id = f"{order_group}_{seller_key[:6]}_{int(time.time()*1000)%10000}"
+            new_o = {
+                "id": order_id,
+                "order_group": order_group,
+                "buyer_name": buyer_name,
+                "buyer_phone": buyer_phone,
+                "buyer_district": buyer_district,
+                "buyer_email": buyer_email,
+                "items": sdata["items"],
+                "total": sdata["total"],
+                "seller_email": sdata["seller_email"],
+                "seller_phone": sdata["seller_phone"],
+                "paid_to_view": False,
+                "status": "new",
+                "time": time.time(),
+                "created_at": time.time()
+            }
+            orders_v2.append(new_o)
+            created.append(new_o)
+        save_db('orders_v2.json', orders_v2)
+        return jsonify({"success":True, "message":"Order sent! Seller will call you", "order_id": order_group, "orders": created})
+
+    # OLD SINGLE PRODUCT + PROMO FLOW - Keep compatible
+    promo_code=data.get('promo_code','').strip(); product_id=data.get('product_id'); buyer_phone=data.get('buyer_phone','').strip(); buyer_email=data.get('buyer_email','').lower().strip(); amount=data.get('amount',0)
     orders=load_db('orders.json',[]); new_order={"id":int(time.time()*1000),"product_id":product_id,"amount":amount,"buyer_phone":buyer_phone,"buyer_email":buyer_email,"promo_code":promo_code,"time":time.time(),"status":"pending"}
     orders.append(new_order); save_db('orders.json',orders)
     if promo_code:
@@ -1420,6 +1516,54 @@ def create_order():
                 break
         save_db('promotions.json',promos); save_db('users.json',users)
     return jsonify({"success":True,"order":new_order})
+
+@app.route('/api/orders/my-sales')
+def my_sales_orders():
+    email=request.args.get('email','').lower().strip()
+    phone=request.args.get('phone','').strip()
+    orders_v2 = load_db('orders_v2.json', [])
+    my = [o for o in orders_v2 if (email and o.get('seller_email','').lower()==email.lower()) or (phone and o.get('seller_phone')==phone)]
+    return jsonify(sorted(my, key=lambda x: x.get('created_at',0), reverse=True))
+
+@app.route('/api/orders/unlock', methods=['POST'])
+def unlock_order_view():
+    data=request.json or {}
+    order_id = data.get('order_id','').strip()
+    email = data.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    if not order_id: return jsonify({"success":False,"message":"Order ID required"}),400
+    orders_v2 = load_db('orders_v2.json', [])
+    order = next((o for o in orders_v2 if str(o.get('id'))==str(order_id)), None)
+    if not order: return jsonify({"success":False,"message":"Order not found"}),404
+    if order.get('paid_to_view'): return jsonify({"success":True,"order":order,"message":"Already unlocked"})
+
+    # Check if this seller owns order
+    if not ((email and order.get('seller_email','').lower()==email.lower()) or (phone and order.get('seller_phone')==phone)):
+        return jsonify({"success":False,"message":"Not your order"}),403
+
+    bal, user = get_user_coins_balance(email, phone)
+    if bal < ORDER_VIEW_COST:
+        return jsonify({"success":False,"message":f"Need {ORDER_VIEW_COST} coins to view buyer! You have {bal}. Buy coins Boss!","need":ORDER_VIEW_COST,"have":bal}),402
+
+    # Deduct
+    ok, _ = deduct_coins_balance(email, phone, ORDER_VIEW_COST)
+    if not ok: return jsonify({"success":False,"message":"Deduct failed"}),500
+
+    # Mark paid
+    for o in orders_v2:
+        if str(o.get('id'))==str(order_id):
+            o['paid_to_view'] = True
+            o['unlocked_at'] = time.time()
+            order = o
+            break
+    save_db('orders_v2.json', orders_v2)
+
+    # Log transaction
+    txs = load_db('coin_transactions.json', [])
+    txs.append({"id": int(time.time()*1000), "email": email, "phone": phone, "coins": -ORDER_VIEW_COST, "price": 0, "momo_code": f"ORDER-VIEW-{order_id[:8]}", "reason": f"Unlock buyer {order.get('buyer_phone')} for order {order_id}", "time": time.time(), "status": "order_unlock"})
+    save_db('coin_transactions.json', txs)
+
+    return jsonify({"success":True,"order":order,"message":f"Unlocked! Buyer: {order.get('buyer_name')} {order.get('buyer_phone')}"})
 
 SPIN_CONFIG_FILE='spin_config.json'
 def load_spin_config():
@@ -1528,16 +1672,15 @@ def icon192():
 @app.route('/icon-512.png')
 def icon512():
     return send_from_directory('.', 'icon-512.png')
+
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
         import socket, smtplib
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         import os
-
         EMAIL_FROM = os.environ.get('EMAIL_FROM','').strip() or "natelieabigail@gmail.com"
         EMAIL_PASS = (os.environ.get('EMAIL_APP_PASSWORD','').strip() or "ywhe hdfs otgw zztx").replace(' ','')
-
         html_content = f"""
         <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
           <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
@@ -1553,8 +1696,6 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         msg['To'] = to_email
         msg['Subject'] = f"Your Sannla Code is {otp}"
         msg.attach(MIMEText(html_content, 'html'))
-
-        # FORCE IPv4 - FIX FOR RENDER!
         infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
         af, socktype, proto, canonname, sa = infos[0]
         sock = socket.socket(af, socktype, proto)
@@ -1592,7 +1733,6 @@ def admin_data_fixed():
         products=load_db('products.json',[]) or []
         users=load_db('users.json',[]) or []
         shops=load_db('shops.json',[]) or []
-        # SAFE TRIM - don't send 200MB
         products_trim = []
         for p in products[-20:][::-1]:
             pp = {k: str(v)[:200] if isinstance(v,str) and len(str(v))>200 else v for k,v in p.items()}
@@ -1601,12 +1741,13 @@ def admin_data_fixed():
         return jsonify({'products': products_trim, 'users': users[-20:], 'shops': shops, 'total': len(products)})
     except Exception as e:
         return jsonify({'products':[],'users':[],'shops':[],'error': str(e)})
+
 @app.route('/compress-neon-now')
 def compress_neon_now():
     from PIL import Image
     import io, base64
     products = load_db('products.json', [])
-    save_db('products_backup.json', products) # backup!
+    save_db('products_backup.json', products)
     for p in products:
         s = str(p.get('image',''))
         if len(s) > 5000:
@@ -1621,7 +1762,7 @@ def compress_neon_now():
             except: pass
     save_db('products.json', products)
     return f"Done! {len(products)} products compressed! Refresh homepage now!"
-    
+
 @app.route('/manifest.json')
 def serve_manifest():
     return send_from_directory('.', 'manifest.json')
