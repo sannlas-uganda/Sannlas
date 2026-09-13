@@ -1915,13 +1915,17 @@ def llms_txt():
 def robots_txt():
     return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.onrender.com/sitemap.xml", mimetype="text/plain")
 
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('.', 'manifest.json', mimetype='application/manifest+json')
+@app.route('/llms.txt')
+def llms_txt():
+    return send_from_directory('.', 'llms.txt', mimetype='text/markdown')
+
+@app.route('/robots.txt')
+def robots_txt():
+    return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.onrender.com/sitemap.xml", mimetype="text/plain")
 
 @app.route('/manifest.json')
 def manifest():
-    return send_from_directory('.', 'manifest.json')
+    return send_from_directory('.', 'manifest.json', mimetype='application/manifest+json')
 
 @app.route('/sw.js')
 def sw():
