@@ -1875,6 +1875,12 @@ def serve_icon2():
 def serve_sw():
     return send_from_directory('.', 'sw.js')
 
+@app.after_request
+def add_cache_headers(response):
+    if request.path.startswith('/static') or 'icon' in request.path:
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return response
+
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
