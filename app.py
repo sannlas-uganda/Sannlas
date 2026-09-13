@@ -1298,27 +1298,119 @@ def sell():
 
 @app.route('/api/shops')
 def list_shops():
-    shops = load_db('shops.json', [])
-    products = load_db('products.json', [])
-    counts = {}
-    for p in products:
-        slug = p.get('shop_slug')
-        if slug: counts[slug] = counts.get(slug, 0) + 1
-    for s in shops:
-        slug = s.get('shop_slug')
-        s['total_products'] = counts.get(slug, 0)
-    filtered = [s for s in shops if s.get('total_products',0)>0]
-    return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True))
+    try:
+        shops = load_db('shops.json', [])
+        # FAST COUNT - Don't load full products if using Postgres
+        if DATABASE_URL:
+            try:
+                conn = get_conn()
+                cur = conn.cursor()
+                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY slug")
+                rows = cur.fetchall()
+                counts = {}
+                for r in rows:
+                    # r can be tuple or dict
+                    if isinstance(r, dict):
+                        counts[r['slug']] = int(r['cnt'])
+                    else:
+                        counts[str(r[0])] = int(r[1])
+                cur.close()
+                conn.close()
+            except Exception as e:
+                print("shops fast count error:", e)
+                counts = {}
+                try: conn.close()
+                except: pass
+        else:
+            # Local file - still fast, only read slugs
+            try:
+                path = 'data/products.json'
+                if os.path.exists(path):
+                    data = json.load(open(path))
+                    counts = {}
+                    for p in data:
+                        slug = p.get('shop_slug')
+                        if slug:
+                            counts[slug] = counts.get(slug, 0) + 1
+                else:
+                    counts = {}
+            except:
+                counts = {}
+
+        for s in shops:
+            slug = s.get('shop_slug')
+            s['total_products'] = counts.get(slug, 0)
+
+        filtered = [s for s in shops if s.get('total_products',0)>0]
+        if not filtered:
+            filtered = shops[:50] # Show at least 50 if counts fail
+
+        return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
+    except Exception as e:
+        print("SHOPS ERROR:", e)
+        try:
+            shops = load_db('shops.json', [])[:50]
+            return jsonify(shops)
+        except:
+            return jsonify([])
 
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
-    shops = load_db('shops.json', [])
-    products = load_db('products.json', [])
-    shop = next((s for s in shops if s.get('shop_slug')==slug), None)
-    shop_products = [p for p in products if p.get('shop_slug')==slug]
-    if shop:
+    try:
+        shops = load_db('shops.json', [])
+        shop = next((s for s in shops if s.get('shop_slug')==slug), None)
+        if not shop:
+            return jsonify({'success':False,'message':'Shop not found'}),404
+
+        # FAST LOAD - Only products for this shop
+        if DATABASE_URL:
+            try:
+                conn = get_conn()
+                # Use RealDict or dict_row
+                try:
+                    from psycopg.rows import dict_row
+                    cur = conn.cursor(row_factory=dict_row)
+                    cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
+                    rows = cur.fetchall()
+                    shop_products = []
+                    for r in rows:
+                        d=r['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        pp=d.copy()
+                        pp.pop('phone',None)
+                        shop_products.append(pp)
+                except:
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
+                    rows = cur.fetchall()
+                    shop_products = []
+                    for r in rows:
+                        d=r['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        pp=d.copy() if isinstance(d,dict) else {}
+                        pp.pop('phone',None)
+                        shop_products.append(pp)
+                cur.close()
+                conn.close()
+            except Exception as e:
+                print("shop slug error:", e)
+                try: conn.close()
+                except: pass
+                products = load_db('products.json', [])
+                shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+        else:
+            products = load_db('products.json', [])
+            shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+
         return jsonify({'success':True,'shop':shop,'products':shop_products})
-    return jsonify({'success':False,'message':'Shop not found'}),404
+    except Exception as e:
+        print("get_shop_by_slug error:", e)
+        return jsonify({'success':False,'message':'Server busy, try again'}),500
 
 @app.route('/api/my-products')
 def my_products():
