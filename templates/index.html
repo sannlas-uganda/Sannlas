@@ -94,9 +94,7 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
   
   <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
     <button onclick="closeSideMenu();openPopup('spinPop')" style="background:linear-gradient(90deg,#FFCC02,#ffb700);color:#000;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:14px;text-align:left">🎰 SPIN & WIN</button>
-    <button onclick="closeSideMenu();showAllShops()" style="background:#111;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:14px;text-align:left">🏪 All Shops</button>
-    <button onclick="closeSideMenu();openSellModal()" style="background:#FFCC02;color:#000;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:14px;text-align:left">+ SELL YOUR PRODUCT (FREE)</button>
-    
+    <button onclick="closeSideMenu();showAllShops()" style="background:#111;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:14px;text-align:left">🏪 All Shops</button>    
     <div style="height:1px;background:#eee;margin:6px 0"></div>
     
     <button onclick="closeSideMenu();openMyAccountInfo()" style="background:#fff;color:#000;border:2px solid #000;padding:14px;border-radius:12px;font-weight:700;text-align:left">👤 My Account Information</button>
@@ -118,7 +116,7 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 <button class="btn" onclick="startVoiceSearch()" id="micBtn" style="background:#111;color:#FFCC02;border-radius:50%;padding:8px 10px">🎤</button>
 </div>
 <div class="trust-badges">
-<div class="trust-badge">✅ Free Delivery in Kampala</div>
+<button onclick="openSellModal()" class="trust-badge" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:8px 16px;border-radius:20px;animation:pulse 1.5s infinite">+ SELL YOUR PRODUCT (FREE)</button>
 <div class="trust-badge">🛡️ 100% Authentic</div>
 <div class="trust-badge">🚚 Secure Payment • MoMo & Card</div>
 </div>
