@@ -543,6 +543,20 @@ function openMySales(){fetch(`/api/orders/my-sales?email=${encodeURIComponent(cu
 async function unlockOrder(orderId){if(!confirm('Pay 2 coins to see buyer phone?'))return;let r=await fetch('/api/orders/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId,email:currentUser.email,phone:currentUser.phone})});let d=await r.json();if(d.success){alert(d.message);openMySales();refreshMyBalanceHeader();}else alert(d.message);}
 function openSecurity(){let newPass=prompt('🔒 Security - Enter new password (min 4 chars):');if(!newPass||newPass.length<4){alert('Too short');return;}fetch('/api/account/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,password:newPass})}).then(r=>r.json()).then(d=>alert(d.message));}
 async function refreshMyBalanceHeader(){try{let user=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!user.email&&!user.phone)return;let res=await fetch(`/api/coins/balance?email=${encodeURIComponent(user.email||'')}&phone=${encodeURIComponent(user.phone||'')}`);let data=await res.json();if(data.success){let el=document.getElementById('myCoinsNav');if(el)el.innerText=data.coins;user.coins=data.coins;localStorage.setItem('sannlas_user',JSON.stringify(user));}}catch(e){}}
+function openSellModal(){
+  let modal = document.getElementById('frontUpload');
+  if(modal){
+    modal.style.display='flex';
+    window.scrollTo(0,0);
+  } else {
+    alert('Upload modal not found!');
+  }
+  closeSideMenu();
+}
+function closeSellModal(){
+  let modal = document.getElementById('frontUpload');
+  if(modal) modal.style.display='none';
+}
 gateCheck();
 setInterval(async()=>{await loadCoinLive();await loadWantsLiveSafe();},30000);
 setInterval(refreshMyBalanceHeader,10000);
