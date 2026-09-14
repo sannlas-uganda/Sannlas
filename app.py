@@ -716,6 +716,10 @@ def shop_page_slug(slug): return render_template('shop.html')
 @app.route('/shop')
 def shop_page(): return render_template('shop.html')
 
+@app.route('/sell')
+def sell_page():
+    return render_template('index.html')
+
 @app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
     if request.method == 'GET':
