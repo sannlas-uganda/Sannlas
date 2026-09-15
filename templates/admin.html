@@ -46,7 +46,6 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
 <div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
 <div class="t" style="background:#ff6a00;color:#000" onclick="tab('withdraws',this)">💸 Withdraws <span id="cWithdraws" class="badge" style="background:#000;color:#fff">0</span></div>
-<div class="t" style="background:#FFCC02;color:#000;border:3px solid #ff0000" onclick="tab('spin',this)">🎰 Spin B <span id="cSpin" class="badge" style="background:#ff0000;color:white">15%</span></div>
 <div class="t" style="background:#00FF00;color:#000" onclick="tab('billboard',this)">📢 Billboard</div>
 <div class="t" style="background:#00FF00;color:#000;border:3px solid #000;font-weight:900" onclick="tab('wants',this)">🎯 WANTS <span id="cWants" class="badge" style="background:#000;color:#00FF00">0</span></div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div></div>
@@ -54,31 +53,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Option B System</h2><div id="overviewData"></div></div></div>
 <div id="shops" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🏪 All Shops</h2><div id="shopsBox">Loading...</div></div></div>
 <div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Expired</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
-
-<div id="spin" class="tabPane" style="display:none">
-<div class="card" style="border:3px solid #FFCC02;background:linear-gradient(#111,#000)">
-<h2 style="color:#FFCC02">🎰 OPTION B - STAKING + 15% HOUSE EDGE</h2>
-<div style="background:#000;padding:12px;border-radius:10px;border:2px solid #FFCC02;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-<label style="color:#FFCC02"><input type="checkbox" id="spinEnabled" checked> 🟢 Enabled</label>
-<label style="color:white">Cost: <input type="number" id="spinCost" value="1" style="width:60px;background:#222"></label>
-<label style="color:#FFCC02">Edge %: <input type="number" id="spinEdge" value="15" style="width:60px;background:#222;color:#FFCC02;font-weight:bold"></label>
-</div>
-<div style="background:#111;padding:10px;border-radius:8px;margin:10px 0">
-<h4 style="color:#FFCC02;margin:5px 0">🎁 7 Multipliers</h4>
-<div id="spinPrizesEdit"></div>
-<button onclick="saveSpinConfig()" style="background:#FFCC02;color:#000;width:100%;padding:14px;border-radius:10px;font-weight:bold;margin-top:10px">💾 SAVE LIVE</button>
-<div id="spinSaveStatus" style="text-align:center;margin-top:6px"></div>
-</div>
-<div id="spinStats" style="background:#000;border:2px solid #00FF00;border-radius:12px;padding:12px;text-align:center;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
-<div><div style="color:#aaa;font-size:10px">Total Spins</div><b id="spinTotal" style="color:white;font-size:20px">0</b></div>
-<div><div style="color:#aaa;font-size:10px">Collected</div><b id="spinCollected" style="color:#FFCC02;font-size:20px">0</b></div>
-<div><div style="color:#aaa;font-size:10px">Paid</div><b id="spinPaid" style="color:#ff6a00;font-size:20px">0</b></div>
-<div><div style="color:#aaa;font-size:10px">YOUR PROFIT</div><b id="spinProfit" style="color:#00FF00;font-size:22px">0</b><br><span style="font-size:9px;color:#888">+ fees: <b id="spinFees" style="color:red">0</b></span></div>
-</div>
-<h3 style="color:white;margin-top:15px">📜 Recent Spins</h3>
-<div id="spinHistoryBox" style="background:#111;padding:8px;border-radius:8px;max-height:350px;overflow:auto;font-size:11px">Loading...</div>
-</div>
-</div>
+  
 
 <div id="coins" class="tabPane" style="display:none">
 <div class="card" style="border:3px solid #FFCC02"><h2>🪙 Coins - 1B @ 599 UGX</h2>
@@ -167,7 +142,7 @@ function showErrorTop(msg){
   el.innerText=msg;
 }
 
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='spin') loadAdminSpin(); if(id==='wants') renderWants();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants();}
 
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
@@ -235,27 +210,6 @@ async function loadHeroStoriesAdmin(){
 }
 async function deleteHeroStoryAdmin(id){ if(!confirm('Delete?')) return; await fetch(`/api/admin/hero-stories/${id}`,{method:'DELETE'}); loadHeroStoriesAdmin(); }
 async function activateAnimated(){ let text=document.getElementById('bbTextAnim').value||document.getElementById('bbText').value||'Welcome'; document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Activating...</span>'; let d=await safeFetchJson('/api/admin/billboard/animated',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:text})}); if(d && d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">🔥 LIVE!</span>'; loadData(); } else document.getElementById('bbAnimStatus').innerHTML='<span style="color:red">Failed</span>'; }
-
-async function loadAdminSpin(){
- let cfg=await safeFetchJson('/api/admin/spin-config');
- if(!cfg){ document.getElementById('spinPrizesEdit').innerHTML='<p style="color:yellow">⏳ Render waking... retry in 5 sec</p>'; setTimeout(loadAdminSpin,5000); return; }
- document.getElementById('spinEnabled').checked=cfg.enabled;
- document.getElementById('spinCost').value=cfg.cost;
- document.getElementById('spinEdge').value=cfg.house_edge||15;
- let html=''; (cfg.prizes||[]).forEach((p,i)=>{ html+=`<div style="display:grid;grid-template-columns:2fr 0.8fr 0.8fr 0.8fr;gap:5px;margin:5px 0;align-items:center"><input value="${p.name}" id="pn_${i}" style="background:#222;padding:8px"><input type="number" step="0.5" value="${p.multiplier||p.coins}" id="pm_${i}" style="background:#222;padding:8px"><input type="number" value="${p.weight}" id="pw_${i}" style="background:#222;padding:8px"><input value="${p.color||'#fff'}" id="pcol_${i}" style="background:#222;padding:8px"></div>`; });
- document.getElementById('spinPrizesEdit').innerHTML=html;
- let s=await safeFetchJson('/api/admin/spin-stats');
- if(s){ document.getElementById('spinTotal').innerText=s.total||0; document.getElementById('spinCollected').innerText=s.collected||0; document.getElementById('spinPaid').innerText=s.paid||0; document.getElementById('spinProfit').innerText=s.profit||0; document.getElementById('spinFees').innerText=s.admin_cut||0; }
- document.getElementById('spinHistoryBox').innerHTML=`<div style="color:#aaa">Total ${s?s.total:0} spins | Profit ${s?s.profit:0}</div>`;
-}
-async function saveSpinConfig(){
- let cfg={enabled:document.getElementById('spinEnabled').checked,cost:Number(document.getElementById('spinCost').value),house_edge:Number(document.getElementById('spinEdge').value)||15,prizes:[]};
- let i=0; while(document.getElementById(`pn_${i}`)){ cfg.prizes.push({name:document.getElementById(`pn_${i}`).value,multiplier:parseFloat(document.getElementById(`pm_${i}`).value)||0,coins:parseFloat(document.getElementById(`pm_${i}`).value)||0,weight:Number(document.getElementById(`pw_${i}`).value),color:document.getElementById(`pcol_${i}`).value}); i++; }
- document.getElementById('spinSaveStatus').innerHTML='<span style="color:yellow">⏳ Saving...</span>';
- let d=await safeFetchJson('/api/admin/spin-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
- document.getElementById('spinSaveStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ Saved! Edge ${cfg.house_edge}% LIVE!</span>`:`<span style="color:red">${(d && d.message)||'Failed, Render waking'}</span>`;
-}
-
 async function loadData(){
  document.getElementById('stats').innerHTML='<div class="card">⏳ Loading... Render may be waking (wait 15 sec)</div>';
  let d = await safeFetchJson('/api/admin/data');
