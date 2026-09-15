@@ -1493,10 +1493,9 @@ def get_shop_by_slug(slug):
             products = load_db('products.json', [])
             shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
 
-        return jsonify({'success':True,'shop':shop,'products':shop_products})
-            except Exception as e:
-                
-                print("get_shop_by_slug error:", e)
+                return jsonify({'success':True,'shop':shop,'products':shop_products})
+    except Exception as e:
+        print("get_shop_by_slug error:", e)
         return jsonify({'success':False,'message':'Server busy, try again'}),500
 
 @app.route('/api/shop/<slug>')
