@@ -1584,10 +1584,6 @@ def upload_shop_logo():
 
 @app.route('/api/my-products')
 def my_products():
-
-@app.route('/api/my-products')
-@app.route('/api/my-products')
-def my_products():
     phone=request.args.get('phone','').strip()
     email=request.args.get('email','').lower().strip()
     products=load_db('products.json', [])
