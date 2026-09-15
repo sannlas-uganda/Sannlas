@@ -31,24 +31,24 @@ def cleanup_expired_wants():
     while True:
         try:
             now = datetime.utcnow()
-            if os.path.exists('wants.json'):
-                with open('wants.json','r') as f:
-                    try: wants_data = json.load(f)
-                    except: wants_data = []
-                original = len(wants_data)
-                active = []
-                for w in wants_data:
-                    exp = w.get('expires_at')
-                    if not exp: active.append(w)
-                    else:
-                        try:
-                            if datetime.fromisoformat(exp.replace('Z','')) > now:
-                                active.append(w)
-                        except: active.append(w)
-                if len(active) != original:
-                    with open('wants.json','w') as f: json.dump(active, f, indent=2)
-                    print(f"[CLEANUP] Deleted {original-len(active)} expired wants")
-        except Exception as e: print("Cleanup error", e)
+            wants_data = load_db('wants.json', [])
+            original = len(wants_data)
+            active = []
+            for w in wants_data:
+                exp = w.get('expires_at')
+                if not exp: 
+                    active.append(w)
+                else:
+                    try:
+                        if datetime.fromisoformat(str(exp).replace('Z','')) > now:
+                            active.append(w)
+                    except: 
+                        active.append(w)
+            if len(active) != original:
+                save_db('wants.json', active)
+                print(f"[CLEANUP] Deleted {original-len(active)} expired wants")
+        except Exception as e: 
+            print("Cleanup error", e)
         time.sleep(3600)
 
 threading.Thread(target=cleanup_expired_wants, daemon=True).start()
@@ -319,9 +319,9 @@ def ensure_shop_for_user(user):
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
-WANTS_FILE = 'data/wants.json'
-OFFERS_FILE = 'data/offers.json'
-CHAT_UNLOCKS_FILE = 'data/chat_unlocks.json'
+WANTS_FILE = 'wants.json'
+OFFERS_FILE = 'offers.json'
+CHAT_UNLOCKS_FILE = 'chat_unlocks.json'
 
 def get_wants_data(): return load_db(WANTS_FILE, [])
 def save_wants_data(wants): save_db(WANTS_FILE, wants)
@@ -337,28 +337,50 @@ def get_wants_api():
     sort = request.args.get('sort','newest')
     wants = get_wants_data()
     offers = get_offers_data()
+    # filter expired live
+    now = datetime.utcnow()
+    live = []
+    for w in wants:
+        exp = w.get('expires_at')
+        if not exp:
+            live.append(w)
+        else:
+            try:
+                dt = datetime.fromisoformat(str(exp).replace('Z',''))
+                if dt > now:
+                    live.append(w)
+            except:
+                live.append(w)
+    wants = live
+    
     filtered = [w for w in wants if w.get('status','open') == 'open']
     if q:
-        filtered = [w for w in filtered if q in w.get('title','').lower() or q in w.get('description','').lower() or q in w.get('category','').lower() or q in w.get('item','').lower()]
+        filtered = [w for w in filtered if q in str(w.get('title','')).lower() or q in str(w.get('description','')).lower() or q in str(w.get('category','')).lower() or q in str(w.get('item','')).lower()]
     if district:
-        filtered = [w for w in filtered if district in w.get('district','').lower()]
+        filtered = [w for w in filtered if district in str(w.get('district','')).lower()]
     if category and category!= 'all':
-        filtered = [w for w in filtered if category in w.get('category','').lower()]
+        filtered = [w for w in filtered if category in str(w.get('category','')).lower()]
     if budget_min:
         try:
             bm = int(budget_min)
-            filtered = [w for w in filtered if int(w.get('max_budget',0)) >= bm]
+            filtered = [w for w in filtered if int(w.get('max_budget',0) or 0) >= bm]
         except: pass
     for w in filtered:
         w_offers = [o for o in offers if str(o.get('want_id')) == str(w['id'])]
         w['offers_count'] = len(w_offers)
         w['lowest_offer'] = min([o['price'] for o in w_offers], default=None)
+    # === SORT NEWEST FIRST BOSS ===
     if sort == 'lowest_budget':
-        filtered = sorted(filtered, key=lambda x: x.get('min_budget',0))
+        filtered = sorted(filtered, key=lambda x: int(x.get('max_budget',0) or 999999999))
     elif sort == 'most_offers':
         filtered = sorted(filtered, key=lambda x: x.get('offers_count',0), reverse=True)
     else:
-        filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
+        def get_time(x):
+            try:
+                return datetime.fromisoformat(str(x.get('created_at','')).replace('Z',''))
+            except:
+                return datetime.fromtimestamp(x.get('created',0) or 0)
+        filtered = sorted(filtered, key=get_time, reverse=True)
     return jsonify(filtered[:150])
 
 @app.route('/api/wants/<int:wid>')
@@ -451,32 +473,6 @@ def create_want():
 
     return jsonify({"success": True, "want": want})
 
-@app.route('/api/wants', methods=['GET'])
-def get_wants():
-    now = datetime.utcnow()
-    wants = []
-    if os.path.exists('wants.json'):
-        try:
-            with open('wants.json','r') as f:
-                wants = json.load(f)
-        except:
-            wants = []
-    # Filter expired
-    active = []
-    for w in wants:
-        exp = w.get('expires_at')
-        if not exp:
-            active.append(w)
-        else:
-            try:
-                exp_dt = datetime.fromisoformat(exp.replace('Z',''))
-                if exp_dt > now:
-                    active.append(w)
-            except:
-                active.append(w)
-    # sort newest first
-    active.sort(key=lambda x: x.get('created_at',''), reverse=True)
-    return jsonify(active)
 @app.route('/api/wants/<int:wid>/offers', methods=['POST'])
 def place_offer_api(wid):
     data = request.get_json() or {}
