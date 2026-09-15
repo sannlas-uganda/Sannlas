@@ -45,26 +45,43 @@ async function loadWants(){
  let district=document.getElementById('district').value;
  let sort=document.getElementById('sort').value;
  let url=`/api/wants?q=${encodeURIComponent(q)}&district=${encodeURIComponent(district)}&sort=${sort}`;
- let r=await fetch(url); let wants=await r.json();
- document.getElementById('totalWants').innerText=wants.length;
- if(wants.length==0){
-   document.getElementById('wantsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center;padding:30px">No wants matching - be first to post! 🎯<br><a href="/" style="color:#FFCC02">Post Want on Home</a></p>';
-   return;
+ try{
+   let r=await fetch(url); 
+   let wants=await r.json();
+   if(!Array.isArray(wants)) wants=[];
+   
+   // === FIX: SORT NEWEST FIRST BOSS ===
+   wants.sort((a,b)=>{
+     let ta = new Date(a.created_at || a.created || 0).getTime();
+     let tb = new Date(b.created_at || b.created || 0).getTime();
+     if(sort==='most_offers') return (b.offers_count||0) - (a.offers_count||0);
+     if(sort==='lowest_budget') return (a.max_budget||9999999999) - (b.max_budget||9999999999);
+     return tb - ta; // newest first default
+   });
+
+   document.getElementById('totalWants').innerText=wants.length;
+   if(wants.length==0){
+     document.getElementById('wantsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center;padding:30px">No wants matching - be first to post! 🎯<br><a href="/" style="color:#FFCC02">Post Want on Home</a></p>';
+     return;
+   }
+   document.getElementById('wantsGrid').innerHTML=wants.map(w=>{
+     let lowest = w.lowest_offer ? `UGX ${Number(w.lowest_offer).toLocaleString()}` : 'No offers yet';
+     let expireSec = w.expires_at ? (typeof w.expires_at === 'number' ? w.expires_at : new Date(w.expires_at).getTime()/1000) : 0;
+     let expire = expireSec ? Math.max(0, Math.floor((expireSec*1000 - Date.now())/3600000)) : '--';
+     return `<div class="want-card" onclick="location.href='/wants/${w.id}'">
+       <div class="top">
+         <div><b>🎯 ${w.title||w.item}</b><br><small>📦 ${w.quantity||'1'} | 📍 ${w.district} | ⏰ ${expire}h left</small><br><small style="color:#666">${(w.description||w.note||'').slice(0,60)}</small></div>
+         <div style="text-align:right"><span class="badge-live">LIVE AUCTION</span><br><div style="margin-top:5px"><span class="offer-count">💬 ${w.offers_count||0} offers</span></div></div>
+       </div>
+       <div style="display:flex;justify-content:space-between;padding:8px;background:#FFF9C4">
+         <div><small>Budget:</small><br><b>${w.min_budget?`UGX ${Number(w.min_budget).toLocaleString()}`:''} - ${w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable'}</b></div>
+         <div class="price-box">Lowest:<br>${lowest}</div>
+       </div>
+     </div>`;
+   }).join('');
+ }catch(e){
+   document.getElementById('wantsGrid').innerHTML='<p style="color:red;grid-column:1/-1;text-align:center;padding:20px">⚠️ Failed to load: '+e.message+'</p>';
  }
- document.getElementById('wantsGrid').innerHTML=wants.map(w=>{
-   let lowest = w.lowest_offer ? `UGX ${Number(w.lowest_offer).toLocaleString()}` : 'No offers yet';
-   let expire = w.expires_at ? Math.max(0, Math.floor((w.expires_at*1000 - Date.now())/3600000)) : '--';
-   return `<div class="want-card" onclick="location.href='/wants/${w.id}'">
-     <div class="top">
-       <div><b>🎯 ${w.title||w.item}</b><br><small>📦 ${w.quantity||'1'} | 📍 ${w.district} | ⏰ ${expire}h left</small><br><small style="color:#666">${(w.description||w.note||'').slice(0,60)}</small></div>
-       <div style="text-align:right"><span class="badge-live">LIVE AUCTION</span><br><div style="margin-top:5px"><span class="offer-count">💬 ${w.offers_count||0} offers</span></div></div>
-     </div>
-     <div style="display:flex;justify-content:space-between;padding:8px;background:#FFF9C4">
-       <div><small>Budget:</small><br><b>${w.min_budget?`UGX ${Number(w.min_budget).toLocaleString()}`:''} - ${w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable'}</b></div>
-       <div class="price-box">Lowest:<br>${lowest}</div>
-     </div>
-   </div>`;
- }).join('');
 }
 loadWants();
 setInterval(loadWants,15000);
