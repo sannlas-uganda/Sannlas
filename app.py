@@ -1446,7 +1446,7 @@ def get_shop_by_slug(slug):
         shops = load_db('shops.json', [])
         shop = next((s for s in shops if s.get('shop_slug')==slug), None)
         if not shop:
-            return jsonify({'success':False,'message':'Shop not found'}),404
+            return jsonify({'success':False,'message':'Shop not found'}),404 
 
         # FAST LOAD - Only products for this shop
         if DATABASE_URL:
