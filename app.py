@@ -1502,9 +1502,10 @@ def get_shop_by_slug(slug):
 def get_shop_by_slug(slug):
     try:
         shops = load_db('shops.json', [])
-        shop = next((s for s in shops if s.get('shop_slug')==slug), None)
+        shop = next((s for s in shops if s.get('shop_slug') == slug), None)
         if not shop:
-            return jsonify({'success':False,'message':'Shop not found'}),404
+            return jsonify({'success': False, 'message': 'Shop not found'}), 404
+
         if DATABASE_URL:
             try:
                 conn = get_conn()
@@ -1515,12 +1516,14 @@ def get_shop_by_slug(slug):
                     rows = cur.fetchall()
                     shop_products = []
                     for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        pp=d.copy()
-                        pp.pop('phone',None)
+                        d = r['data']
+                        if isinstance(d, str):
+                            try:
+                                d = json.loads(d)
+                            except:
+                                pass
+                        pp = d.copy()
+                        pp.pop('phone', None)
                         shop_products.append(pp)
                 except:
                     import psycopg2.extras
@@ -1529,29 +1532,34 @@ def get_shop_by_slug(slug):
                     rows = cur.fetchall()
                     shop_products = []
                     for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        pp=d.copy() if isinstance(d,dict) else {}
-                        pp.pop('phone',None)
+                        d = r['data']
+                        if isinstance(d, str):
+                            try:
+                                d = json.loads(d)
+                            except:
+                                pass
+                        pp = d.copy() if isinstance(d, dict) else {}
+                        pp.pop('phone', None)
                         shop_products.append(pp)
                 cur.close()
                 conn.close()
             except Exception as e:
                 print("shop slug error:", e)
-                try: conn.close()
-                except: pass
+                try:
+                    conn.close()
+                except:
+                    pass
                 products = load_db('products.json', [])
-                shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+                shop_products = [p for p in products if p.get('shop_slug') == slug][:100]
         else:
             products = load_db('products.json', [])
-            shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
-        return jsonify({'success':True,'shop':shop,'products':shop_products})
+            shop_products = [p for p in products if p.get('shop_slug') == slug][:100]
+
+        return jsonify({'success': True, 'shop': shop, 'products': shop_products})
     except Exception as e:
         print("get_shop_by_slug error:", e)
-        return jsonify({'success':False,'message':'Server busy, try again'}),500
-
+        return jsonify({'success': False, 'message': 'Server busy, try again'}), 500
+        
 @app.route('/api/shop/upload-logo', methods=['POST'])
 def upload_shop_logo():
     try:
