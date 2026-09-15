@@ -9,6 +9,9 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 from functools import wraps
+import cloudinary
+import cloudinary.uploader
+import cloudinary_config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
