@@ -1498,7 +1498,6 @@ def get_shop_by_slug(slug):
         print("get_shop_by_slug error:", e)
         return jsonify({'success':False,'message':'Server busy, try again'}),500
 
-# ============ SHOP LOGO UPLOAD - NEW ============
 @app.route('/api/shop/upload-logo', methods=['POST'])
 def upload_shop_logo():
     try:
