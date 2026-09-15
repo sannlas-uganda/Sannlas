@@ -344,7 +344,29 @@ async function showAllShops(){
   }
 }
 async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(8000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first - FREE now!');}}catch(e){alert('Failed to find shop');}}
-async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{let r=await fetch('/api/wants?sort=most_offers');let wants=await r.json();let a=document.getElementById('wantsCount'); if(a) a.innerText=wants.length;let b=document.getElementById('wantsCount2'); if(b) b.innerText=wants.length;let topW=document.getElementById('wantsCountTop'); if(topW) topW.innerText=wants.length;let html=wants.slice(0,20).map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;}).join('');if(wants.length==0)html='<p style="color:white;text-align:center">No wants yet! Be first 🎯</p>';let list2=document.getElementById('wantsList2');if(list2)list2.innerHTML=html;}catch(e){}isLoadingWants=false;}
+async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{let r=await fetch('/api/wants?sort=most_offers');let wants=await r.json();let a=document.getElementById('wantsCount'); if(a) a.innerText=wants.length;let b=document.getElementById('wantsCount2'); if(b) b.innerText=wants.length;let topW=document.getElementById('wantsCountTop'); if(topW) topW.innerText=wants.length;let html=wants.slice(0,20).map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;}).join('');if(wants.length==0)html='<p style="color:white;text-align:center">No wants yet! Be first 🎯</p>';let list2=document.getElementById('wantsList2');if(list2)list2.innerHTML=html;}catch(e){console.log(e);}isLoadingWants=false;}
+function loadWantsLiveSafe(){
+  if(isLoadingWants) return;
+  loadWantsLive();
+  refreshWantsBadge();
+}
+
+async function refreshWantsBadge(){
+  try{
+    let r=await fetch('/api/wants');
+    let wants=await r.json();
+    if(!Array.isArray(wants)) return;
+    wants.sort((a,b)=> new Date(b.created_at||0) - new Date(a.created_at||0));
+    let c=wants.length;
+    let el1=document.getElementById('wantsCountTop');
+    let el2=document.getElementById('wantsCount2');
+    let el3=document.getElementById('wantsCount');
+    if(el1) el1.innerText=c;
+    if(el2) el2.innerText=c;
+    if(el3) el3.innerText=c;
+  }catch(e){}
+}
+
 function openWantsList(){document.getElementById('wantsPop').style.display='flex';loadWantsLiveSafe();}
 function openWantModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}document.getElementById('wantPhone').value=currentUser.phone||'';document.getElementById('wantModal').style.display='flex';}
 function closeWantModal(){document.getElementById('wantModal').style.display='none';}
@@ -547,7 +569,14 @@ function closeSellModal(){
   if(modal) modal.style.display='none';
 }
 gateCheck();
-setInterval(async()=>{await loadCoinLive();await loadWantsLiveSafe();},30000);
+loadWantsLiveSafe(); 
+refreshWantsBadge();
+loadCoinLive();
+setInterval(async()=>{
+  await loadCoinLive();
+  await loadWantsLiveSafe();
+  await refreshWantsBadge();
+},15000);
 setInterval(refreshMyBalanceHeader,10000);
 </script>
 </body>
