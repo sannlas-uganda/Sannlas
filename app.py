@@ -1374,7 +1374,8 @@ def sell():
     for key in request.files:
         f=request.files[key]
         if f and f.filename:
-            import base64; file_bytes=f.read(); mime=f.mimetype or 'image/jpeg'; b64=base64.b64encode(file_bytes).decode('utf-8'); images.append(f"data:{mime};base64,{b64}")
+            result = cloudinary.uploader.upload(f, folder="sannlas/products", transformation=[{'width': 800, 'quality': 'auto'}])
+            images.append(result['secure_url'])
     if not images: images=['https://via.placeholder.com/300']
     shop_id=None; shop_slug=None
     try:
