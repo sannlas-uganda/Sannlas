@@ -62,20 +62,22 @@ async function loadDetail(){
  if(!w.offers || w.offers.length==0){
    ol.innerHTML='<p style="text-align:center;color:#666;padding:20px">No offers yet - be first to win! 🏆</p>';
  } else {
+   // === FIX: SORT LOWEST PRICE FIRST BOSS ===
+   w.offers.sort((a,b)=> (parseInt(a.price)||999999999) - (parseInt(b.price)||999999999));
+   
    ol.innerHTML = w.offers.map((o,i)=>`
      <div class="offer-row ${i==0?'winner':''}">
        <div style="display:flex;gap:10px;align-items:center">
          <div class="rank ${i==0?'first':''}">${i==0?'👑':i+1}</div>
-         <div><b>UGX ${Number(o.price).toLocaleString()}</b><br><small>🏪 ${o.shop_slug||'Seller'} | ⏱️ ${o.delivery_time} | 🛡️ ${o.warranty||''}</small><br><small style="color:#555">${o.message||''}</small></div>
+         <div><b>UGX ${Number(o.price).toLocaleString()}</b><br><small>🏪 ${o.shop_slug||'Seller'} | ⏱️ ${o.delivery_time||''} | 🛡️ ${o.warranty||''}</small><br><small style="color:#555">${o.message||''}</small></div>
        </div>
        <div style="text-align:right">
          ${w.phone==currentUser.phone||w.email==currentUser.email?`<button onclick="acceptOffer(${o.id})" style="background:#00FF00;color:#000;border:none;padding:8px 12px;border-radius:20px;font-weight:bold;cursor:pointer">✅ Accept</button>`:''}
-         <div style="font-size:11px;color:#888;margin-top:4px">${o.status}</div>
+         <div style="font-size:11px;color:#888;margin-top:4px">${o.status||'pending'}</div>
        </div>
      </div>
    `).join('');
  }
-}
 
 async function placeOffer(){
  let price=document.getElementById('offerPrice').value;
