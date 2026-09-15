@@ -1495,6 +1495,7 @@ def get_shop_by_slug(slug):
 
         return jsonify({'success':True,'shop':shop,'products':shop_products})
             except Exception as e:
+                
                 print("get_shop_by_slug error:", e)
         return jsonify({'success':False,'message':'Server busy, try again'}),500
 
