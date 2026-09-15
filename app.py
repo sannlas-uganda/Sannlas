@@ -319,9 +319,9 @@ def ensure_shop_for_user(user):
 
 BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming","Crop Farming","Livestock","Animal Feeds"],"Food & Beverages":["Restaurants","Bakeries","Fast Foods","Drinks","Catering"],"Construction & Building":["Cement","Hardware","Plumbing","Electrical","Tiles"],"Fashion & Clothing":["Men's Clothing","Women's Clothing","Kids","Shoes","Bags"],"Electronics & Technology":["Mobile Phones","Laptops","Accessories","TVs","Solar"],"Automotive":["Spare Parts","Car Repair","Boda Boda","Tyres"],"Health & Medical":["Clinics","Pharmacies","Lab Services","Hospitals","Herbal"],"Beauty & Personal Care":["Hair Salons","Cosmetics","Barbers"],"Home & Furniture":["Furniture","Sofas","Kitchenware"],"Professional Services":["Lawyers","Accountants","Printing"],"Education":["Schools","Coaching"],"Travel & Tourism":["Hotels","Tours"]}
 
-WANTS_FILE = 'wants.json'
-OFFERS_FILE = 'offers.json'
-CHAT_UNLOCKS_FILE = 'chat_unlocks.json'
+WANTS_FILE = 'data/wants.json'
+OFFERS_FILE = 'data/offers.json'
+CHAT_UNLOCKS_FILE = 'data/chat_unlocks.json'
 
 def get_wants_data(): return load_db(WANTS_FILE, [])
 def save_wants_data(wants): save_db(WANTS_FILE, wants)
