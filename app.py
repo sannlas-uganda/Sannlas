@@ -1451,44 +1451,28 @@ def get_shop_by_slug(slug):
         if DATABASE_URL:
             try:
                 conn = get_conn()
-                # Use RealDict or dict_row
-                try:
-                    from psycopg.rows import dict_row
-                    cur = conn.cursor(row_factory=dict_row)
-                    cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
-                    rows = cur.fetchall()
-                    shop_products = []
-                    for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        pp=d.copy()
-                        pp.pop('phone',None)
-                        shop_products.append(pp)
-                except:
-                    import psycopg2.extras
-                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                    cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
-                    rows = cur.fetchall()
-                    shop_products = []
-                    for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        pp=d.copy() if isinstance(d,dict) else {}
-                        pp.pop('phone',None)
-                        shop_products.append(pp)
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
+                rows = cur.fetchall()
+                shop_products = []
+                for r in rows:
+                    d=r['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
+                        except: pass
+                    pp=d.copy()
+                    pp.pop('phone',None)
+                    shop_products.append(pp)
                 cur.close()
                 conn.close()
             except Exception as e:
                 print("shop slug error:", e)
-                try: conn.close()
-                except: pass
                 products = load_db('products.json', [])
                 shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
-
+        else:
+            products = load_db('products.json', [])
+            shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
         return jsonify({'success':True,'shop':shop,'products':shop_products})
     except Exception as e:
         print("get_shop_by_slug error:", e)
