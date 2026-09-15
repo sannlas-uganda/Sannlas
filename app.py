@@ -1494,10 +1494,41 @@ def get_shop_by_slug(slug):
             shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
 
         return jsonify({'success':True,'shop':shop,'products':shop_products})
-    except Exception as e:
+      except Exception as e:
         print("get_shop_by_slug error:", e)
         return jsonify({'success':False,'message':'Server busy, try again'}),500
 
+# ============ SHOP LOGO UPLOAD - NEW ============
+@app.route('/api/shop/upload-logo', methods=['POST'])
+def upload_shop_logo():
+    try:
+        email = request.form.get('email','').lower().strip()
+        phone = request.form.get('phone','').strip()
+        shop_slug = request.form.get('shop_slug','').strip()
+        f = request.files.get('logo')
+        if not f:
+            return jsonify({"success":False,"message":"No file Boss!"}),400
+        result = cloudinary.uploader.upload(f, folder="sannlas/shops", transformation=[{'width':400,'height':400,'crop':'fill','quality':'auto'}])
+        logo_url = result['secure_url']
+        shops = load_db('shops.json', [])
+        found=False
+        for s in shops:
+            # Match by slug OR email OR phone
+            if (shop_slug and s.get('shop_slug')==shop_slug) or (email and s.get('owner_email','').lower()==email) or (phone and s.get('owner_phone')==phone):
+                s['logo'] = logo_url
+                s['logo_updated'] = time.time()
+                found=True
+                break
+        if not found:
+            return jsonify({"success":False,"message":"Shop not found"}),404
+        save_db('shops.json', shops)
+        return jsonify({"success":True,"logo":logo_url, "message":"Logo updated Boss!"})
+    except Exception as e:
+        print("upload logo error:", e)
+        return jsonify({"success":False,"message":str(e)}),500
+# ============ END LOGO UPLOAD ============
+
+@app.route('/api/my-products')
 @app.route('/api/my-products')
 def my_products():
     phone=request.args.get('phone','').strip()
