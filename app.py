@@ -1488,9 +1488,7 @@ def get_shop_by_slug(slug):
                 except: pass
                 products = load_db('products.json', [])
                 shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
-                else:
-                    products = load_db('products.json', [])
-            shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+
         return jsonify({'success':True,'shop':shop,'products':shop_products})
     except Exception as e:
         print("get_shop_by_slug error:", e)
