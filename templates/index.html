@@ -237,16 +237,36 @@ function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>
 function doFilter(){
   let q=document.getElementById('searchInput').value.trim();
   let box=document.getElementById('products');
-  box.innerHTML='<p style="text-align:center;padding:30px">⏳ Loading...</p>';
-  let url='/api/products?limit=60';
-  if(q) url+=`&q=${encodeURIComponent(q)}`;
-  fetch(url,{cache:'no-store'}).then(r=>r.json()).then(d=>{
-    allProducts=d; 
-    products=d.slice(0,40); // ONLY 40 FIRST - FAST!
-    render();
-  }).catch(e=>{
-    box.innerHTML='<p style="text-align:center;padding:40px">⚠️ Failed - Tap Search again Boss</p>';
-  });
+  box.innerHTML='<div style="text-align:center;padding:40px"><h3>⏳ Waking server...</h3><p style="font-size:12px;color:#666">First load takes 30 sec on free Render - please wait Boss!</p><div style="width:40px;height:40px;border:4px solid #eee;border-top:4px solid #FFCC02;border-radius:50%;animation:spin 1s linear infinite;margin:10px auto"></div></div><style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>';
+  
+  let url='/api/products';
+  if(q) url+=`?q=${encodeURIComponent(q)}`;
+
+  // Try 3 times - Render sleeps!
+  async function tryFetch(attempt){
+    try{
+      let r=await fetch(url,{cache:'no-store', signal: AbortSignal.timeout(15000)});
+      let d=await r.json();
+      if(!Array.isArray(d)) throw new Error('bad data');
+      allProducts=d;
+      products=d;
+      render();
+      // load wants AFTER products - not same time!
+      setTimeout(()=>{loadWantsLiveSafe();}, 1000);
+    }catch(e){
+      if(attempt < 3){
+        box.innerHTML=`<div style="text-align:center;padding:40px"><h3>⏳ Retrying ${attempt}/3...</h3><p>Server waking...</p></div>`;
+        setTimeout(()=>tryFetch(attempt+1), 4000);
+      } else {
+        box.innerHTML=`<div style="text-align:center;padding:40px">
+        <h3 style="color:red">⚠️ Server sleeping Boss</h3>
+        <p style="font-size:12px">Render free needs 30-50 sec to wake</p>
+        <button onclick="doFilter()" style="background:#FFCC02;color:#000;padding:14px 24px;border:none;border-radius:10px;font-weight:900;margin-top:12px">🔄 TAP TO RETRY</button>
+        </div>`;
+      }
+    }
+  }
+  tryFetch(1);
 }
 function render(){
 if(products.length==0){document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found</p>';return;}
@@ -353,8 +373,7 @@ function openSellModal(){let modal=document.getElementById('frontUpload');if(mod
 function closeSellModal(){let modal=document.getElementById('frontUpload');if(modal) modal.style.display='none';}
 
 gateCheck();
-setTimeout(()=>{loadWantsLiveSafe();}, 2000);
-setInterval(()=>{loadCoinLive();}, 60000); // coins every 60 sec only
-</script>
+// Don't auto-load wants with products - wait!
+setTimeout(()=>{loadCoinLive(); loadBillboardBanner();}, 1500);
 </body>
 </html>
