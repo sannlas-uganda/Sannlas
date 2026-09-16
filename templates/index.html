@@ -136,7 +136,18 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 </select>
 <input id="frontPhoneReal" placeholder="Your Phone 256..." style="background:#fff;border:2px solid #000;width:100%;padding:12px;margin:6px 0;border-radius:10px;font-weight:bold">
 <div style="background:#000;border-radius:12px;padding:12px;margin:10px 0;text-align:center"><div style="color:#00FF00;font-weight:900;font-size:16px">🪙 UPLOAD FOR FREE - 0 COINS!</div><div style="color:#aaa;font-size:12px;margin-top:4px">You have: <b><span id="myCoinsPlan">0</span> coins</b> | Min Withdraw 50 = UGX 29,950</div></div>
-<div style="border:2px dashed #111;padding:10px;border-radius:12px;margin:10px 0"><input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div></div>
+<div style="border:2px dashed #111;padding:10px;border-radius:12px;margin:10px 0">
+<label style="font-weight:800;font-size:12px">📸 MAIN PHOTO (shows in shop):</label>
+<input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%;margin-top:4px">
+<div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div>
+</div>
+<div style="border:2px dashed #00FF00;padding:10px;border-radius:12px;margin:10px 0;background:#f0fff0">
+<label style="font-weight:900;font-size:12px;color:#00aa00">🎥 360 VIDEO (Optional - Seller spins shoe & records 10 sec):</label>
+<input type="file" id="frontVideoInput" accept="video/*" capture="environment" style="width:100%;margin-top:4px">
+<small style="color:#666;font-size:10px">If uploaded, buyer will see rotating video. If not, we auto-spin your photo showing front & back</small>
+<div id="frontVideoPreview" style="display:none;margin-top:8px"><video id="frontVideoPrev" style="width:100%;max-height:150px;border-radius:8px" controls muted></video></div>
+</div>
+<div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div></div>
 <div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:#999;padding:60px;font-weight:700">👆 Select 1 photo</p></div>
 <div id="frontStatus" style="background:#111;color:#00FF00;padding:10px;border-radius:10px;margin:10px 0;text-align:center">Ready - FREE Upload</div>
 <button onclick="frontUploadAll()" class="btn" style="width:100%;padding:16px;font-size:16px;background:#000;color:#FFCC02">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
@@ -239,10 +250,18 @@ return `<div><div class="row-title"><span>${rowLabel}</span><span style="font-si
 document.getElementById('products').innerHTML=html;
 }
 function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div style="background:white;border-radius:12px;overflow:hidden;border:1px solid #eee"><img src="${url}" style="width:100%;height:130px;object-fit:cover"><div style="padding:6px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;font-size:12px"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="width:100%;padding:8px;margin:3px 0;border:2px solid #000;border-radius:8px"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="width:100%;padding:8px;margin:3px 0;border:1px dashed #999;border-radius:8px"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;background:#f9fafb"></textarea></div></div>`;}}
+  document.getElementById('frontVideoInput')?.addEventListener('change', function(e){
+  let file=e.target.files[0]; if(!file) return;
+  let url=URL.createObjectURL(file);
+  let wrap=document.getElementById('frontVideoPreview');
+  let vid=document.getElementById('frontVideoPrev');
+  if(vid){vid.src=url; wrap.style.display='block';}
+});
 // FIXED COMPRESS - 400px FAST
 function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=400;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}frontUploadAllProceed();}
-async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing 400px...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE! FREE Upload Success`;doFilter();setTimeout(()=>closeSellModal(),1000);}
+async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing 400px...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);let videoFile=document.getElementById('frontVideoInput')?.files[0];
+if(videoFile){ fd.append('video360', videoFile);fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE! FREE Upload Success`;doFilter();setTimeout(()=>closeSellModal(),1000);}
 async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
 function doLogout(){localStorage.clear();location.reload();}
 async function showAllShops(){document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';document.getElementById('shopsPop').style.display='flex';for(let attempt=1;attempt<=3;attempt++){try{let r=await fetch('/api/shops');let shops=await r.json();shops=shops.filter(s=>(s.total_products||0)>0);if(!shops||shops.length==0){document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2>';return;}let html='<h2 style="font-weight:800">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';shops.forEach(s=>{let count=s.total_products||0;let slug=s.slug||s.shop_slug||'';let name=s.business_name||s.name||'Shop';let loc=s.location||'Uganda';html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count}</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></a></div>`;});html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';document.getElementById('shopsContent').innerHTML=html;return;}catch(e){if(attempt<3)await new Promise(res=>setTimeout(res,2000));else document.getElementById('shopsContent').innerHTML=`<div style="text-align:center;padding:20px"><h3 style="color:red">⚠️ Server sleeping</h3><button onclick="showAllShops()" style="background:#FFCC02;padding:12px 20px;border:none;border-radius:10px;font-weight:900;margin-top:10px">🔄 TRY AGAIN</button></div>`;}}}
@@ -258,52 +277,42 @@ function compressWantImage(file){return new Promise((res)=>{let img=new Image();
 async function submitWant(){let item=document.getElementById('wantItem')?.value.trim()||'';let qty=document.getElementById('wantQty')?.value.trim()||'1';let district=document.getElementById('wantDistrict')?.value.trim()||'Kampala';let phone=document.getElementById('wantPhone')?.value.trim()||'';let note=document.getElementById('wantNote')?.value.trim()||'';let minPrice=document.getElementById('wantPriceMin')?.value.trim()||'0';let maxPrice=document.getElementById('wantPriceMax')?.value.trim()||'0';let expiryHours=document.getElementById('wantExpiryHours')?.value||'24';let expiryDate=document.getElementById('wantExpiryDate')?.value||'';if(!item){alert('What do you want?');return;}if(!phone){alert('Phone required!');return;}let btn=document.getElementById('wantSubmitBtn');if(btn){btn.disabled=true;btn.innerText='⏳ Uploading...';}let expiresAt=null;if(expiryDate){expiresAt=new Date(expiryDate).toISOString();}else{let d=new Date();d.setHours(d.getHours()+parseInt(expiryHours));expiresAt=d.toISOString();}try{let form=new FormData();form.append('title',item);form.append('item',item);form.append('quantity',qty);form.append('district',district);form.append('phone',phone);form.append('email',currentUser?currentUser.email:'');form.append('description',note);form.append('note',note);form.append('min_budget',minPrice);form.append('max_budget',maxPrice);form.append('expires_at',expiresAt);form.append('expiry_hours',expiryHours);let imgFile=document.getElementById('wantImage')?.files[0];if(imgFile){let compressed=await compressWantImage(imgFile);form.append('image',compressed);}let r=await fetch('/api/wants',{method:'POST',body:form});let d=await r.json();if(d.success){alert('✅ WANT posted!');closeWantModal();if(document.getElementById('wantItem')) document.getElementById('wantItem').value='';if(document.getElementById('wantImage')) document.getElementById('wantImage').value='';let prev=document.getElementById('wantPreview');if(prev) prev.style.display='none';loadWantsLiveSafe();}else{alert(d.message);}}catch(e){alert('Failed: '+e.message);}if(btn){btn.disabled=false;btn.innerText='🚀 POST WANT (FREE)';}}
 async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone!');return;}let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported! Use Chrome');return;}let recog=new SR();recog.lang='en-US';btn.innerText='🔴';btn.disabled=true;recog.onresult=(e)=>{let t=e.results[0][0].transcript;document.getElementById('searchInput').value=t;doFilter();};recog.onend=()=>{btn.innerText='🎤';btn.disabled=false;};recog.start();}
 
-// ===== FIXED FAST 360 - ONLY 1 FUNCTION =====
-let _360rot=0,_360int=null,_360drag=false,_360sx=0;
-function initSannlas360(){
-  let img=document.getElementById('sannlas360');
-  if(!img) return;
-  clearInterval(_360int);
-  _360rot=0;_360drag=false;
-  _360int=setInterval(()=>{if(_360drag) return;_360rot=(_360rot+1.5)%360;img.style.transform=`translate(-50%,-50%) rotateY(${_360rot}deg)`;},25);
-  img.onmousedown=e=>{_360drag=true;_360sx=e.clientX;clearInterval(_360int);};
-  window.onmouseup=()=>{_360drag=false;clearInterval(_360int);_360int=setInterval(()=>{_360rot=(_360rot+1.5)%360;img.style.transform=`translate(-50%,-50%) rotateY(${_360rot}deg)`;},25);};
-  window.onmousemove=e=>{if(!_360drag) return;_360rot+=(e.clientX-_360sx)*0.7;img.style.transform=`translate(-50%,-50%) rotateY(${_360rot}deg)`;_360sx=e.clientX;};
-  img.ontouchstart=e=>{_360drag=true;_360sx=e.touches[0].clientX;clearInterval(_360int);};
-  img.ontouchmove=e=>{if(!_360drag) return;_360rot+=(e.touches[0].clientX-_360sx)*0.7;img.style.transform=`translate(-50%,-50%) rotateY(${_360rot}deg)`;_360sx=e.touches[0].clientX;};
-  img.ontouchend=()=>{_360drag=false;clearInterval(_360int);_360int=setInterval(()=>{_360rot=(_360rot+1.5)%360;img.style.transform=`translate(-50%,-50%) rotateY(${_360rot}deg)`;},25);};
-}
-
+// NO MORE 360 for photos - only for video
 function viewProd(id){
   let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);
-  if(!p)return;
+  if(!p) return;
   let desc=p.description||p.desc||'No description';
   let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
   let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:800">🏪 Visit Shop</button></a>` : '';
   let promoComm=p.promo_commission||3;
-  let sellerPhone=(p.phone||'').replace(/[^0-9]/g,'');if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
+  let sellerPhone=(p.phone||'').replace(/[^0-9]/g,''); if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
+
+  let mediaHtml = '';
+  if(p.video360 || p.video_360 || p.video){
+    let vidUrl = p.video360 || p.video_360 || p.video;
+    mediaHtml = `<video src="${vidUrl}" autoplay muted loop playsinline controls style="width:100%;max-height:320px;border-radius:16px;background:#000"></video><div style="color:#00ff88;font-size:10px;margin-top:6px;text-align:center">🎥 360 VIDEO</div>`;
+  } else {
+    // NORMAL PHOTO - NO FLIPPING - JUST LIKE BEFORE
+    mediaHtml = `<img src="${p.image}" style="width:100%;max-height:320px;object-fit:contain;border-radius:16px;background:#fff">`;
+  }
+
   document.getElementById('viewContent').innerHTML=`
   <h2 style="font-weight:800">${p.name}</h2>
-  <div style="position:relative;width:100%;height:300px;background:#000;border-radius:16px;overflow:hidden;margin:10px 0">
-    <img id="sannlas360" src="${p.image}" loading="eager" style="position:absolute;top:50%;left:50%;width:75%;max-width:260px;transform:translate(-50%,-50%);will-change:transform;filter:drop-shadow(0 12px 18px rgba(0,255,136,0.5));cursor:grab">
-    <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:#00ff88;font-size:10px;letter-spacing:2px">◀ DRAG TO ROTATE ▶</div>
+  <div style="position:relative;width:100%;background:#000;border-radius:16px;overflow:hidden;margin:10px 0;display:flex;align-items:center;justify-content:center;padding:8px">
+    ${mediaHtml}
   </div>
   <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:900">${priceHtml}</div>
   <div style="background:#f8f9fb;padding:12px;border-radius:12px;margin:10px 0;border:1px solid #eee"><b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}</div>
   ${shopBtn}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
-    <button onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')" style="background:#25D366;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:13px">💬 WhatsApp - 1 Coin</button>
+    <button onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')" style="background:#25D366;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900">💬 WhatsApp - 1 Coin</button>
     <button style="padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
-  </div>
-  <div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center">
-    <p style="color:#FFCC02">💰 Earn <b>${promoComm} coins</b> per sale!</p>
-    <button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:10px;font-weight:900;margin-top:6px">🤝 Apply to Promote</button>
   </div>
   <button style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;
   document.getElementById('viewPop').style.display='flex';
-  setTimeout(()=>initSannlas360(), 100);
 }
 
+// DELETE initSannlas360 completely - not needed anymore!
 async function unlockChatAndOpenWhatsApp(shopSlug,sellerPhone,productName){
   let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}
   let buyerEmail=(u?.email||currentUser?.email||'').toLowerCase();
