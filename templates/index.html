@@ -466,32 +466,17 @@ async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{
 function initSannlas360(){
   let img=document.getElementById('sannlas360');
   if(!img) return;
-  let rot=0, auto=true, isDown=false, startX=0, autoInt;
-  function startAuto(){
-    clearInterval(autoInt);
-    autoInt=setInterval(()=>{
-      if(!auto||isDown) return;
-      rot+=1; if(rot>=360) rot=0;
-      img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;
-    },20);
-  }
-  startAuto();
-  img.onmousedown=e=>{isDown=true; startX=e.clientX; auto=false;};
-  window.onmouseup=()=>{isDown=false; setTimeout(()=>{auto=true; startAuto();},1000);};
-  window.onmousemove=e=>{
-    if(!isDown) return;
-    rot+=(e.clientX-startX)*0.5;
+  let rot=0, id;
+  id=setInterval(()=>{rot=(rot+2)%360; img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;},30);
+  let sX=0, dragging=false;
+  img.addEventListener('touchstart',e=>{dragging=true; sX=e.touches[0].clientX; clearInterval(id);},{passive:true});
+  img.addEventListener('touchmove',e=>{
+    if(!dragging) return;
+    rot+=(e.touches[0].clientX-sX)*0.8;
     img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;
-    startX=e.clientX;
-  };
-  img.ontouchstart=e=>{isDown=true; startX=e.touches[0].clientX; auto=false;};
-  img.ontouchmove=e=>{
-    if(!isDown) return;
-    rot+=(e.touches[0].clientX-startX)*0.5;
-    img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;
-    startX=e.touches[0].clientX;
-  };
-  img.ontouchend=()=>{isDown=false; setTimeout(()=>{auto=true; startAuto();},1500);};
+    sX=e.touches[0].clientX;
+  },{passive:true});
+  img.addEventListener('touchend',()=>{dragging=false; id=setInterval(()=>{rot=(rot+2)%360; img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;},30);});
 }
 function viewProd(id){
   let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);
@@ -504,11 +489,10 @@ function viewProd(id){
   if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
   
  document.getElementById('viewContent').innerHTML=`
-    <h2 style="font-weight:800">${p.name}</h2>
-<div style="position:relative;width:100%;height:340px;background:#000;border-radius:16px;overflow:hidden;perspective:1000px;margin:10px 0">
-  <div style="position:absolute;inset:0;background:linear-gradient(#00ff88 1px, transparent 1px), linear-gradient(90deg, #00ff88 1px, transparent 1px);background-size:40px 40px;opacity:0.3;transform:rotateX(60deg) translateY(-100px) scale(2)"></div>
-  <img id="sannlas360" src="${p.image}" style="position:absolute;top:50%;left:50%;width:80%;max-width:280px;transform:translate(-50%,-50%) rotateY(0deg);filter:drop-shadow(0 20px 20px rgba(0,255,136,0.5));cursor:grab">
-  <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);color:#00ff88;font-size:10px;letter-spacing:2px">◀ DRAG TO ROTATE ▶</div>
+  <h2 style="font-weight:800">${p.name}</h2>
+<div style="position:relative;width:100%;height:320px;background:#0a0a0a;border-radius:16px;overflow:hidden;margin:10px 0">
+  <img id="sannlas360" src="${p.image}" loading="eager" style="position:absolute;top:50%;left:50%;width:70%;max-width:250px;transform:translate(-50%,-50%);will-change:transform;filter:drop-shadow(0 10px 15px rgba(0,255,136,0.4))">
+  <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:#00ff88;font-size:10px">◀ DRAG ▶</div>
 </div>
     <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:900">${priceHtml}</div>
     <div style="background:#f8f9fb;padding:12px;border-radius:12px;margin:10px 0;border:1px solid #eee">
