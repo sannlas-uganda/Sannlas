@@ -7,10 +7,13 @@
 <script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 <meta charset="utf-8">
 <title>SANNLAS UGANDA - Premium Marketplace</title>
-<meta name="description" content="Sannlas - Uganda's #1 marketplace to buy, sell & request anything in Kampala.">
+<meta name="description" content="Sannlas - Uganda's #1 marketplace to buy, sell & request anything in Kampala. Best prices on watches, bags, shoes, electronics. Post a Want, get offers instantly.">
 <link rel="canonical" href="https://sannlas.onrender.com/">
 <meta property="og:title" content="Sannlas Uganda - Premium Marketplace">
+<meta property="og:description" content="Uganda's marketplace for everything. Post a Want, get offers instantly.">
 <meta property="og:image" content="https://sannlas.onrender.com/icon-512.png">
+<meta property="og:url" content="https://sannlas.onrender.com/">
+<meta name="keywords" content="Sannlas, Uganda marketplace, buy sell Uganda, Kampala shopping, watches Uganda, bags Uganda">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -21,6 +24,9 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 .nav-logo span{color:#fff;font-size:12px;display:block;font-family:Inter;letter-spacing:2px;margin-top:-4px}
 .btn{border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:800;font-size:12px}
 .btn-yellow{background:#FFCC02;color:#000}
+.account-wrap{position:relative;display:inline-block}
+#accountDropdown{position:absolute;top:48px;right:0;width:260px;background:#111;border:2px solid #FFCC02;border-radius:14px;z-index:99999;flex-direction:column;padding:10px;gap:8px;box-shadow:0 12px 30px rgba(0,0,0,0.4);display:none}
+#accountDropdown button{width:100%;text-align:left;padding:12px;border-radius:10px;cursor:pointer;font-weight:700;border:none}
 .coin-live-bar{background:#000;color:#FFCC02;padding:8px 12px;text-align:center;font-weight:700;font-size:12px;display:flex;justify-content:center;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #222}
 .live-dot{width:8px;height:8px;background:#00FF00;border-radius:50%;display:inline-block;animation:blink 1.2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
@@ -36,13 +42,16 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 .hero-premium h1{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#111;line-height:1.1}
 .hero-premium p{color:#666;font-size:13px;margin-top:6px}
 #frontPreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;min-height:200px;background:#fff;padding:12px;border-radius:16px;border:2px dashed #e5e7eb}
+
+/* ===== NEW HORIZONTAL ROWS FIX - 10 PER ROW ===== */
 .products{display:flex;flex-direction:column;gap:20px;padding:14px;max-width:1400px;margin:0 auto;background:#f8f9fb;min-height:60vh}
 .row-title{font-weight:800;font-size:15px;padding:0 4px;display:flex;justify-content:space-between;align-items:center}
-.horizontal-row{display:flex;overflow-x:auto;gap:12px;padding:8px 4px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.horizontal-row{display:flex;overflow-x:auto;gap:12px;padding:8px 4px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .horizontal-row::-webkit-scrollbar{height:6px}
 .horizontal-row::-webkit-scrollbar-thumb{background:#FFCC02;border-radius:10px}
 .horizontal-row .card{min-width:165px;max-width:165px;flex:0 0 165px;scroll-snap-align:start}
 @media(min-width:768px){.horizontal-row .card{min-width:190px;max-width:190px;flex:0 0 190px}}
+
 .card{background:#fff;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid #eef0f3;transition:0.2s}
 .card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,0.12)}
 .card img{width:100%;height:170px;object-fit:cover;background:#f6f7f8}
@@ -68,28 +77,32 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register FREE</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><select id="gateRegRole" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:14px;text-align:center;font-size:20px;margin:10px 0;border:1px solid #ddd;border-radius:10px"><button class="btn btn-yellow" style="width:100%;padding:12px" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><button class="btn" style="width:100%;background:#000;color:#fff;padding:14px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:12px;margin:10px 0;border:2px solid #000;border-radius:10px"><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:#eee;margin-top:8px;color:#000" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
-<div class="navbar">
+<div class="navbar" style="flex-direction:row!important;padding:12px 14px!important;">
   <button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px;padding:8px 12px;border-radius:50%">☰</button>
-  <div class="nav-logo" style="flex:1;text-align:center;justify-content:center;display:flex;flex-direction:column;align-items:center">
+  <div class="nav-logo" style="flex:1;text-align:center;justify-content:center;display:flex;flex-direction:column;align-items:center;font-family:'Playfair Display',serif;font-weight:700;font-size:24px;color:#FFCC02;letter-spacing:1px;">
     <div style="display:flex;align-items:center;gap:8px">◆ SANNLAS <span style="color:#fff;font-size:11px;letter-spacing:3px;font-family:Inter;margin-left:6px">UGANDA</span></div>
   </div>
   <div style="width:44px"></div>
 </div>
+
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu">
   <div style="background:#000;color:#FFCC02;padding:18px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FFCC02">
     <b style="font-size:18px">◆ SANNLAS UGANDA</b>
     <button style="background:white;color:black;padding:6px 12px;border:none;border-radius:20px;font-weight:900" onclick="closeSideMenu()">✕</button>
   </div>
+  
   <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-    <button onclick="closeSideMenu();showAllShops()" style="background:#111;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:700;text-align:left">🏪 All Shops</button>    
+    <button onclick="closeSideMenu();showAllShops()" style="background:#111;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:14px;text-align:left">🏪 All Shops</button>    
     <div style="height:1px;background:#eee;margin:6px 0"></div>
+    
     <button onclick="closeSideMenu();openMyAccountInfo()" style="background:#fff;color:#000;border:2px solid #000;padding:14px;border-radius:12px;font-weight:700;text-align:left">👤 My Account Information</button>
     <button onclick="closeSideMenu();openBalancePage()" style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:14px;border-radius:12px;font-weight:800;text-align:left;display:flex;justify-content:space-between">💰 My Balance <span id="myCoinsNav" style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px">0</span></button>
     <button onclick="closeSideMenu();openMyShop()" style="background:#fff;color:#000;border:1px solid #ddd;padding:14px;border-radius:12px;font-weight:700;text-align:left">🏪 My Shop</button>
     <button onclick="closeSideMenu();openMySales()" style="background:#fff;color:#000;border:1px solid #ddd;padding:14px;border-radius:12px;font-weight:700;text-align:left">📦 My Sales Orders</button>
     <button onclick="closeSideMenu();openSecurity()" style="background:#fff;color:#000;border:1px solid #ddd;padding:14px;border-radius:12px;font-weight:700;text-align:left">🔒 Security</button>
     <button onclick="closeSideMenu();location.href='/invite'" style="background:#00FF00;color:#000;padding:14px;border:none;border-radius:12px;font-weight:900;text-align:left">👥 Invite & Earn Coins</button>
+    
     <div style="height:1px;background:#eee;margin:6px 0"></div>
     <button onclick="doLogout()" style="background:#ff0000;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900;text-align:left">🚪 Logout</button>
   </div>
@@ -108,6 +121,7 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 </div>
 </div>
 <div id="billboardBanner"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
+<div id="liveWantsBoard" style="display:none"></div>
 <div class="popup" id="wantsPop" onclick="closePop('wantsPop')">
 <div class="popup-content" style="max-width:600px;background:#000;border:2px solid #00FF00" onclick="event.stopPropagation()">
 <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="color:#00FF00;margin:0">🔥 LIVE WANTS (<span id="wantsCount2">0</span>)</h2><button onclick="closePop('wantsPop')" style="background:white;color:black;padding:4px 10px;border:none;border-radius:8px;font-weight:bold">✕</button></div>
@@ -115,6 +129,12 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 <div id="wantsList2" style="display:grid;grid-template-columns:1fr;gap:8px;max-height:60vh;overflow-y:auto"><p style="color:white;text-align:center">⏳ Loading wants...</p></div>
 <button onclick="location.href='/wants'" style="width:100%;background:#111;color:#00FF00;border:2px solid #00FF00;padding:10px;border-radius:10px;margin-top:10px;font-weight:bold">View All Wants →</button>
 </div>
+</div>
+<div id="sideOverlay" onclick="closeSideMenu()"></div>
+<div id="sideMenu"><div style="background:#000;color:#FFCC02;padding:16px;display:flex;justify-content:space-between"><b>🛍️ SANNLAS MENU</b><button class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
+<button style="background:#000;color:#FFCC02;border:1px solid #FFCC02;margin:10px;width:calc(100% - 20px);padding:12px;border-radius:10px;font-weight:bold" onclick="closeSideMenu();showAllShops()">🏪 All Shops</button>
+<button style="background:#111;color:white;margin:10px;width:calc(100% - 20px);padding:12px;border-radius:10px" onclick="closeSideMenu();goToMyShop()">🏪 My Shop</button>
+<button style="background:#FFCC02;color:#000;margin:10px;width:calc(100% - 20px);padding:12px;border-radius:10px;font-weight:bold" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn</button>
 </div>
 <div class="hero-premium">
 <h1>Elevate Your Style</h1>
@@ -136,26 +156,18 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 </select>
 <input id="frontPhoneReal" placeholder="Your Phone 256..." style="background:#fff;border:2px solid #000;width:100%;padding:12px;margin:6px 0;border-radius:10px;font-weight:bold">
 <div style="background:#000;border-radius:12px;padding:12px;margin:10px 0;text-align:center"><div style="color:#00FF00;font-weight:900;font-size:16px">🪙 UPLOAD FOR FREE - 0 COINS!</div><div style="color:#aaa;font-size:12px;margin-top:4px">You have: <b><span id="myCoinsPlan">0</span> coins</b> | Min Withdraw 50 = UGX 29,950</div></div>
-<div style="border:2px dashed #111;padding:10px;border-radius:12px;margin:10px 0">
-<label style="font-weight:800;font-size:12px">📸 MAIN PHOTO (shows in shop):</label>
-<input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%;margin-top:4px">
-<div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div>
-</div>
-<div style="border:2px dashed #00FF00;padding:10px;border-radius:12px;margin:10px 0;background:#f0fff0">
-<label style="font-weight:900;font-size:12px;color:#00aa00">🎥 360 VIDEO (Optional - Seller spins shoe & records 10 sec):</label>
-<input type="file" id="frontVideoInput" accept="video/*" capture="environment" style="width:100%;margin-top:4px">
-<small style="color:#666;font-size:10px">If uploaded, buyer will see rotating video. If not, we auto-spin your photo showing front & back</small>
-<div id="frontVideoPreview" style="display:none;margin-top:8px"><video id="frontVideoPrev" style="width:100%;max-height:150px;border-radius:8px" controls muted></video></div>
-</div>
-<div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div></div>
+<div style="border:2px dashed #111;padding:10px;border-radius:12px;margin:10px 0"><input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div></div>
 <div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:#999;padding:60px;font-weight:700">👆 Select 1 photo</p></div>
 <div id="frontStatus" style="background:#111;color:#00FF00;padding:10px;border-radius:10px;margin:10px 0;text-align:center">Ready - FREE Upload</div>
 <button onclick="frontUploadAll()" class="btn" style="width:100%;padding:16px;font-size:16px;background:#000;color:#FFCC02">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
 </div>
 </div>
+
 <div class="products" id="products"></div>
+
 <div class="popup" id="viewPop" onclick="closePop('viewPop')"><div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div></div>
 <div class="popup" id="cartPop" onclick="closePop('cartPop')"><div class="popup-content" id="cartContent" onclick="event.stopPropagation()"></div></div>
+
 <div class="popup" id="authPop" onclick="closePop('authPop')">
 <div class="popup-content" onclick="event.stopPropagation()" style="max-width:500px">
 <h2 style="text-align:center;font-weight:800">👤 My Account</h2>
@@ -180,51 +192,68 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 <button onclick="closePop('authPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>
 </div>
 </div>
+
 <div class="popup" id="shopsPop" onclick="closePop('shopsPop')"><div class="popup-content" id="shopsContent" onclick="event.stopPropagation()"></div></div>
+
 <div id="promoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;align-items:center;justify-content:center;padding:15px"><div style="background:#111;border:3px solid #FFCC02;border-radius:16px;padding:20px;max-width:500px;width:100%;text-align:center;color:white"><h2 style="color:#FFCC02">✅ Applied to Promote!</h2><input id="promoLinkInput" readonly style="width:100%;padding:12px;border-radius:10px;background:#000;color:#FFCC02;border:2px solid #FFCC02;margin:12px 0;font-size:11px"><button onclick="copyPromoLink()" style="width:100%;background:#FFCC02;color:#000;padding:12px;border:none;border-radius:10px;font-weight:900">📋 COPY LINK</button><button onclick="closePromoModal()" style="width:100%;background:#333;color:white;padding:10px;border:none;border-radius:8px;margin-top:10px">Close</button><p id="promoCopyMsg" style="color:#0f0;margin-top:8px;display:none"></p></div></div>
 <div id="wantModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;padding:10px;overflow-y:auto;">
 <div style="background:#111;border:3px solid #00FF00;border-radius:16px;padding:16px;max-width:480px;width:100%;color:white;max-height:95vh;overflow-y:auto;">
 <h2 style="color:#00FF00;text-align:center;margin:0 0 12px;font-size:18px">🎯 What Do You Want To Buy?</h2>
+
 <input id="wantItem" placeholder="What item? e.g. Maize 10 bags" style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:none;background:#222;color:white;">
+
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0;">
 <input id="wantQty" placeholder="Qty e.g. 10 bags" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
 <input id="wantDistrict" placeholder="District e.g. Kampala" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
 </div>
+
+<!-- NEW: PRICE RANGE -->
 <label style="font-size:11px;color:#00FF00;font-weight:800;margin-top:8px;display:block;">💰 YOUR BUDGET / PRICE RANGE (UGX)</label>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0;">
 <input id="wantPriceMin" type="number" placeholder="Min e.g. 50000" style="padding:12px;border-radius:10px;border:2px solid #333;background:#222;color:white;">
 <input id="wantPriceMax" type="number" placeholder="Max e.g. 150000" style="padding:12px;border-radius:10px;border:2px solid #00FF00;background:#222;color:white;">
 </div>
+
 <input id="wantPhone" placeholder="Phone e.g. 0755..." style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:2px solid #00FF00;background:#222;color:white;">
-<label style="font-size:11px;color:#00FF00;font-weight:800;margin-top:8px;display:block;">📸 Upload / Take Photo (Optional)</label>
+
+<!-- NEW: PHOTO UPLOAD -->
+<label style="font-size:11px;color:#00FF00;font-weight:800;margin-top:8px;display:block;">📸 Upload / Take Photo of What You Want (Optional)</label>
 <div style="border:2px dashed #00FF00;border-radius:10px;padding:8px;margin:5px 0;background:#1a1a1a;text-align:center;">
 <input type="file" id="wantImage" accept="image/*" capture="environment" style="width:100%;color:#aaa;font-size:12px;">
 <img id="wantPreview" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px;display:none;">
 </div>
-<textarea id="wantNote" placeholder="More details..." rows="3" style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:none;background:#222;color:white;"></textarea>
-<label style="font-size:11px;color:#FFCC02;font-weight:800;margin-top:8px;display:block;">⏰ When Do You Need It?</label>
+
+<textarea id="wantNote" placeholder="More details, quality, size, color..." rows="3" style="width:100%;padding:12px;margin:5px 0;border-radius:10px;border:none;background:#222;color:white;"></textarea>
+
+<!-- NEW: EXPIRY TIME -->
+<label style="font-size:11px;color:#FFCC02;font-weight:800;margin-top:8px;display:block;">⏰ When Do You Need It? Auto-Delete After</label>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0;">
 <select id="wantExpiryHours" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
-<option value="6">6 Hours</option><option value="12">12 Hours</option><option value="24" selected>24 Hours</option><option value="48">2 Days</option><option value="72">3 Days</option><option value="168">7 Days</option>
+<option value="6">6 Hours</option>
+<option value="12">12 Hours</option>
+<option value="24" selected>24 Hours (1 Day)</option>
+<option value="48">2 Days</option>
+<option value="72">3 Days</option>
+<option value="168">7 Days</option>
+<option value="720">30 Days</option>
 </select>
 <input id="wantExpiryDate" type="datetime-local" style="padding:12px;border-radius:10px;border:none;background:#222;color:white;">
 </div>
+<p style="font-size:10px;color:#888;margin:2px 0 8px;">⚠️ If time reaches, Want will be auto-deleted from site & database</p>
+
 <button onclick="submitWant()" id="wantSubmitBtn" style="width:100%;padding:14px;background:#00FF00;color:#000;font-weight:900;border:none;border-radius:10px;margin-top:8px">🚀 POST WANT (FREE)</button>
 <button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px">Cancel</button>
 </div>
 </div>
-<div style="background:#000;border-top:3px solid #FFCC02;padding:24px;text-align:center;color:#FFCC02;font-weight:700;margin-top:30px"><div>@ SANNLAS UGANDA 2026</div><div style="font-size:11px;color:#666;margin-top:6px">Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950</div></div>
-<div class="fixed-bottom"><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span></div>
-
-<script>
+<div style="background:#000;border-top:3px solid #FFCC02;padding:24px;text-align:center;color:#FFCC02;font-weight:700;margin-top:30px"><div>@ SANNLAS UGANDA 2026 - Premium Marketplace</div><div style="font-size:11px;color:#666;margin-top:6px">SANNLAS UGANDA - Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950 | Upload FREE | Swipe rows ↔️</div></div>
+<div class="fixed-bottom" style="justify-content:space-around"><span onclick="showAllShops()" style="color:#FFCC02">🏪 Shops</span><span onclick="location.href='/invite'" style="color:#0f0">👥 Invite</span></div><script>
 let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let isLoadingWants=false,isLoadingCoins=false;
-
-// FIXED - FAST LOADING COIN + BANNER
 async function loadCoinLive(){if(isLoadingCoins)return;isLoadingCoins=true;try{let r=await fetch('/api/coins/config',{signal:AbortSignal.timeout(5000)});let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();let fill=document.getElementById('coinProgressFill');if(fill)fill.style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}isLoadingCoins=false;}
-async function loadBillboardBanner(){try{let r=await fetch('/api/billboard',{signal:AbortSignal.timeout(5000)});let bb=await r.json();let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='image'){wrap.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:300px;display:block;margin:0 auto" loading="lazy">`;}else{wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline style="max-height:300px;width:100%"></video>`;}}catch(e){}}
+async function loadBillboardBanner(){try{let r=await fetch('/api/billboard',{signal:AbortSignal.timeout(5000)});let bb=await r.json();let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='image'){wrap.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:400px;display:block;margin:0 auto">`;txt.innerText=bb.text||'';}else if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px;width:100%"></video>`;txt.innerText=bb.text||'';}}catch(e){}}
 function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function closePop(id){let el=document.getElementById(id);if(el)el.style.display='none';}
+function openPopup(id){let el=document.getElementById(id);if(el)el.style.display='flex';}
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}
 function hideGate(){document.getElementById('authGate').style.display='none';}
@@ -233,147 +262,321 @@ function gateDoRegister(){let email=document.getElementById('gateRegEmail').valu
 function gateVerifyOTP(){switchGate('nin');}
 function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();refreshMyBalanceHeader();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();updateLoginUI();doFilter();}
-function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),400);}
-function doFilter(){
-  let q=document.getElementById('searchInput').value.trim();
-  let box=document.getElementById('products');
-  box.innerHTML='<div style="text-align:center;padding:40px"><h3>⏳ Waking server...</h3><p style="font-size:12px;color:#666">First load takes 30 sec on free Render - please wait Boss!</p><div style="width:40px;height:40px;border:4px solid #eee;border-top:4px solid #FFCC02;border-radius:50%;animation:spin 1s linear infinite;margin:10px auto"></div></div><style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>';
-  
-  let url='/api/products';
-  if(q) url+=`?q=${encodeURIComponent(q)}`;
+function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),500);}
+function doFilter(){let q=document.getElementById('searchInput').value;let url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=10000;render();}).catch(e=>{document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px">⚠️ Failed to load - Refresh</p>';});}
 
-  // Try 3 times - Render sleeps!
-  async function tryFetch(attempt){
-    try{
-      let r=await fetch(url,{cache:'no-store', signal: AbortSignal.timeout(15000)});
-      let d=await r.json();
-      if(!Array.isArray(d)) throw new Error('bad data');
-      allProducts=d;
-      products=d;
-      render();
-      // load wants AFTER products - not same time!
-      setTimeout(()=>{loadWantsLiveSafe();}, 1000);
-    }catch(e){
-      if(attempt < 3){
-        box.innerHTML=`<div style="text-align:center;padding:40px"><h3>⏳ Retrying ${attempt}/3...</h3><p>Server waking...</p></div>`;
-        setTimeout(()=>tryFetch(attempt+1), 4000);
-      } else {
-        box.innerHTML=`<div style="text-align:center;padding:40px">
-        <h3 style="color:red">⚠️ Server sleeping Boss</h3>
-        <p style="font-size:12px">Render free needs 30-50 sec to wake</p>
-        <button onclick="doFilter()" style="background:#FFCC02;color:#000;padding:14px 24px;border:none;border-radius:10px;font-weight:900;margin-top:12px">🔄 TAP TO RETRY</button>
-        </div>`;
-      }
-    }
-  }
-  tryFetch(1);
-}
+// ===== NEW RENDER - 10 PER ROW HORIZONTAL SWIPE =====
 function render(){
-if(products.length==0){document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found</p>';return;}
-let chunkSize=10;let rows=[];for(let i=0;i<products.length;i+=chunkSize){rows.push(products.slice(i,i+chunkSize));}
-let html=rows.map((row,rowIndex)=>{
-let rowLabel=rowIndex==0?"🔥 Best Sellers":rowIndex==1?"✨ Trending Now":rowIndex==2?"👟 Shoes & Footwear":`📦 More For You ${rowIndex+1}`;
-let cardsHtml=row.map(p=>{
+if(products.length==0){
+document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found</p>';
+return;
+}
+let chunkSize = 10; // 10 photos per row Boss
+let rows = [];
+for(let i=0;i<products.length;i+=chunkSize){
+rows.push(products.slice(i,i+chunkSize));
+}
+let html = rows.map((row,rowIndex)=>{
+let rowLabel = rowIndex==0? "🔥 Best Sellers" : rowIndex==1? "✨ Trending Now" : rowIndex==2? "👟 Shoes & Footwear" : rowIndex==3? "👗 Fashion & Dresses" : `📦 More For You ${rowIndex+1}`;
+let cardsHtml = row.map(p=>{
 let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
-let oldPrice='';let badge='';if(p.original_price&&Number(p.original_price)>Number(p.price)){let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));badge=`<div class="discount-badge">${pct}% OFF</div>`;oldPrice=`<span class="old-price">UGX ${Number(p.original_price).toLocaleString()}</span>`;}
-return `<div class="card">${badge}<img src="${p.image}" loading="lazy" decoding="async" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</h4><div class="price" style="font-size:12px">${priceHtml}${oldPrice}</div><div class="seller-box">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
+let oldPrice='';let badge='';
+if(p.original_price&&Number(p.original_price)>Number(p.price)){
+let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));
+badge=`<div class="discount-badge">${pct}% OFF</div>`;
+oldPrice=`<span class="old-price">UGX ${Number(p.original_price).toLocaleString()}</span>`;
+}
+return `<div class="card">${badge}<img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</h4><div class="price" style="font-size:12px">${priceHtml}${oldPrice}</div><div class="seller-box">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
 }).join('');
 return `<div><div class="row-title"><span>${rowLabel}</span><span style="font-size:10px;color:#888;background:#fff;padding:3px 8px;border-radius:10px;border:1px solid #eee">${row.length} items • swipe →</span></div><div class="horizontal-row">${cardsHtml}</div></div>`;
 }).join('');
 document.getElementById('products').innerHTML=html;
 }
+
 function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div style="background:white;border-radius:12px;overflow:hidden;border:1px solid #eee"><img src="${url}" style="width:100%;height:130px;object-fit:cover"><div style="padding:6px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;font-size:12px"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="width:100%;padding:8px;margin:3px 0;border:2px solid #000;border-radius:8px"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="width:100%;padding:8px;margin:3px 0;border:1px dashed #999;border-radius:8px"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;background:#f9fafb"></textarea></div></div>`;}}
-  document.getElementById('frontVideoInput')?.addEventListener('change', function(e){
-  let file=e.target.files[0]; if(!file) return;
-  let url=URL.createObjectURL(file);
-  let wrap=document.getElementById('frontVideoPreview');
-  let vid=document.getElementById('frontVideoPrev');
-  if(vid){vid.src=url; wrap.style.display='block';}
-});
-// FIXED COMPRESS - 400px FAST
-function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=400;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
+function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.55);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
 async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}frontUploadAllProceed();}
-async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing 400px...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);let videoFile=document.getElementById('frontVideoInput')?.files[0];
-if(videoFile){ fd.append('video360', videoFile);fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE! FREE Upload Success`;doFilter();setTimeout(()=>closeSellModal(),1000);}
+async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE! FREE Upload Success`;doFilter();setTimeout(()=>closeSellModal(),1000);}
 async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
 function doLogout(){localStorage.clear();location.reload();}
-async function showAllShops(){document.getElementById('shopsContent').innerHTML='<h3>⏳ Loading Shops...</h3>';document.getElementById('shopsPop').style.display='flex';for(let attempt=1;attempt<=3;attempt++){try{let r=await fetch('/api/shops');let shops=await r.json();shops=shops.filter(s=>(s.total_products||0)>0);if(!shops||shops.length==0){document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2>';return;}let html='<h2 style="font-weight:800">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';shops.forEach(s=>{let count=s.total_products||0;let slug=s.slug||s.shop_slug||'';let name=s.business_name||s.name||'Shop';let loc=s.location||'Uganda';html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count}</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></a></div>`;});html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';document.getElementById('shopsContent').innerHTML=html;return;}catch(e){if(attempt<3)await new Promise(res=>setTimeout(res,2000));else document.getElementById('shopsContent').innerHTML=`<div style="text-align:center;padding:20px"><h3 style="color:red">⚠️ Server sleeping</h3><button onclick="showAllShops()" style="background:#FFCC02;padding:12px 20px;border:none;border-radius:10px;font-weight:900;margin-top:10px">🔄 TRY AGAIN</button></div>`;}}}
+function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
+async function showAllShops(){
+  document.getElementById('shopsContent').innerHTML = '<h3>⏳ Loading Shops... Render waking (15 sec)...</h3><p style="font-size:12px;color:#888">Free server sleeps, first load is slow. Please wait Boss.</p>';
+  document.getElementById('shopsPop').style.display='flex';
+  
+  // NO TIMEOUT - let Render wake up slowly
+  for(let attempt=1; attempt<=3; attempt++){
+    try{
+      let r = await fetch('/api/shops'); // NO signal timeout!
+      if(!r.ok) throw new Error('Server '+r.status);
+      let text = await r.text();
+      if(!text) throw new Error('Empty response, retrying...');
+      let shops = JSON.parse(text);
+      
+      shops = shops.filter(s=> (s.total_products||s.product_count||s.count||0) > 0);
+      
+      if(!shops || shops.length==0){
+        document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><p>Upload first product FREE to create shop</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>';
+        return;
+      }
+      
+      let html='<h2 style="font-weight:800">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
+      shops.forEach(s=>{
+        let count=s.total_products||s.product_count||s.count||0;
+        let slug=s.slug||s.shop_slug||'';
+        let name=s.business_name||s.name||'Shop';
+        let loc=s.location||'Uganda';
+        html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count} products</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></a></div>`;
+      });
+      html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';
+      document.getElementById('shopsContent').innerHTML=html;
+      return; // success, stop retrying
+      
+    }catch(e){
+      console.log('Shops attempt '+attempt+' failed: '+e.message);
+      if(attempt < 3){
+        document.getElementById('shopsContent').innerHTML = `<h3>⏳ Waking server... Attempt ${attempt}/3</h3><p style="color:#666;font-size:12px">${e.message}<br>Retrying in 3 sec...</p>`;
+        await new Promise(res=>setTimeout(res,3000));
+      } else {
+        document.getElementById('shopsContent').innerHTML = `<div style="text-align:center;padding:20px"><h3 style="color:red">⚠️ Server sleeping</h3><p style="font-size:13px">Render free sleeps after 15min.<br>Click reload to wake it.</p><button onclick="showAllShops()" style="background:#FFCC02;color:#000;padding:12px 20px;border:none;border-radius:10px;font-weight:900;margin-top:10px">🔄 TRY AGAIN</button><button onclick="closePop('shopsPop')" style="background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;width:100%">Close</button></div>`;
+      }
+    }
+  }
+}
 async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(8000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first - FREE now!');}}catch(e){alert('Failed to find shop');}}
-async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{let r=await fetch('/api/wants?sort=most_offers');let wants=await r.json();let b=document.getElementById('wantsCount2');if(b) b.innerText=wants.length;let topW=document.getElementById('wantsCountTop');if(topW) topW.innerText=wants.length;let html=wants.slice(0,20).map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;}).join('');if(wants.length==0)html='<p style="color:white;text-align:center">No wants yet!</p>';let list2=document.getElementById('wantsList2');if(list2)list2.innerHTML=html;}catch(e){}isLoadingWants=false;}
-function loadWantsLiveSafe(){if(isLoadingWants) return;loadWantsLive();refreshWantsBadge();}
-async function refreshWantsBadge(){try{let r=await fetch('/api/wants');let wants=await r.json();if(!Array.isArray(wants)) return;let c=wants.length;let el1=document.getElementById('wantsCountTop');let el2=document.getElementById('wantsCount2');if(el1) el1.innerText=c;if(el2) el2.innerText=c;}catch(e){}}
+async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{let r=await fetch('/api/wants?sort=most_offers');let wants=await r.json();let a=document.getElementById('wantsCount'); if(a) a.innerText=wants.length;let b=document.getElementById('wantsCount2'); if(b) b.innerText=wants.length;let topW=document.getElementById('wantsCountTop'); if(topW) topW.innerText=wants.length;let html=wants.slice(0,20).map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;}).join('');if(wants.length==0)html='<p style="color:white;text-align:center">No wants yet! Be first 🎯</p>';let list2=document.getElementById('wantsList2');if(list2)list2.innerHTML=html;}catch(e){console.log(e);}isLoadingWants=false;}
+function loadWantsLiveSafe(){
+  if(isLoadingWants) return;
+  loadWantsLive();
+  refreshWantsBadge();
+}
+
+async function refreshWantsBadge(){
+  try{
+    let r=await fetch('/api/wants');
+    let wants=await r.json();
+    if(!Array.isArray(wants)) return;
+    wants.sort((a,b)=> new Date(b.created_at||0) - new Date(a.created_at||0));
+    let c=wants.length;
+    let el1=document.getElementById('wantsCountTop');
+    let el2=document.getElementById('wantsCount2');
+    let el3=document.getElementById('wantsCount');
+    if(el1) el1.innerText=c;
+    if(el2) el2.innerText=c;
+    if(el3) el3.innerText=c;
+  }catch(e){}
+}
+
 function openWantsList(){document.getElementById('wantsPop').style.display='flex';loadWantsLiveSafe();}
 function openWantModal(){if(!currentUser){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}} }if(!currentUser){alert('Register first to post WANT!');showGate();switchGate('register');return;}document.getElementById('wantPhone').value=currentUser.phone||'';document.getElementById('wantModal').style.display='flex';}
 function closeWantModal(){document.getElementById('wantModal').style.display='none';}
-document.addEventListener('change', function(e){if(e.target && e.target.id==='wantImage'){let file=e.target.files[0];if(file){let url=URL.createObjectURL(file);let img=document.getElementById('wantPreview');if(img){img.src=url; img.style.display='block';}}}});
-function compressWantImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=500;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob], file.name.replace(/\.[^/.]+$/,"")+".webp", {type:'image/webp'}));},'image/webp',0.5);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
-async function submitWant(){let item=document.getElementById('wantItem')?.value.trim()||'';let qty=document.getElementById('wantQty')?.value.trim()||'1';let district=document.getElementById('wantDistrict')?.value.trim()||'Kampala';let phone=document.getElementById('wantPhone')?.value.trim()||'';let note=document.getElementById('wantNote')?.value.trim()||'';let minPrice=document.getElementById('wantPriceMin')?.value.trim()||'0';let maxPrice=document.getElementById('wantPriceMax')?.value.trim()||'0';let expiryHours=document.getElementById('wantExpiryHours')?.value||'24';let expiryDate=document.getElementById('wantExpiryDate')?.value||'';if(!item){alert('What do you want?');return;}if(!phone){alert('Phone required!');return;}let btn=document.getElementById('wantSubmitBtn');if(btn){btn.disabled=true;btn.innerText='⏳ Uploading...';}let expiresAt=null;if(expiryDate){expiresAt=new Date(expiryDate).toISOString();}else{let d=new Date();d.setHours(d.getHours()+parseInt(expiryHours));expiresAt=d.toISOString();}try{let form=new FormData();form.append('title',item);form.append('item',item);form.append('quantity',qty);form.append('district',district);form.append('phone',phone);form.append('email',currentUser?currentUser.email:'');form.append('description',note);form.append('note',note);form.append('min_budget',minPrice);form.append('max_budget',maxPrice);form.append('expires_at',expiresAt);form.append('expiry_hours',expiryHours);let imgFile=document.getElementById('wantImage')?.files[0];if(imgFile){let compressed=await compressWantImage(imgFile);form.append('image',compressed);}let r=await fetch('/api/wants',{method:'POST',body:form});let d=await r.json();if(d.success){alert('✅ WANT posted!');closeWantModal();if(document.getElementById('wantItem')) document.getElementById('wantItem').value='';if(document.getElementById('wantImage')) document.getElementById('wantImage').value='';let prev=document.getElementById('wantPreview');if(prev) prev.style.display='none';loadWantsLiveSafe();}else{alert(d.message);}}catch(e){alert('Failed: '+e.message);}if(btn){btn.disabled=false;btn.innerText='🚀 POST WANT (FREE)';}}
-async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone!');return;}let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported! Use Chrome');return;}let recog=new SR();recog.lang='en-US';btn.innerText='🔴';btn.disabled=true;recog.onresult=(e)=>{let t=e.results[0][0].transcript;document.getElementById('searchInput').value=t;doFilter();};recog.onend=()=>{btn.innerText='🎤';btn.disabled=false;};recog.start();}
 
-// NO MORE 360 for photos - only for video
+// Preview photo when selected
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='wantImage'){
+    let file = e.target.files[0];
+    if(file){
+      let url = URL.createObjectURL(file);
+      let img = document.getElementById('wantPreview');
+      if(img){ img.src = url; img.style.display='block'; }
+    }
+  }
+});
+
+function compressWantImage(file){
+  return new Promise((res)=>{
+    let img=new Image();
+    img.onload=()=>{
+      let canvas=document.createElement('canvas');
+      let maxW=500; let w=img.width,h=img.height;
+      if(w>maxW){h=h*maxW/w;w=maxW;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob((blob)=>{
+        res(new File([blob], file.name.replace(/\.[^/.]+$/,"")+".webp", {type:'image/webp'}));
+      },'image/webp',0.5);
+      URL.revokeObjectURL(img.src);
+    };
+    img.src=URL.createObjectURL(file);
+  });
+}
+  async function submitWant(){
+  let item=document.getElementById('wantItem')?.value.trim()||'';
+  let qty=document.getElementById('wantQty')?.value.trim()||'1';
+  let district=document.getElementById('wantDistrict')?.value.trim()||'Kampala';
+  let phone=document.getElementById('wantPhone')?.value.trim()||'';
+  let note=document.getElementById('wantNote')?.value.trim()||'';
+  let minPrice=document.getElementById('wantPriceMin')?.value.trim()||'0';
+  let maxPrice=document.getElementById('wantPriceMax')?.value.trim()||'0';
+  let expiryHours=document.getElementById('wantExpiryHours')?.value||'24';
+  let expiryDate=document.getElementById('wantExpiryDate')?.value||'';
+
+  if(!item){alert('What do you want?');return;}
+  if(!phone){alert('Phone required!');return;}
+
+  let btn=document.getElementById('wantSubmitBtn');
+  if(btn){btn.disabled=true; btn.innerText='⏳ Uploading...';}
+
+  let expiresAt = null;
+  if(expiryDate){
+    expiresAt = new Date(expiryDate).toISOString();
+  }else{
+    let d = new Date();
+    d.setHours(d.getHours()+parseInt(expiryHours));
+    expiresAt = d.toISOString();
+  }
+
+  try{
+    let form = new FormData();
+    form.append('title', item);
+    form.append('item', item);
+    form.append('quantity', qty);
+    form.append('district', district);
+    form.append('phone', phone);
+    form.append('email', currentUser?currentUser.email:'');
+    form.append('description', note);
+    form.append('note', note);
+    form.append('min_budget', minPrice);
+    form.append('max_budget', maxPrice);
+    form.append('expires_at', expiresAt);
+    form.append('expiry_hours', expiryHours);
+
+    let imgFile=document.getElementById('wantImage')?.files[0];
+    if(imgFile){
+      let compressed = await compressWantImage(imgFile);
+      form.append('image', compressed);
+    }
+
+    let r=await fetch('/api/wants',{method:'POST',body:form});
+    let d=await r.json();
+    if(d.success){
+      alert('✅ WANT posted! Will auto-delete at: '+new Date(expiresAt).toLocaleString());
+      closeWantModal();
+      if(document.getElementById('wantItem')) document.getElementById('wantItem').value='';
+      if(document.getElementById('wantImage')) document.getElementById('wantImage').value='';
+      let prev=document.getElementById('wantPreview');
+      if(prev) prev.style.display='none';
+      loadWantsLiveSafe();
+    }else{alert(d.message);}
+  }catch(e){alert('Failed: '+e.message);}
+  if(btn){btn.disabled=false; btn.innerText='🚀 POST WANT (FREE)';}
+}
+async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone!');return;}let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported! Use Chrome');return;}let recog=new SR();recog.lang='en-US';btn.innerText='🔴';btn.disabled=true;recog.onresult=(e)=>{let t=e.results[0][0].transcript;document.getElementById('searchInput').value=t;doFilter();};recog.onend=()=>{btn.innerText='🎤';btn.disabled=false;};recog.start();}
 function viewProd(id){
   let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);
-  if(!p) return;
+  if(!p)return;
   let desc=p.description||p.desc||'No description';
   let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
   let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:800">🏪 Visit Shop</button></a>` : '';
   let promoComm=p.promo_commission||3;
-  let sellerPhone=(p.phone||'').replace(/[^0-9]/g,''); if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
-
-  let mediaHtml = '';
-  if(p.video360 || p.video_360 || p.video){
-    let vidUrl = p.video360 || p.video_360 || p.video;
-    mediaHtml = `<video src="${vidUrl}" autoplay muted loop playsinline controls style="width:100%;max-height:320px;border-radius:16px;background:#000"></video><div style="color:#00ff88;font-size:10px;margin-top:6px;text-align:center">🎥 360 VIDEO</div>`;
-  } else {
-    // NORMAL PHOTO - NO FLIPPING - JUST LIKE BEFORE
-    mediaHtml = `<img src="${p.image}" style="width:100%;max-height:320px;object-fit:contain;border-radius:16px;background:#fff">`;
-  }
-
+  let sellerPhone = (p.phone||'').replace(/[^0-9]/g,'');
+  if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
+  
   document.getElementById('viewContent').innerHTML=`
-  <h2 style="font-weight:800">${p.name}</h2>
-  <div style="position:relative;width:100%;background:#000;border-radius:16px;overflow:hidden;margin:10px 0;display:flex;align-items:center;justify-content:center;padding:8px">
-    ${mediaHtml}
-  </div>
-  <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:900">${priceHtml}</div>
-  <div style="background:#f8f9fb;padding:12px;border-radius:12px;margin:10px 0;border:1px solid #eee"><b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}</div>
-  ${shopBtn}
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
-    <button onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')" style="background:#25D366;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900">💬 WhatsApp - 1 Coin</button>
-    <button style="padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
-  </div>
-  <button style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;
+    <h2 style="font-weight:800">${p.name}</h2>
+    <img src="${p.image}" style="width:100%;border-radius:16px;margin:10px 0">
+    <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:900">${priceHtml}</div>
+    <div style="background:#f8f9fb;padding:12px;border-radius:12px;margin:10px 0;border:1px solid #eee">
+      <b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}
+    </div>
+    ${shopBtn}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
+      <button onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')" style="background:#25D366;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:13px">💬 WhatsApp Seller - 1 Coin</button>
+      <button style="padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
+    </div>
+    <div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center">
+      <p style="color:#FFCC02">💰 Earn <b>${promoComm} coins</b> per sale!</p>
+      <button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:10px;font-weight:900;margin-top:6px">🤝 Apply to Promote</button>
+    </div>
+    <button style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;
   document.getElementById('viewPop').style.display='flex';
 }
 
-// DELETE initSannlas360 completely - not needed anymore!
-async function unlockChatAndOpenWhatsApp(shopSlug,sellerPhone,productName){
-  let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}
-  let buyerEmail=(u?.email||currentUser?.email||'').toLowerCase();
-  if(!buyerEmail){alert('Login first Boss!');showGate();switchGate('login');return;}
-  if(!shopSlug){alert('Shop not found');return;}
-  try{let check=await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(shopSlug)}`);let chkData=await check.json();if(chkData.unlocked){window.open(`https://wa.me/${sellerPhone}?text=Hi, I'm interested in ${productName} from Sannlas`, '_blank');return;}}catch(e){}
-  if(!confirm(`🔓 Unlock chat for 1 coin? Pay ONCE, chat FOREVER!`)) return;
-  try{let res=await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:shopSlug})});let data=await res.json();if(data.success){alert(`✅ Unlocked! Balance: ${data.new_balance}`);refreshMyBalanceHeader();window.open(`https://wa.me/${sellerPhone}?text=Hi, I'm interested in ${productName} from Sannlas`, '_blank');}else{alert(data.error||'Failed');if(data.error&&data.error.includes('Buy coins')) location.href='/balance';}}catch(err){alert('Server error: '+err.message);}}
-function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}let c=cart.reduce((s,i)=>s+(i.qty||1),0);let t=document.getElementById('cartNTop');if(t) t.innerText=`🛒 ${c}`;}
-function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3 style="font-weight:800">🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #eee;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:10px"><div style="flex:1"><b style="font-size:12px">${it.name}</b><br><small>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}</small><br><b>UGX ${sub.toLocaleString()}</b><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button onclick="changeQty('${it.id}',-1)" style="background:#000;color:#FFCC02;border:none;width:30px;height:30px;border-radius:50%;font-weight:900">-</button><span style="background:#FFCC02;color:#000;padding:4px 12px;border-radius:10px;font-weight:900">${it.qty||1}</span><button onclick="changeQty('${it.id}',1)" style="background:#000;color:#FFCC02;border:none;width:30px;height:30px;border-radius:50%;font-weight:900">+</button></div></div><button onclick="removeCart('${it.id}')" style="background:#ff0000;color:white;border:none;padding:6px 10px;border-radius:8px">🗑️</button></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:900">TOTAL: UGX ${total.toLocaleString()} (${totalQty} items)</div><div style="background:#f8f9fb;padding:10px;border-radius:10px;border:1px solid #eee"><input id="buyerName" placeholder="Your Name" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ddd"><input id="buyerPhone" placeholder="Phone 07..." style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:2px solid #00FF00"><input id="buyerDistrict" placeholder="District" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ddd"></div><button style="width:100%;padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="doCheckout()">✅ Checkout - Seller Will Call</button><button onclick="closePop('cartPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px">Continue Shopping</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
-function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1){cart=cart.filter(x=>x.id!=id);}let c=cart.reduce((s,i)=>s+(i.qty||1),0);let t=document.getElementById('cartNTop');if(t) t.innerText=`🛒 ${c}`;if(cart.length==0){closePop('cartPop');}else{openCart();}}
-function removeCart(id){cart=cart.filter(x=>x.id!=id);let c=cart.reduce((s,i)=>s+(i.qty||1),0);let t=document.getElementById('cartNTop');if(t) t.innerText=`🛒 ${c}`;if(cart.length==0){closePop('cartPop');}else{openCart();}}
-async function doCheckout(){let buyerName=document.getElementById('buyerName')?.value.trim();let buyerPhone=document.getElementById('buyerPhone')?.value.trim();let buyerDistrict=document.getElementById('buyerDistrict')?.value.trim()||'Kampala';if(!buyerName||!buyerPhone){alert('Enter Name & Phone Boss!');return;}let payload={buyer:{name:buyerName,phone:buyerPhone,district:buyerDistrict,email:currentUser?.email||''},items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty||1,image:i.image}))};let r=await fetch('/api/orders/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});let d=await r.json();if(d.success){cart=[];let t=document.getElementById('cartNTop');if(t) t.innerText=`🛒 0`;closePop('cartPop');alert('🎉 Order Sent! Seller will call you on '+buyerPhone);}else{alert(d.message);}}
+// ============ 1 COIN CHAT UNLOCK SYSTEM - NEW ============
+async function unlockChatAndOpenWhatsApp(shopSlug, sellerPhone, productName) {
+    let u = null;
+    try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
+    let buyerEmail = (u?.email || currentUser?.email || '').toLowerCase();
+    
+    if(!buyerEmail) {
+        alert('Login first Boss to chat!');
+        showGate(); switchGate('login');
+        return;
+    }
+    if(!shopSlug) { alert('Shop not found'); return; }
+    
+    // Check already unlocked
+    try{
+        let check = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(shopSlug)}`);
+        let chkData = await check.json();
+        if(chkData.unlocked) {
+            window.open(`https://wa.me/${sellerPhone}?text=Hi, I'm interested in ${productName} from Sannlas`, '_blank');
+            return;
+        }
+    }catch(e){}
+    
+    if(!confirm(`🔓 Unlock chat with this shop for 1 coin (599 UGX)?\n\nPay ONCE, chat FOREVER!`)) return;
+    
+    try {
+        let res = await fetch('/api/chat/unlock', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({buyer_email: buyerEmail, shop_slug: shopSlug})
+        });
+        let data = await res.json();
+        if(data.success) {
+            alert(`✅ Unlocked! New balance: ${data.new_balance} coins`);
+            if(typeof refreshMyBalanceHeader==='function') refreshMyBalanceHeader();
+            window.open(`https://wa.me/${sellerPhone}?text=Hi, I'm interested in ${productName} from Sannlas`, '_blank');
+        } else {
+            alert(data.error || 'Failed');
+            if(data.error && data.error.includes('Buy coins')) location.href='/balance';
+        }
+    } catch(err) {
+        alert('Server error: '+err.message);
+    }
+}
+function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}let c=cart.reduce((s,i)=>s+(i.qty||1),0);let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 ${c}`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 ${c}`;}function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3 style="font-weight:800">🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #eee;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:10px"><div style="flex:1"><b style="font-size:12px">${it.name}</b><br><small>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}</small><br><b>UGX ${sub.toLocaleString()}</b><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button onclick="changeQty('${it.id}',-1)" style="background:#000;color:#FFCC02;border:none;width:30px;height:30px;border-radius:50%;font-weight:900">-</button><span style="background:#FFCC02;color:#000;padding:4px 12px;border-radius:10px;font-weight:900">${it.qty||1}</span><button onclick="changeQty('${it.id}',1)" style="background:#000;color:#FFCC02;border:none;width:30px;height:30px;border-radius:50%;font-weight:900">+</button></div></div><button onclick="removeCart('${it.id}')" style="background:#ff0000;color:white;border:none;padding:6px 10px;border-radius:8px">🗑️</button></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:900">TOTAL: UGX ${total.toLocaleString()} (${totalQty} items)</div><div style="background:#f8f9fb;padding:10px;border-radius:10px;border:1px solid #eee"><input id="buyerName" placeholder="Your Name" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ddd"><input id="buyerPhone" placeholder="Phone 07..." style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:2px solid #00FF00"><input id="buyerDistrict" placeholder="District" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ddd"></div><button style="width:100%;padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="doCheckout()">✅ Checkout - Seller Will Call</button><button onclick="closePop('cartPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px">Continue Shopping</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
+function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1){cart=cart.filter(x=>x.id!=id);}let c=cart.reduce((s,i)=>s+(i.qty||1),0);let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 ${c}`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 ${c}`;if(cart.length==0){closePop('cartPop');}else{openCart();}}
+function removeCart(id){cart=cart.filter(x=>x.id!=id);let c=cart.reduce((s,i)=>s+(i.qty||1),0);let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 ${c}`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 ${c}`;if(cart.length==0){closePop('cartPop');}else{openCart();}}
+async function doCheckout(){let buyerName=document.getElementById('buyerName')?.value.trim();let buyerPhone=document.getElementById('buyerPhone')?.value.trim();let buyerDistrict=document.getElementById('buyerDistrict')?.value.trim()||'Kampala';if(!buyerName||!buyerPhone){alert('Enter Name & Phone Boss!');return;}let payload={buyer:{name:buyerName,phone:buyerPhone,district:buyerDistrict,email:currentUser?.email||''},items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty||1,image:i.image}))};let r=await fetch('/api/orders/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});let d=await r.json();if(d.success){cart=[];let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 0`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 0`;closePop('cartPop');alert('🎉 Order Sent! Seller will call you on '+buyerPhone);}else{alert(d.message);}}
 function applyPromote(pid,comm){let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}if(!u||!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{let link=d.link||d.promo_link||`https://sannlas.onrender.com/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;document.getElementById('promoLinkInput').value=link;document.getElementById('promoModal').style.display='flex';}).catch(e=>alert('Error: '+e.message));}
 function copyPromoLink(){let v=document.getElementById('promoLinkInput').value;navigator.clipboard.writeText(v).then(()=>{let m=document.getElementById('promoCopyMsg');m.style.display='block';m.innerText='✅ Copied! Now go sell Boss! 💰';setTimeout(()=>m.style.display='none',3000);});}
 function closePromoModal(){document.getElementById('promoModal').style.display='none';}
+function toggleAccountMenu(){let dd=document.getElementById('accountDropdown');if(dd.style.display==='flex'){dd.style.display='none';}else{dd.style.display='flex';dd.style.flexDirection='column';}refreshMyBalanceHeader();}
+document.addEventListener('click',function(e){let btn=document.getElementById('accountTopBtn');let dd=document.getElementById('accountDropdown');if(!btn||!dd)return;if(!btn.contains(e.target)&&!dd.contains(e.target)){dd.style.display='none';}});
 function openMyAccountInfo(){document.getElementById('authPop').style.display='flex';loadAccountDetails();}
 async function loadAccountDetails(){try{let u=currentUser||JSON.parse(localStorage.getItem('sannlas_user')||'{}');let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(u.email||'')}&phone=${encodeURIComponent(u.phone||'')}`);let d=await r.json();if(d.success){document.getElementById('accBought').innerText=d.bought;document.getElementById('accEarned').innerText=d.earned;document.getElementById('accSpent').innerText=d.spent;document.getElementById('accTotal').innerText=d.total;document.getElementById('accWithdrawable').innerText=d.withdrawable;document.getElementById('accWithdrawableUgx').innerText='UGX '+(d.withdrawable_value||0).toLocaleString();}}catch(e){}}
 function openBalancePage(){location.href='/balance';}
-async function openMySales(){fetch(`/api/orders/my-sales?email=${encodeURIComponent(currentUser.email||'')}&phone=${encodeURIComponent(currentUser.phone||'')}`).then(r=>r.json()).then(orders=>{let html=`<h2 style="font-weight:800">📦 My Sales Orders (${orders.length})</h2>`;if(orders.length==0)html+=`<p>No orders yet Boss!</p>`;orders.forEach(o=>{let locked=!o.paid_to_view;html+=`<div style="border:2px solid ${locked?'#ff0000':'#00FF00'};border-radius:12px;padding:10px;margin:8px 0;background:#fff;color:#000"><b>Order ${o.id.slice(0,12)}...</b> - UGX ${Number(o.total||0).toLocaleString()}<br>Items: ${(o.items||[]).map(i=>i.name+' x'+i.qty).join(', ')}<br>${locked?`<button onclick="unlockOrder('${o.id}')" style="background:#FFCC02;color:#000;width:100%;padding:10px;border:none;border-radius:8px;margin-top:6px;font-weight:900">🔓 Unlock Buyer - 2 Coins</button>`:`<div style="background:#e8f5e9;padding:8px;border-radius:6px;margin-top:6px">✅ Buyer: ${o.buyer_name} - ${o.buyer_phone}</div><a href="tel:${o.buyer_phone}"><button style="background:#00FF00;width:100%;padding:10px;border:none;border-radius:8px;margin-top:6px;font-weight:900">📞 Call Buyer</button></a>`}</div>`;});html+=`<button onclick="closePop('viewPop')" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>`;document.getElementById('viewContent').innerHTML=html;document.getElementById('viewPop').style.display='flex';});}
+async function openMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(8000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first - FREE now!');}}catch(e){alert('Failed to find shop');}}
+function openMySales(){fetch(`/api/orders/my-sales?email=${encodeURIComponent(currentUser.email||'')}&phone=${encodeURIComponent(currentUser.phone||'')}`).then(r=>r.json()).then(orders=>{let html=`<h2 style="font-weight:800">📦 My Sales Orders (${orders.length})</h2><p style="font-size:12px;color:#000;background:#FFCC02;padding:6px;border-radius:6px;">Pay 2 coins to view buyer phone</p>`;if(orders.length==0)html+=`<p>No orders yet Boss! Share your shop link</p>`;orders.forEach(o=>{let locked=!o.paid_to_view;html+=`<div style="border:2px solid ${locked?'#ff0000':'#00FF00'};border-radius:12px;padding:10px;margin:8px 0;background:#fff;color:#000"><b>Order ${o.id.slice(0,12)}...</b> - UGX ${Number(o.total||0).toLocaleString()} - ${new Date((o.created_at||o.time)*1000).toLocaleDateString()}<br>Items: ${(o.items||[]).map(i=>i.name+' x'+i.qty).join(', ')}<br>${locked?`<div style="background:#fff0f0;color:#000;padding:8px;border-radius:6px;margin-top:6px">🔒 Buyer Hidden - Pay 2 coins to unlock<br><small>${o.buyer_name||'Buyer'} - ${o.buyer_district||''}</small></div><button onclick="unlockOrder('${o.id}')" style="background:#FFCC02;color:#000;width:100%;padding:10px;border:none;border-radius:8px;margin-top:6px;font-weight:900">🔓 Unlock Buyer - 2 Coins</button>`:`<div style="background:#e8f5e9;color:#000;padding:8px;border-radius:6px;margin-top:6px">✅ Buyer: ${o.buyer_name} - ${o.buyer_phone} - ${o.buyer_district}</div><a href="tel:${o.buyer_phone}"><button style="background:#00FF00;color:#000;width:100%;padding:10px;border:none;border-radius:8px;margin-top:6px;font-weight:900">📞 Call Buyer ${o.buyer_phone}</button></a>`}</div>`;});html+=`<button onclick="closePop('viewPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>`;document.getElementById('viewContent').innerHTML=html;document.getElementById('viewPop').style.display='flex';});}
 async function unlockOrder(orderId){if(!confirm('Pay 2 coins to see buyer phone?'))return;let r=await fetch('/api/orders/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId,email:currentUser.email,phone:currentUser.phone})});let d=await r.json();if(d.success){alert(d.message);openMySales();refreshMyBalanceHeader();}else alert(d.message);}
-function openSecurity(){let newPass=prompt('🔒 Enter new password (min 4 chars):');if(!newPass||newPass.length<4){alert('Too short');return;}fetch('/api/account/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,password:newPass})}).then(r=>r.json()).then(d=>alert(d.message));}
-async function refreshMyBalanceHeader(){try{let user=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!user.email&&!user.phone)return;let res=await fetch(`/api/coins/balance?email=${encodeURIComponent(user.email||'')}&phone=${encodeURIComponent(user.phone||'')}`);let data=await res.json();if(data.success){let el=document.getElementById('myCoinsNav');if(el)el.innerText=data.coins;}}catch(e){}}
-function openSellModal(){let modal=document.getElementById('frontUpload');if(modal){modal.style.display='flex';window.scrollTo(0,0);}closeSideMenu();}
-function closeSellModal(){let modal=document.getElementById('frontUpload');if(modal) modal.style.display='none';}
-
+function openSecurity(){let newPass=prompt('🔒 Security - Enter new password (min 4 chars):');if(!newPass||newPass.length<4){alert('Too short');return;}fetch('/api/account/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,password:newPass})}).then(r=>r.json()).then(d=>alert(d.message));}
+async function refreshMyBalanceHeader(){try{let user=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(!user.email&&!user.phone)return;let res=await fetch(`/api/coins/balance?email=${encodeURIComponent(user.email||'')}&phone=${encodeURIComponent(user.phone||'')}`);let data=await res.json();if(data.success){let el=document.getElementById('myCoinsNav');if(el)el.innerText=data.coins;user.coins=data.coins;localStorage.setItem('sannlas_user',JSON.stringify(user));}}catch(e){}}
+function openSellModal(){
+  let modal = document.getElementById('frontUpload');
+  if(modal){
+    modal.style.display='flex';
+    window.scrollTo(0,0);
+  } else {
+    alert('Upload modal not found!');
+  }
+  closeSideMenu();
+}
+function closeSellModal(){
+  let modal = document.getElementById('frontUpload');
+  if(modal) modal.style.display='none';
+}
 gateCheck();
-// Don't auto-load wants with products - wait!
-setTimeout(()=>{loadCoinLive(); loadBillboardBanner();}, 1500);
+loadWantsLiveSafe(); 
+refreshWantsBadge();
+loadCoinLive();
+setInterval(async()=>{
+  await loadCoinLive();
+  await loadWantsLiveSafe();
+  await refreshWantsBadge();
+},15000);
+setInterval(refreshMyBalanceHeader,10000);
+</script>
 </body>
 </html>
