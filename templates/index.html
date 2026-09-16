@@ -535,17 +535,19 @@ function viewProd(id){
 }
 function init360Viewer(images){
   const canvas=document.getElementById('view360Canvas'); if(!canvas)return; const ctx=canvas.getContext('2d');
-  let loaded=[],current=0,isDragging=false,startX=0,startIndex=0,count=images.length;
+  let loaded=[],current=0,isDragging=false,startX=0,startIndex=0,count=images.length, autoPlay=true;
   images.forEach((src,i)=>{ let img=new Image(); img.crossOrigin="anonymous"; img.onload=()=>{ loaded[i]=img; if(i==0) draw(); }; img.src=src; });
   function draw(){ if(!loaded[current])return; ctx.clearRect(0,0,canvas.width,canvas.height); let img=loaded[current]; let r=Math.max(canvas.width/img.width, canvas.height/img.height); let cx=(canvas.width-img.width*r)/2, cy=(canvas.height-img.height*r)/2; ctx.drawImage(img,0,0,img.width,img.height,cx,cy,img.width*r,img.height*r); }
   function move(d){ current=(current+d)%count; if(current<0)current+=count; draw(); }
-  canvas.addEventListener('mousedown',e=>{isDragging=true; startX=e.clientX; startIndex=current; canvas.style.cursor='grabbing';});
-  canvas.addEventListener('mousemove',e=>{ if(!isDragging)return; let dx=e.clientX-startX; let steps=Math.floor(dx/15); current=(startIndex-steps)%count; if(current<0)current+=count; draw(); });
-  window.addEventListener('mouseup',()=>{isDragging=false; if(canvas)canvas.style.cursor='grab';});
-  canvas.addEventListener('touchstart',e=>{isDragging=true; startX=e.touches[0].clientX; startIndex=current;},{passive:true});
-  canvas.addEventListener('touchmove',e=>{ if(!isDragging)return; let dx=e.touches[0].clientX-startX; let steps=Math.floor(dx/15); current=(startIndex-steps)%count; if(current<0)current+=count; draw(); },{passive:true});
-  canvas.addEventListener('touchend',()=>{isDragging=false;});
-  setInterval(()=>{ if(!isDragging) move(1); },180);
+  // SLOW DRAG: 40px = 1 frame = much slower
+  canvas.addEventListener('mousedown',e=>{isDragging=true; autoPlay=false; startX=e.clientX; startIndex=current; canvas.style.cursor='grabbing';});
+  canvas.addEventListener('mousemove',e=>{ if(!isDragging)return; let dx=e.clientX-startX; let steps=Math.floor(dx/40); current=(startIndex-steps)%count; if(current<0)current+=count; draw(); });
+  window.addEventListener('mouseup',()=>{isDragging=false; if(canvas)canvas.style.cursor='grab'; setTimeout(()=>autoPlay=true,3000);});
+  canvas.addEventListener('touchstart',e=>{isDragging=true; autoPlay=false; startX=e.touches[0].clientX; startIndex=current;},{passive:true});
+  canvas.addEventListener('touchmove',e=>{ if(!isDragging)return; let dx=e.touches[0].clientX-startX; let steps=Math.floor(dx/40); current=(startIndex-steps)%count; if(current<0)current+=count; draw(); },{passive:true});
+  canvas.addEventListener('touchend',()=>{isDragging=false; setTimeout(()=>autoPlay=true,3000);});
+  // SLOW AUTO-SPIN: 400ms = elegant
+  setInterval(()=>{ if(!isDragging && autoPlay) move(1); },400);
 }
 
 // ============ 1 COIN CHAT UNLOCK SYSTEM - NEW ============
