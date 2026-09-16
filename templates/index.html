@@ -463,6 +463,36 @@ async function submitWant(){
   if(btn){btn.disabled=false; btn.innerText='🚀 POST WANT (FREE)';}
 }
 async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone!');return;}let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported! Use Chrome');return;}let recog=new SR();recog.lang='en-US';btn.innerText='🔴';btn.disabled=true;recog.onresult=(e)=>{let t=e.results[0][0].transcript;document.getElementById('searchInput').value=t;doFilter();};recog.onend=()=>{btn.innerText='🎤';btn.disabled=false;};recog.start();}
+function initSannlas360(){
+  let img=document.getElementById('sannlas360');
+  if(!img) return;
+  let rot=0, auto=true, isDown=false, startX=0, autoInt;
+  function startAuto(){
+    clearInterval(autoInt);
+    autoInt=setInterval(()=>{
+      if(!auto||isDown) return;
+      rot+=1; if(rot>=360) rot=0;
+      img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;
+    },20);
+  }
+  startAuto();
+  img.onmousedown=e=>{isDown=true; startX=e.clientX; auto=false;};
+  window.onmouseup=()=>{isDown=false; setTimeout(()=>{auto=true; startAuto();},1000);};
+  window.onmousemove=e=>{
+    if(!isDown) return;
+    rot+=(e.clientX-startX)*0.5;
+    img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;
+    startX=e.clientX;
+  };
+  img.ontouchstart=e=>{isDown=true; startX=e.touches[0].clientX; auto=false;};
+  img.ontouchmove=e=>{
+    if(!isDown) return;
+    rot+=(e.touches[0].clientX-startX)*0.5;
+    img.style.transform=`translate(-50%,-50%) rotateY(${rot}deg)`;
+    startX=e.touches[0].clientX;
+  };
+  img.ontouchend=()=>{isDown=false; setTimeout(()=>{auto=true; startAuto();},1500);};
+}
 function viewProd(id){
   let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);
   if(!p)return;
@@ -475,11 +505,11 @@ function viewProd(id){
   
  document.getElementById('viewContent').innerHTML=`
     <h2 style="font-weight:800">${p.name}</h2>
-    <div id="sannlas360Container" style="position:relative;width:100%;height:380px;background:#fff;border-radius:16px;margin:10px 0;overflow:hidden;cursor:grab;border:1px solid #eee;display:flex;align-items:center;justify-content:center;">
-      <img id="modal360Image" src="${p.image}" style="width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;transition:transform 0.1s linear;">
-      <div style="position:absolute;top:10px;left:10px;background:#000;color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:900;">360° • Drag ↔️</div>
-      <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:white;padding:6px 14px;border-radius:20px;font-size:11px;">👆 Drag to spin • Tap to pause</div>
-    </div>
+<div style="position:relative;width:100%;height:340px;background:#000;border-radius:16px;overflow:hidden;perspective:1000px;margin:10px 0">
+  <div style="position:absolute;inset:0;background:linear-gradient(#00ff88 1px, transparent 1px), linear-gradient(90deg, #00ff88 1px, transparent 1px);background-size:40px 40px;opacity:0.3;transform:rotateX(60deg) translateY(-100px) scale(2)"></div>
+  <img id="sannlas360" src="${p.image}" style="position:absolute;top:50%;left:50%;width:80%;max-width:280px;transform:translate(-50%,-50%) rotateY(0deg);filter:drop-shadow(0 20px 20px rgba(0,255,136,0.5));cursor:grab">
+  <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);color:#00ff88;font-size:10px;letter-spacing:2px">◀ DRAG TO ROTATE ▶</div>
+</div>
     <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:900">${priceHtml}</div>
     <div style="background:#f8f9fb;padding:12px;border-radius:12px;margin:10px 0;border:1px solid #eee">
       <b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}
@@ -494,7 +524,7 @@ function viewProd(id){
       <button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:10px;font-weight:900;margin-top:6px">🤝 Apply to Promote</button>
     </div>
     <button style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;
-  document.getElementById('viewPop').style.display='flex';
+  document.getElementById('viewPop').style.display='flex';setTimeout(()=>initSannlas360(), 100);
 }
 
 // ============ 1 COIN CHAT UNLOCK SYSTEM - NEW ============
