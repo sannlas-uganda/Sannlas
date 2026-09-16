@@ -1378,8 +1378,55 @@ def sell():
     except: pass
     prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    # NO COIN DEDUCTION - FREE!
-    return jsonify({'success':True,'message':f'Product added FREE! Now sellers pay 2 coins when buyer orders'})
+    # NO COIN DEDUCTION - FREE! + RETURN ID FOR 360
+    return jsonify({'success':True,'message':f'Product added FREE!','product_id': prod['id'], 'id': prod['id']})
+
+# ===== AUTO 360° 3D UPLOAD - PASTE EXACTLY HERE - ABOVE /api/shops =====
+@app.route('/api/products/<product_id>/upload-360', methods=['POST'])
+def upload_360(product_id):
+    try:
+        frames = request.files.getlist('frames')
+        if not frames or len(frames) == 0:
+            frames = request.files.getlist('product_360')
+        if not frames or len(frames) < 8:
+            return jsonify({"success": False, "message": f"Need 8+ photos, got {len(frames) if frames else 0}"}), 400
+
+        urls = []
+        for i, f in enumerate(frames):
+            if not f or f.filename == '':
+                continue
+            result = cloudinary.uploader.upload(
+                f,
+                folder=f"sannlas/{product_id}/360",
+                public_id=f"frame_{i:03d}",
+                transformation=[{'width': 600, 'quality': 'auto'}]
+            )
+            urls.append(result['secure_url'])
+
+        # Save to Neon using your existing save_db system
+        products = load_db('products.json', [])
+        updated = False
+        for p in products:
+            if str(p.get('id')) == str(product_id):
+                p['images_360'] = urls
+                p['has_3d'] = True
+                p['has_360'] = True
+                p['360_count'] = len(urls)
+                updated = True
+                break
+        if updated:
+            save_db('products.json', products)
+
+        return jsonify({"success": True, "message": f"360° created! {len(urls)} frames", "images_360": urls, "product_id": product_id})
+    except Exception as e:
+        print("360 error:", e)
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+# ===== END 360° ROUTE =====
+
+@app.route('/api/shops')
+def list_shops():
 
 @app.route('/api/shops')
 def list_shops():
