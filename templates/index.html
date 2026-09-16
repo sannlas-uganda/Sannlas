@@ -234,7 +234,20 @@ function gateVerifyOTP(){switchGate('nin');}
 function gateDoLogin(){let email=document.getElementById('gateLogEmail').value.trim(),pass=document.getElementById('gateLogPass').value;fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})}).then(r=>r.json()).then(d=>{if(d.success){currentUser=d.user;localStorage.setItem('sannlas_user',JSON.stringify(d.user));hideGate();updateLoginUI();refreshMyBalanceHeader();}else{alert(d.message);}});}
 function gateUploadNIN(){hideGate();updateLoginUI();doFilter();}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),400);}
-function doFilter(){let q=document.getElementById('searchInput').value;let url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;render();}).catch(e=>{document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px">⚠️ Failed to load - Refresh</p>';});}
+function doFilter(){
+  let q=document.getElementById('searchInput').value.trim();
+  let box=document.getElementById('products');
+  box.innerHTML='<p style="text-align:center;padding:30px">⏳ Loading...</p>';
+  let url='/api/products?limit=60';
+  if(q) url+=`&q=${encodeURIComponent(q)}`;
+  fetch(url,{cache:'no-store'}).then(r=>r.json()).then(d=>{
+    allProducts=d; 
+    products=d.slice(0,40); // ONLY 40 FIRST - FAST!
+    render();
+  }).catch(e=>{
+    box.innerHTML='<p style="text-align:center;padding:40px">⚠️ Failed - Tap Search again Boss</p>';
+  });
+}
 function render(){
 if(products.length==0){document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found</p>';return;}
 let chunkSize=10;let rows=[];for(let i=0;i<products.length;i+=chunkSize){rows.push(products.slice(i,i+chunkSize));}
@@ -243,7 +256,7 @@ let rowLabel=rowIndex==0?"🔥 Best Sellers":rowIndex==1?"✨ Trending Now":rowI
 let cardsHtml=row.map(p=>{
 let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
 let oldPrice='';let badge='';if(p.original_price&&Number(p.original_price)>Number(p.price)){let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.original_price));badge=`<div class="discount-badge">${pct}% OFF</div>`;oldPrice=`<span class="old-price">UGX ${Number(p.original_price).toLocaleString()}</span>`;}
-return `<div class="card">${badge}<img src="${p.image}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</h4><div class="price" style="font-size:12px">${priceHtml}${oldPrice}</div><div class="seller-box">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
+return `<div class="card">${badge}<img src="${p.image}" loading="lazy" decoding="async" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</h4><div class="price" style="font-size:12px">${priceHtml}${oldPrice}</div><div class="seller-box">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
 }).join('');
 return `<div><div class="row-title"><span>${rowLabel}</span><span style="font-size:10px;color:#888;background:#fff;padding:3px 8px;border-radius:10px;border:1px solid #eee">${row.length} items • swipe →</span></div><div class="horizontal-row">${cardsHtml}</div></div>`;
 }).join('');
@@ -340,8 +353,8 @@ function openSellModal(){let modal=document.getElementById('frontUpload');if(mod
 function closeSellModal(){let modal=document.getElementById('frontUpload');if(modal) modal.style.display='none';}
 
 gateCheck();
-setInterval(async()=>{await loadCoinLive();await loadWantsLiveSafe();await refreshWantsBadge();},15000);
-setInterval(refreshMyBalanceHeader,10000);
+setTimeout(()=>{loadWantsLiveSafe();}, 2000);
+setInterval(()=>{loadCoinLive();}, 60000); // coins every 60 sec only
 </script>
 </body>
 </html>
