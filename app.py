@@ -1995,29 +1995,7 @@ def compress_neon_now():
             except: pass
     save_db('products.json', products)
     return f"Done! {len(products)} products compressed! Refresh homepage now!"
-
-@app.route('/favicon.ico')
-def serve_favicon():
-    return send_from_directory('.', 'icon-192.png')
-
-@app.route('/icon-192.png')
-def serve_icon1():
-    return send_from_directory('.', 'icon-192.png')
-
-@app.route('/icon-512.png')
-def serve_icon2():
-    return send_from_directory('.', 'icon-512.png')
-
-@app.route('/sw.js')
-def serve_sw():
-    return send_from_directory('.', 'sw.js')
-
-@app.after_request
-def add_cache_headers(response):
-    if request.path.startswith('/static') or 'icon' in request.path:
-        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-    return response
-
+    
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
