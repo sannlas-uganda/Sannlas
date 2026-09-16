@@ -1427,9 +1427,6 @@ def upload_360(product_id):
 
 @app.route('/api/shops')
 def list_shops():
-
-@app.route('/api/shops')
-def list_shops():
     try:
         shops = load_db('shops.json', [])
         # FAST COUNT - Don't load full products if using Postgres
