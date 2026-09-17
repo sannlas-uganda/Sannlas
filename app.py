@@ -1202,7 +1202,8 @@ def set_password_api():
         return jsonify({"success":True,"message":"🔒 Password saved! Your account is now protected Boss!"})
     except Exception as e:
         return jsonify({"success":False,"message":str(e)})
-        @app.route('/api/forgot-password', methods=['POST'])
+        
+@app.route('/api/forgot-password', methods=['POST'])
 @limiter.limit("5 per minute")
 def forgot_password_api():
     data = request.get_json() or {}
