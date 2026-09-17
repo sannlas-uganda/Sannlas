@@ -1306,33 +1306,37 @@ def login():
 @app.route('/api/products')
 def get_products():
     global PRODUCTS_CACHE
-    q = request.args.get('q','').lower()
-    shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+    q = request.args.get('q','').lower().strip()
+    shop_slug = (request.args.get('shop') or request.args.get('shop_slug') or '').strip()
     
-    # Use cache for homepage (no query) - 30 sec fast!
-    if not q and not shop_slug and PRODUCTS_CACHE["data"] and (time.time() - PRODUCTS_CACHE["time"] < 30):
-        return jsonify(PRODUCTS_CACHE["data"])
-    
-    products=load_db('products.json', [])
-    filtered=products
-    if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower()]
-    if shop_slug:
-        sf = shop_slug.strip()
-        exact = [p for p in filtered if p.get('shop_slug')==sf]
-        if exact: filtered = exact
-    filtered=sorted(filtered,key=lambda x:x.get('created',0),reverse=True)
-    public=[]
-    for p in filtered:
-        pp=p.copy(); pp.pop('phone',None); public.append(pp)
-    
-    # Save to cache
+    # Fast cache for homepage
     if not q and not shop_slug:
-        PRODUCTS_CACHE["data"] = public[:100]  # Only 100 fast!
-        PRODUCTS_CACHE["time"] = time.time()
-        return jsonify(PRODUCTS_CACHE["data"])
+        if PRODUCTS_CACHE.get("data") and (time.time() - PRODUCTS_CACHE["time"] < 60):
+            return jsonify(PRODUCTS_CACHE["data"])
     
-    return jsonify(public[:100])
-
+    products = load_db('products.json', [])
+    filtered = products
+    if q:
+        filtered = [p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower() or q in p.get('description','').lower()]
+    if shop_slug:
+        exact = [p for p in filtered if p.get('shop_slug')==shop_slug]
+        if exact:
+            filtered = exact
+    
+    filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
+    
+    public = []
+    for p in filtered[:100]:
+        pp = p.copy()
+        pp.pop('phone', None)
+        public.append(pp)
+    
+    if not q and not shop_slug:
+        PRODUCTS_CACHE["data"] = public
+        PRODUCTS_CACHE["time"] = time.time()
+    
+    return jsonify(public)
+    
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name')
