@@ -2,37 +2,44 @@
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Shop - Sannlas</title>
 <style>
-body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px}
-.header{background:#000;color:#fff;padding:20px;text-align:center;position:relative}
-.header h1{color:#FFCC02;margin:8px 0}
-.shop-logo{width:90px;height:90px;border-radius:50%;border:3px solid #FFCC02;object-fit:cover;background:#fff;cursor:pointer}
+body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px;color:#000}
+.header{background:#000;color:#fff;padding:20px;text-align:center;position:relative;min-height:160px}
+.header h1{color:#FFCC02;margin:8px 0;font-size:20px}
+.shop-logo{width:90px;height:90px;border-radius:50%;border:3px solid #FFCC02;object-fit:cover;background:#fff;cursor:pointer;margin-top:10px}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px}
-.stat-card{background:#fff;border-radius:12px;padding:10px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.1)}
-.stat-card b{font-size:18px;display:block}
-.card{background:#fff;border-radius:12px;margin:10px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.stat-card{background:#fff !important;border-radius:12px;padding:10px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.1);color:#000 !important}
+.stat-card b{font-size:18px;display:block;color:#000 !important}
+.stat-card small{color:#666}
+.card{background:#fff;border-radius:12px;margin:10px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);color:#000}
 .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
-.pcard{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);position:relative}
+.pcard{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);position:relative;color:#000}
 .pcard img{width:100%;height:150px;object-fit:cover}
 .btn{padding:8px 12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer;margin:3px;font-size:12px}
 .badge{position:absolute;top:8px;right:8px;padding:4px 8px;border-radius:20px;font-size:11px;font-weight:bold}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
-.quick button{padding:14px;border-radius:12px;font-size:14px}
+.quick button{padding:14px;border-radius:12px;font-size:14px;border:none;font-weight:800}
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:15px}
-.modal-box{background:#fff;border-radius:15px;padding:15px;max-width:400px;width:100%}
+.modal-box{background:#fff;border-radius:15px;padding:15px;max-width:400px;width:100%;color:#000}
 input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:10px}
 </style></head><body>
 
-<!-- 1. SHOP HEADER -->
+<!-- 1. SHOP HEADER - FIXED -->
 <div class="header" id="shopHeader">
- <!-- 🏠 BACK HOME BUTTON - Boss -->
- <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;z-index:999;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.3);display:flex;align-items:center;gap:5px">
+ <!-- 🏠 BACK HOME BUTTON -->
+ <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;z-index:999;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.3);">
    🏠 Home
  </button>
 
  <img id="sLogo" class="shop-logo" src="https://via.placeholder.com/150" onclick="document.getElementById('logoInput').click()">
+ <input type="file" id="logoInput" accept="image/*" hidden onchange="uploadLogo()">
+ <div id="sName" style="color:#fff;margin-top:8px;font-weight:bold">Loading...</div>
+ <div id="sInfo" style="font-size:13px;color:#aaa;margin-top:4px"></div>
+ <div style="margin-top:8px"><span style="background:#FFCC02;color:#000;padding:3px 10px;border-radius:20px;font-size:11px" id="sVerified">⏳ Checking</span></div>
+</div>
+<!-- END HEADER - IMPORTANT CLOSING -->
 
 <!-- 2. TODAY'S BUSINESS STATS -->
-<div style="padding:10px 15px 0 15px;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">📊 Today's Business</h3><small id="todayDate"></small></div>
+<div style="padding:10px 15px 0 15px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5"><h3 style="margin:0;color:#000">📊 Today's Business</h3><small id="todayDate" style="color:#666"></small></div>
 <div class="stats">
  <div class="stat-card">👁️<b id="stViews">0</b><small>Views</small></div>
  <div class="stat-card">📦<b id="stProducts">0</b><small>Products</small></div>
