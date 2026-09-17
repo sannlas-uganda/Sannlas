@@ -182,17 +182,34 @@ def save_db(file, data):
             conn.commit(); cur.close(); conn.close(); return
         except Exception as e: print(e)
     json.dump(data, open(f'data/{file}','w'), indent=2)
-    
-    # ===== START AUTO-DELETE THREAD HERE - AFTER load_db defined =====
-def start_cleanup_thread():
-    try:
-        threading.Thread(target=cleanup_expired_wants, daemon=True).start()
-    except Exception as e:
-        print("Cleanup thread not started:", e)
 
-start_cleanup_thread()
-# ===== END =====
+# ===== AUTO-DELETE EXPIRED WANTS - MUST BE HERE =====
+def cleanup_expired_wants():
+    while True:
+        try:
+            now = datetime.utcnow()
+            wants_data = load_db('wants.json', [])
+            original = len(wants_data)
+            active = []
+            for w in wants_data:
+                exp = w.get('expires_at')
+                if not exp: 
+                    active.append(w)
+                else:
+                    try:
+                        if datetime.fromisoformat(str(exp).replace('Z','')) > now:
+                            active.append(w)
+                    except: 
+                        active.append(w)
+            if len(active) != original:
+                save_db('wants.json', active)
+                print(f"[CLEANUP] Deleted {original-len(active)} expired wants")
+        except Exception as e: 
+            print("Cleanup error", e)
+        time.sleep(3600)
 
+threading.Thread(target=cleanup_expired_wants, daemon=True).start()
+# ===== END AUTO-DELETE =====
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
 def admin_required(f):
