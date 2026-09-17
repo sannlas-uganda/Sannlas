@@ -251,6 +251,28 @@ let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentU
 async function loadCoinLive(){if(isLoadingCoins)return;isLoadingCoins=true;try{let r=await fetch('/api/coins/config',{signal:AbortSignal.timeout(5000)});let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();let fill=document.getElementById('coinProgressFill');if(fill)fill.style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}isLoadingCoins=false;}
 async function loadBillboardBanner(){try{let r=await fetch('/api/billboard',{signal:AbortSignal.timeout(5000)});let bb=await r.json();let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='image'){wrap.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:400px;display:block;margin:0 auto">`;txt.innerText=bb.text||'';}else if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px;width:100%"></video>`;txt.innerText=bb.text||'';}}catch(e){}}
 function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
+function openMyShop(){
+  let u = localStorage.getItem('sannlas_user');
+  if(!u){
+    alert('Login first Boss to see your shop!');
+    showGate();
+    if(typeof switchGate==='function') switchGate('login');
+    return;
+  }
+  location.href = '/my-shop';
+}
+function openMySales(){
+  let u = localStorage.getItem('sannlas_user');
+  if(!u){ alert('Login first!'); return; }
+  location.href = '/my-shop';
+}
+function openBalancePage(){ location.href='/balance'; }
+function openMyAccountInfo(){ 
+  let p=document.getElementById('authPop');
+  if(p) p.style.display='flex';
+  else location.href='/balance';
+}
+function openSecurity(){ location.href='/balance'; }
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function closePop(id){let el=document.getElementById(id);if(el)el.style.display='none';}
 function openPopup(id){let el=document.getElementById(id);if(el)el.style.display='flex';}
@@ -343,7 +365,17 @@ async function showAllShops(){
     }
   }
 }
-async function goToMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(8000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first - FREE now!');}}catch(e){alert('Failed to find shop');}}
+function goToMyShop(){
+  let u = null;
+  try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
+  if(!u || (!u.email && !u.phone)){
+    alert('Login first Boss!');
+    showGate(); switchGate('login');
+    return;
+  }
+  location.href = '/my-shop';
+  closeSideMenu();
+}
 async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{let r=await fetch('/api/wants?sort=most_offers');let wants=await r.json();let a=document.getElementById('wantsCount'); if(a) a.innerText=wants.length;let b=document.getElementById('wantsCount2'); if(b) b.innerText=wants.length;let topW=document.getElementById('wantsCountTop'); if(topW) topW.innerText=wants.length;let html=wants.slice(0,20).map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No bids';let budget=w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable';return `<div onclick="location.href='/wants/${w.id}'" style="background:white;border-radius:10px;padding:10px;border-left:4px solid #00FF00;cursor:pointer"><div style="display:flex;justify-content:space-between"><b style="color:#000">🎯 ${w.title||w.item}</b><span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold">LIVE</span></div><small style="color:#333">📦 ${w.quantity||'1'} | 📍 ${w.district||'Kampala'} | 💰 ${budget}</small><br><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="background:#000;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:11px">Lowest: ${lowest}</span><span style="background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px">💬 ${w.offers_count||0} offers</span></div></div>`;}).join('');if(wants.length==0)html='<p style="color:white;text-align:center">No wants yet! Be first 🎯</p>';let list2=document.getElementById('wantsList2');if(list2)list2.innerHTML=html;}catch(e){console.log(e);}isLoadingWants=false;}
 function loadWantsLiveSafe(){
   if(isLoadingWants) return;
@@ -548,7 +580,17 @@ document.addEventListener('click',function(e){let btn=document.getElementById('a
 function openMyAccountInfo(){document.getElementById('authPop').style.display='flex';loadAccountDetails();}
 async function loadAccountDetails(){try{let u=currentUser||JSON.parse(localStorage.getItem('sannlas_user')||'{}');let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(u.email||'')}&phone=${encodeURIComponent(u.phone||'')}`);let d=await r.json();if(d.success){document.getElementById('accBought').innerText=d.bought;document.getElementById('accEarned').innerText=d.earned;document.getElementById('accSpent').innerText=d.spent;document.getElementById('accTotal').innerText=d.total;document.getElementById('accWithdrawable').innerText=d.withdrawable;document.getElementById('accWithdrawableUgx').innerText='UGX '+(d.withdrawable_value||0).toLocaleString();}}catch(e){}}
 function openBalancePage(){location.href='/balance';}
-async function openMyShop(){if(!currentUser){showGate();switchGate('login');return;}try{let r=await fetch('/api/shops',{signal:AbortSignal.timeout(8000)});let shops=await r.json();let myEmail=(currentUser.email||'').toLowerCase();let myPhone=currentUser.phone||'';let my=shops.find(s=>s.owner_email&&myEmail&&s.owner_email.toLowerCase()==myEmail);if(!my)my=shops.find(s=>s.phone&&myPhone&&s.phone==myPhone);if(my){location.href='/shop/'+(my.shop_slug||my.slug);}else{alert('No shop yet Boss! Upload a product first - FREE now!');}}catch(e){alert('Failed to find shop');}}
+async function openMyShop(){
+  let u = null;
+  try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
+  if(!u || (!u.email && !u.phone)){
+    alert('Login first Boss!');
+    showGate(); switchGate('login');
+    return;
+  }
+  location.href = '/my-shop';
+  closeSideMenu();
+}
 function openMySales(){fetch(`/api/orders/my-sales?email=${encodeURIComponent(currentUser.email||'')}&phone=${encodeURIComponent(currentUser.phone||'')}`).then(r=>r.json()).then(orders=>{let html=`<h2 style="font-weight:800">📦 My Sales Orders (${orders.length})</h2><p style="font-size:12px;color:#000;background:#FFCC02;padding:6px;border-radius:6px;">Pay 2 coins to view buyer phone</p>`;if(orders.length==0)html+=`<p>No orders yet Boss! Share your shop link</p>`;orders.forEach(o=>{let locked=!o.paid_to_view;html+=`<div style="border:2px solid ${locked?'#ff0000':'#00FF00'};border-radius:12px;padding:10px;margin:8px 0;background:#fff;color:#000"><b>Order ${o.id.slice(0,12)}...</b> - UGX ${Number(o.total||0).toLocaleString()} - ${new Date((o.created_at||o.time)*1000).toLocaleDateString()}<br>Items: ${(o.items||[]).map(i=>i.name+' x'+i.qty).join(', ')}<br>${locked?`<div style="background:#fff0f0;color:#000;padding:8px;border-radius:6px;margin-top:6px">🔒 Buyer Hidden - Pay 2 coins to unlock<br><small>${o.buyer_name||'Buyer'} - ${o.buyer_district||''}</small></div><button onclick="unlockOrder('${o.id}')" style="background:#FFCC02;color:#000;width:100%;padding:10px;border:none;border-radius:8px;margin-top:6px;font-weight:900">🔓 Unlock Buyer - 2 Coins</button>`:`<div style="background:#e8f5e9;color:#000;padding:8px;border-radius:6px;margin-top:6px">✅ Buyer: ${o.buyer_name} - ${o.buyer_phone} - ${o.buyer_district}</div><a href="tel:${o.buyer_phone}"><button style="background:#00FF00;color:#000;width:100%;padding:10px;border:none;border-radius:8px;margin-top:6px;font-weight:900">📞 Call Buyer ${o.buyer_phone}</button></a>`}</div>`;});html+=`<button onclick="closePop('viewPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>`;document.getElementById('viewContent').innerHTML=html;document.getElementById('viewPop').style.display='flex';});}
 async function unlockOrder(orderId){if(!confirm('Pay 2 coins to see buyer phone?'))return;let r=await fetch('/api/orders/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:orderId,email:currentUser.email,phone:currentUser.phone})});let d=await r.json();if(d.success){alert(d.message);openMySales();refreshMyBalanceHeader();}else alert(d.message);}
 function openSecurity(){let newPass=prompt('🔒 Security - Enter new password (min 4 chars):');if(!newPass||newPass.length<4){alert('Too short');return;}fetch('/api/account/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,password:newPass})}).then(r=>r.json()).then(d=>alert(d.message));}
