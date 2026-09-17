@@ -107,7 +107,23 @@ def load_db(file, default):
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
                 if file == 'products.json':
-                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                    cur.execute("SELECT data FROM products ORDER BY id ASC")
+                    rows = cur.fetchall()
+                    # If products table empty, try kv_store backup
+                    if not rows:
+                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
+                        row = cur.fetchone()
+                        if row:
+                            d=row['data']
+                            if isinstance(d,str):
+                                try: d=json.loads(d)
+                                except: pass
+                            cur.close(); conn.close()
+                            print(f"RECOVERED {len(d)} products from kv_store")
+                            return d
+                        cur.close(); conn.close()
+                        return default
+                    
                     result=[]
                     for r in rows:
                         d=r['data']
@@ -115,6 +131,7 @@ def load_db(file, default):
                             try: d=json.loads(d)
                             except: pass
                         result.append(d)
+                    cur.close(); conn.close()
                     return result
                 else:
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
@@ -124,32 +141,11 @@ def load_db(file, default):
                         try: d=json.loads(d)
                         except: pass
                     return d
-            except:
-                try:
-                    import psycopg2.extras
-                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                    if file == 'products.json':
-                        cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                        result=[]
-                        for r in rows:
-                            d=r['data']
-                            if isinstance(d,str):
-                                try: d=json.loads(d)
-                                except: pass
-                            result.append(d)
-                        return result
-                    else:
-                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
-                        if not row: return default
-                        d=row['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        return d
-                except:
-                    try: conn.close()
-                    except: pass
-                    return default
+            except Exception as e:
+                print(f"load_db error {e}")
+                try: conn.close()
+                except: pass
+                return default
         else:
             path=f'data/{file}'
             if os.path.exists(path):
@@ -157,11 +153,14 @@ def load_db(file, default):
                 except: return default
             return default
     except: return default
-
 def save_db(file, data):
     global PRODUCTS_CACHE
     if file in ('products.json','users.json','shops.json'):
         PRODUCTS_CACHE["data"] = None
+    # NEVER save empty products - protects database!
+    if file == 'products.json' and len(data) == 0:
+        print("BLOCKED empty products save - protecting DB!")
+        return
     if DATABASE_URL:
         try:
             ensure_tables(); conn = get_conn(); cur = conn.cursor()
@@ -182,7 +181,6 @@ def save_db(file, data):
             conn.commit(); cur.close(); conn.close(); return
         except Exception as e: print(e)
     json.dump(data, open(f'data/{file}','w'), indent=2)
-
 # ===== AUTO-DELETE EXPIRED WANTS - MUST BE HERE =====
 def cleanup_expired_wants():
     while True:
