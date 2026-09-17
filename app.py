@@ -869,7 +869,12 @@ def admin_set_billboard_animated():
 @app.route('/api/categories')
 def get_cats(): return jsonify(BUSINESS_CATEGORIES)
 @app.route('/api/coins/config')
-def coins_config(): return jsonify(get_coin_config())
+def coins_config():
+    try:
+        cfg = load_db('coin_config.json', {'remaining': 1000000000})
+        return jsonify(cfg)
+    except:
+        return jsonify({'remaining': 1000000000})
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
 @app.route('/api/coins/balance')
