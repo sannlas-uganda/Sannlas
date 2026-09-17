@@ -77,20 +77,12 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 
 def get_conn():
     if not DATABASE_URL: raise Exception("No DATABASE_URL")
-    import time
-    last_err = None
-    for attempt in range(3):  # Try 3 times - to wake Neon
-        try:
-            try:
-                import psycopg
-                return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=30)
-            except ImportError:
-                import psycopg2
-                return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=30)
-        except Exception as e:
-            last_err = e
-            print(f"Neon connect attempt {attempt+1} failed: {e}, retrying...")
-            time.sleep(5)
+    try:
+        import psycopg
+        return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+    except ImportError:
+        import psycopg2
+        return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
     raise last_err
 
 def ensure_tables():
@@ -866,12 +858,17 @@ def admin_set_billboard_animated():
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
 
-@app.route('/api/categories')
-def get_cats(): return jsonify(BUSINESS_CATEGORIES)
+COIN_CONFIG_CACHE = {"data": None, "time": 0}
+
 @app.route('/api/coins/config')
 def coins_config():
     try:
+        now = time.time()
+        if COIN_CONFIG_CACHE["data"] and (now - COIN_CONFIG_CACHE["time"] < 30):
+            return jsonify(COIN_CONFIG_CACHE["data"])
         cfg = load_db('coin_config.json', {'remaining': 1000000000})
+        COIN_CONFIG_CACHE["data"] = cfg
+        COIN_CONFIG_CACHE["time"] = now
         return jsonify(cfg)
     except:
         return jsonify({'remaining': 1000000000})
@@ -2018,11 +2015,6 @@ def llms_txt():
 @app.route('/robots.txt')
 def robots_txt():
     return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.onrender.com/sitemap.xml", mimetype="text/plain")
-
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('.', 'manifest.json', mimetype='application/manifest+json')
-
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
         import socket, smtplib
@@ -2113,22 +2105,26 @@ def compress_neon_now():
     save_db('products.json', products)
     return f"Done! {len(products)} products compressed! Refresh homepage now!"
 
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory(app.root_path, 'manifest.json', mimetype='application/manifest+json')
+
 @app.route('/favicon.ico')
 def serve_favicon():
-    return send_from_directory('.', 'icon-192.png')
+    return send_from_directory(app.root_path, 'icon-192.png')
 
 @app.route('/icon-192.png')
 def serve_icon1():
-    return send_from_directory('.', 'icon-192.png')
+    return send_from_directory(app.root_path, 'icon-192.png')
 
 @app.route('/icon-512.png')
 def serve_icon2():
-    return send_from_directory('.', 'icon-512.png')
+    return send_from_directory(app.root_path, 'icon-512.png')
 
 @app.route('/sw.js')
 def serve_sw():
-    return send_from_directory('.', 'sw.js')
-
+    return send_from_directory(app.root_path, 'sw.js')
+    
 @app.after_request
 def add_cache_headers(response):
     if request.path.startswith('/static') or 'icon' in request.path:
