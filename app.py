@@ -51,6 +51,9 @@ def cleanup_expired_wants():
             print("Cleanup error", e)
         time.sleep(3600)
 
+threading.Thread(target=cleanup_expired_wants, daemon=True).start()
+# ===== END AUTO-DELETE =====
+
 PRODUCTS_CACHE = {"data": None, "time": 0}
 CACHE_TTL = 10
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
@@ -107,23 +110,7 @@ def load_db(file, default):
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
                 if file == 'products.json':
-                    cur.execute("SELECT data FROM products ORDER BY id ASC")
-                    rows = cur.fetchall()
-                    # If products table empty, try kv_store backup
-                    if not rows:
-                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                        row = cur.fetchone()
-                        if row:
-                            d=row['data']
-                            if isinstance(d,str):
-                                try: d=json.loads(d)
-                                except: pass
-                            cur.close(); conn.close()
-                            print(f"RECOVERED {len(d)} products from kv_store")
-                            return d
-                        cur.close(); conn.close()
-                        return default
-                    
+                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
                     result=[]
                     for r in rows:
                         d=r['data']
@@ -131,7 +118,6 @@ def load_db(file, default):
                             try: d=json.loads(d)
                             except: pass
                         result.append(d)
-                    cur.close(); conn.close()
                     return result
                 else:
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
@@ -141,11 +127,32 @@ def load_db(file, default):
                         try: d=json.loads(d)
                         except: pass
                     return d
-            except Exception as e:
-                print(f"load_db error {e}")
-                try: conn.close()
-                except: pass
-                return default
+            except:
+                try:
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    if file == 'products.json':
+                        cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                        result=[]
+                        for r in rows:
+                            d=r['data']
+                            if isinstance(d,str):
+                                try: d=json.loads(d)
+                                except: pass
+                            result.append(d)
+                        return result
+                    else:
+                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                        if not row: return default
+                        d=row['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        return d
+                except:
+                    try: conn.close()
+                    except: pass
+                    return default
         else:
             path=f'data/{file}'
             if os.path.exists(path):
@@ -153,14 +160,11 @@ def load_db(file, default):
                 except: return default
             return default
     except: return default
+
 def save_db(file, data):
     global PRODUCTS_CACHE
     if file in ('products.json','users.json','shops.json'):
         PRODUCTS_CACHE["data"] = None
-    # NEVER save empty products - protects database!
-    if file == 'products.json' and len(data) == 0:
-        print("BLOCKED empty products save - protecting DB!")
-        return
     if DATABASE_URL:
         try:
             ensure_tables(); conn = get_conn(); cur = conn.cursor()
@@ -181,33 +185,7 @@ def save_db(file, data):
             conn.commit(); cur.close(); conn.close(); return
         except Exception as e: print(e)
     json.dump(data, open(f'data/{file}','w'), indent=2)
-# ===== AUTO-DELETE EXPIRED WANTS - MUST BE HERE =====
-def cleanup_expired_wants():
-    while True:
-        try:
-            now = datetime.utcnow()
-            wants_data = load_db('wants.json', [])
-            original = len(wants_data)
-            active = []
-            for w in wants_data:
-                exp = w.get('expires_at')
-                if not exp: 
-                    active.append(w)
-                else:
-                    try:
-                        if datetime.fromisoformat(str(exp).replace('Z','')) > now:
-                            active.append(w)
-                    except: 
-                        active.append(w)
-            if len(active) != original:
-                save_db('wants.json', active)
-                print(f"[CLEANUP] Deleted {original-len(active)} expired wants")
-        except Exception as e: 
-            print("Cleanup error", e)
-        time.sleep(3600)
 
-threading.Thread(target=cleanup_expired_wants, daemon=True).start()
-# ===== END AUTO-DELETE =====
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
 def admin_required(f):
@@ -481,10 +459,17 @@ def create_want():
         "lowest_offer": None
     }
 
-       # FIXED - Use same system
-    wants = get_wants_data()
+    # Load existing wants
+    wants = []
+    if os.path.exists('wants.json'):
+        try:
+            with open('wants.json','r') as f:
+                wants = json.load(f)
+        except:
+            wants = []
     wants.append(want)
-    save_wants_data(wants)
+    with open('wants.json','w') as f:
+        json.dump(wants, f, indent=2)
 
     return jsonify({"success": True, "want": want})
 
@@ -621,6 +606,51 @@ def wants_page():
 @app.route('/wants/<int:wid>')
 def want_detail_page(wid):
     return render_template('want_detail.html')
+
+def send_reset_email(to_email, otp, user_name="Boss"):
+    try:
+        import socket
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        msg = MIMEMultipart()
+        msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
+        msg['To'] = to_email
+        msg['Subject'] = f"Your Sannla Reset Code is {otp}"
+        body = f"""
+        <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
+          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
+          <div style="padding:22px">
+            <h3>Hi {user_name},</h3>
+            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
+            <p>Expires in <b>10 mins</b></p>
+          </div>
+        </div>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        pass_clean = EMAIL_APP_PASSWORD.replace(' ','')
+        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
+        if not infos:
+            raise Exception("No IPv4 for gmail")
+        af, socktype, proto, canonname, sa = infos[0]
+        sock = socket.socket(af, socktype, proto)
+        sock.settimeout(20)
+        sock.connect(sa)
+        server = smtplib.SMTP(timeout=20)
+        server.sock = sock
+        server._host = 'smtp.gmail.com'
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(EMAIL_FROM, pass_clean)
+        server.send_message(msg)
+        server.quit()
+        print(f"✅ Email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        import traceback; traceback.print_exc()
+        return False
 
 @app.route('/product/<pid>')
 def product_link(pid):
@@ -1172,8 +1202,7 @@ def set_password_api():
         return jsonify({"success":True,"message":"🔒 Password saved! Your account is now protected Boss!"})
     except Exception as e:
         return jsonify({"success":False,"message":str(e)})
-
-@app.route('/api/forgot-password', methods=['POST'])
+        @app.route('/api/forgot-password', methods=['POST'])
 @limiter.limit("5 per minute")
 def forgot_password_api():
     data = request.get_json() or {}
@@ -1303,38 +1332,21 @@ def login():
 
 @app.route('/api/products')
 def get_products():
-    global PRODUCTS_CACHE
-    q = request.args.get('q','').lower().strip()
-    shop_slug = (request.args.get('shop') or request.args.get('shop_slug') or '').strip()
-    
-    # Fast cache for homepage
-    if not q and not shop_slug:
-        if PRODUCTS_CACHE.get("data") and (time.time() - PRODUCTS_CACHE["time"] < 60):
-            return jsonify(PRODUCTS_CACHE["data"])
-    
-    products = load_db('products.json', [])
-    filtered = products
-    if q:
-        filtered = [p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower() or q in p.get('description','').lower()]
+    q = request.args.get('q','').lower()
+    shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+    products=load_db('products.json', [])
+    filtered=products
+    if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower()]
     if shop_slug:
-        exact = [p for p in filtered if p.get('shop_slug')==shop_slug]
-        if exact:
-            filtered = exact
-    
-    filtered = sorted(filtered, key=lambda x: x.get('created',0), reverse=True)
-    
-    public = []
-    for p in filtered[:100]:
-        pp = p.copy()
-        pp.pop('phone', None)
-        public.append(pp)
-    
-    if not q and not shop_slug:
-        PRODUCTS_CACHE["data"] = public
-        PRODUCTS_CACHE["time"] = time.time()
-    
+        sf = shop_slug.strip()
+        exact = [p for p in filtered if p.get('shop_slug')==sf]
+        if exact: filtered = exact
+    filtered=sorted(filtered,key=lambda x:x.get('created',0),reverse=True)
+    public=[]
+    for p in filtered:
+        pp=p.copy(); pp.pop('phone',None); public.append(pp)
     return jsonify(public)
-    
+
 @app.route('/api/sell', methods=['POST'])
 def sell():
     name=request.form.get('name')
@@ -1351,6 +1363,7 @@ def sell():
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
+    # === FREE UPLOAD NOW - NO COINS CHECK ===
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -1364,7 +1377,8 @@ def sell():
     except: pass
     prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    return jsonify({'success':True,'message':f'Product added FREE!','id': prod['id']})
+    # NO COIN DEDUCTION - FREE!
+    return jsonify({'success':True,'message':f'Product added FREE! Now sellers pay 2 coins when buyer orders'})
 
 @app.route('/api/shops')
 def list_shops():
@@ -1933,7 +1947,29 @@ def compress_neon_now():
             except: pass
     save_db('products.json', products)
     return f"Done! {len(products)} products compressed! Refresh homepage now!"
-    
+
+@app.route('/favicon.ico')
+def serve_favicon():
+    return send_from_directory('.', 'icon-192.png')
+
+@app.route('/icon-192.png')
+def serve_icon1():
+    return send_from_directory('.', 'icon-192.png')
+
+@app.route('/icon-512.png')
+def serve_icon2():
+    return send_from_directory('.', 'icon-512.png')
+
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('.', 'sw.js')
+
+@app.after_request
+def add_cache_headers(response):
+    if request.path.startswith('/static') or 'icon' in request.path:
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return response
+
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
