@@ -773,12 +773,14 @@ gateCheck();
 loadWantsLiveSafe(); 
 refreshWantsBadge();
 loadCoinLive();
+// FIXED: poll only every 2 minutes, not 10 sec - prevent hang
 setInterval(async()=>{
-  await loadCoinLive();
-  await loadWantsLiveSafe();
-  await refreshWantsBadge();
-},15000);
-setInterval(refreshMyBalanceHeader,10000);
+  try{
+    await loadCoinLive();
+  }catch(e){}
+},120000); // 2 mins
+
+// Don't auto-poll wants & balance every time - only on load
 </script>
 </body>
 </html>
