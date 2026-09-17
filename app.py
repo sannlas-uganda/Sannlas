@@ -1376,10 +1376,9 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except: pass
-    prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
-    products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    # NO COIN DEDUCTION - FREE!
-       return jsonify({'success':True,'message':f'Product added FREE!','id': prod['id']})
+   prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
+   products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
+    return jsonify({'success':True,'message':f'Product added FREE!','id': prod['id']})
 
 @app.route('/api/shops')
 def list_shops():
