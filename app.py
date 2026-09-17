@@ -51,9 +51,6 @@ def cleanup_expired_wants():
             print("Cleanup error", e)
         time.sleep(3600)
 
-threading.Thread(target=cleanup_expired_wants, daemon=True).start()
-# ===== END AUTO-DELETE =====
-
 PRODUCTS_CACHE = {"data": None, "time": 0}
 CACHE_TTL = 10
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
@@ -185,6 +182,16 @@ def save_db(file, data):
             conn.commit(); cur.close(); conn.close(); return
         except Exception as e: print(e)
     json.dump(data, open(f'data/{file}','w'), indent=2)
+    
+    # ===== START AUTO-DELETE THREAD HERE - AFTER load_db defined =====
+def start_cleanup_thread():
+    try:
+        threading.Thread(target=cleanup_expired_wants, daemon=True).start()
+    except Exception as e:
+        print("Cleanup thread not started:", e)
+
+start_cleanup_thread()
+# ===== END =====
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
@@ -459,17 +466,10 @@ def create_want():
         "lowest_offer": None
     }
 
-    # Load existing wants
-    wants = []
-    if os.path.exists('wants.json'):
-        try:
-            with open('wants.json','r') as f:
-                wants = json.load(f)
-        except:
-            wants = []
+       # FIXED - Use same system
+    wants = get_wants_data()
     wants.append(want)
-    with open('wants.json','w') as f:
-        json.dump(wants, f, indent=2)
+    save_wants_data(wants)
 
     return jsonify({"success": True, "want": want})
 
@@ -606,51 +606,6 @@ def wants_page():
 @app.route('/wants/<int:wid>')
 def want_detail_page(wid):
     return render_template('want_detail.html')
-
-def send_reset_email(to_email, otp, user_name="Boss"):
-    try:
-        import socket
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        msg = MIMEMultipart()
-        msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Your Sannla Reset Code is {otp}"
-        body = f"""
-        <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
-          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
-          <div style="padding:22px">
-            <h3>Hi {user_name},</h3>
-            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
-            <p>Expires in <b>10 mins</b></p>
-          </div>
-        </div>
-        """
-        msg.attach(MIMEText(body, 'html'))
-        pass_clean = EMAIL_APP_PASSWORD.replace(' ','')
-        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
-        if not infos:
-            raise Exception("No IPv4 for gmail")
-        af, socktype, proto, canonname, sa = infos[0]
-        sock = socket.socket(af, socktype, proto)
-        sock.settimeout(20)
-        sock.connect(sa)
-        server = smtplib.SMTP(timeout=20)
-        server.sock = sock
-        server._host = 'smtp.gmail.com'
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(EMAIL_FROM, pass_clean)
-        server.send_message(msg)
-        server.quit()
-        print(f"✅ Email sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"Email error: {e}")
-        import traceback; traceback.print_exc()
-        return False
 
 @app.route('/product/<pid>')
 def product_link(pid):
@@ -1333,8 +1288,14 @@ def login():
 
 @app.route('/api/products')
 def get_products():
+    global PRODUCTS_CACHE
     q = request.args.get('q','').lower()
     shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+    
+    # Use cache for homepage (no query) - 30 sec fast!
+    if not q and not shop_slug and PRODUCTS_CACHE["data"] and (time.time() - PRODUCTS_CACHE["time"] < 30):
+        return jsonify(PRODUCTS_CACHE["data"])
+    
     products=load_db('products.json', [])
     filtered=products
     if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower()]
@@ -1346,7 +1307,14 @@ def get_products():
     public=[]
     for p in filtered:
         pp=p.copy(); pp.pop('phone',None); public.append(pp)
-    return jsonify(public)
+    
+    # Save to cache
+    if not q and not shop_slug:
+        PRODUCTS_CACHE["data"] = public[:100]  # Only 100 fast!
+        PRODUCTS_CACHE["time"] = time.time()
+        return jsonify(PRODUCTS_CACHE["data"])
+    
+    return jsonify(public[:100])
 
 @app.route('/api/sell', methods=['POST'])
 def sell():
