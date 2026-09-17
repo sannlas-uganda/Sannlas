@@ -1364,14 +1364,28 @@ def sell():
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
-    # === FREE UPLOAD NOW - NO COINS CHECK ===
+
+    # === NEW: 4 PHOTOS SUPPORT (Front, Side, Sole, Texture) ===
     images=[]
-    for key in request.files:
-        f=request.files[key]
-        if f and f.filename:
-            result = cloudinary.uploader.upload(f, folder="sannlas/products", transformation=[{'width': 800, 'quality': 'auto'}])
-            images.append(result['secure_url'])
+    # Check new multi-image fields first
+    image_count = int(request.form.get('image_count','0') or '0')
+    if image_count > 0:
+        for i in range(4):
+            key = f'image_{i}'
+            f = request.files.get(key)
+            if f and f.filename:
+                result = cloudinary.uploader.upload(f, folder="sannlas/products", transformation=[{'width': 800, 'quality': 'auto'}])
+                images.append(result['secure_url'])
+    # Fallback: old single image or any files
+    if not images:
+        for key in request.files:
+            f=request.files[key]
+            if f and f.filename:
+                result = cloudinary.uploader.upload(f, folder="sannlas/products", transformation=[{'width': 800, 'quality': 'auto'}])
+                images.append(result['secure_url'])
     if not images: images=['https://via.placeholder.com/300']
+    # Ensure max 4
+    images = images[:4]
     shop_id=None; shop_slug=None
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
