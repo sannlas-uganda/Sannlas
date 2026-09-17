@@ -1364,7 +1364,6 @@ def sell():
     user_email=request.form.get('user_email','').lower()
     users=load_db('users.json',[]); seller=next((u for u in users if u['phone']==phone or u['email']==user_email),None)
     if not seller: return jsonify({'success':False,'message':'Register first'}),402
-    # === FREE UPLOAD NOW - NO COINS CHECK ===
     images=[]
     for key in request.files:
         f=request.files[key]
@@ -1376,8 +1375,8 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except: pass
-   prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
-   products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
+    prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
+    products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     return jsonify({'success':True,'message':f'Product added FREE!','id': prod['id']})
 
 @app.route('/api/shops')
