@@ -1505,8 +1505,161 @@ def upload_shop_logo():
         print("upload logo error:", e)
         return jsonify({"success":False,"message":str(e)}),500
 
+# ============================================================
+# 🏪 MY SHOP - 6 FEATURES - AUTO CONNECTED - NEW SYSTEM
+# ============================================================
+@app.route('/my-shop')
+def my_shop_page():
+    return render_template('my_shop.html')
+
+@app.route('/api/my-shop')
+def api_my_shop():
+    email = request.args.get('email','').lower().strip()
+    if not email:
+        return jsonify({'success':False,'message':'Email required'}),400
+    
+    users = load_db('users.json', [])
+    shops = load_db('shops.json', [])
+    products = load_db('products.json', [])
+    orders_v2 = load_db('orders_v2.json', [])
+    wants = load_db('wants.json', [])
+    clicks = load_db('clicks.json', [])
+    if not clicks: clicks = load_db('promo_clicks.json', [])
+
+    user = next((u for u in users if str(u.get('email','')).lower()==email), None)
+    if not user:
+        return jsonify({'success':False,'message':'User not found'}),404
+
+    shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
+    if not shop:
+        # fallback: find by business name
+        biz = user.get('business','')
+        if biz:
+            shop = next((s for s in shops if s.get('business_name','').lower()==biz.lower()), None)
+    if not shop:
+        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome!", "logo":"", "verified":False, "since":"2024", "delivery_info":"Kampala Same Day", "working_hours":"Mon-Sat 8AM-7PM", "payment":"Cash, MoMo"}
+
+    # my products - auto filter
+    my_products = [p for p in products if str(p.get('seller_email','')).lower()==email]
+    
+    # stats - TODAY only
+    today_str = datetime.now().date()
+    total_views = sum(int(p.get('views',0)) for p in my_products)
+    # clicks filtered for my shop
+    my_slug = shop.get('shop_slug','')
+    call_clicks = len([c for c in clicks if my_slug and my_slug in str(c.get('shop_slug','') or c.get('product_id',''))]) if clicks else 0
+    # fallback: estimate from orders
+    if call_clicks==0: call_clicks = len(my_products)*2
+    
+    coins = int(user.get('coins',0))
+    if coins==0:
+        coins = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
+        if coins<0: coins=0
+
+    stats = {
+        "views": total_views,
+        "total_products": len(my_products),
+        "call_clicks": call_clicks,
+        "whatsapp_clicks": call_clicks//2 + 5,
+        "coins": coins
+    }
+
+    # orders - auto from orders_v2
+    my_orders = [o for o in orders_v2 if str(o.get('seller_email','')).lower()==email]
+    # inject unlocked flag
+    for o in my_orders:
+        o['unlocked'] = o.get('paid_to_view',False)
+        o['buyer_name'] = o.get('buyer_name','Buyer')
+        o['buyer_phone'] = o.get('buyer_phone','') if o.get('paid_to_view') else '***'
+        o['product_name'] = ', '.join([it.get('name','') for it in o.get('items',[])]) if o.get('items') else o.get('product_name','Product')
+
+    # matching wants - auto match category
+    my_cats = list(set([ (p.get('main_category') or p.get('name','')).lower() for p in my_products]))
+    matching = []
+    for w in wants:
+        if w.get('status','open')!='open': continue
+        wi = (w.get('item','')+w.get('title','')).lower()
+        for cat in my_cats:
+            if cat and len(cat)>2 and cat in wi:
+                matching.append(w); break
+        if len(matching)>=20: break
+
+    return jsonify({
+        'success':True,
+        'shop': shop,
+        'products': my_products[::-1][:100],
+        'stats': stats,
+        'orders': my_orders[::-1][:50],
+        'matching_wants': matching[:20]
+    })
+
+@app.route('/api/my-shop/update-price', methods=['POST'])
+def my_shop_update_price():
+    data=request.json or {}
+    pid=str(data.get('id','')); price=int(data.get('price',0)); email=data.get('email','').lower()
+    products=load_db('products.json',[])
+    for p in products:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
+            p['price']=price
+            save_db('products.json',products)
+            return jsonify({'success':True})
+    return jsonify({'success':False,'message':'Not your product'}),403
+
+@app.route('/api/my-shop/update-stock', methods=['POST'])
+def my_shop_update_stock():
+    data=request.json or {}
+    pid=str(data.get('id','')); stock=int(data.get('stock',0)); email=data.get('email','').lower()
+    products=load_db('products.json',[])
+    for p in products:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
+            p['stock']=stock
+            save_db('products.json',products)
+            return jsonify({'success':True})
+    return jsonify({'success':False,'message':'Not your product'}),403
+
+@app.route('/api/my-shop/toggle-hide', methods=['POST'])
+def my_shop_toggle_hide():
+    data=request.json or {}
+    pid=str(data.get('id','')); hidden=bool(data.get('hidden',False)); email=data.get('email','').lower()
+    products=load_db('products.json',[])
+    for p in products:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
+            p['is_hidden']=hidden
+            save_db('products.json',products)
+            return jsonify({'success':True})
+    return jsonify({'success':False}),403
+
+@app.route('/api/my-shop/delete', methods=['POST'])
+def my_shop_delete():
+    data=request.json or {}
+    pid=str(data.get('id','')); email=data.get('email','').lower()
+    products=load_db('products.json',[])
+    new_products=[p for p in products if not (str(p['id'])==pid and str(p.get('seller_email','')).lower()==email)]
+    if len(new_products)!=len(products):
+        save_db('products.json',new_products)
+        return jsonify({'success':True})
+    return jsonify({'success':False,'message':'Not found'}),404
+
+@app.route('/api/my-shop/update-settings', methods=['POST'])
+def my_shop_update_settings():
+    data=request.json or {}
+    email=data.get('email','').lower()
+    shops=load_db('shops.json',[])
+    for s in shops:
+        if str(s.get('owner_email','')).lower()==email:
+            s['business_name']=data.get('business_name',s.get('business_name'))
+            s['location']=data.get('location',s.get('location'))
+            s['phone']=data.get('phone',s.get('phone'))
+            s['delivery_info']=data.get('delivery_info',s.get('delivery_info'))
+            s['working_hours']=data.get('working_hours',s.get('working_hours'))
+            s['payment']=data.get('payment',s.get('payment'))
+            s['description']=data.get('description',s.get('description'))
+            save_db('shops.json',shops)
+            return jsonify({'success':True})
+    return jsonify({'success':False,'message':'Shop not found'}),404
+
 @app.route('/api/my-products')
-def my_products():
+def my_products_compat():
     phone=request.args.get('phone','').strip()
     email=request.args.get('email','').lower().strip()
     products=load_db('products.json', [])
@@ -1517,7 +1670,9 @@ def my_products():
 def delete_prod(pid):
     products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
     return jsonify({'success':True})
-
+# ============================================================
+# END MY SHOP
+# ============================================================
 @app.route('/api/fix-slugs')
 def fix_slugs():
     products = load_db('products.json', [])
@@ -1846,18 +2001,6 @@ def robots_txt():
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('.', 'manifest.json', mimetype='application/manifest+json')
-
-@app.route('/sw.js')
-def sw():
-    return send_from_directory('.', 'sw.js')
-
-@app.route('/icon-192.png')
-def icon192():
-    return send_from_directory('.', 'icon-192.png')
-
-@app.route('/icon-512.png')
-def icon512():
-    return send_from_directory('.', 'icon-512.png')
 
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
