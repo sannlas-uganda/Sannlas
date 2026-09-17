@@ -73,6 +73,34 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 #billboardBanner{display:none;background:#000;text-align:center;position:relative;overflow:hidden}
 #billboardBanner.active{display:block}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+  /* ===== PRO PRODUCT MODAL - HYBRID DESIGN ===== */
+.pro-modal{max-width:900px!important;width:98%!important;padding:0!important;border-radius:20px!important;overflow:hidden;background:#fff!important;max-height:95vh!important;display:flex;flex-direction:column}
+.pro-modal-top{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:#fff;position:sticky;top:0;z-index:5}
+.pro-modal-body{display:flex;flex:1;overflow-y:auto;flex-direction:row}
+.pro-modal-left{flex:1;background:#f8f9fb;padding:16px;display:flex;flex-direction:column;gap:12px}
+.pro-modal-main-img{width:100%;height:380px;object-fit:contain;background:#fff;border-radius:16px;border:1px solid #eee}
+.pro-thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.pro-thumb{width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid transparent;cursor:pointer;flex:0 0 70px;background:#fff}
+.pro-thumb.active{border-color:#FFCC02;box-shadow:0 0 0 2px #000}
+.pro-modal-right{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.pro-price{font-size:28px;font-weight:900;color:#000}
+.pro-badge{background:#d1fae5;color:#065f46;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:800;display:inline-block}
+.pro-option-title{font-weight:800;font-size:13px;margin-top:8px}
+.pro-colors{display:flex;gap:10px}
+.pro-color{width:36px;height:36px;border-radius:50%;border:2px solid #ddd;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900}
+.pro-color.active{border-color:#000;box-shadow:0 0 0 2px #FFCC02}
+.pro-sizes{display:flex;gap:8px}
+.pro-size{padding:8px 18px;border-radius:10px;border:1px solid #ddd;background:#fff;font-weight:700;cursor:pointer}
+.pro-size.active{background:#000;color:#FFCC02;border-color:#000}
+.pro-btn{width:100%;padding:14px;border-radius:12px;border:none;font-weight:900;font-size:14px;cursor:pointer}
+.pro-btn-green{background:#25D366;color:#fff}
+.pro-btn-orange{background:#FF6A00;color:#fff}
+.pro-btn-black{background:#000;color:#FFCC02;border:2px solid #FFCC02}
+.pro-btn-yellow{background:#FFCC02;color:#000}
+@media(max-width:768px){
+.pro-modal-body{flex-direction:column}
+.pro-modal-main-img{height:280px}
+}
 </style>
 </head>
 <body>
@@ -156,8 +184,7 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 </select>
 <input id="frontPhoneReal" placeholder="Your Phone 256..." style="background:#fff;border:2px solid #000;width:100%;padding:12px;margin:6px 0;border-radius:10px;font-weight:bold">
 <div style="background:#000;border-radius:12px;padding:12px;margin:10px 0;text-align:center"><div style="color:#00FF00;font-weight:900;font-size:16px">🪙 UPLOAD FOR FREE - 0 COINS!</div><div style="color:#aaa;font-size:12px;margin-top:4px">You have: <b><span id="myCoinsPlan">0</span> coins</b> | Min Withdraw 50 = UGX 29,950</div></div>
-<div style="border:2px dashed #111;padding:10px;border-radius:12px;margin:10px 0"><input type="file" id="frontInput" accept="image/*" onchange="frontPreview(this)" style="width:100%"><div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b></div></div>
-<div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:#999;padding:60px;font-weight:700">👆 Select 1 photo</p></div>
+<div style="border:2px dashed #111;padding:10px;border-radius:12px;margin:10px 0"><input type="file" id="frontInput" accept="image/*" multiple onchange="frontPreview(this)" style="width:100%"><div style="background:#111;color:#FFCC02;padding:6px;border-radius:8px;text-align:center;margin-top:6px">Selected: <b><span id="frontCount">0</span></b> / 4 photos (Front • Side • Sole • Texture)</div></div><div id="frontPreview"><p style="grid-column:1/-1;text-align:center;color:#999;padding:60px;font-weight:700">👆 Select 1 photo</p></div>
 <div id="frontStatus" style="background:#111;color:#00FF00;padding:10px;border-radius:10px;margin:10px 0;text-align:center">Ready - FREE Upload</div>
 <button onclick="frontUploadAll()" class="btn" style="width:100%;padding:16px;font-size:16px;background:#000;color:#FFCC02">🚀 UPLOAD <span id="frontCount2">0</span> PRODUCTS LIVE</button>
 </div>
@@ -165,8 +192,11 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 
 <div class="products" id="products"></div>
 
-<div class="popup" id="viewPop" onclick="closePop('viewPop')"><div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div></div>
-<div class="popup" id="cartPop" onclick="closePop('cartPop')"><div class="popup-content" id="cartContent" onclick="event.stopPropagation()"></div></div>
+<div class="popup" id="viewPop" onclick="closePop('viewPop')">
+  <div class="popup-content pro-modal" id="viewContent" onclick="event.stopPropagation()">
+    <!-- Content injected by JS -->
+  </div>
+</div><div class="popup" id="cartPop" onclick="closePop('cartPop')"><div class="popup-content" id="cartContent" onclick="event.stopPropagation()"></div></div>
 
 <div class="popup" id="authPop" onclick="closePop('authPop')">
 <div class="popup-content" onclick="event.stopPropagation()" style="max-width:500px">
@@ -315,11 +345,85 @@ return `<div><div class="row-title"><span>${rowLabel}</span><span style="font-si
 document.getElementById('products').innerHTML=html;
 }
 
-function frontPreview(input){if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}frontFiles=Array.from(input.files).slice(0,1);document.getElementById('frontCount').innerText=frontFiles.length;document.getElementById('frontCount2').innerText=frontFiles.length;let box=document.getElementById('frontPreview');box.innerHTML='';for(let i=0;i<frontFiles.length;i++){let url=URL.createObjectURL(frontFiles[i]);_oldUrls.push(url);box.innerHTML+=`<div style="background:white;border-radius:12px;overflow:hidden;border:1px solid #eee"><img src="${url}" style="width:100%;height:130px;object-fit:cover"><div style="padding:6px"><input id="fname_${i}" value="${frontFiles[i].name.split('.')[0].slice(0,20)}" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;font-size:12px"><input id="fprice_${i}" type="number" placeholder="SELLING PRICE UGX" style="width:100%;padding:8px;margin:3px 0;border:2px solid #000;border-radius:8px"><input id="forig_${i}" type="number" placeholder="ORIGINAL PRICE" style="width:100%;padding:8px;margin:3px 0;border:1px dashed #999;border-radius:8px"><textarea id="fdesc_${i}" placeholder="📝 Description..." rows="3" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;background:#f9fafb"></textarea></div></div>`;}}
-function compressImage(file){return new Promise((res)=>{let img=new Image();img.onload=()=>{let canvas=document.createElement('canvas');let maxW=600;let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob((blob)=>{res(new File([blob],file.name,{type:'image/jpeg'}));},'image/jpeg',0.55);URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
-async function frontUploadAll(){if(frontFiles.length==0){alert('Select photos Boss!');return;}if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}let phone=document.getElementById('frontPhoneReal').value.trim();if(!phone){alert('Enter Business Phone Boss!');return;}frontUploadAllProceed();}
-async function frontUploadAllProceed(){let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';for(let i=0;i<frontFiles.length;i++){if(!document.getElementById(`fprice_${i}`).value){alert('Enter price '+(i+1));return;}}let status=document.getElementById('frontStatus');status.innerHTML='⏳ Compressing...';let comp=[];for(let i=0;i<frontFiles.length;i++){let cf=await compressImage(frontFiles[i]);comp.push(cf);}for(let i=0;i<comp.length;i++){let fd=new FormData();fd.append('name',document.getElementById(`fname_${i}`).value);fd.append('price',document.getElementById(`fprice_${i}`).value);fd.append('original_price',document.getElementById(`forig_${i}`)?.value||document.getElementById(`fprice_${i}`).value);fd.append('stock','10');fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');fd.append('image',comp[i]);fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);fd.append('user_email',currentUser?currentUser.email:'');fd.append('desc',document.getElementById(`fdesc_${i}`)?.value||'');fd.append('description',document.getElementById(`fdesc_${i}`)?.value||'');let r=await fetch('/api/sell',{method:'POST',body:fd});let d=await r.json();if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}status.innerHTML=`Uploading ${i+1}/${comp.length}`;}status.innerHTML=`✅ DONE! FREE Upload Success`;doFilter();setTimeout(()=>closeSellModal(),1000);}
-async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
+// ===== NEW 4 PHOTOS SUPPORT - REPLACE OLD 4 FUNCTIONS =====
+function frontPreview(input){
+  if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}
+  frontFiles = Array.from(input.files).slice(0,4);
+  document.getElementById('frontCount').innerText=frontFiles.length;
+  document.getElementById('frontCount2').innerText=frontFiles.length;
+  let box=document.getElementById('frontPreview');
+  if(frontFiles.length==0){
+    box.innerHTML='<p style="grid-column:1/-1;text-align:center;color:#999;padding:60px">👆 Select up to 4 photos: Front / Side / Sole / Texture</p>';
+    return;
+  }
+  let labels = ['Front (Main)', 'Side', 'Sole / Bottom', 'Texture / Logo'];
+  box.innerHTML = frontFiles.map((f,i)=>{
+    let url=URL.createObjectURL(f);
+    _oldUrls.push(url);
+    return `<div style="background:white;border-radius:12px;overflow:hidden;border:2px solid ${i==0?'#FFCC02':'#eee'}">
+      <div style="background:${i==0?'#FFCC02':'#111'};color:${i==0?'#000':'#fff'};padding:4px 8px;font-size:11px;font-weight:900;text-align:center">${labels[i]} ${i==0?'⭐ MAIN':''}</div>
+      <img src="${url}" style="width:100%;height:130px;object-fit:cover">
+      <div style="padding:6px"><input id="fname_${i}" value="${f.name.split('.')[0].slice(0,20)}" style="width:100%;padding:8px;margin:3px 0;border:1px solid #ddd;border-radius:8px;font-size:12px"></div>
+    </div>`;
+  }).join('');
+  box.innerHTML += `<div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+    <input id="fprice_0" type="number" placeholder="SELLING PRICE UGX" style="padding:12px;border:2px solid #000;border-radius:8px">
+    <input id="forig_0" type="number" placeholder="ORIGINAL PRICE" style="padding:12px;border:1px dashed #999;border-radius:8px">
+    <textarea id="fdesc_0" placeholder="📝 Description..." rows="2" style="grid-column:1/-1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#f9fafb"></textarea>
+  </div>`;
+}
+function compressImage(file){
+  return new Promise((res)=>{
+    let img=new Image();
+    img.onload=()=>{
+      let canvas=document.createElement('canvas');
+      let maxW=700; let w=img.width,h=img.height;
+      if(w>maxW){h=h*maxW/w;w=maxW;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob((blob)=>{
+        res(new File([blob], file.name.replace(/\.[^/.]+$/,"")+".webp", {type:'image/webp'}));
+      },'image/webp',0.6);
+      URL.revokeObjectURL(img.src);
+    };
+    img.src=URL.createObjectURL(file);
+  });
+}
+async function frontUploadAll(){
+  if(frontFiles.length==0){alert('Select photos Boss! (up to 4)');return;}
+  if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}
+  let phone=document.getElementById('frontPhoneReal').value.trim();
+  if(!phone){alert('Enter Business Phone Boss!');return;}
+  frontUploadAllProceed();
+}
+async function frontUploadAllProceed(){
+  let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';
+  if(!document.getElementById('fprice_0').value){alert('Enter price Boss!');return;}
+  let status=document.getElementById('frontStatus');
+  status.innerHTML='⏳ Compressing 4 photos...';
+  let comp=[];
+  for(let i=0;i<frontFiles.length;i++){ comp.push(await compressImage(frontFiles[i])); }
+  let fd=new FormData();
+  fd.append('name',document.getElementById('fname_0').value);
+  fd.append('price',document.getElementById('fprice_0').value);
+  fd.append('original_price',document.getElementById('forig_0')?.value||document.getElementById('fprice_0').value);
+  fd.append('stock','10');
+  fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');
+  fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);
+  fd.append('user_email',currentUser?currentUser.email:'');
+  fd.append('desc',document.getElementById('fdesc_0')?.value||'');
+  fd.append('description',document.getElementById('fdesc_0')?.value||'');
+  comp.forEach((file, idx)=>{ fd.append(`image_${idx}`, file); });
+  fd.append('image_count', comp.length);
+  fd.append('image', comp[0]);
+  status.innerHTML='⏳ Uploading...';
+  let r=await fetch('/api/sell',{method:'POST',body:fd});
+  let d=await r.json();
+  if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}
+  status.innerHTML=`✅ DONE! ${comp.length} Photos Live`;
+  doFilter();
+  setTimeout(()=>closeSellModal(),1000);
+}async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
 function doLogout(){localStorage.clear();location.reload();}
 function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
 async function showAllShops(){
@@ -494,36 +598,92 @@ function compressWantImage(file){
   if(btn){btn.disabled=false; btn.innerText='🚀 POST WANT (FREE)';}
 }
 async function startVoiceSearch(){let btn=document.getElementById('micBtn');try{let s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}catch(e){alert('❌ Please ALLOW microphone!');return;}let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported! Use Chrome');return;}let recog=new SR();recog.lang='en-US';btn.innerText='🔴';btn.disabled=true;recog.onresult=(e)=>{let t=e.results[0][0].transcript;document.getElementById('searchInput').value=t;doFilter();};recog.onend=()=>{btn.innerText='🎤';btn.disabled=false;};recog.start();}
+let proCurrentImg = 0;
+let proImages = [];
+
 function viewProd(id){
-  let p=allProducts.find(x=>x.id==id)||products.find(x=>x.id==id);
-  if(!p)return;
-  let desc=p.description||p.desc||'No description';
-  let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
-  let shopBtn=p.shop_slug?`<a href="/shop/${p.shop_slug}" style="text-decoration:none"><button style="width:100%;background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:800">🏪 Visit Shop</button></a>` : '';
-  let promoComm=p.promo_commission||3;
+  let p = allProducts.find(x=>x.id==id) || products.find(x=>x.id==id);
+  if(!p) return;
+
+  // Handle images - if multiple images exist use them, else duplicate single
+  proImages = p.images && p.images.length? p.images : [p.image, p.image, p.image, p.image];
+  proCurrentImg = 0;
+
+  let desc = p.description || p.desc || 'No description';
+  let promoComm = p.promo_commission || 3;
+  let shopBtn = p.shop_slug? `/shop/${p.shop_slug}` : '#';
   let sellerPhone = (p.phone||'').replace(/[^0-9]/g,'');
   if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
-  
+  let stockLeft = p.stock || 5;
+
   document.getElementById('viewContent').innerHTML=`
-    <h2 style="font-weight:800">${p.name}</h2>
-    <img src="${p.image}" style="width:100%;border-radius:16px;margin:10px 0">
-    <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:900">${priceHtml}</div>
-    <div style="background:#f8f9fb;padding:12px;border-radius:12px;margin:10px 0;border:1px solid #eee">
-      <b>📝 Description:</b><br>${desc}<br><b>🏪 Business:</b> ${p.business||'Seller'}
+    <div class="pro-modal-top">
+      <div style="font-size:12px;color:#666">Home › ${p.main_category||'Fashion'} › ${p.name.substring(0,20)}</div>
+      <button onclick="closePop('viewPop')" style="background:#eee;border:none;width:32px;height:32px;border-radius:50%;font-weight:900;cursor:pointer">✕</button>
     </div>
-    ${shopBtn}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
-      <button onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')" style="background:#25D366;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:13px">💬 WhatsApp Seller - 1 Coin</button>
-      <button style="padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
+    <div class="pro-modal-body">
+      <div class="pro-modal-left">
+        <img id="proMainImg" src="${proImages[0]}" class="pro-modal-main-img">
+        <div class="pro-thumbs">
+          ${proImages.slice(0,4).map((img,i)=>`
+            <img src="${img}" class="pro-thumb ${i==0?'active':''}" onclick="proSetImg(${i})" id="proThumb${i}">
+          `).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="pro-size active" style="flex:1;font-size:11px">Product Details</button>
+          <button class="pro-size" style="flex:1;font-size:11px" onclick="alert('Reviews coming soon Boss!')">Reviews</button>
+          <button class="pro-size" style="flex:1;font-size:11px" onclick="alert('Similar products coming!')">Similar</button>
+        </div>
+        <div style="background:#f8f9fb;padding:10px;border-radius:10px;font-size:12px;border:1px solid #eee">
+          • Material: Premium quality<br>• Stock: ${stockLeft} left<br>• Authenticity: Verified
+        </div>
+      </div>
+      <div class="pro-modal-right">
+        <h2 style="font-size:22px;font-weight:900;margin:0">${p.name}</h2>
+        <div style="background:#f1f1f1;padding:8px 10px;border-radius:8px;font-size:12px">🏪 Business ${p.business||'Seller'} ${p.verified?'✅':''} <span style="color:#FFCC02">★ 4.6 (124 reviews)</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="pro-price">UGX ${Number(p.price).toLocaleString()}</span><span class="pro-badge">In Stock • ${stockLeft} left</span></div>
+        <div><b class="pro-option-title">Description</b><p style="font-size:13px;color:#444;line-height:1.4;margin-top:4px">${desc}</p></div>
+        <div><b class="pro-option-title">Color Options</b>
+          <div class="pro-colors" style="margin-top:6px">
+            <div class="pro-color active" style="background:#000;color:#fff" onclick="proPickColor(this)">✓</div>
+            <div class="pro-color" style="background:#fff" onclick="proPickColor(this)"></div>
+            <div class="pro-color" style="background:#d9c5a0" onclick="proPickColor(this)"></div>
+          </div>
+          <div style="display:flex;gap:30px;font-size:11px;margin-top:4px"><span>Black</span><span>White</span><span>Beige</span></div>
+        </div>
+        <div><b class="pro-option-title">Size Options</b>
+          <div class="pro-sizes" style="margin-top:6px">
+            <button class="pro-size" onclick="proPickSize(this)">S</button>
+            <button class="pro-size active" onclick="proPickSize(this)">M</button>
+            <button class="pro-size" onclick="proPickSize(this)">L</button>
+          </div>
+        </div>
+        <button class="pro-btn pro-btn-green" onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')">💬 WhatsApp Seller • 1 Coin</button>
+        <button class="pro-btn pro-btn-orange" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
+        <button class="pro-btn pro-btn-black" onclick="location.href='${shopBtn}'">🏪 Visit Shop</button>
+        <div style="background:#FFCC02;padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="applyPromote('${p.id}', ${promoComm})">
+          <span style="font-weight:900;font-size:13px">✨ Earn Coins • Apply to Promote • ${promoComm} coins/sale</span><span>→</span>
+        </div>
+      </div>
     </div>
-    <div style="margin:12px 0;border:2px dashed #FFCC02;padding:12px;border-radius:12px;background:#111;text-align:center">
-      <p style="color:#FFCC02">💰 Earn <b>${promoComm} coins</b> per sale!</p>
-      <button onclick="applyPromote('${p.id}', ${promoComm})" style="background:#FFCC02;color:#000;width:100%;padding:12px;border:none;border-radius:10px;font-weight:900;margin-top:6px">🤝 Apply to Promote</button>
-    </div>
-    <button style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px" onclick="closePop('viewPop')">Close</button>`;
+  `;
   document.getElementById('viewPop').style.display='flex';
 }
 
+function proSetImg(i){
+  proCurrentImg = i;
+  document.getElementById('proMainImg').src = proImages[i];
+  document.querySelectorAll('.pro-thumb').forEach(t=>t.classList.remove('active'));
+  document.getElementById('proThumb'+i).classList.add('active');
+}
+function proPickColor(el){
+  document.querySelectorAll('.pro-color').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function proPickSize(el){
+  document.querySelectorAll('.pro-sizes.pro-size').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
 // ============ 1 COIN CHAT UNLOCK SYSTEM - NEW ============
 async function unlockChatAndOpenWhatsApp(shopSlug, sellerPhone, productName) {
     let u = null;
