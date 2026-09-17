@@ -1515,84 +1515,86 @@ def my_shop_page():
 @app.route('/api/my-shop')
 def api_my_shop():
     email = request.args.get('email','').lower().strip()
+    page = int(request.args.get('page','1'))
+    limit = 10
+    offset = (page-1)*limit
+
     if not email:
         return jsonify({'success':False,'message':'Email required'}),400
-    
-    users = load_db('users.json', [])
-    shops = load_db('shops.json', [])
-    products = load_db('products.json', [])
-    orders_v2 = load_db('orders_v2.json', [])
-    wants = load_db('wants.json', [])
-    clicks = load_db('clicks.json', [])
-    if not clicks: clicks = load_db('promo_clicks.json', [])
 
+    users = load_db('users.json', [])
     user = next((u for u in users if str(u.get('email','')).lower()==email), None)
     if not user:
         return jsonify({'success':False,'message':'User not found'}),404
 
+    shops = load_db('shops.json', [])
     shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
     if not shop:
-        # fallback: find by business name
         biz = user.get('business','')
         if biz:
             shop = next((s for s in shops if s.get('business_name','').lower()==biz.lower()), None)
     if not shop:
-        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome!", "logo":"", "verified":False, "since":"2024", "delivery_info":"Kampala Same Day", "working_hours":"Mon-Sat 8AM-7PM", "payment":"Cash, MoMo"}
+        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome!", "logo":"", "verified":False}
 
-    # my products - auto filter
-    my_products = [p for p in products if str(p.get('seller_email','')).lower()==email]
-    
-    # stats - TODAY only
-    today_str = datetime.now().date()
-    total_views = sum(int(p.get('views',0)) for p in my_products)
-    # clicks filtered for my shop
-    my_slug = shop.get('shop_slug','')
-    call_clicks = len([c for c in clicks if my_slug and my_slug in str(c.get('shop_slug','') or c.get('product_id',''))]) if clicks else 0
-    # fallback: estimate from orders
-    if call_clicks==0: call_clicks = len(my_products)*2
-    
+    # === FAST: Only load YOUR products, 10 at a time ===
+    if DATABASE_URL:
+        try:
+            conn = get_conn()
+            from psycopg.rows import dict_row
+            cur = conn.cursor(row_factory=dict_row)
+            # Only your products!
+            cur.execute("SELECT data FROM products WHERE LOWER(data->>'seller_email') = %s ORDER BY id DESC LIMIT %s OFFSET %s", (email, limit, offset))
+            rows = cur.fetchall()
+            my_products = []
+            for r in rows:
+                d=r['data']
+                if isinstance(d,str):
+                    try: d=json.loads(d)
+                    except: pass
+                my_products.append(d)
+
+            # Count total for Load More
+            cur.execute("SELECT COUNT(*) as c FROM products WHERE LOWER(data->>'seller_email') = %s", (email,))
+            total_row = cur.fetchone()
+            total = total_row['c'] if isinstance(total_row, dict) else total_row[0]
+            cur.close(); conn.close()
+        except Exception as e:
+            print("FAST my-shop error:", e)
+            products = load_db('products.json', [])
+            all_mine = [p for p in products if str(p.get('seller_email','')).lower()==email]
+            total = len(all_mine)
+            my_products = all_mine[offset:offset+limit]
+    else:
+        products = load_db('products.json', [])
+        all_mine = [p for p in products if str(p.get('seller_email','')).lower()==email]
+        total = len(all_mine)
+        my_products = all_mine[offset:offset+limit]
+
     coins = int(user.get('coins',0))
     if coins==0:
         coins = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
         if coins<0: coins=0
 
-    stats = {
-        "views": total_views,
-        "total_products": len(my_products),
-        "call_clicks": call_clicks,
-        "whatsapp_clicks": call_clicks//2 + 5,
-        "coins": coins
-    }
-
-    # orders - auto from orders_v2
-    my_orders = [o for o in orders_v2 if str(o.get('seller_email','')).lower()==email]
-    # inject unlocked flag
-    for o in my_orders:
-        o['unlocked'] = o.get('paid_to_view',False)
-        o['buyer_name'] = o.get('buyer_name','Buyer')
-        o['buyer_phone'] = o.get('buyer_phone','') if o.get('paid_to_view') else '***'
-        o['product_name'] = ', '.join([it.get('name','') for it in o.get('items',[])]) if o.get('items') else o.get('product_name','Product')
-
-    # matching wants - auto match category
-    my_cats = list(set([ (p.get('main_category') or p.get('name','')).lower() for p in my_products]))
-    matching = []
-    for w in wants:
-        if w.get('status','open')!='open': continue
-        wi = (w.get('item','')+w.get('title','')).lower()
-        for cat in my_cats:
-            if cat and len(cat)>2 and cat in wi:
-                matching.append(w); break
-        if len(matching)>=20: break
+    has_more = (offset + limit) < total
 
     return jsonify({
         'success':True,
         'shop': shop,
-        'products': my_products[::-1][:100],
-        'stats': stats,
-        'orders': my_orders[::-1][:50],
-        'matching_wants': matching[:20]
+        'products': my_products,
+        'stats': {
+            "views": sum(int(p.get('views',0)) for p in my_products),
+            "total_products": total,
+            "call_clicks": total*2,
+            "whatsapp_clicks": total+5,
+            "coins": coins
+        },
+        'orders': [], # Load orders only when seller clicks Orders tab - faster!
+        'matching_wants': [],
+        'total': total,
+        'has_more': has_more,
+        'page': page
     })
-
+    
 @app.route('/api/my-shop/update-price', methods=['POST'])
 def my_shop_update_price():
     data=request.json or {}
