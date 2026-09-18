@@ -319,20 +319,21 @@ function gateUploadNIN(){hideGate();updateLoginUI();doFilter();}
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),500);}
 function doFilter(){let q=document.getElementById('searchInput').value;let url='/api/products';if(q)url+=`?q=${encodeURIComponent(q)}`;fetch(url).then(r=>r.json()).then(d=>{allProducts=d;products=d;visibleCount=10000;render();}).catch(e=>{document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px">⚠️ Failed to load - Refresh</p>';});}
 
-// ===== NEW RENDER - 10 PER ROW HORIZONTAL SWIPE =====
+function esc(s){return String(s||'').replace(/'/g,"").replace(/"/g,'').replace(/`/g,'').replace(/</g,'').substring(0,80)}
 function render(){
 if(products.length==0){
 document.getElementById('products').innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found</p>';
 return;
 }
-let chunkSize = 10; // 10 photos per row Boss
+let chunkSize = 10;
 let rows = [];
 for(let i=0;i<products.length;i+=chunkSize){
 rows.push(products.slice(i,i+chunkSize));
 }
 let html = rows.map((row,rowIndex)=>{
-let rowLabel = rowIndex==0? "🔥 Best Sellers" : rowIndex==1? "✨ Trending Now" : rowIndex==2? "👟 Shoes & Footwear" : rowIndex==3? "👗 Fashion & Dresses" : `📦 More For You ${rowIndex+1}`;
+let rowLabel = rowIndex==0? "🔥 Best Sellers" : rowIndex==1? "✨ Trending Now" : rowIndex==2? "👟 Shoes & Footwear" : rowIndex==3? "👗 Fashion & Dresses" : "📦 More For You "+(rowIndex+1);
 let cardsHtml = row.map(p=>{
+let safeName = esc(p.name);
 let priceHtml=`UGX ${Number(p.price).toLocaleString()}`;
 let oldPrice='';let badge='';
 if(p.original_price&&Number(p.original_price)>Number(p.price)){
@@ -340,13 +341,12 @@ let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.origi
 badge=`<div class="discount-badge">${pct}% OFF</div>`;
 oldPrice=`<span class="old-price">UGX ${Number(p.original_price).toLocaleString()}</span>`;
 }
-return `<div class="card">${badge}<img src="${p.image}" alt="Product image" loading="lazy" decoding="async" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:12px;font-weight:700;color:#111">${p.name}</h4><div class="price" style="font-size:12px;color:#000">${priceHtml}${oldPrice}</div><div class="seller-box" style="color:#222">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
+return `<div class="card">${badge}<img src="${p.image}" alt="${safeName}" loading="lazy" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:12px;font-weight:700;color:#111">${safeName}</h4><div class="price" style="font-size:12px;color:#000">${priceHtml}${oldPrice}</div><div class="seller-box">📍 ${esc(p.location||'Kampala')}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
+}).join('');
 return `<div><div class="row-title"><span>${rowLabel}</span><span style="font-size:10px;color:#888;background:#fff;padding:3px 8px;border-radius:10px;border:1px solid #eee">${row.length} items • swipe →</span></div><div class="horizontal-row">${cardsHtml}</div></div>`;
 }).join('');
 document.getElementById('products').innerHTML=html;
 }
-
-// ===== NEW 4 PHOTOS SUPPORT - REPLACE OLD 4 FUNCTIONS =====
 function frontPreview(input){
   if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}
   frontFiles = Array.from(input.files).slice(0,4);
@@ -605,12 +605,12 @@ let proImages = [];
 function viewProd(id){
   let p = allProducts.find(x=>x.id==id) || products.find(x=>x.id==id);
   if(!p) return;
-
-  // Handle images - if multiple images exist use them, else duplicate single
   proImages = p.images && p.images.length? p.images : [p.image, p.image, p.image, p.image];
   proCurrentImg = 0;
-
-  let desc = p.description || p.desc || 'No description';
+  let safeName = String(p.name||'').replace(/'/g,"").replace(/"/g,'').replace(/`/g,'').substring(0,100);
+  let safeBiz = String(p.business||'Seller').replace(/'/g,"").replace(/"/g,'').substring(0,50);
+  let safeDesc = String(p.description||p.desc||'No description').replace(/`/g,'').replace(/</g,'').substring(0,500);
+  let desc = safeDesc;
   let promoComm = p.promo_commission || 3;
   let shopBtn = p.shop_slug? `/shop/${p.shop_slug}` : '#';
   let sellerPhone = (p.phone||'').replace(/[^0-9]/g,'');
@@ -619,7 +619,7 @@ function viewProd(id){
 
   document.getElementById('viewContent').innerHTML=`
     <div class="pro-modal-top">
-      <div style="font-size:12px;color:#666">Home › ${p.main_category||'Fashion'} › ${p.name.substring(0,20)}</div>
+      <div style="font-size:12px;color:#666">Home › ${p.main_category||'Fashion'} › ${safeName.substring(0,20)}</div>
       <button onclick="closePop('viewPop')" style="background:#eee;border:none;width:32px;height:32px;border-radius:50%;font-weight:900;cursor:pointer">✕</button>
     </div>
     <div class="pro-modal-body">
@@ -630,36 +630,13 @@ function viewProd(id){
             <img src="${img}" class="pro-thumb ${i==0?'active':''}" onclick="proSetImg(${i})" id="proThumb${i}">
           `).join('')}
         </div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="pro-size active" style="flex:1;font-size:11px">Product Details</button>
-          <button class="pro-size" style="flex:1;font-size:11px" onclick="alert('Reviews coming soon Boss!')">Reviews</button>
-          <button class="pro-size" style="flex:1;font-size:11px" onclick="alert('Similar products coming!')">Similar</button>
-        </div>
-        <div style="background:#f8f9fb;padding:10px;border-radius:10px;font-size:12px;border:1px solid #eee">
-          • Material: Premium quality<br>• Stock: ${stockLeft} left<br>• Authenticity: Verified
-        </div>
       </div>
       <div class="pro-modal-right">
-        <h2 style="font-size:22px;font-weight:900;margin:0">${p.name}</h2>
-        <div style="background:#f1f1f1;padding:8px 10px;border-radius:8px;font-size:12px">🏪 Business ${p.business||'Seller'} ${p.verified?'✅':''} <span style="color:#FFCC02">★ 4.6 (124 reviews)</span></div>
+        <h2 style="font-size:22px;font-weight:900;margin:0">${safeName}</h2>
+        <div style="background:#f1f1f1;padding:8px 10px;border-radius:8px;font-size:12px">🏪 Business ${safeBiz} ${p.verified?'✅':''}</div>
         <div style="display:flex;align-items:center;gap:10px"><span class="pro-price">UGX ${Number(p.price).toLocaleString()}</span><span class="pro-badge">In Stock • ${stockLeft} left</span></div>
         <div><b class="pro-option-title">Description</b><p style="font-size:13px;color:#444;line-height:1.4;margin-top:4px">${desc}</p></div>
-        <div><b class="pro-option-title">Color Options</b>
-          <div class="pro-colors" style="margin-top:6px">
-            <div class="pro-color active" style="background:#000;color:#fff" onclick="proPickColor(this)">✓</div>
-            <div class="pro-color" style="background:#fff" onclick="proPickColor(this)"></div>
-            <div class="pro-color" style="background:#d9c5a0" onclick="proPickColor(this)"></div>
-          </div>
-          <div style="display:flex;gap:30px;font-size:11px;margin-top:4px"><span>Black</span><span>White</span><span>Beige</span></div>
-        </div>
-        <div><b class="pro-option-title">Size Options</b>
-          <div class="pro-sizes" style="margin-top:6px">
-            <button class="pro-size" onclick="proPickSize(this)">S</button>
-            <button class="pro-size active" onclick="proPickSize(this)">M</button>
-            <button class="pro-size" onclick="proPickSize(this)">L</button>
-          </div>
-        </div>
-        <button class="pro-btn pro-btn-green" onclick="unlockChatAndOpenWhatsApp('${p.shop_slug}','${sellerPhone}','${p.name}')">💬 WhatsApp Seller • 1 Coin</button>
+        <button class="pro-btn pro-btn-green" onclick="unlockChatAndOpenWhatsApp('${p.shop_slug||''}','${sellerPhone}','${safeName}')">💬 WhatsApp Seller • 1 Coin</button>
         <button class="pro-btn pro-btn-orange" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
         <button class="pro-btn pro-btn-black" onclick="location.href='${shopBtn}'">🏪 Visit Shop</button>
         <div style="background:#FFCC02;padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="applyPromote('${p.id}', ${promoComm})">
@@ -670,7 +647,6 @@ function viewProd(id){
   `;
   document.getElementById('viewPop').style.display='flex';
 }
-
 function proSetImg(i){
   proCurrentImg = i;
   document.getElementById('proMainImg').src = proImages[i];
