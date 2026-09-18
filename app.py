@@ -15,6 +15,41 @@ import cloudinary_config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+# ===== SMART CATEGORY ENGINE - BOSS =====
+CATEGORY_MAP = {
+    "Shoes": ["shoe","shoes","sneaker","sneakers","boot","heels","sandal","loafer","nike","adidas","jordan","puma","air force","air max","trainer"],
+    "Bags": ["bag","bags","handbag","hand bag","backpack","purse","wallet","laptop bag","school bag"],
+    "Watches": ["watch","watches","rolex","smartwatch","clock","casio"],
+    "Phones": ["phone","phones","iphone","samsung","tecno","infinix","smartphone","android","mobile"],
+    "Electronics": ["tv","television","speaker","headphone","earphone","charger","laptop","computer","fridge","microwave"],
+    "Clothes": ["dress","shirt","tshirt","t-shirt","trouser","jean","jeans","jacket","hoodie","fashion","cloth","skirt","top"],
+    "Beauty": ["makeup","lipstick","cream","perfume","hair","wig","beauty","cosmetic"],
+    "Home": ["chair","table","sofa","bed","kitchen","home","furniture"]
+}
+SYNONYMS = {
+    "sneakers": "shoes", "trainers": "shoes", "kicks": "shoes", "footwear": "shoes",
+    "handbag": "bags", "purse": "bags", "backpack": "bags",
+    "watch": "watches", "smartwatch": "watches",
+    "phone": "phones", "mobile": "phones", "iphone": "phones",
+    "tee": "clothes", "tshirt": "clothes",
+    "tv": "electronics", "laptop": "electronics"
+}
+def get_smart_category(text):
+    if not text: return "General"
+    t = text.lower()
+    for cat, keywords in CATEGORY_MAP.items():
+        for kw in keywords:
+            if kw in t:
+                return cat
+    return "General"
+def expand_search_query(q):
+    if not q: return q.lower()
+    ql = q.lower()
+    for syn, real in SYNONYMS.items():
+        if syn in ql:
+            ql = ql + " " + real
+    return ql
+# ===== END ENGINE =====
 app.config['UPLOAD_FOLDER']='static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
@@ -1336,10 +1371,16 @@ def login():
 @app.route('/api/products')
 def get_products():
     q = request.args.get('q','').lower()
+    q_expanded = expand_search_query(q) if q else ""
     shop_slug = request.args.get('shop') or request.args.get('shop_slug')
     products=load_db('products.json', [])
     filtered=products
-    if q: filtered=[p for p in filtered if q in p.get('name','').lower() or q in p.get('business','').lower()]
+    if q_expanded:
+        q_words = q_expanded.split()
+        def match(p):
+            hay = f"{p.get('name','')} {p.get('business','')} {p.get('main_category','')} {p.get('category','')} {p.get('description','')} {p.get('desc','')} {p.get('smart_keywords','')}".lower()
+            return any(w in hay for w in q_words)
+        filtered=[p for p in filtered if match(p)]
     if shop_slug:
         sf = shop_slug.strip()
         exact = [p for p in filtered if p.get('shop_slug')==sf]
@@ -1360,7 +1401,13 @@ def sell():
     location=request.form.get('location')
     phone=request.form.get('phone')
     desc=request.form.get('desc','') or request.form.get('description','')
-    main_cat=request.form.get('main_category')
+       # ===== SMART AUTO-CATEGORY =====
+    raw_input = (request.form.get('main_category','') + " " + request.form.get('name','') + " " + (request.form.get('desc','') or request.form.get('description',''))).strip()
+    smart_cat = get_smart_category(raw_input)
+    main_cat = smart_cat  # Use smart one!
+    smart_keywords = raw_input.lower() + " " + smart_cat.lower()
+    print(f"[SMART] {raw_input} -> {smart_cat}")
+    # ===== END SMART =====
     stock=int(request.form.get('stock',10))
     promo_commission = int(request.form.get('promo_commission','3'))
     user_email=request.form.get('user_email','').lower()
@@ -1392,7 +1439,7 @@ def sell():
     try:
         shop = ensure_shop_for_user(seller); shop_id=shop.get('id'); shop_slug=shop.get('shop_slug')
     except: pass
-    prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
+    prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'smart_keywords': smart_keywords,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
     # NO COIN DEDUCTION - FREE!
     return jsonify({'success':True,'message':f'Product added FREE! Now sellers pay 2 coins when buyer orders'})
