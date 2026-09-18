@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Sannlas Admin -OPTION B</title>
+<title>Sannlas Admin - OPTION B SORTED</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body{font-family:Arial;padding:0;background:#0f0f0f;color:white;margin:0}
 .card{background:#1e1e1e;padding:15px;margin:12px;border-radius:10px;border:1px solid #333}
@@ -20,11 +21,13 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 .prod-row{display:flex;gap:10px;border-bottom:1px solid #333;padding:10px 0;align-items:center}
 .prod-row img{width:55px;height:55px;object-fit:cover;border-radius:8px}
 .shop-card{background:#111;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.analytics-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div id="loginBox">
-<h1>SANNLAS ADMIN OPTION B</h1>
+<h1>SANNLAS ADMIN OPTION B SORTED</h1>
 <p>natelieabigail@gmail.com<br>MoMo 0795712326 | 15% Edge</p>
 <input type="password" id="pass" placeholder="Admin Password (SannlasBoss123)">
 <button onclick="login()" style="width:100%">Unlock</button>
@@ -33,13 +36,14 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 </div>
 <div id="adminContent">
 <div style="padding:12px;background:#8B0000;display:flex;justify-content:space-between;flex-wrap:wrap">
-<h2 style="margin:0">SANNLAS - OPTION B - 15% PROFIT</h2>
+<h2 style="margin:0">SANNLAS - OPTION B - SORTED + ANALYTICS</h2>
 <div><a href="/" style="color:white">Shop</a> | <a href="#" onclick="logout()" style="color:#ffaaaa">Logout</a></div>
 </div>
 <div id="errorTop" style="display:none;background:#1a0000;border:2px solid red;color:#ff6666;padding:10px;margin:10px;border-radius:8px"></div>
 <div id="stats" style="padding:10px"></div>
 <div class="tabs">
 <div class="t active" onclick="tab('overview',this)">📊 Overview</div>
+<div class="t" style="background:#FFCC02;color:#000;border:2px solid #fff;font-weight:900" onclick="tab('analytics',this)">📈 Analytics Preview</div>
 <div class="t" style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="tab('shops',this)">🏪 Shops <span id="cShops" class="badge" style="background:#FFCC02;color:#000">0</span></div>
 <div class="t" onclick="tab('users',this)">🔐 Users <span id="cUsers" class="badge">0</span></div>
 <div class="t" style="background:#FFCC02;color:#000;border:2px solid #000" onclick="tab('coins',this)">🪙 Coins <span id="cCoins" class="badge" style="background:#000;color:#FFCC02">0</span></div>
@@ -50,10 +54,26 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="t" style="background:#00FF00;color:#000;border:3px solid #000;font-weight:900" onclick="tab('wants',this)">🎯 WANTS <span id="cWants" class="badge" style="background:#000;color:#00FF00">0</span></div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div></div>
 
-<div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Option B System</h2><div id="overviewData"></div></div></div>
-<div id="shops" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🏪 All Shops</h2><div id="shopsBox">Loading...</div></div></div>
+<div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Option B System - SORTED</h2><div id="overviewData"></div></div></div>
+
+<!-- NEW ANALYTICS TAB -->
+<div id="analytics" class="tabPane" style="display:none">
+<div class="card" style="border:3px solid #FFCC02">
+<h2 style="color:#FFCC02">📈 Analytics Preview — Real Data from YOUR 5 Files</h2>
+<div class="analytics-grid">
+<div class="card"><h3>📦 Category Distribution</h3><canvas id="catPie"></canvas><small style="color:#aaa">From main_category in app.py + index.html + shop.html</small></div>
+<div class="card"><h3>🏪 Top 5 Shops by Products</h3><canvas id="shopBar"></canvas><small style="color:#aaa">Sorted by total_products from shop fast count</small></div>
+</div>
+<div class="analytics-grid" style="margin-top:12px">
+<div class="card"><h3>💰 Price Range</h3><canvas id="priceBar" style="max-height:250px"></canvas></div>
+<div class="card"><h3>🔥 Coins LIVE</h3><div style="text-align:center"><div style="font-size:13px;color:#FFCC02">REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="aCoinsRemain">1B</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0"><div id="aCoinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div></div></div>
+</div>
+<div class="card"><h3>🖼️ Preview Grid — 12 Latest Products</h3><div id="previewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div></div>
+</div>
+</div>
+
+<div id="shops" class="tabPane" style="display:none"><div class="card" style="border:3px solid #FFCC02"><h2>🏪 All Shops — Sorted by Products DESC</h2><div id="shopsBox">Loading...</div></div></div>
 <div id="users" class="tabPane" style="display:none"><div class="card"><h2>🔐 Users</h2><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"><button onclick="filterUsers('all')" style="background:#333">All</button><button onclick="filterUsers('pending')" style="background:#ff0000">⏳ Expired</button><button onclick="filterUsers('active')" style="background:green">✅ Active</button></div><div id="usersBox">Loading...</div></div></div>
-  
 
 <div id="coins" class="tabPane" style="display:none">
 <div class="card" style="border:3px solid #FFCC02"><h2>🪙 Coins - 1B @ 599 UGX</h2>
@@ -71,7 +91,15 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center"><div style="font-size:13px;color:#FFCC02">🔴 LIVE REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div></div>
 <div id="coinsBox">Loading...</div></div></div>
 
-<div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products</h2><div id="productsBox">Loading...</div></div></div>
+<!-- SORTED PRODUCTS WITH FILTER -->
+<div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products — SORTED by Category</h2>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+<select id="prodCatFilter" onchange="renderProductsSorted()" style="flex:1;min-width:120px;background:#FFCC02;color:#000;font-weight:900"><option value="all">All Categories</option></select>
+<input id="prodSearch" placeholder="Search name/business" oninput="renderProductsSorted()" style="flex:1;min-width:150px">
+<select id="prodSort" onchange="renderProductsSorted()" style="width:140px"><option value="newest">Newest First</option><option value="priceLow">Price Low→High</option><option value="priceHigh">Price High→Low</option></select>
+</div>
+<div id="productsBox">Loading...</div></div></div>
+
 <div id="orders" class="tabPane" style="display:none"><div class="card"><h2>🛒 Orders</h2><div id="ordersBox">Loading...</div></div></div>
 <div id="withdraws" class="tabPane" style="display:none"><div class="card" style="border:3px solid #ff6a00"><h2>💸 Withdraw Requests</h2><div id="withdrawsBox">Loading...</div></div></div>
 
@@ -120,8 +148,9 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 
 <script>
 let ALL={}; let USER_FILTER='all';
+const CATEGORY_MAP=["Shoes","Bags","Watches","Phones","Electronics","Clothes","Beauty","Home","General"];
+let catChart, shopChart, priceChart;
 
-// ===== SAFE FETCH - FIXES RED ERROR =====
 async function safeFetchJson(url, options={}){
   try{
     let r = await fetch(url, options);
@@ -129,10 +158,7 @@ async function safeFetchJson(url, options={}){
     if(!txt || txt.trim()=="") return null;
     try{ return JSON.parse(txt); }
     catch(e){ console.warn("Invalid JSON from",url,txt.slice(0,200)); return null; }
-  }catch(e){
-    console.warn("Fetch failed",url,e);
-    return null;
-  }
+  }catch(e){ console.warn("Fetch failed",url,e); return null; }
 }
 function showErrorTop(msg){
   let el=document.getElementById('errorTop');
@@ -141,8 +167,7 @@ function showErrorTop(msg){
   el.style.display='block';
   el.innerText=msg;
 }
-
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics') drawAnalyticsCharts(); if(id==='products') renderProductsSorted();}
 
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
@@ -154,9 +179,14 @@ async function login(){
 function showAdmin(){document.getElementById('loginBox').style.display='none';document.getElementById('adminContent').style.display='block';loadData();}
 async function logout(){await fetch('/admin/logout');localStorage.removeItem('sannlas_admin');location.reload();}
 function filterUsers(f){USER_FILTER=f; renderUsers();}
-function renderShops(){let shops=ALL.shops||[]; let box=document.getElementById('shopsBox'); if(!shops.length){box.innerHTML='<p>No shops</p>';return;} box.innerHTML=shops.map(s=>`<div class="shop-card"><div><b>🏪 ${s.business_name||'Shop'}</b><br><span style="font-size:11px">Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${s.shop_slug||''}</code> | 📦 ${s.total_products||0}</span></div><div><a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a></div></div>`).join('');}
+
+// SORTED SHOPS BY total_products DESC
+function renderShops(){let shops=[...(ALL.shops||[])].sort((a,b)=>(b.total_products||0)-(a.total_products||0)); let box=document.getElementById('shopsBox'); if(!shops.length){box.innerHTML='<p>No shops</p>';return;} box.innerHTML=shops.map(s=>`<div class="shop-card"><div><b>🏪 ${s.business_name||'Shop'}</b><br><span style="font-size:11px">Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${s.shop_slug||''}</code> | 📦 ${s.total_products||0} products | 📍 ${s.location||''}</span></div><div><a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a></div></div>`).join('');}
+
 function renderUsers(){let users=ALL.users||[]; let filtered=users; if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000); if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000); document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business</th><th>Coins</th><th>Status</th></tr>'+filtered.map(u=>{let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;padding:3px 6px;border-radius:5px">✅</span>'; return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span></td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${statusBadge}</td></tr>`}).join('')+'</table>':'No users';}
-function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
+
+function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; if(document.getElementById('aCoinsRemain')){document.getElementById('aCoinsRemain').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('aCoinsProgress').style.width=(cfg.remaining/1000000000*100)+'%';} let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
+
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
 async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let d = await safeFetchJson('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); document.getElementById('addCoinStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${(d && d.message)||'Server waking, retry'}</span>`; if(d && d.success) loadData();}
 function loadWithdraws(){ let withdraws=ALL.withdraws||[]; document.getElementById('cWithdraws').innerText=withdraws.length; let box=document.getElementById('withdrawsBox'); if(!withdraws.length){box.innerHTML='<p>No withdraws</p>';return;} box.innerHTML='<table><tr><th>User</th><th>Amount</th><th>MoMo</th><th>Status</th><th>Action</th></tr>'+withdraws.slice().reverse().map(w=>`<tr><td style="font-size:11px">${w.email}</td><td><b style="color:#00FF00">UGX ${Number(w.amount).toLocaleString()}</b></td><td><b>${w.momo_number}</b></td><td>${w.status}</td><td>${w.status=='pending'?`<button style="background:#00FF00;color:#000;font-size:10px" onclick="withdrawAction(${w.id},'paid')">✅ PAID</button>`:''}</td></tr>`).join('')+'</table>';}
@@ -210,6 +240,44 @@ async function loadHeroStoriesAdmin(){
 }
 async function deleteHeroStoryAdmin(id){ if(!confirm('Delete?')) return; await fetch(`/api/admin/hero-stories/${id}`,{method:'DELETE'}); loadHeroStoriesAdmin(); }
 async function activateAnimated(){ let text=document.getElementById('bbTextAnim').value||document.getElementById('bbText').value||'Welcome'; document.getElementById('bbAnimStatus').innerHTML='<span style="color:yellow">⏳ Activating...</span>'; let d=await safeFetchJson('/api/admin/billboard/animated',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:text})}); if(d && d.success){ document.getElementById('bbAnimStatus').innerHTML='<span style="color:#00FF00">🔥 LIVE!</span>'; loadData(); } else document.getElementById('bbAnimStatus').innerHTML='<span style="color:red">Failed</span>'; }
+
+// ===== NEW SORTED PRODUCTS WITH CATEGORY FILTER =====
+function renderProductsSorted(){
+ let prods=ALL.products||[];
+ let cat=document.getElementById('prodCatFilter').value;
+ let q=(document.getElementById('prodSearch').value||'').toLowerCase();
+ let sort=document.getElementById('prodSort').value;
+ let list=prods.filter(p=>{
+   if(cat!='all' && (p.main_category||'General')!=cat) return false;
+   if(q &&!`${p.name||''} ${p.business||''}`.toLowerCase().includes(q)) return false;
+   return true;
+ });
+ if(sort=='priceLow') list.sort((a,b)=>(a.price||0)-(b.price||0));
+ else if(sort=='priceHigh') list.sort((a,b)=>(b.price||0)-(a.price||0));
+ else list.sort((a,b)=>(b.created||0)-(a.created||0));
+ document.getElementById('productsBox').innerHTML=list.length?list.slice(0,80).map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> <span style="background:#FFCC02;color:#000;padding:2px 6px;border-radius:8px;font-size:10px">${p.main_category||'General'}</span> - UGX ${Number(p.price).toLocaleString()}<br><small>${p.business||''} | 📍 ${p.location||''}</small><br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button> <a href="/shop/${p.shop_slug||''}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:10px">Shop</button></a></div></div>`).join(''):'No products match filter';
+}
+
+// ===== NEW ANALYTICS CHARTS =====
+function drawAnalyticsCharts(){
+ let prods=ALL.products||[]; let shops=ALL.shops||[]; let coinCfg=ALL.coin_config||{remaining:1000000000};
+ // Category Pie
+ let cats={}; prods.forEach(p=>{let c=p.main_category||'General'; cats[c]=(cats[c]||0)+1;});
+ let catLabels=Object.keys(cats); let catData=Object.values(cats);
+ if(catChart) catChart.destroy();
+ catChart=new Chart(document.getElementById('catPie'),{type:'pie',data:{labels:catLabels,datasets:[{data:catData,backgroundColor:['#FFCC02','#ff6a00','#00FF00','#ff0000','#333','#aaa','#FFCC02','#ff6a00','#00FF00']}]},options:{plugins:{legend:{labels:{color:'white'}}}}});
+ // Top Shops Bar
+ let topShops=[...shops].sort((a,b)=>(b.total_products||0)-(a.total_products||0)).slice(0,5);
+ if(shopChart) shopChart.destroy();
+ shopChart=new Chart(document.getElementById('shopBar'),{type:'bar',data:{labels:topShops.map(s=>(s.business_name||'Shop').substring(0,12)),datasets:[{label:'Products',data:topShops.map(s=>s.total_products||0),backgroundColor:'#FFCC02'}]},options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'}}},plugins:{legend:{labels:{color:'white'}}}}});
+ // Price Histogram
+ let prices={low:0,mid:0,high:0}; prods.forEach(p=>{if(p.price<20000) prices.low++; else if(p.price<100000) prices.mid++; else prices.high++;});
+ if(priceChart) priceChart.destroy();
+ priceChart=new Chart(document.getElementById('priceBar'),{type:'bar',data:{labels:['0-20k','20k-100k','100k+'],datasets:[{label:'Products',data:[prices.low,prices.mid,prices.high],backgroundColor:['#FFCC02','#ff6a00','#00FF00']}]},options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'}}},plugins:{legend:{labels:{color:'white'}}}}});
+ // Preview Grid
+ document.getElementById('previewGrid').innerHTML=prods.slice(0,12).map(p=>`<div style="background:#111;border-radius:10px;overflow:hidden;border:1px solid #333"><img src="${p.image}" style="width:100%;height:90px;object-fit:cover"><div style="padding:6px"><small style="color:#FFCC02">${p.main_category||''}</small><br><b style="font-size:11px">${(p.name||'').substring(0,18)}</b><br><b style="color:#00FF00;font-size:11px">UGX ${Number(p.price||0).toLocaleString()}</b></div></div>`).join('');
+}
+
 async function loadData(){
  document.getElementById('stats').innerHTML='<div class="card">⏳ Loading... Render may be waking (wait 15 sec)</div>';
  let d = await safeFetchJson('/api/admin/data');
@@ -220,16 +288,18 @@ async function loadData(){
  }
  showErrorTop('');
  ALL=d;
+ // Fill category filter
+ let sel=document.getElementById('prodCatFilter');
+ if(sel.options.length==1){ CATEGORY_MAP.forEach(c=>{let o=document.createElement('option');o.value=c;o.text=c;sel.appendChild(o);}); }
  let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; let withdraws=d.withdraws||[]; let wants=d.wants||[];
- document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length; 
+ document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length;
  let wantsEl=document.getElementById('cWants'); if(wantsEl) wantsEl.innerText=wants.length;
  let wantsHeader=document.getElementById('wantsTotalHeader'); if(wantsHeader) wantsHeader.innerText=wants.length;
  document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div>`;
- document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p></div>`;
- renderUsers(); renderShops(); loadCoinsTab(); loadWithdraws(); loadBillboard(); renderWants();
+ document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">✅ SORTED SYSTEM ACTIVE — 5 Files Collected: app.py, index.html, my_shop.html, shop.html, admin.html</p></div>`;
+ renderUsers(); renderShops(); loadCoinsTab(); loadWithdraws(); loadBillboard(); renderWants(); renderProductsSorted();
  document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages';
  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td></tr>`).join('')+'</table>':'No orders';
- document.getElementById('productsBox').innerHTML=prods.length?prods.map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> - UGX ${Number(p.price).toLocaleString()}<br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button></div></div>`).join(''):'No products';
 }
 function delProd(id){if(!confirm('Delete '+id+'?'))return;fetch('/api/delete-product/'+id,{method:'DELETE'}).then(()=>loadData());}
 function renderWants(){
