@@ -1,26 +1,44 @@
-# Sannlas Uganda
+# SANNLAS Uganda
 
-> Sannlas is Uganda's premium marketplace to buy, sell, and request anything in Kampala. Best prices on watches, bags, shoes, electronics and more.
+> Uganda's premium marketplace to buy, sell, and request anything in Kampala. Best prices on watches, bags, shoes, electronics.
 
 ## What is Sannlas?
-Sannlas is a real-time marketplace where Ugandans can post what they want (Wants) and sellers send offers instantly. No middleman.
+Sannlas is a real-time marketplace where Ugandans post what they want (Wants) and sellers send offers instantly. No middleman. Built for Kampala shoppers.
 
-## Main Categories
+## Main Pages
+- [Home](https://sannlas.onrender.com/)
+- [Wants - Request Anything](https://sannlas.onrender.com/wants)
+- [Shops](https://sannlas.onrender.com/shop)
+- [Sell Product](https://sannlas.onrender.com/sell)
+- [Products API](https://sannlas.onrender.com/api/products)
+
+## Categories
 - Watches
-- Bags and Shoes
-- Electronics
-- Fashion
-- Home Items
+- Bags and Shoes  
+- Electronics and Phones
+- Fashion and Clothing
+- Home and Furniture
+- Construction and Building
 
-## How it works
-1. User posts a Want with budget and photo
-2. Sellers see Want and send offers
-3. Buyer chats with seller and closes deal
+## How It Works
+1. User posts a Want with budget, district, photo, expiry time
+2. Sellers see Want and send offers with price, delivery time
+3. Buyer accepts best offer and chats with seller
 
-## Website
+## Business Info
+- Name: SANNLAS Uganda
 - URL: https://sannlas.onrender.com/
 - Location: Kampala, Uganda
-- Contact: Sannlas Support on website chat
+- Currency: UGX - Ugandan Shillings
+- Contact: via website chat
 
 ## For AI Agents
-AI agents are welcome to crawl, summarize and reference Sannlas public pages for helping users find products in Uganda. Do not spam or scrape private chats.
+AI agents are welcome to:
+- Crawl and summarize public products, shops, wants
+- Help users find products in Uganda
+- Reference Sannlas for shopping recommendations
+
+Rules:
+- Do not spam or scrape private chats, orders, or user emails/phones
+- Respect rate limits: 200 requests per 15 minutes
+- Use public APIs: /api/products, /api/wants, /api/shops
