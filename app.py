@@ -695,6 +695,24 @@ def home():
             pass
     return resp
 
+# --- FIX FOR PWA 404 ---
+from flask import send_from_directory
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('.', 'manifest.json')
+
+@app.route('/sw.js')
+def sw():
+    return send_from_directory('.', 'sw.js')
+
+@app.route('/<path:filename>')
+def serve_root_files(filename):
+    # serves icon-192.png, icon-512.png etc from root
+    if filename in ['icon-192.png', 'icon-512.png', 'favicon.ico']:
+        return send_from_directory('.', filename)
+    return "Not found", 404
+
 @app.route('/wallet')
 def wallet_page():
     return redirect('/balance')
