@@ -112,6 +112,8 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
   </div>
   <div style="width:44px"></div>
 </div>
+  
+<main>
 
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
 <div id="sideMenu">
@@ -338,7 +340,7 @@ let pct=Math.round((Number(p.original_price)-Number(p.price))*100/Number(p.origi
 badge=`<div class="discount-badge">${pct}% OFF</div>`;
 oldPrice=`<span class="old-price">UGX ${Number(p.original_price).toLocaleString()}</span>`;
 }
-return `<div class="card">${badge}<img src="${p.image}" alt="${p.name} in ${p.location||'Kampala'} - ${p.business||'Sannlas'}" loading="lazy" decoding="async" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</h4><div class="price" style="font-size:12px">${priceHtml}${oldPrice}</div><div class="seller-box">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" aria-label="View ${p.name}" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" aria-label="Add ${p.name} to cart" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
+return `<div class="card">${badge}<img src="${p.image}" alt="${p.name} in ${p.location||'Kampala'}" loading="lazy" decoding="async" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111">${p.name}</h4><div class="price" style="font-size:12px;color:#000">${priceHtml}${oldPrice}</div><div class="seller-box" style="color:#222">📍 ${p.location||'Kampala'}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" aria-label="View ${p.name}" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" aria-label="Add ${p.name} to cart" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
 return `<div><div class="row-title"><span>${rowLabel}</span><span style="font-size:10px;color:#888;background:#fff;padding:3px 8px;border-radius:10px;border:1px solid #eee">${row.length} items • swipe →</span></div><div class="horizontal-row">${cardsHtml}</div></div>`;
 }).join('');
 document.getElementById('products').innerHTML=html;
@@ -780,6 +782,7 @@ setInterval(async()=>{
 },120000); // 2 mins
 
 // Don't auto-poll wants & balance every time - only on load
+</main>
 </script>
 </body>
 </html>
