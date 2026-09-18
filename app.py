@@ -893,6 +893,24 @@ def admin_set_billboard_animated():
     save_db('billboard.json', cfg)
     return jsonify({'success': True, 'config': cfg})
 
+@app.route('/api/admin/shop/verify', methods=['POST'])
+def admin_verify_shop():
+    data = request.get_json() or {}
+    slug = (data.get('shop_slug') or '').strip()
+    action = data.get('action')  # verify / unverify
+    if not slug:
+        return jsonify(success=False, message="No slug"), 400
+    try:
+        if action == 'verify':
+            db.execute("UPDATE shops SET verified=true, is_verified=true WHERE shop_slug=%s", (slug,))
+            db.execute("UPDATE users SET verified=true WHERE shop_slug=%s", (slug,))
+        else:
+            db.execute("UPDATE shops SET verified=false, is_verified=false WHERE shop_slug=%s", (slug,))
+            db.execute("UPDATE users SET verified=false WHERE shop_slug=%s", (slug,))
+        return jsonify(success=True, message=f"Shop {action}d")
+    except Exception as e:
+        return jsonify(success=False, message=str(e)), 500
+
 COIN_CONFIG_CACHE = {"data": None, "time": 0}
 
 @app.route('/api/coins/config')
