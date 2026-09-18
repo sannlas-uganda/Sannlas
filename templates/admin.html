@@ -181,8 +181,47 @@ async function logout(){await fetch('/admin/logout');localStorage.removeItem('sa
 function filterUsers(f){USER_FILTER=f; renderUsers();}
 
 // SORTED SHOPS BY total_products DESC
-function renderShops(){let shops=[...(ALL.shops||[])].sort((a,b)=>(b.total_products||0)-(a.total_products||0)); let box=document.getElementById('shopsBox'); if(!shops.length){box.innerHTML='<p>No shops</p>';return;} box.innerHTML=shops.map(s=>`<div class="shop-card"><div><b>🏪 ${s.business_name||'Shop'}</b><br><span style="font-size:11px">Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${s.shop_slug||''}</code> | 📦 ${s.total_products||0} products | 📍 ${s.location||''}</span></div><div><a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a></div></div>`).join('');}
+function renderShops(){
+  let shops=[...(ALL.shops||[])].sort((a,b)=>(b.total_products||0)-(a.total_products||0)); 
+  let box=document.getElementById('shopsBox'); 
+  if(!shops.length){box.innerHTML='<p>No shops</p>';return;} 
+  box.innerHTML=shops.map(s=>{
+    let isVer = s.verified || s.is_verified;
+    return `<div class="shop-card" style="border-color:${isVer?'#00FF00':'#FFCC02'}">
+      <div>
+        <b>🏪 ${s.business_name||'Shop'} ${isVer?'✅':'⭕'}</b><br>
+        <span style="font-size:11px">
+          Slug: <code style="background:#333;padding:2px 5px;border-radius:4px">${s.shop_slug||''}</code> 
+          | 📦 ${s.total_products||0} 
+          | ${isVer?'<span style="background:#00FF00;color:#000;padding:2px 6px;border-radius:10px;font-weight:900">VERIFIED</span>':'<span style="background:#333;color:#aaa;padding:2px 6px;border-radius:10px">NOT VERIFIED</span>'}
+        </span><br>
+        <small>📍 ${s.location||''} | 📞 ${s.phone||''}</small>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a>
+        ${isVer 
+          ? `<button onclick="verifyShop('${s.shop_slug}','unverify')" style="background:#ff0000;color:white;font-size:10px">❌ Unverify</button>` 
+          : `<button onclick="verifyShop('${s.shop_slug}','verify')" style="background:#00FF00;color:#000;font-size:10px;font-weight:900">✅ Verify</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
 
+async function verifyShop(slug, action){
+  if(!confirm(action+' shop '+slug+'?')) return;
+  let d = await safeFetchJson('/api/admin/shop/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({shop_slug:slug, action:action})
+  });
+  if(d && d.success){
+    alert('✅ Shop '+action+'d!');
+    loadData();
+  } else {
+    alert('Failed: '+(d?d.message:'Server waking, retry'));
+  }
+}
 function renderUsers(){let users=ALL.users||[]; let filtered=users; if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000); if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000); document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business</th><th>Coins</th><th>Status</th></tr>'+filtered.map(u=>{let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;padding:3px 6px;border-radius:5px">✅</span>'; return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span></td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${statusBadge}</td></tr>`}).join('')+'</table>':'No users';}
 
 function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; if(document.getElementById('aCoinsRemain')){document.getElementById('aCoinsRemain').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('aCoinsProgress').style.width=(cfg.remaining/1000000000*100)+'%';} let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
