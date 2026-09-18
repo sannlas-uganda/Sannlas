@@ -2107,7 +2107,11 @@ def compress_neon_now():
 
 @app.route('/manifest.json')
 def manifest():
-    return send_from_directory(app.root_path, 'manifest.json', mimetype='application/manifest+json')
+    try:
+        return send_from_directory(app.root_path, 'manifest.json', mimetype='application/manifest+json')
+    except:
+        # if file not found, return empty manifest so no 404
+        return '{"name":"Sannlas","short_name":"Sannlas","start_url":"/","display":"standalone","icons":[]}', 200, {'Content-Type': 'application/manifest+json'}
 
 @app.route('/favicon.ico')
 def serve_favicon():
