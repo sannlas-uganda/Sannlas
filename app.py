@@ -15,41 +15,99 @@ import cloudinary_config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
-# ===== SMART CATEGORY ENGINE - BOSS =====
+# ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
 CATEGORY_MAP = {
-    "Shoes": ["shoe","shoes","sneaker","sneakers","boot","heels","sandal","loafer","nike","adidas","jordan","puma","air force","air max","trainer"],
-    "Bags": ["bag","bags","handbag","hand bag","backpack","purse","wallet","laptop bag","school bag"],
-    "Watches": ["watch","watches","rolex","smartwatch","clock","casio"],
-    "Phones": ["phone","phones","iphone","samsung","tecno","infinix","smartphone","android","mobile"],
-    "Electronics": ["tv","television","speaker","headphone","earphone","charger","laptop","computer","fridge","microwave"],
-    "Clothes": ["dress","shirt","tshirt","t-shirt","trouser","jean","jeans","jacket","hoodie","fashion","cloth","skirt","top"],
-    "Beauty": ["makeup","lipstick","cream","perfume","hair","wig","beauty","cosmetic"],
-    "Home": ["chair","table","sofa","bed","kitchen","home","furniture"]
+    # 1. Fashion
+    "Fashion & Clothing": ["t-shirt","tshirt","shirt","trouser","jeans","dress","skirt","suit","jacket","coat","sweater","hoodie","shorts","tracksuit","uniform","underwear","socks","fabric","textile","cloth","kitenge","gomesi","kanzu"],
+    "Shoes": ["shoe","shoes","sneaker","sneakers","boot","boots","heels","sandal","sandals","loafer","trainer","nike","adidas","jordan","puma","air force","air max"],
+    "Bags": ["bag","bags","handbag","backpack","purse","wallet","school bag","laptop bag"],
+    "Jewelry & Watches": ["watch","rolex","smartwatch","necklace","bracelet","ring","earring","jewelry","casio","clock"],
+
+    # 2-4 Electronics & Computers & Phones
+    "Electronics": ["tv","television","radio","speaker","headphone","earphone","camera","lens","drone","game console","controller","smart devices"],
+    "Computers & Technology": ["laptop","desktop","computer","monitor","keyboard","mouse","ram","ssd","hard drive","flash disk","memory card","router","modem","printer","scanner","projector","server","webcam"],
+    "Phones & Accessories": ["phone","iphone","samsung","tecno","infinix","xiaomi","oppo","huawei","nokia","itel","smartphone","phone case","screen protector","power bank"],
+
+    # 5-7 Home & Construction
+    "Home & Furniture": ["sofa","bed","mattress","wardrobe","table","chair","desk","cabinet","shelf","tv stand","curtain","carpet","rug","pillow","blanket","mirror","lamp"],
+    "Home Appliances": ["fridge","freezer","cooker","oven","microwave","blender","kettle","washing machine","vacuum","fan","air conditioner","iron"],
+    "Construction & Building": ["cement","sand","gravel","brick","block","paver","steel","roofing","timber","door","window","tile","paint","pipe","tap","toilet","sink","excavator","mixer","helmet","safety boot"],
+
+    # 8. Vehicles - THIS FIXES YOUR ELECTRIC BIKE!
+    "Vehicles & Transport": ["electric bike","e-bike","ebike","bike","bicycle","motorcycle","motorbike","scooter","electric scooter","car","pickup","van","truck","bus","tractor","trailer","tyre","battery","engine","gearbox","brake","car radio","gps","oil","lubricant"],
+
+    # 9-11 Real Estate, Agriculture, Food
+    "Real Estate": ["land","plot","house","apartment","rental","commercial property","farm","office","shop","warehouse","hotel"],
+    "Agriculture": ["seed","maize","beans","coffee","fruit","vegetable","livestock","chicken","egg","feed","fertilizer","pesticide","herbicide","hoe","panga","sprayer","irrigation","tractor","harvester"],
+    "Food & Beverages": ["rice","flour","sugar","cooking oil","meat","fish","milk","cheese","bread","cake","biscuit","juice","water","coffee","tea","spice"],
+
+    # 12-13 Health & Beauty
+    "Health & Medical": ["hospital bed","wheelchair","thermometer","blood pressure","laboratory","first aid","dental","eyeglass","medical"],
+    "Beauty & Personal Care": ["makeup","lipstick","cream","lotion","soap","shampoo","conditioner","wig","perfume","deodorant","nail polish","hair dryer","clipper"],
+
+    # 14-18 Services & Tools
+    "Education": ["textbook","notebook","pen","pencil","school bag","calculator","laboratory equipment","course","tutoring"],
+    "Business & Office": ["office chair","printer","photocopier","paper","file","business card","banner"],
+    "Tools & Hardware": ["hammer","screwdriver","spanner","drill","grinder","saw","welding","pliers","measuring tape","bolt","nut","screw","nail","lock","hinge","scissors","laser scissors","cutter","safety"],
+
+    "Electrical & Solar": ["solar panel","solar battery","inverter","charge controller","solar light","cable","switch","socket","bulb","circuit breaker","generator","transformer"],
+    "Industrial & Manufacturing": ["industrial machine","pump","motor","compressor","factory","processing machine","packaging machine"],
+
+    # 19+ Others
+    "Sports & Fitness": ["football","jersey","boxing glove","gym","weight","bicycle","sports shoe","sportswear","swimming"],
+    "Travel & Tourism": ["hotel","lodge","guest house","tour","safari","car rental","tour guide","camping"],
+    "Restaurants & Hospitality": ["restaurant","cafe","bakery","fast food","catering","meal","food delivery"],
+    "Transportation & Logistics": ["taxi","boda","bus transport","trucking","courier","delivery","freight","warehouse","moving"],
+    "Professional Services": ["engineering","architecture","surveying","legal","accounting","graphic design","photography","videography","translation"],
+    "Home Services": ["cleaning","plumbing","electrical installation","painting","carpentry","masonry","roofing","gardening","laundry","pest control"],
+    "Entertainment & Media": ["music","movie","dj","sound system","gaming","recording","production"],
+    "Books, Art & Stationery": ["book","novel","magazine","stationery","art supply","painting","craft","guitar","keyboard","drum"],
+    "Baby & Children": ["baby cloth","diaper","baby shoe","baby food","baby bed","stroller","car seat","bottle","toy","school bag"],
+    "Toys & Games": ["doll","building block","puzzle","chess","playstation","xbox","nintendo","remote control toy"],
+    "Pets & Animals": ["dog","cat","bird","fish","pet food","cage","aquarium","collar","veterinary","livestock"],
+    "Security & Safety": ["cctv","dvr","alarm","biometric","lock","safe","fire extinguisher","smoke detector","helmet","reflective jacket"],
+    "Telecommunications": ["router","modem","wifi","fiber","network cable","internet package"],
+    "Software & Digital Services": ["website","mobile app","software","logo design","video editing","seo","social media","ai service","cybersecurity","hosting"],
+    "Printing & Packaging": ["business card","flyer","brochure","banner","sticker","label","box","packaging","t-shirt printing"],
+    "Arts & Handmade": ["basket","handmade bag","pottery","sculpture","painting","handmade jewelry","wooden product","traditional craft"],
+    "Events & Weddings": ["wedding dress","wedding suit","decoration","tent","chair","table","sound system","cake","venue"],
+    "Mining & Natural Resources": ["gold","copper","iron ore","limestone","granite","marble","sand","quarry","mining machinery"],
+    "Oil & Gas": ["lubricant","lpg","pipe","valve","pump","drilling equipment","petroleum"],
+    "Chemicals & Laboratory": ["laboratory equipment","glassware","testing equipment","cleaning chemical","water treatment","agricultural chemical"],
+    "Energy & Utilities": ["generator","solar system","battery","water tank","pump","water treatment","renewable energy"],
+    "Marine & Aviation": ["boat","engine","marine part","navigation","aircraft","aviation","pilot training"],
+    "Wholesale & Distribution": ["bulk","wholesale","food supply","construction material","medical supply"],
+    "Used & Refurbished": ["used car","used phone","used computer","used furniture","second hand","refurbished"],
+    "Luxury & Premium": ["luxury car","luxury watch","designer fashion","premium electronics","luxury furniture","luxury real estate"],
 }
-SYNONYMS = {
-    "sneakers": "shoes", "trainers": "shoes", "kicks": "shoes", "footwear": "shoes",
-    "handbag": "bags", "purse": "bags", "backpack": "bags",
-    "watch": "watches", "smartwatch": "watches",
-    "phone": "phones", "mobile": "phones", "iphone": "phones",
-    "tee": "clothes", "tshirt": "clothes",
-    "tv": "electronics", "laptop": "electronics"
-}
+
+# Priority order - Vehicles and Tools should win over Shoes
+CATEGORY_PRIORITY = ["Vehicles & Transport", "Tools & Hardware", "Electrical & Solar", "Construction & Building", "Electronics", "Phones & Accessories", "Computers & Technology", "Shoes", "Fashion & Clothing", "Home & Furniture", "Home Appliances", "Health & Medical", "Beauty & Personal Care"]
+
 def get_smart_category(text):
-    if not text: return "General"
-    t = text.lower()
+    if not text:
+        return "Other / Miscellaneous"
+    t = text.lower().strip()
+
+    # Build list of all matches with longest keyword first
+    matches = []
     for cat, keywords in CATEGORY_MAP.items():
-        for kw in keywords:
+        for kw in sorted(keywords, key=len, reverse=True):
             if kw in t:
+                matches.append((cat, kw, len(kw)))
+
+    if not matches:
+        return "Other / Miscellaneous"
+
+    # If multiple matches, use priority
+    for priority_cat in CATEGORY_PRIORITY:
+        for cat, kw, l in matches:
+            if cat == priority_cat:
                 return cat
-    return "General"
-def expand_search_query(q):
-    if not q: return q.lower()
-    ql = q.lower()
-    for syn, real in SYNONYMS.items():
-        if syn in ql:
-            ql = ql + " " + real
-    return ql
-# ===== END ENGINE =====
+
+    # Otherwise return longest keyword match
+    matches.sort(key=lambda x: x[2], reverse=True)
+    return matches[0][0]
 app.config['UPLOAD_FOLDER']='static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
