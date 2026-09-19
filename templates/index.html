@@ -139,10 +139,12 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 </div>
 <div class="coin-live-bar"><span class="live-dot"></span> LIVE: <span id="coinsRemaining">1,000,000,000</span> Coins Left <div class="coin-progress"><div class="coin-progress-fill" id="coinProgressFill"></div></div><span style="background:#FFCC02;color:#000;padding:3px 10px;border-radius:12px;font-size:11px">📦 Upload for FREE</span></div>
 <div class="search-section">
-<div class="search-wrap">
-<input id="searchInput" placeholder="Search products, brands, or categories..." oninput="debouncedFilter()">
+<div class="search-wrap" style="position:relative;">
+<input id="searchInput" placeholder="Search electric bike, tools, shoes..." oninput="showSuggestions(this.value); debouncedFilter()" autocomplete="off">
 <button class="search-btn" onclick="doFilter()">Search</button>
 <button class="btn" onclick="startVoiceSearch()" id="micBtn" style="background:#111;color:#FFCC02;border-radius:50%;padding:8px 10px">🎤</button>
+<!-- SUGGESTION BOX -->
+<div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-radius:12px; margin-top:6px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 8px 20px rgba(0,0,0,0.15);"></div>
 </div>
 <div class="trust-badges">
 <button onclick="openSellModal()" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:8px 16px;border-radius:20px;font-size:11px;animation:pulse 1.5s infinite">+ SELL YOUR PRODUCT (FREE)</button>
@@ -321,42 +323,75 @@ function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
-// ===== SMART AUTO-CATEGORY ENGINE - FRONTEND =====
-const CAT_MAP = {
-  "Shoes": ["shoe","shoes","sneaker","sneakers","boot","heels","sandal","nike","adidas","jordan","puma","air force","trainer","kicks"],
-  "Bags": ["bag","handbag","backpack","purse","wallet"],
-  "Watches": ["watch","watches","rolex","smartwatch","casio"],
-  "Phones": ["phone","iphone","samsung","tecno","infinix","smartphone","mobile"],
-  "Electronics": ["tv","speaker","headphone","charger","laptop","computer","fridge"],
-  "Clothes": ["dress","shirt","tshirt","trouser","jean","jacket","hoodie","fashion","cloth"],
-  "Beauty": ["makeup","lipstick","cream","perfume","hair","wig"]
+// ===== FULL 50 CATEGORIES - SAME AS APP.PY =====
+const CATEGORY_KEYWORDS_FULL = {
+  "Vehicles & Transport": ["electric bike","ebike","scooter","motorcycle","bicycle","bike","bicycle","motorbike","boda","car","vehicle","tuk tuk","auto rickshaw","spare part","engine","tyre","tire","battery bike","e-bike","ev bike","tesla bike","moped","tricycle","quad","atv","utv","boat","jet ski","airplane","helicopter","drone car"],
+  "Tools & Hardware": ["laser scissors","scissors","laser level","drill","hammer","screwdriver","wrench","plier","pliers","tool","hardware","laser","measurement","saw","grinder","welder","cutter","shovel","hoe","axe","spanner","clamp","tape measure","level"],
+  "Electronics": ["tv","television","speaker","headphone","headset","earphone","fridge","microwave","blender","mixer","kettle","iron","fan","ac","air conditioner","electronics","radio","amplifier","woofer","subwoofer","decoder","antenna"],
+  "Computers & Technology": ["laptop","computer","desktop","macbook","hp","dell","lenovo","mouse","keyboard","monitor","printer","router","technology","gaming pc","cpu","gpu","ram","ssd","hard drive"],
+  "Phones & Accessories": ["phone","iphone","samsung","tecno","infinix","itel","smartphone","mobile phone","charger","power bank","phone case","screen protector","earpods","airpods","smartphone"],
+  "Shoes": ["shoe","shoes","sneaker","sneakers","boot","boots","heel","heels","sandal","sandals","nike","adidas","jordan","puma","air force","trainer","trainers","kicks","loafer","moccasin","crocs"],
+  "Bags": ["bag","bags","handbag","backpack","purse","wallet","luggage","suitcase","school bag","travel bag","crossbody","tote","clutch"],
+  "Watches": ["watch","watches","rolex","smartwatch","casio","timepiece","clock","wristwatch","apple watch"],
+  "Fashion & Clothing": ["dress","shirt","tshirt","t-shirt","trouser","jean","jeans","jacket","hoodie","fashion","cloth","clothes","clothing","suit","skirt","blouse","sweater","uniform","kikoi","gomesi","kanzu"],
+  "Beauty & Personal Care": ["makeup","lipstick","cream","perfume","cologne","hair","wig","weave","lotion","soap","shampoo","conditioner","beauty","cosmetic","nail","eyelash","foundation"],
+  "Health & Medical": ["medicine","drug","hospital","clinic","pharmacy","first aid","thermometer","blood pressure","health","medical","mask","sanitizer","vitamin","supplement","syringe"],
+  "Home & Furniture": ["sofa","chair","table","bed","mattress","furniture","cupboard","wardrobe","curtain","pillow","blanket","home","kitchen","cabinet","shelf","stool","desk"],
+  "Real Estate": ["house","land","plot","apartment","rental","room","real estate","building","villa","estate","property","warehouse","shop for rent"],
+  "Agriculture": ["seed","seeds","fertilizer","maize","beans","cow","goat","chicken","agriculture","farm","farming","tractor","irrigation","pesticide","animal feed","egg"],
+  "Food & Beverages": ["rice","oil","cooking oil","sugar","salt","soda","juice","water","food","beverage","restaurant","flour","bread","milk","meat","fish","fruit","vegetable","snack"],
+  "Construction & Building": ["cement","tile","paint","brick","iron sheet","mabati","steel","construction","building material","sand","gravel","plumbing","pipe"],
+  "Industrial & Machinery": ["generator","machine","industrial","factory machine","compressor","lathe","milling","cnc"],
+  "Energy & Solar": ["solar","solar panel","inverter","battery","energy","power","ups","solar light","solar system"],
+  "Jewelry & Accessories": ["jewelry","jewellery","necklace","ring","bracelet","earring","gold","silver","diamond","chain"],
+  "Sports & Fitness": ["football","ball","jersey","gym","dumbbell","treadmill","sports","fitness","bicycle sport","exercise","yoga"],
+  "Kids & Toys": ["toy","toys","doll","kids","baby","children","stroller","lego","game for kids","baby clothes"],
+  "Pets & Animals": ["dog","cat","pet","puppy","kitten","bird","fish pet","rabbit","animal food"],
+  "Books & Stationery": ["book","books","pen","pencil","notebook","stationery","school","novel","bible","quran","textbook"],
+  "Art & Crafts": ["art","craft","painting","drawing","sculpture","handmade","bead","crafts"],
+  "Automotive": ["car part","oil filter","brake pad","car battery","car accessories","car audio","car seat cover","engine oil"],
+  "Other / Miscellaneous": ["other","misc","request","want"]
 };
-const SYN_MAP = {"sneakers":"shoes","trainers":"shoes","kicks":"shoes","handbag":"bags","purse":"bags","mobile":"phones","iphone":"phones","tee":"clothes","tshirt":"clothes","tv":"electronics"};
-function expandQuery(q){
-  if(!q) return "";
-  let ql=q.toLowerCase();
-  for(let syn in SYN_MAP){ if(ql.includes(syn)) ql+=" "+SYN_MAP[syn]; }
-  return ql;
+
+// Build flat list for autocomplete
+const SANNLAS_ALL_KEYWORDS = [];
+for(let cat in CATEGORY_KEYWORDS_FULL){
+  SANNLAS_ALL_KEYWORDS.push(cat);
+  CATEGORY_KEYWORDS_FULL[cat].forEach(k=> SANNLAS_ALL_KEYWORDS.push(k));
 }
-function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),300);}
-function doFilter(){
-  let q=document.getElementById('searchInput').value.trim().toLowerCase();
-  let qEx=expandQuery(q);
-  let words=qEx.split(" ").filter(Boolean);
-  let url='/api/products';
-  if(q) url+=`?q=${encodeURIComponent(qEx)}`;
-  fetch(url).then(r=>r.json()).then(d=>{
-    allProducts=d; products=d;
-    if(q && words.length){
-      // Extra frontend smart filter: search main_category + smart_keywords too
-      products = d.filter(p=>{
-        let hay=`${p.name||''} ${p.business||''} ${p.main_category||''} ${p.description||''} ${p.smart_keywords||''}`.toLowerCase();
-        return words.some(w=>hay.includes(w));
-      });
+
+function showSuggestions(val){
+  let box=document.getElementById('searchSuggestions');
+  if(!val || val.length<1){ box.style.display='none'; return; }
+  let q=val.toLowerCase();
+  let matches = SANNLAS_ALL_KEYWORDS.filter(k=>k.toLowerCase().includes(q)).slice(0,12);
+  if(typeof allProducts!=='undefined'){
+    let prodMatches = allProducts.filter(p=>p.name.toLowerCase().includes(q)).map(p=>p.name).slice(0,4);
+    matches = [...new Set([...prodMatches,...matches])].slice(0,12);
+  }
+  if(matches.length==0){ box.style.display='none'; return; }
+  box.innerHTML = matches.map(m=>{
+    let catFound='General';
+    for(let cat in CATEGORY_KEYWORDS_FULL){
+      if(CATEGORY_KEYWORDS_FULL[cat].some(k=>k.toLowerCase()===m.toLowerCase()) || cat.toLowerCase()===m.toLowerCase()){ catFound=cat; break; }
     }
-    render();
-  });
+    return `<div onclick="selectSuggestion('${m.replace(/'/g,"\\'")}')" style="padding:10px 14px; border-bottom:1px solid #f0f0f0; cursor:pointer; font-size:13px; display:flex; justify-content:space-between; background:#fff;"><span>🔍 ${m}</span><span style="background:#000;color:#FFCC02;padding:2px 8px;border-radius:10px;font-size:9px;">${catFound}</span></div>`;
+  }).join('');
+  box.style.display='block';
 }
+
+function selectSuggestion(word){
+  document.getElementById('searchInput').value=word;
+  document.getElementById('searchSuggestions').style.display='none';
+  doFilter();
+}
+
+document.addEventListener('click', function(e){
+  let wrap=document.querySelector('.search-wrap');
+  if(wrap &&!wrap.contains(e.target)){
+    document.getElementById('searchSuggestions').style.display='none';
+  }
+});
 function render(){
   const container=document.getElementById('products');
   if(!products || products.length==0){
