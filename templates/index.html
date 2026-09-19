@@ -406,24 +406,28 @@ function render(){
     container.innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found Boss 😔</p>';
     return;
   }
-  // Group by main_category automatically
-  let groups={};
-  products.forEach(p=>{
-    let cat=p.main_category||'General';
-    if(!groups[cat]) groups[cat]=[];
-    groups[cat].push(p);
-  });
-  let html='';
-  for(let cat in groups){
-    let row=groups[cat];
-    let cards=row.map(p=>{
-      let safeName=esc(p.name);
-      let badge=p.original_price> p.price ? `<div class="discount-badge">${Math.round((p.original_price-p.price)*100/p.original_price)}% OFF</div>` : '';
-      return `<div class="card">${badge}<img src="${esc(p.image)}" onclick="viewProd('${p.id}')" style="cursor:pointer"><div class="card-body"><h4 style="font-size:12px;font-weight:700">${safeName}</h4><div class="price">UGX ${Number(p.price).toLocaleString()}</div><div class="seller-box">📍 ${esc(p.location||'Kampala')}</div><div style="display:flex;gap:5px;margin-top:6px"><button class="view-btn" onclick="viewProd('${p.id}')">Shop</button><button class="cart-btn" onclick="addCart('${p.id}')">🛒</button></div></div></div>`;
-    }).join('');
-    html+=`<div><div class="row-title"><span>📦 ${esc(cat)} (${row.length})</span><span style="font-size:10px;color:#888;background:#fff;padding:3px 8px;border-radius:10px">${row.length} items • swipe →</span></div><div class="horizontal-row">${cards}</div></div>`;
-  }
-  container.innerHTML=html;
+
+  // FLAT - NO CATEGORIES TITLES!
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px;">
+      ${products.map(p=>{
+        let safeName=esc(p.name);
+        let badge=p.original_price > p.price? `<div class="discount-badge">${Math.round((p.original_price-p.price)*100/p.original_price)}% OFF</div>` : '';
+        return `<div class="card">${badge}
+          <img src="${esc(p.image)}" onclick="viewProd('${p.id}')" style="cursor:pointer">
+          <div class="card-body">
+            <h4 style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeName}</h4>
+            <div class="price">UGX ${Number(p.price).toLocaleString()}</div>
+            <div class="seller-box">📍 ${esc(p.location||'Kampala')}</div>
+            <div style="display:flex;gap:5px;margin-top:6px">
+              <button class="view-btn" onclick="viewProd('${p.id}')">Shop</button>
+              <button class="cart-btn" onclick="addCart('${p.id}')">🛒</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 function frontPreview(input){
   if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}
