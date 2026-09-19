@@ -392,21 +392,15 @@ document.addEventListener('click', function(e){
     document.getElementById('searchSuggestions').style.display='none';
   }
 });
+function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),300);}
 function doFilter(){
-  const q = document.getElementById('searchInput').value.trim();
-  const url = q ? `/api/products?q=${encodeURIComponent(q)}` : `/api/products`;
-  
-  fetch(url)
-    .then(r => r.json())
-    .then(d => {
-      console.log("Neon products:", d);
-      allProducts = d;  // keep all
-      products = d;     // for render
-      renderProducts ? renderProducts() : render(); // try both
-      if(typeof render === 'function') render();
-      if(typeof displayProducts === 'function') displayProducts(d);
-    })
-    .catch(e => console.error("Fetch error:", e));
+  let q=document.getElementById('searchInput').value.trim().toLowerCase();
+  let url='/api/products';
+  if(q) url+=`?q=${encodeURIComponent(q)}`;
+  fetch(url).then(r=>r.json()).then(d=>{
+    allProducts=d; products=d;
+    render();
+  });
 }
 function render(){
   const container=document.getElementById('products');
