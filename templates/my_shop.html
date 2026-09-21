@@ -57,8 +57,27 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
   <button id="tabOrders" onclick="showTab('orders')" class="btn" style="flex:1;background:#000;color:#FFCC02">My Sales Orders</button>
   <button id="tabWants" onclick="showTab('wants')" class="btn" style="flex:1;background:#eee">Matching Wants</button>
  </div>
- <div id="ordersBox"></div>
- <div id="wantsBox" style="display:none"></div>
+<div style="display:flex;gap:8px;margin-bottom:10px;margin-top:10px">
+  <button onclick="showChatTab('orders')" id="btnOrders" class="btn" style="flex:1;background:#000;color:#FFCC02">My Sales Orders</button>
+  <button onclick="showChatTab('chats')" id="btnChats" class="btn" style="flex:1;background:#25D366;color:#000">💬 Chats <span id="chatCount" style="background:#000;color:#fff;padding:2px 6px;border-radius:10px">0</span></button>
+  <button onclick="showChatTab('wants')" id="btnWants" class="btn" style="flex:1;background:#eee">Wants</button>
+</div>
+<div id="ordersBox"></div>
+<div id="chatsBox" style="display:none"></div>
+<div id="wantsBox" style="display:none"></div>
+
+<!-- CHAT WINDOW MODAL -->
+<div id="chatModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:99999;flex-direction:column">
+  <div style="background:#075E54;color:#fff;padding:15px;display:flex;justify-content:space-between">
+    <span id="chatWithName">Chat</span>
+    <button onclick="closeChat()" style="background:red;color:#fff;border:none;padding:8px 12px;border-radius:8px">✕</button>
+  </div>
+  <div id="chatMessages" style="flex:1;overflow-y:auto;padding:15px;background:#e5ddd5;display:flex;flex-direction:column;gap:8px"></div>
+  <div style="background:#f0f0f0;padding:10px;display:flex;gap:8px">
+    <input id="sellerChatInput" placeholder="Type message..." style="flex:1;padding:12px;border-radius:20px;border:1px solid #ccc">
+    <button onclick="sendSellerMessage()" style="background:#25D366;color:#fff;border:none;padding:12px 18px;border-radius:20px;font-weight:bold">Send</button>
+  </div>
+</div>
 </div>
 
 <div class="card">
