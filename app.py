@@ -1921,24 +1921,6 @@ def unlock_chat():
         print(f"unlock error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
         
-@app.route('/api/chat/check-unlock')
-def check_unlock():
-    buyer = request.args.get('buyer','').lower().strip()
-    shop = request.args.get('shop','').lower().strip()
-    unlock_type = request.args.get('type','chat').lower().strip() # NEW LINE
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        # Check with type now
-        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer, shop, unlock_type))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        return jsonify({"unlocked": bool(row)})
-    except Exception as e:
-        print(f"check-unlock error: {e}")
-        return jsonify({"unlocked": False})
-
 # ============ CHAT PREVIEW SYSTEM - NEW FOR ADMIN ============
 @app.route('/admin/chats')
 @admin_required
