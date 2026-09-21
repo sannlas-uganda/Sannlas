@@ -1877,80 +1877,67 @@ def save_chat_unlocks(data):
     save_db(CHAT_UNLOCKS_FILE, data)
 
 @app.route('/api/chat/unlock', methods=['POST'])
-def chat_unlock():
+def unlock_chat():
     try:
-        d=request.json or {}
-        buyer=d.get('buyer_email','').lower().strip()
-        shop=d.get('shop_slug','').strip()
-        if not buyer or not shop:
-            return jsonify(success=False, error="Missing buyer or shop"),400
-        
-        unlocks = get_chat_unlocks()
-        exists = next((u for u in unlocks if u.get('buyer_email')==buyer and u.get('seller_shop')==shop), None)
-        if exists:
-            # Already unlocked
-            users = load_db('users.json', [])
-            u = next((x for x in users if x.get('email','').lower()==buyer), None)
-            bal = int(u.get('coins',0)) if u else 0
-            return jsonify(success=True, already=True, new_balance=bal)
-        
-        # Check balance
-        users = load_db('users.json', [])
-        user = next((x for x in users if x.get('email','').lower()==buyer), None)
-        if not user:
-            return jsonify(success=False, error="User not found, login first!"),404
-        
-        bought = int(user.get('bought',0))
-        earned = int(user.get('earned',0))
-        spent = int(user.get('spent',0))
-        total = bought + earned - spent
-        if total < 1:
-            return jsonify(success=False, error="You need 1 coin (599 UGX). Buy coins first!"),402
-        
-        # Deduct 1 coin
-        user['spent'] = spent + 1
-        user['coins'] = bought + earned - user['spent']
-        if user['coins']<0: user['coins']=0
-        save_db('users.json', users)
-        
-        # Save unlock
-        unlocks.append({
-            "id": int(time.time()*1000),
-            "buyer_email": buyer,
-            "seller_shop": shop,
-            "created": time.time()
-        })
-        save_chat_unlocks(unlocks)
-        
-        # Log transaction
-        txs = load_db('coin_transactions.json', [])
-        txs.append({
-            "id": int(time.time()*1000),
-            "email": buyer,
-            "phone": user.get('phone',''),
-            "coins": -1,
-            "price": 0,
-            "momo_code": f"CHAT-{shop[:6].upper()}",
-            "reason": f"Unlock chat with {shop}",
-            "time": time.time(),
-            "status": "chat_unlock"
-        })
-        save_db('coin_transactions.json', txs)
-        
-        return jsonify(success=True, new_balance=user['coins'])
-    except Exception as e:
-        print("chat_unlock error:", e)
-        return jsonify(success=False, error=str(e)),500
+        data = request.get_json()
+        buyer_email = data.get('buyer_email','').lower().strip()
+        shop_slug = data.get('shop_slug','').lower().strip()
+        unlock_type = data.get('type','chat').lower().strip() # NEW: whatsapp / chat / call
 
+        if not buyer_email or not shop_slug:
+            return jsonify({"success": False, "error": "Missing data"}), 400
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        # Check already unlocked for THIS TYPE
+        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"success": True, "already_unlocked": True})
+
+        # Check coins
+        cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
+        u = cur.fetchone()
+        if not u or (u[0] or 0) < 1:
+            cur.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Not enough coins! Buy coins Boss!"}), 400
+
+        # Deduct 1 coin
+        cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
+        new_balance = cur.fetchone()[0]
+
+        # Save unlock WITH TYPE
+        cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type, unlocked_at) VALUES (%s, %s, %s, NOW()) ON CONFLICT DO NOTHING", (buyer_email, shop_slug, unlock_type))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"success": True, "new_balance": new_balance, "type": unlock_type})
+    except Exception as e:
+        print(f"unlock error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+        
 @app.route('/api/chat/check-unlock')
 def check_unlock():
-    buyer=request.args.get('buyer','').lower().strip()
-    shop=request.args.get('shop','').strip()
-    if not buyer or not shop:
-        return jsonify(unlocked=False)
-    unlocks = get_chat_unlocks()
-    exists = next((u for u in unlocks if u.get('buyer_email')==buyer and u.get('seller_shop')==shop), None)
-    return jsonify(unlocked=bool(exists))
+    buyer = request.args.get('buyer','').lower().strip()
+    shop = request.args.get('shop','').lower().strip()
+    unlock_type = request.args.get('type','chat').lower().strip() # NEW LINE
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Check with type now
+        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer, shop, unlock_type))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify({"unlocked": bool(row)})
+    except Exception as e:
+        print(f"check-unlock error: {e}")
+        return jsonify({"unlocked": False})
 
 # ============ CHAT PREVIEW SYSTEM - NEW FOR ADMIN ============
 @app.route('/admin/chats')
