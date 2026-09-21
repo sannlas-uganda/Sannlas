@@ -1609,7 +1609,8 @@ def sell():
     except: pass
     prod = {'id': int(time.time()*1000),'name': name,'price': price,'original_price': original_price,'business': business,'location': location,'phone': phone,'seller_email': user_email,'description': desc,'image': images[0],'images': images,'main_category': main_cat,'smart_keywords': smart_keywords,'stock': stock,'sold': 0,'rating': 5.0,'reviews': [],'created': time.time(),'shop_id': shop_id,'shop_slug': shop_slug,'promo_commission': promo_commission}
     products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
-    # NO COIN DEDUCTION - FREE!
+    PRODUCTS_CACHE["data"] = None
+    PRODUCTS_CACHE["time"] = 0    # NO COIN DEDUCTION - FREE!
     return jsonify({'success':True,'message':f'Product added FREE! Now sellers pay 2 coins when buyer orders'})
 
 @app.route('/api/shops')
@@ -1902,6 +1903,8 @@ def my_products_compat():
 @app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
 def delete_prod(pid):
     products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
+    PRODUCTS_CACHE["data"] = None
+    PRODUCTS_CACHE["time"] = 0
     return jsonify({'success':True})
 # ============================================================
 # END MY SHOP
@@ -1913,6 +1916,8 @@ def fix_slugs():
         b = p.get('business') or ''
         if b: p['shop_slug'] = make_shop_slug(b)
     save_db('products.json', products)
+    PRODUCTS_CACHE["data"] = None
+    PRODUCTS_CACHE["time"] = 0
     return jsonify({'success':True,'message':'Fixed'})
     
     # ============ CHAT UNLOCK 1 COIN SYSTEM - OPTION A ============
@@ -2307,6 +2312,8 @@ def compress_neon_now():
                 p['image'] = f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
             except: pass
     save_db('products.json', products)
+    PRODUCTS_CACHE["data"] = None
+    PRODUCTS_CACHE["time"] = 0
     return f"Done! {len(products)} products compressed! Refresh homepage now!"
 
 @app.route('/manifest.json')
