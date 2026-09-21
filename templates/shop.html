@@ -1,76 +1,29 @@
 <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shop</title><style>
 body{font-family:Arial;background:#f5f5f5;margin:0}
-.header{background:#000;color:#fff;padding:20px;text-align:center;position:relative}
+.header{background:#000;color:#fff;padding:20px;text-align:center}
 .header h1{color:#FFCC02;margin:10px 0 5px 0}
 .shop-logo{width:90px;height:90px;border-radius:50%;border:3px solid #FFCC02;object-fit:cover;background:#fff}
-.shop-stats{color:#aaa;font-size:13px;margin:6px 0}
 button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:bold;cursor:pointer}
 .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
-.card{background:#fff;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
 .card img{width:100%;height:170px;object-fit:cover}
 .discount-badge{position:absolute;top:8px;left:8px;background:red;color:#fff;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:bold}
-.shop-footer{background:#fff;margin:10px;border-radius:15px;padding:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
-.shop-footer h3{margin:0 0 10px 0;font-size:16px}
-.footer-row{display:flex;gap:8px;margin:6px 0;font-size:13px;color:#333}
-.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;padding:15px}
-.modal-box{background:#fff;border-radius:15px;max-width:400px;width:100%;overflow:hidden}
-.modal-box img{width:100%;height:250px;object-fit:cover}
-.bell-btn{position:fixed;top:15px;right:15px;background:#00FF00;color:#000;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;z-index:9999;box-shadow:0 4px 15px rgba(0,255,0,0.5);animation:pulse 2s infinite}
-.bell-btn.has-new{animation:shake 0.5s infinite;background:#ff0000;color:#fff}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
-@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}100%{transform:translateX(0)}}
-.badge-notif{position:absolute;top:-5px;right:-5px;background:red;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}
-.notif-popup{position:fixed;top:70px;right:10px;width:320px;background:white;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:9998;display:none;max-height:70vh;overflow-y:auto;border:3px solid #00FF00}
+.shop-footer{background:#fff;margin:10px;border-radius:15px;padding:15px}
+#buyerChatModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;flex-direction:column}
 </style></head><body>
-<div class="bell-btn" id="bellBtn" onclick="toggleNotif()" style="display:none">🔔<span class="badge-notif" id="bellCount">0</span></div>
-<div class="notif-popup" id="notifPopup">
-  <div style="background:#000;color:#00FF00;padding:12px;font-weight:bold;border-radius:12px 12px 0 0;display:flex;justify-content:space-between">🔥 New Wants For You! <span onclick="toggleNotif()" style="cursor:pointer">❌</span></div>
-  <div id="notifList" style="padding:10px"></div>
-  <button onclick="clearNotifs()" style="width:100%;background:#111;color:white;padding:8px;border-radius:0 0 12px 12px">Clear All</button>
-</div>
-<audio id="notifSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
 
 <div class="header" id="h">
   <img id="shopLogoTop" class="shop-logo" src="https://via.placeholder.com/150?text=SHOP" style="display:none">
   <div id="headerText">Loading...</div>
-  <div id="logoEditBox" style="display:none;margin-top:10px">
-    <input type="file" id="logoInput" accept="image/*" style="color:#fff">
-    <button onclick="uploadLogo()" style="background:#FFCC02;color:#000">📸 Upload Logo</button>
-    <p style="font-size:11px;color:#aaa">Upload your shop logo / photo Boss!</p>
-  </div>
-</div>
-
-<div id="smartWantsBox" style="display:none;background:linear-gradient(90deg,#000,#003300);border-top:4px solid #00FF00;border-bottom:4px solid #00FF00;padding:12px;margin:0;">
-  <h3 style="color:#00FF00;margin:0 0 8px 0;text-align:center">🔥 <span id="smartWantsCount">0</span> BUYERS WANT YOUR PRODUCTS NEAR YOU! 💰</h3>
-  <p style="color:#aaa;font-size:11px;text-align:center;margin:0 0 8px 0">These buyers want what you sell in <span id="smartWantsLocation">this area</span> - Call them NOW!</p>
-  <div id="smartWantsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:400px;overflow-y:auto;"></div>
 </div>
 
 <div class="products" id="p"></div>
 
-<!-- 🏪 SHOP FOOTER - AUTO DETAILS + PRODUCTS ALREADY SHOWN ABOVE -->
-<div class="shop-footer" id="shopFooter" style="display:none">
-  <h3>🏪 About This Shop</h3>
-  <div id="footerAbout"></div>
-  <hr style="margin:10px 0;border:1px solid #eee">
-  <div class="footer-row">🚚 <b>Delivery:</b> <span id="fDelivery">Kampala Same Day, Upcountry 1-2 Days</span></div>
-  <div class="footer-row">🕒 <b>Working Hours:</b> <span id="fHours">Mon-Sat 8AM-7PM, Sun Closed</span></div>
-  <div class="footer-row">💳 <b>Payment:</b> <span id="fPayment">Cash on Delivery, MTN MoMo, Airtel Money</span></div>
-  <div class="footer-row">📅 <b>Member Since:</b> <span id="fSince"></span></div>
-  <div class="footer-row">📦 <b>Products:</b> <span id="fProducts">0</span> Items</div>
-  <hr style="margin:10px 0;border:1px solid #eee">
-  <div style="text-align:center">
-    <button onclick="shareShop()" style="background:#000;color:#FFCC02">🔗 Share Shop</button>
-    <button onclick="location.href='/'" style="background:#eee">🏠 Home</button>
-    <button onclick="reportShop()" style="background:#fff;border:1px solid #ccc">🚩 Report</button>
-  </div>
-  <p style="text-align:center;font-size:11px;color:#999;margin-top:10px">© 2026 Sannlas | Trusted Seller ✓</p>
-</div>
-<!-- BUYER CHAT MODAL - ADD HERE -->
-<div id="buyerChatModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;flex-direction:column">
+<!-- KEEP CHAT MODAL - FOR SELLERS WITHOUT WHATSAPP -->
+<div id="buyerChatModal">
   <div style="background:#075E54;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center">
-    <span>💬 Chat with <span id="buyerChatShopName">Seller</span></span>
+    <span>💬 Chat with <span id="buyerChatShopName">Seller</span> <small style="font-size:11px">(1 coin unlock)</small></span>
     <button onclick="closeBuyerChat()" style="background:red;color:#fff;border:none;padding:8px 12px;border-radius:8px">✕</button>
   </div>
   <div id="buyerChatMessages" style="flex:1;overflow-y:auto;padding:15px;background:#e5ddd5;display:flex;flex-direction:column;gap:8px"></div>
@@ -80,36 +33,17 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
   </div>
 </div>
 
-<div class="modal" id="descModal" onclick="this.style.display='none'">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <img id="mImg" src="">
-    <div style="padding:15px">
-      <h3 id="mName"></h3>
-      <div id="mPrice"></div><hr>
-      <p style="font-weight:bold;margin:5px 0">📝 Description:</p>
-      <p id="mDesc" style="color:#444;font-size:14px;line-height:1.5"></p>
-      <button onclick="document.getElementById('descModal').style.display='none'" style="width:100%;background:#000;color:#FFCC02;margin-top:10px">Close</button>
-    </div>
-  </div>
+<div class="shop-footer" id="shopFooter" style="display:none">
+  <h3>🏪 About This Shop</h3>
+  <div id="footerAbout"></div>
 </div>
 
 <script>
 let slug = (location.pathname.split('/shop/')[1] || new URLSearchParams(location.search).get('slug') || '').trim();
 slug = decodeURIComponent(slug).split('?')[0].split('/')[0];
-let allProducts = []; let currentShop=null;
-let lastWantIds = JSON.parse(localStorage.getItem('lastWants_'+slug) || '[]');
-let newWantsFound = [];
-
-function openDesc(id){
-  let x = allProducts.find(p=>p.id==id); if(!x) return;
-  document.getElementById('mImg').src = x.image;
-  document.getElementById('mName').innerText = x.name;
-  let op = x.original_price || 0; let disc = "";
-  if(op > x.price){ let pct = Math.round((op - x.price)*100/op); disc = `<b>UGX ${x.price}</b> <span style="text-decoration:line-through;color:gray;margin-left:6px">UGX ${op}</span> <span style="background:red;color:#fff;padding:2px 6px;border-radius:5px;font-size:11px">${pct}% OFF</span>`; } else { disc = `<b>UGX ${x.price}</b>`; }
-  document.getElementById('mPrice').innerHTML = disc;
-  document.getElementById('mDesc').innerText = x.description || x.desc || "No description added by seller.";
-  document.getElementById('descModal').style.display='flex';
-}
+let currentShop=null;
+let buyerUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+let buyerEmail = (buyerUser.email||'').toLowerCase();
 
 async function load(){
  try{
@@ -117,117 +51,106 @@ async function load(){
   let shop = d.shop; let products = d.products || [];
   if((!r.ok ||!shop) && products.length==0){
     let r2 = await fetch('/api/products?shop='+slug); products = await r2.json();
-    if(products.length>0){ let s = products[0]; shop = {business_name: s.business||'Shop', location: s.location||'Uganda', phone: s.phone||'', description: 'Welcome to '+(s.business||'Shop')+' shop!', shop_slug: slug, logo: '', created_at: Date.now()/1000}; }
+    if(products.length>0){ let s = products[0]; shop = {business_name: s.business||'Shop', location: s.location||'Uganda', phone: s.phone||'', description: 'Welcome!', shop_slug: slug, logo: '', created_at: Date.now()/1000}; }
   }
-  if(!shop){ document.getElementById('headerText').innerHTML=`<h1>Shop Not Found</h1><p>Slug: ${slug}</p><button onclick="location.href='/'">🏠 Home</button>`; return; }
-  currentShop=shop; allProducts=products;
-  loadSmartWants(shop, products);
-  let logo = shop.logo || shop.image || `https://via.placeholder.com/150?text=${encodeURIComponent((shop.business_name||'SHOP').substring(0,4))}`;
-  document.getElementById('shopLogoTop').src=logo; document.getElementById('shopLogoTop').style.display='inline-block';
-  let since = shop.created_at? new Date(shop.created_at*1000).getFullYear() : '2026';
-  let count = products.length || shop.total_products || 0;
-  document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name||shop.name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products at best price!'}</p><p style="color:#aaa;font-size:12px">📦 ${count} Products | 📅 Since ${since} | ${shop.verified?'✅ Verified':''}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="window.open('https://wa.me/${(shop.phone||'').replace(/[^0-9]/g,'')}','_blank')">💬 WhatsApp</button><button style="background:#FFCC02;color:#000" onclick="window.location.href='tel:${shop.phone||''}'">📞 Call</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat (1 coin)</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share</button></div>`;
-  // Show logo edit if owner
+  if(!shop){ document.getElementById('headerText').innerHTML=`<h1>Shop Not Found</h1>`; return; }
+  currentShop=shop;
+  document.getElementById('shopLogoTop').src=shop.logo||`https://via.placeholder.com/150?text=SHOP`; document.getElementById('shopLogoTop').style.display='inline-block';
+  let count = products.length || 0;
+
+   // ✅ SHOP OPEN IS FREE - ONLY CONTACT COSTS 1 COIN
+  document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button><button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button></div><p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
+function shareShop(){ navigator.clipboard.writeText(location.href); alert('🔗 Copied!'); }
+
+// ============ 1 COIN UNLOCK SYSTEM - SHARED FOR BOTH ============
+async function checkAndUnlock(){
+  if(!buyerEmail){ alert('Login first Boss!'); location.href='/?open=login'; return false; }
   try{
-    let me = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
-    let myEmail = (me.email||'').toLowerCase(); let myPhone = me.phone||'';
-    if((myEmail && shop.owner_email && myEmail==shop.owner_email.toLowerCase()) || (myPhone && shop.owner_phone && myPhone==shop.owner_phone) || (myPhone && shop.phone && myPhone==shop.phone)){
-      document.getElementById('logoEditBox').style.display='block';
+    let check = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}`);
+    let chk = await check.json();
+    if(chk.unlocked) return true;
+  }catch(e){}
+  if(!confirm(`🔓 Unlock chat with ${currentShop.business_name} for 1 coin (599 UGX)?\nPay ONCE - Use WhatsApp + In-App Chat FOREVER!`)) return false;
+  let r = await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug})});
+  let d = await r.json();
+  if(!d.success){ alert(d.error||'Need coins!'); location.href='/balance'; return false; }
+  alert(`✅ Unlocked! Balance: ${d.new_balance} coins`);
+  return true;
+}
+
+// ============ EACH CONTACT = 1 COIN SEPARATE ============
+
+async function openBuyerWhatsApp(){
+  if(!buyerEmail){ alert('Login first Boss!'); location.href='/?open=login'; return; }
+  let phone = (currentShop.phone||'').toString().replace(/[^0-9]/g,'');
+  if(phone.startsWith('0')) phone='256'+phone.slice(1);
+  if(!phone.startsWith('256')) phone='256'+phone;
+
+  // Check if already paid for WhatsApp
+  try{
+    let chk = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}&type=whatsapp`);
+    let d = await chk.json();
+    if(!d.unlocked){
+      if(!confirm(`🔓 WhatsApp costs 1 coin (599 UGX)?`)) return;
+      let r = await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug,type:'whatsapp'})});
+      let res = await r.json();
+      if(!res.success){ alert(res.error); location.href='/balance'; return; }
     }
   }catch(e){}
 
-  // Products
-  document.getElementById('p').innerHTML=products.length?products.map(x=>{
-    let badge = ""; if(x.original_price && x.original_price > x.price){ let pct = Math.round((x.original_price - x.price)*100/x.original_price); badge = `<div class="discount-badge">${pct}% OFF</div>`; }
-    let priceHtml = `UGX ${x.price}`; if(x.original_price && x.original_price > x.price){ priceHtml = `UGX ${x.price} <span style="text-decoration:line-through;color:gray;font-size:12px">UGX ${x.original_price}</span>`; }
-    return `<div class="card">${badge}<img src="${x.image}"><div style="padding:8px"><b>${x.name}</b><br><span style="font-size:13px">${priceHtml}</span><br><button onclick="openDesc('${x.id}')" style="width:100%;background:#000;color:#FFCC02;padding:6px;border-radius:8px;margin-top:6px">📄 View</button></div></div>`;
-  }).join('') : '<p style="text-align:center;color:#fff;padding:20px;background:#000;margin:10px;border-radius:10px">No products yet — Seller will add soon!</p>';
-
-  // Footer details auto
-  document.getElementById('shopFooter').style.display='block';
-  document.getElementById('footerAbout').innerHTML = `<p style="font-size:13px;color:#444">${shop.description||shop.business_name+' - Quality products at affordable prices in Uganda. We deliver fast!'} </p>`;
-  document.getElementById('fDelivery').innerText = shop.delivery_info || "Kampala Same Day, Upcountry 1-2 Days";
-  document.getElementById('fHours').innerText = shop.working_hours || "Mon-Sat 8AM-7PM, Sun Closed";
-  document.getElementById('fPayment').innerText = shop.payment || "Cash on Delivery, MTN MoMo, Airtel Money";
-  document.getElementById('fSince').innerText = since;
-  document.getElementById('fProducts').innerText = count;
- }catch(e){ document.getElementById('headerText').innerHTML=`<h1>Error</h1><p>${e.message}</p>`; }
+  window.open(`https://wa.me/${phone}?text=Hi, I saw ${currentShop.business_name} on Sannlas`, '_blank');
 }
-
-async function uploadLogo(){
-  let file = document.getElementById('logoInput').files[0]; if(!file){ alert('Select image Boss!'); return; }
-  let fd = new FormData(); fd.append('logo', file);
-  try{ let me = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}'); fd.append('email', me.email||''); fd.append('phone', me.phone||''); }catch(e){}
-  fd.append('shop_slug', slug);
-  let btn = event.target; btn.innerText='⏳ Uploading...';
-  try{
-    let r = await fetch('/api/shop/upload-logo', {method:'POST', body: fd});
-    let d = await r.json();
-    if(d.success){ document.getElementById('shopLogoTop').src=d.logo; alert('✅ Logo updated!'); location.reload(); } else { alert('Failed: '+(d.message||'')); }
-  }catch(e){ alert('Error: '+e.message); }
-  btn.innerText='📸 Upload Logo';
-}
-function shareShop(){ navigator.clipboard.writeText(location.href); alert('🔗 Shop link copied! Share on WhatsApp!'); }
-function reportShop(){ alert('Thanks! Report sent to Sannlas team.'); }
-
-async function loadSmartWants(shop, products){
- try{
-  let r=await fetch('/api/wants'); let wants=await r.json(); if(!wants || wants.length==0) return;
-  let productKeywords = []; products.forEach(p=>{ let name=(p.name||'').toLowerCase(); name.split(' ').forEach(w=>{ if(w.length>2) productKeywords.push(w); }); if(p.main_category) productKeywords.push(p.main_category.toLowerCase()); });
-  productKeywords=[...new Set(productKeywords)];
-  let matched=wants.filter(w=>{ if(w.status && w.status!=='open') return false; let wantItem=(w.item||'').toLowerCase(); let ok=productKeywords.length==0; for(let kw of productKeywords){ if(kw.length<3) continue; if(wantItem.includes(kw)){ ok=true; break; } } return ok; });
-  if(matched.length==0) return;
-  let currentIds=matched.map(w=>w.id); let trulyNew=matched.filter(w=>!lastWantIds.includes(w.id));
-  if(trulyNew.length>0 && lastWantIds.length>0){ newWantsFound=trulyNew; document.getElementById('bellBtn').style.display='flex'; document.getElementById('bellBtn').classList.add('has-new'); document.getElementById('bellCount').innerText=trulyNew.length; try{ document.getElementById('notifSound').play(); }catch(e){} setTimeout(()=>{ showNotifs(trulyNew); document.getElementById('notifPopup').style.display='block'; },1500); } else if(matched.length>0){ document.getElementById('bellBtn').style.display='flex'; document.getElementById('bellCount').innerText=matched.length; }
-  localStorage.setItem('lastWants_'+slug, JSON.stringify(currentIds));
-  document.getElementById('smartWantsBox').style.display='block'; document.getElementById('smartWantsCount').innerText=matched.length; document.getElementById('smartWantsLocation').innerText=shop.location||'your area';
-  document.getElementById('smartWantsList').innerHTML=matched.slice(0,10).map(w=>{ let isNew=trulyNew.some(nw=>nw.id==w.id); return `<div style="background:${isNew?'#e8ffe8':'white'};border-radius:10px;padding:10px;border-left:4px solid ${isNew?'red':'#00FF00'};position:relative">${isNew?'<span style="position:absolute;top:5px;right:5px;background:red;color:white;font-size:9px;padding:2px 6px;border-radius:10px">NEW!</span>':''}<b style="color:#000;font-size:14px">🎯 ${w.item}</b><br><small style="color:#333">📦 ${w.quantity||'Any qty'} | 📍 ${w.district||'Uganda'}</small><br><small style="color:#666">${w.note||''}</small><br><div style="display:flex;gap:6px;margin-top:8px"><a href="tel:${w.phone}" style="flex:1;background:#00FF00;color:#000;padding:6px;border-radius:10px;text-align:center;font-weight:bold;text-decoration:none;font-size:12px">📞 Call</a><a href="https://wa.me/${(w.phone||'').replace(/[^0-9]/g,'')}?text=Hi! I have ${encodeURIComponent(w.item)} you wanted!" target="_blank" style="flex:1;background:#25D366;color:white;padding:6px;border-radius:10px;text-align:center;font-weight:bold;text-decoration:none;font-size:12px">💬 Sell NOW</a></div></div>`; }).join('');
- }catch(e){ console.log(e); }
-}
-function toggleNotif(){ let p=document.getElementById('notifPopup'); p.style.display=p.style.display=='block'?'none':'block'; if(p.style.display=='block' && newWantsFound.length>0) showNotifs(newWantsFound); }
-function showNotifs(list){ document.getElementById('notifList').innerHTML=list.map(w=>`<div style="border-bottom:1px solid #eee;padding:8px 0"><b>🎯 ${w.item}</b> <span style="background:red;color:white;font-size:9px;padding:2px 5px;border-radius:8px">NEW</span><br><small>${w.quantity||''} | ${w.district||''} | ${w.phone}</small><br><a href="tel:${w.phone}" style="background:#00FF00;color:#000;padding:4px 10px;border-radius:10px;text-decoration:none;font-size:11px;font-weight:bold">📞 Call NOW</a></div>`).join(''); }
-function clearNotifs(){ newWantsFound=[]; document.getElementById('bellCount').style.display='none'; document.getElementById('bellBtn').classList.remove('has-new'); document.getElementById('notifPopup').style.display='none'; }
-
-// === BUYER CHAT SYSTEM ===
-let buyerUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
-let buyerEmail = (buyerUser.email||'').toLowerCase();
 
 async function openBuyerChat(){
-  if(!buyerEmail){ alert('Login first to chat Boss!'); location.href='/?open=login'; return; }
-  let check = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}`);
-  let chk = await check.json();
-  if(!chk.unlocked){
-    if(!confirm('Chat costs 1 coin (599 UGX) to unlock. Continue?')) return;
-    let r = await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug})});
-    let d = await r.json();
-    if(!d.success){ alert(d.error||'Need coins! Buy coins first Boss!'); location.href='/balance'; return; }
-  }
-  document.getElementById('buyerChatShopName').innerText = currentShop?.business_name||'Seller';
+  if(!buyerEmail){ alert('Login first!'); return; }
+  try{
+    let chk = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}&type=chat`);
+    let d = await chk.json();
+    if(!d.unlocked){
+      if(!confirm(`🔓 In-App Chat costs 1 coin (599 UGX)?`)) return;
+      let r = await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug,type:'chat'})});
+      let res = await r.json();
+      if(!res.success){ alert(res.error); location.href='/balance'; return; }
+    }
+  }catch(e){}
+  
+  document.getElementById('buyerChatShopName').innerText = currentShop.business_name;
   document.getElementById('buyerChatModal').style.display='flex';
   loadBuyerMessages();
+}
+
+async function openBuyerCall(){
+  if(!buyerEmail){ alert('Login first!'); return; }
+  try{
+    let chk = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}&type=call`);
+    let d = await chk.json();
+    if(!d.unlocked){
+      if(!confirm(`🔓 Call costs 1 coin (599 UGX)?`)) return;
+      let r = await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug,type:'call'})});
+      let res = await r.json();
+      if(!res.success){ alert(res.error); location.href='/balance'; return; }
+    }
+  }catch(e){}
+  
+  window.location.href='tel:'+currentShop.phone;
 }
 function closeBuyerChat(){ document.getElementById('buyerChatModal').style.display='none'; }
 async function loadBuyerMessages(){
   let r = await fetch(`/api/chat/history?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}`);
   let msgs = await r.json();
-  document.getElementById('buyerChatMessages').innerHTML = msgs.length ? msgs.map(m=>{
-    if(m.sender==='admin'){
-      return `<div style="align-self:center;background:#FFF3CD;border:2px solid #FFCC02;color:#000;padding:10px 14px;border-radius:12px;max-width:85%;text-align:center;margin:8px auto">🛡️ <b>ADMIN:</b> ${m.text}</div>`;
-    }
+  document.getElementById('buyerChatMessages').innerHTML = msgs.length? msgs.map(m=>{
     let isMe = m.sender==='buyer';
-    let style = isMe ? 'align-self:flex-end;background:#dcf8c6' : 'align-self:flex-start;background:#fff';
+    let style = isMe? 'align-self:flex-end;background:#dcf8c6' : 'align-self:flex-start;background:#fff';
+    if(m.sender==='admin') return `<div style="align-self:center;background:#FFF3CD;border:2px solid #FFCC02;padding:10px;border-radius:12px;text-align:center">🛡️ ADMIN: ${m.text}</div>`;
     return `<div style="${style};padding:10px;border-radius:10px;max-width:70%">${m.text}<br><small style="color:#888">${new Date(m.time*1000).toLocaleTimeString()}</small></div>`;
-  }).join('') : '<div style="text-align:center;color:#777;margin-top:30px">No messages yet. Say hi!</div>';
+  }).join('') : '<div style="text-align:center;color:#777;margin-top:30px">No messages yet. Say hi! (Works even if seller has no WhatsApp)</div>';
   document.getElementById('buyerChatMessages').scrollTop=99999;
 }
 async function sendBuyerMessage(){
-  let text = document.getElementById('buyerChatInput').value.trim();
-  if(!text) return;
+  let text = document.getElementById('buyerChatInput').value.trim(); if(!text) return;
   await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug,sender:'buyer',text})});
-  document.getElementById('buyerChatInput').value='';
-  loadBuyerMessages();
+  document.getElementById('buyerChatInput').value=''; loadBuyerMessages();
 }
 setInterval(()=>{ let m=document.getElementById('buyerChatModal'); if(m && m.style.display==='flex') loadBuyerMessages(); },3000);
-
 load();
 </script></body></html>
