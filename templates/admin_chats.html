@@ -15,24 +15,25 @@ body{margin:0;font-family:Arial;background:#111;display:flex;height:100vh}
 .bubble{max-width:70%;padding:10px 12px;border-radius:8px;font-size:14px}
 .buyer{align-self:flex-start;background:#fff}
 .seller{align-self:flex-end;background:#dcf8c6}
-.admin{align-self:center;background:#ffe8a0;border:1px solid #ffcc02}
+.admin{align-self:center;background:#ffe8a0;border:1px solid #ffcc02;color:#000}
 .input-bar{background:#f0f0f0;padding:10px;display:flex;gap:8px}
 .input-bar input{flex:1;padding:12px;border-radius:20px;border:1px solid #ccc}
 .input-bar button{background:#25D366;border:none;color:#fff;padding:12px 18px;border-radius:20px;font-weight:bold;cursor:pointer}
 .top{padding:15px;background:#075E54;color:#fff;font-weight:bold}
 .badge{font-size:10px;background:#ff0000;color:#fff;padding:2px 5px;border-radius:10px}
+.empty{padding:30px;text-align:center;color:#777}
 </style>
 </head>
 <body>
 <div class="left">
 <div class="top">💬 Sannlas Chat Preview <a href="/admin" style="float:right;color:#fff;text-decoration:none">← Admin</a></div>
-<div id="list"></div>
+<div id="list"><div class="empty">⏳ Loading...<br>If empty = No one unlocked chat yet</div></div>
 </div>
 <div class="right">
-<div id="chatHeader" class="top" style="background:#128C7E">Select a chat</div>
+<div id="chatHeader" class="top" style="background:#128C7E">Select a chat on left</div>
 <div id="msgArea" class="msg-area"></div>
 <div class="input-bar">
-<input id="adminMsg" placeholder="Reply as Admin...">
+<input id="adminMsg" placeholder="Reply as Admin - both buyer & seller will see this...">
 <button onclick="sendAdmin()">Send as Admin</button>
 </div>
 </div>
@@ -40,14 +41,18 @@ body{margin:0;font-family:Arial;background:#111;display:flex;height:100vh}
 let curBuyer='', curShop='', curOrder='';
 async function loadChats(){
   let r=await fetch('/api/admin/chats'); let data=await r.json();
+  if(!data.length){
+    document.getElementById('list').innerHTML='<div class=empty>📭 No chats yet<br><small>No buyer paid 1 coin yet.<br>When they do, they appear here.</small><br><br><button onclick="loadChats()" style="padding:8px">🔄 Refresh</button></div>'; return;
+  }
   document.getElementById('list').innerHTML=data.map(c=>{
     let initial=(c.buyer_email||c.buyer_name||'B')[0].toUpperCase();
+    let typeIcon=c.type=='order'?'🛒':'💬';
     return `<div class="chat-item" onclick="openChat('${c.buyer_email}','${c.shop_slug}','${c.type=='order'?(c.order?.id||'') : ''}',this)">
       <div class="avatar">${initial}</div>
       <div style="flex:1">
-        <div style="font-weight:bold">${c.buyer_name||c.buyer_email||c.buyer_phone} ${c.type=='order'?'<span class=badge>ORDER</span>':''}</div>
+        <div style="font-weight:bold">${typeIcon} ${c.buyer_name||c.buyer_email||c.buyer_phone} ${c.type=='order'?'<span class=badge>ORDER</span>':''}</div>
         <div style="font-size:12px;color:#666">${c.last_message}</div>
-        <div style="font-size:10px;color:#999">${c.shop_slug}</div>
+        <div style="font-size:10px;color:#999">${c.shop_slug} | ${c.buyer_email}</div>
       </div>
     </div>`;
   }).join('');
@@ -56,23 +61,27 @@ async function openChat(buyer,shop,orderId,el){
   curBuyer=buyer; curShop=shop; curOrder=orderId;
   document.querySelectorAll('.chat-item').forEach(e=>e.classList.remove('active'));
   if(el) el.classList.add('active');
-  document.getElementById('chatHeader').innerHTML=buyer+' → '+shop;
+  document.getElementById('chatHeader').innerHTML=buyer+' → '+shop + (orderId?' (ORDER '+orderId+')':'');
   let url=`/api/admin/chat/messages?buyer=${encodeURIComponent(buyer)}&shop=${encodeURIComponent(shop)}&order_id=${orderId}`;
   let r=await fetch(url); let msgs=await r.json();
+  if(!msgs.length){
+    document.getElementById('msgArea').innerHTML='<div style="text-align:center;color:#999;margin-top:80px">💬 Chat unlocked but no messages yet<br><small>You can still Send as Admin to warn them</small></div>';
+    return;
+  }
   document.getElementById('msgArea').innerHTML=msgs.map(m=>{
     let cls=m.sender=='buyer'?'buyer':m.sender=='seller'?'seller':'admin';
     return `<div class="bubble ${cls}"><b>${m.sender}:</b> ${m.text}<br><small>${new Date(m.time*1000).toLocaleString()}</small></div>`;
-  }).join('') || '<div style="text-align:center;color:#999;margin-top:50px">No messages yet - Buyer unlocked chat but not chatted</div>';
+  }).join('');
   document.getElementById('msgArea').scrollTop=99999;
 }
 async function sendAdmin(){
   let t=document.getElementById('adminMsg').value.trim();
-  if(!t||!curBuyer) return;
+  if(!t||!curBuyer){ alert('Select a chat first Boss!'); return; }
   await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:curBuyer,shop_slug:curShop,sender:'admin',text:t})});
   document.getElementById('adminMsg').value='';
   openChat(curBuyer,curShop,curOrder);
 }
-loadChats(); setInterval(loadChats,8000);
+loadChats(); setInterval(loadChats,5000);
 </script>
 </body>
 </html>
