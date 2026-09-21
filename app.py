@@ -184,16 +184,18 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_conn():
-    if not DATABASE_URL: raise Exception("No DATABASE_URL")
+    if not DATABASE_URL:
+        raise Exception("No DATABASE_URL")
     try:
         import psycopg
         return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
-    except ImportError:
-        import psycopg2
-        return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
-        except Exception as e:
-        print("DB connect error:", e)
-        raise
+    except Exception as e:
+        try:
+            import psycopg2
+            return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+        except Exception as e2:
+            print("DB connect error:", e, e2)
+            raise Exception("DB connection failed")
 
 def ensure_tables():
     if not DATABASE_URL: return
