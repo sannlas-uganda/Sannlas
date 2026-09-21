@@ -957,19 +957,43 @@ def admin_set_billboard_animated():
 @app.route('/api/admin/shop/verify', methods=['POST'])
 def admin_verify_shop():
     data = request.get_json() or {}
-    slug = (data.get('shop_slug') or '').strip()
-    action = data.get('action')  # verify / unverify
+    slug = (data.get('shop_slug') or data.get('slug') or '').strip().lower()
+    action = (data.get('action') or 'verify').lower()  # verify / unverify
     if not slug:
         return jsonify(success=False, message="No slug"), 400
     try:
-        if action == 'verify':
-            db.execute("UPDATE shops SET verified=true, is_verified=true WHERE shop_slug=%s", (slug,))
-            db.execute("UPDATE users SET verified=true WHERE shop_slug=%s", (slug,))
-        else:
-            db.execute("UPDATE shops SET verified=false, is_verified=false WHERE shop_slug=%s", (slug,))
-            db.execute("UPDATE users SET verified=false WHERE shop_slug=%s", (slug,))
-        return jsonify(success=True, message=f"Shop {action}d")
+        shops = load_json('shops.json', [])
+        users = load_json('users.json', [])
+        found = False
+        
+        # Update shops.json
+        for s in shops:
+            s_slug = (s.get('shop_slug') or s.get('slug') or '').lower()
+            if s_slug == slug:
+                is_verify = True if action == 'verify' else False
+                s['verified'] = is_verify
+                s['is_verified'] = is_verify
+                s['status'] = 'verified' if is_verify else 'pending'
+                found = True
+                break
+        
+        # Also update users.json for that shop owner
+        if found:
+            for u in users:
+                u_slug = (u.get('shop_slug') or '').lower()
+                if u_slug == slug:
+                    u['verified'] = True if action == 'verify' else False
+        
+        save_json('shops.json', shops)
+        save_json('users.json', users)
+        
+        if not found:
+            return jsonify(success=False, message=f"Shop {slug} not found in shops.json"), 404
+            
+        return jsonify(success=True, message=f"Shop {slug} {action}d ✅")
     except Exception as e:
+        print("VERIFY ERROR:", e)
+        import traceback; traceback.print_exc()
         return jsonify(success=False, message=str(e)), 500
 
 COIN_CONFIG_CACHE = {"data": None, "time": 0}
