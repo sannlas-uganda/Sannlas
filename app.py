@@ -108,7 +108,7 @@ def get_smart_category(text):
     # Otherwise return longest keyword match
     matches.sort(key=lambda x: x[2], reverse=True)
     return matches[0][0]
-    def expand_search_query(q):
+def expand_search_query(q):
     # Simple synonym expansion for Uganda
     if not q: return ""
     synonyms = {
