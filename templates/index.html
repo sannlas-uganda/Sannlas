@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>window.FIRST_PRODUCTS = {{ first_products|tojson|safe if first_products is defined else '[]' }}; console.log("Instant ready:", window.FIRST_PRODUCTS.length);</script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#000000">
 <link rel="apple-touch-icon" href="/icon-192.png">
@@ -417,6 +418,28 @@ document.addEventListener('click', function(e){
 function debouncedFilter(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doFilter(),300);}
 function doFilter(){
   let q=document.getElementById('searchInput').value.trim().toLowerCase();
+  
+  // FIX 3: SHOW INSTANT PRODUCTS IF NO SEARCH!
+  if(!q && window.FIRST_PRODUCTS && window.FIRST_PRODUCTS.length > 0 && (!allProducts || allProducts.length === 0)){
+    console.log("⚡ Instant render!");
+    allProducts = window.FIRST_PRODUCTS;
+    products = window.FIRST_PRODUCTS;
+    render();
+    // Load more in background after 600ms
+    setTimeout(()=>{
+        fetch('/api/products?limit=100&offset=12')
+        .then(r=>r.json()).then(more=>{
+            if(more.length>0){
+                allProducts = [...window.FIRST_PRODUCTS, ...more];
+                products = allProducts;
+                render();
+                console.log("Loaded more:", more.length);
+            }
+        });
+    }, 600);
+    return;
+  }
+  
   let url='/api/products';
   if(q) url+=`?q=${encodeURIComponent(q)}`;
   fetch(url).then(r=>r.json()).then(d=>{
