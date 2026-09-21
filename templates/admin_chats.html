@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chat Preview - Admin</title>
+<style>
+body{margin:0;font-family:Arial;background:#111;display:flex;height:100vh}
+.left{width:35%;background:#fff;border-right:1px solid #ddd;overflow-y:auto}
+.right{width:65%;background:#e5ddd5;display:flex;flex-direction:column}
+.chat-item{padding:12px;border-bottom:1px solid #eee;cursor:pointer;display:flex;gap:10px}
+.chat-item:hover{background:#f5f5f5}
+.chat-item.active{background:#ebebeb}
+.avatar{width:45px;height:45px;background:#25D366;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px}
+.msg-area{flex:1;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:8px}
+.bubble{max-width:70%;padding:10px 12px;border-radius:8px;font-size:14px}
+.buyer{align-self:flex-start;background:#fff}
+.seller{align-self:flex-end;background:#dcf8c6}
+.admin{align-self:center;background:#ffe8a0;border:1px solid #ffcc02}
+.input-bar{background:#f0f0f0;padding:10px;display:flex;gap:8px}
+.input-bar input{flex:1;padding:12px;border-radius:20px;border:1px solid #ccc}
+.input-bar button{background:#25D366;border:none;color:#fff;padding:12px 18px;border-radius:20px;font-weight:bold;cursor:pointer}
+.top{padding:15px;background:#075E54;color:#fff;font-weight:bold}
+.badge{font-size:10px;background:#ff0000;color:#fff;padding:2px 5px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="left">
+<div class="top">💬 Sannlas Chat Preview <a href="/admin" style="float:right;color:#fff;text-decoration:none">← Admin</a></div>
+<div id="list"></div>
+</div>
+<div class="right">
+<div id="chatHeader" class="top" style="background:#128C7E">Select a chat</div>
+<div id="msgArea" class="msg-area"></div>
+<div class="input-bar">
+<input id="adminMsg" placeholder="Reply as Admin...">
+<button onclick="sendAdmin()">Send as Admin</button>
+</div>
+</div>
+<script>
+let curBuyer='', curShop='', curOrder='';
+async function loadChats(){
+  let r=await fetch('/api/admin/chats'); let data=await r.json();
+  document.getElementById('list').innerHTML=data.map(c=>{
+    let initial=(c.buyer_email||c.buyer_name||'B')[0].toUpperCase();
+    return `<div class="chat-item" onclick="openChat('${c.buyer_email}','${c.shop_slug}','${c.type=='order'?(c.order?.id||'') : ''}',this)">
+      <div class="avatar">${initial}</div>
+      <div style="flex:1">
+        <div style="font-weight:bold">${c.buyer_name||c.buyer_email||c.buyer_phone} ${c.type=='order'?'<span class=badge>ORDER</span>':''}</div>
+        <div style="font-size:12px;color:#666">${c.last_message}</div>
+        <div style="font-size:10px;color:#999">${c.shop_slug}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function openChat(buyer,shop,orderId,el){
+  curBuyer=buyer; curShop=shop; curOrder=orderId;
+  document.querySelectorAll('.chat-item').forEach(e=>e.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('chatHeader').innerHTML=buyer+' → '+shop;
+  let url=`/api/admin/chat/messages?buyer=${encodeURIComponent(buyer)}&shop=${encodeURIComponent(shop)}&order_id=${orderId}`;
+  let r=await fetch(url); let msgs=await r.json();
+  document.getElementById('msgArea').innerHTML=msgs.map(m=>{
+    let cls=m.sender=='buyer'?'buyer':m.sender=='seller'?'seller':'admin';
+    return `<div class="bubble ${cls}"><b>${m.sender}:</b> ${m.text}<br><small>${new Date(m.time*1000).toLocaleString()}</small></div>`;
+  }).join('') || '<div style="text-align:center;color:#999;margin-top:50px">No messages yet - Buyer unlocked chat but not chatted</div>';
+  document.getElementById('msgArea').scrollTop=99999;
+}
+async function sendAdmin(){
+  let t=document.getElementById('adminMsg').value.trim();
+  if(!t||!curBuyer) return;
+  await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:curBuyer,shop_slug:curShop,sender:'admin',text:t})});
+  document.getElementById('adminMsg').value='';
+  openChat(curBuyer,curShop,curOrder);
+}
+loadChats(); setInterval(loadChats,8000);
+</script>
+</body>
+</html>
