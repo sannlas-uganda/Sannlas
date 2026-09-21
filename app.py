@@ -163,6 +163,7 @@ threading.Thread(target=cleanup_expired_wants, daemon=True).start()
 # ===== END AUTO-DELETE =====
 
 PRODUCTS_CACHE = {"data": None, "time": 0}
+COIN_CONFIG_CACHE = {"data": None, "time": 0}
 CACHE_TTL = 10
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
 
@@ -1921,78 +1922,6 @@ def unlock_chat():
         print(f"unlock error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
         
-# ============ CHAT PREVIEW SYSTEM - NEW FOR ADMIN ============
-@app.route('/admin/chats')
-@admin_required
-def admin_chats_page():
-    return render_template('admin_chats.html')
-
-@app.route('/api/chat/history')
-def chat_history():
-    buyer=request.args.get('buyer','').lower().strip()
-    shop=request.args.get('shop','').strip()
-    if not buyer or not shop:
-        return jsonify([])
-    chats=get_chats_data()
-    conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
-    if conv:
-        return jsonify(conv.get('messages',[]))
-    return jsonify([])
-
-@app.route('/api/chat/send', methods=['POST'])
-def chat_send():
-    d=request.json or {}
-    buyer=d.get('buyer_email','').lower().strip()
-    shop=d.get('shop_slug','').strip()
-    sender=d.get('sender','buyer')
-    text=d.get('text','').strip()[:1000]
-    if not buyer or not shop or not text:
-        return jsonify(success=False),400
-    chats=get_chats_data()
-    conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
-    if not conv:
-        conv={"buyer_email":buyer,"shop_slug":shop,"messages":[],"created":time.time()}
-        chats.append(conv)
-    conv['messages'].append({"sender":sender,"text":text,"time":time.time()})
-    conv['updated']=time.time()
-    save_chats_data(chats)
-    return jsonify(success=True)
-
-@app.route('/api/admin/chats')
-@admin_required
-def admin_chats_list():
-    unlocks=get_chat_unlocks()
-    orders=load_db('orders_v2.json',[])
-    chats=get_chats_data()
-    result=[]
-    for u in unlocks[-100:][::-1]:
-        shop=u.get('seller_shop','')
-        buyer=u.get('buyer_email','')
-        conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
-        last=conv['messages'][-1]['text'][:40] if conv and conv.get('messages') else "Chat unlocked - No messages yet"
-        result.append({"buyer_email":buyer,"shop_slug":shop,"last_message":last,"time":u.get('created',0),"type":"chat"})
-    for o in orders[-50:][::-1]:
-        result.append({"buyer_email":o.get('buyer_email',''),"buyer_phone":o.get('buyer_phone',''),"buyer_name":o.get('buyer_name',''),"shop_slug":o.get('seller_email',''),"last_message":f"ORDER {o.get('id','')} - UGX {o.get('total',0)}","time":o.get('created_at',0),"type":"order","order":o})
-    result=sorted(result,key=lambda x:x.get('time',0),reverse=True)
-    return jsonify(result)
-
-@app.route('/api/admin/chat/messages')
-@admin_required
-def admin_chat_messages():
-    buyer=request.args.get('buyer','').lower().strip()
-    shop=request.args.get('shop','').strip()
-    order_id=request.args.get('order_id','').strip()
-    if order_id:
-        orders=load_db('orders_v2.json',[])
-        order=next((o for o in orders if str(o.get('id'))==order_id),None)
-        if order:
-            return jsonify([{"sender":"system","text":f"ORDER: {order.get('buyer_name')} - {order.get('buyer_phone')} - UGX {order.get('total')} - Items: {str(order.get('items',''))[:200]}","time":order.get('created_at',0)}])
-    chats=get_chats_data()
-    conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
-    if conv:
-        return jsonify(conv.get('messages',[]))
-    return jsonify([])
-# ============ END CHAT PREVIEW SYSTEM ============
 @app.route('/api/admin/data')
 @admin_required
 def admin_data():
@@ -2361,15 +2290,17 @@ def add_cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
-# ============ SANNLAS CONTACT SYSTEM - 1 COIN PER CONTACT ============
+# ============ SANNLAS CONTACT SYSTEM - 1 COIN PER CONTACT - FIXED ============
+def get_db():
+    return get_conn()
 
 @app.route('/api/chat/check-unlock')
-def check_unlock():
+def check_unlock_status():
     buyer = request.args.get('buyer','').lower().strip()
     shop = request.args.get('shop','').lower().strip()
     unlock_type = request.args.get('type','chat').lower().strip()
     try:
-        conn = get_db()
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer, shop, unlock_type))
         row = cur.fetchone()
@@ -2381,16 +2312,15 @@ def check_unlock():
         return jsonify({"unlocked": False})
 
 @app.route('/api/chat/unlock', methods=['POST'])
-def unlock_chat():
+def unlock_chat_new():
     try:
         data = request.get_json()
         buyer_email = data.get('buyer_email','').lower().strip()
         shop_slug = data.get('shop_slug','').lower().strip()
         unlock_type = data.get('type','chat').lower().strip()
 
-        conn = get_db()
+        conn = get_conn()
         cur = conn.cursor()
-
         cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
         if cur.fetchone():
             cur.close()
@@ -2399,24 +2329,20 @@ def unlock_chat():
 
         cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
         u = cur.fetchone()
-        # If user not in users table, check kv_store or give free coins for test
         if not u:
-            cur.execute("INSERT INTO users (email, coins) VALUES (%s, 5) ON CONFLICT (email) DO NOTHING RETURNING coins", (buyer_email,))
+            cur.execute("INSERT INTO users (email, coins) VALUES (%s, 5) ON CONFLICT (email) DO NOTHING", (buyer_email,))
+            conn.commit()
+            cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
             u = cur.fetchone()
-            if not u:
-                cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
-                u = cur.fetchone()
 
         if not u or (u[0] or 0) < 1:
             cur.close()
             conn.close()
-            return jsonify({"success": False, "error": "Not enough coins! Buy coins Boss!"}), 400
+            return jsonify({"success": False, "error": "Not enough coins!"}), 400
 
         cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
         new_balance = cur.fetchone()[0]
-
         cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type) VALUES (%s, %s, %s) ON CONFLICT (buyer_email, shop_slug, unlock_type) DO NOTHING", (buyer_email, shop_slug, unlock_type))
-
         conn.commit()
         cur.close()
         conn.close()
@@ -2426,7 +2352,7 @@ def unlock_chat():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/chat/send', methods=['POST'])
-def chat_send():
+def chat_send_new():
     try:
         data = request.get_json()
         buyer_email = data.get('buyer_email','').lower().strip()
@@ -2435,8 +2361,7 @@ def chat_send():
         text = data.get('text','').strip()
         if not text:
             return jsonify({"success": False}), 400
-
-        conn = get_db()
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("INSERT INTO chat_messages (buyer_email, shop_slug, sender, text, time) VALUES (%s, %s, %s, %s, %s)", (buyer_email, shop_slug, sender, text, int(time.time())))
         conn.commit()
@@ -2448,11 +2373,11 @@ def chat_send():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/chat/history')
-def chat_history():
+def chat_history_new():
     buyer = request.args.get('buyer','').lower().strip()
     shop = request.args.get('shop','').lower().strip()
     try:
-        conn = get_db()
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("SELECT sender, text, time FROM chat_messages WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s ORDER BY time ASC", (buyer, shop))
         rows = cur.fetchall()
@@ -2465,11 +2390,10 @@ def chat_history():
         return jsonify([])
 
 @app.route('/api/chat/threads')
-def chat_threads():
-    # For seller to see all buyers who chatted
+def chat_threads_new():
     shop = request.args.get('shop','').lower().strip()
     try:
-        conn = get_db()
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("SELECT DISTINCT buyer_email, MAX(time) as last FROM chat_messages WHERE LOWER(shop_slug)=%s GROUP BY buyer_email ORDER BY last DESC", (shop,))
         rows = cur.fetchall()
