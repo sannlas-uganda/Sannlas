@@ -2323,6 +2323,28 @@ def admin_data_fixed():
     except Exception as e:
         return jsonify({'products':[],'users':[],'shops':[],'error': str(e)})
 
+@app.route('/api/admin/delete_shop/<slug>', methods=['DELETE', 'POST'])
+def admin_delete_shop(slug):
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        # Delete all products of this shop first
+        cur.execute("DELETE FROM products WHERE shop_slug = %s", (slug,))
+        # Delete shop itself - try both tables name
+        try:
+            cur.execute("DELETE FROM shops WHERE slug = %s", (slug,))
+        except:
+            cur.execute("DELETE FROM shops WHERE shop_slug = %s", (slug,))
+        # Also delete users if shop is fake (optional)
+        # cur.execute("DELETE FROM users WHERE shop_slug = %s", (slug,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"success": True, "message": f"Shop {slug} deleted!"})
+    except Exception as e:
+        print("Delete shop error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route('/compress-neon-now')
 def compress_neon_now():
     from PIL import Image
