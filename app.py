@@ -407,6 +407,9 @@ BUSINESS_CATEGORIES = {"Agriculture & Farming":["Fish Farming","Poultry Farming"
 WANTS_FILE = 'wants.json'
 OFFERS_FILE = 'offers.json'
 CHAT_UNLOCKS_FILE = 'chat_unlocks.json'
+CHATS_FILE = 'chats.json'
+def get_chats_data(): return load_db(CHATS_FILE, [])
+def save_chats_data(d): save_db(CHATS_FILE, d)
 
 def get_wants_data(): return load_db(WANTS_FILE, [])
 def save_wants_data(wants): save_db(WANTS_FILE, wants)
@@ -1906,8 +1909,78 @@ def check_unlock():
     exists = next((u for u in unlocks if u.get('buyer_email')==buyer and u.get('seller_shop')==shop), None)
     return jsonify(unlocked=bool(exists))
 
-# ============ END CHAT UNLOCK ============
+# ============ CHAT PREVIEW SYSTEM - NEW FOR ADMIN ============
+@app.route('/admin/chats')
+@admin_required
+def admin_chats_page():
+    return render_template('admin_chats.html')
 
+@app.route('/api/chat/history')
+def chat_history():
+    buyer=request.args.get('buyer','').lower().strip()
+    shop=request.args.get('shop','').strip()
+    if not buyer or not shop:
+        return jsonify([])
+    chats=get_chats_data()
+    conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
+    if conv:
+        return jsonify(conv.get('messages',[]))
+    return jsonify([])
+
+@app.route('/api/chat/send', methods=['POST'])
+def chat_send():
+    d=request.json or {}
+    buyer=d.get('buyer_email','').lower().strip()
+    shop=d.get('shop_slug','').strip()
+    sender=d.get('sender','buyer')
+    text=d.get('text','').strip()[:1000]
+    if not buyer or not shop or not text:
+        return jsonify(success=False),400
+    chats=get_chats_data()
+    conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
+    if not conv:
+        conv={"buyer_email":buyer,"shop_slug":shop,"messages":[],"created":time.time()}
+        chats.append(conv)
+    conv['messages'].append({"sender":sender,"text":text,"time":time.time()})
+    conv['updated']=time.time()
+    save_chats_data(chats)
+    return jsonify(success=True)
+
+@app.route('/api/admin/chats')
+@admin_required
+def admin_chats_list():
+    unlocks=get_chat_unlocks()
+    orders=load_db('orders_v2.json',[])
+    chats=get_chats_data()
+    result=[]
+    for u in unlocks[-100:][::-1]:
+        shop=u.get('seller_shop','')
+        buyer=u.get('buyer_email','')
+        conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
+        last=conv['messages'][-1]['text'][:40] if conv and conv.get('messages') else "Chat unlocked - No messages yet"
+        result.append({"buyer_email":buyer,"shop_slug":shop,"last_message":last,"time":u.get('created',0),"type":"chat"})
+    for o in orders[-50:][::-1]:
+        result.append({"buyer_email":o.get('buyer_email',''),"buyer_phone":o.get('buyer_phone',''),"buyer_name":o.get('buyer_name',''),"shop_slug":o.get('seller_email',''),"last_message":f"ORDER {o.get('id','')} - UGX {o.get('total',0)}","time":o.get('created_at',0),"type":"order","order":o})
+    result=sorted(result,key=lambda x:x.get('time',0),reverse=True)
+    return jsonify(result)
+
+@app.route('/api/admin/chat/messages')
+@admin_required
+def admin_chat_messages():
+    buyer=request.args.get('buyer','').lower().strip()
+    shop=request.args.get('shop','').strip()
+    order_id=request.args.get('order_id','').strip()
+    if order_id:
+        orders=load_db('orders_v2.json',[])
+        order=next((o for o in orders if str(o.get('id'))==order_id),None)
+        if order:
+            return jsonify([{"sender":"system","text":f"ORDER: {order.get('buyer_name')} - {order.get('buyer_phone')} - UGX {order.get('total')} - Items: {str(order.get('items',''))[:200]}","time":order.get('created_at',0)}])
+    chats=get_chats_data()
+    conv=next((c for c in chats if c.get('buyer_email')==buyer and c.get('shop_slug')==shop), None)
+    if conv:
+        return jsonify(conv.get('messages',[]))
+    return jsonify([])
+# ============ END CHAT PREVIEW SYSTEM ============
 @app.route('/api/admin/data')
 @admin_required
 def admin_data():
