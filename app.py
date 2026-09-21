@@ -108,6 +108,21 @@ def get_smart_category(text):
     # Otherwise return longest keyword match
     matches.sort(key=lambda x: x[2], reverse=True)
     return matches[0][0]
+    def expand_search_query(q):
+    # Simple synonym expansion for Uganda
+    if not q: return ""
+    synonyms = {
+        "phone": "phone smartphone mobile",
+        "bike": "bike bicycle motorcycle electric bike",
+        "tv": "tv television",
+        "fridge": "fridge freezer",
+    }
+    q_lower = q.lower()
+    expanded = q_lower
+    for key, vals in synonyms.items():
+        if key in q_lower:
+            expanded += " " + vals
+    return expanded
 app.config['UPLOAD_FOLDER']='static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
@@ -176,7 +191,9 @@ def get_conn():
     except ImportError:
         import psycopg2
         return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
-    raise last_err
+        except Exception as e:
+        print("DB connect error:", e)
+        raise
 
 def ensure_tables():
     if not DATABASE_URL: return
