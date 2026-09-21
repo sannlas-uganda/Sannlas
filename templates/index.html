@@ -456,22 +456,23 @@ function render(){
 function frontPreview(input){
   if(_oldUrls.length){_oldUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(e){}});_oldUrls=[];}
   frontFiles = Array.from(input.files).slice(0,4);
-  // LIVE AUTO-DETECT CATEGORY
-let nameVal = document.getElementById('fname_0')?.value || frontFiles[0]?.name || '';
-let detected='General';
-let low=nameVal.toLowerCase();
-for(let cat in CAT_MAP){
-  if(CAT_MAP[cat].some(k=>low.includes(k))){ detected=cat; break; }
-}
-let catInput=document.getElementById('frontMain');
-if(catInput){ catInput.value=detected; catInput.style.border='2px solid #00ff00'; catInput.style.background='#e8ffe8'; }
   document.getElementById('frontCount').innerText=frontFiles.length;
   document.getElementById('frontCount2').innerText=frontFiles.length;
   let box=document.getElementById('frontPreview');
   if(frontFiles.length==0){
-    box.innerHTML='<p style="grid-column:1/-1;text-align:center;color:#999;padding:60px">👆 Select up to 4 photos: Front / Side / Sole / Texture</p>';
+    box.innerHTML='<p style="grid-column:1/-1;text-align:center;color:#999;padding:60px">👆 Select up to 4 photos</p>';
     return;
   }
+  // FIXED: Use CATEGORY_KEYWORDS_FULL not CAT_MAP
+  let nameVal = frontFiles[0]?.name || '';
+  let detected='General';
+  let low=nameVal.toLowerCase();
+  for(let cat in CATEGORY_KEYWORDS_FULL){
+    if(CATEGORY_KEYWORDS_FULL[cat].some(k=>low.includes(k))){ detected=cat; break; }
+  }
+  let catInput=document.getElementById('frontMain');
+  if(catInput){ catInput.value=detected; catInput.style.border='2px solid #00ff00'; catInput.style.background='#e8ffe8'; }
+
   let labels = ['Front (Main)', 'Side', 'Sole / Bottom', 'Texture / Logo'];
   box.innerHTML = frontFiles.map((f,i)=>{
     let url=URL.createObjectURL(f);
@@ -489,7 +490,7 @@ if(catInput){ catInput.value=detected; catInput.style.border='2px solid #00ff00'
   </div>`;
 }
 function compressImage(file){
-  return new Promise((res)=>{
+  return new Promise((res, rej)=>{
     let img=new Image();
     img.onload=()=>{
       let canvas=document.createElement('canvas');
@@ -498,10 +499,12 @@ function compressImage(file){
       canvas.width=w; canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       canvas.toBlob((blob)=>{
+        if(!blob){ rej(new Error('Compress failed')); return; }
         res(new File([blob], file.name.replace(/\.[^/.]+$/,"")+".webp", {type:'image/webp'}));
       },'image/webp',0.6);
       URL.revokeObjectURL(img.src);
     };
+    img.onerror=()=>rej(new Error('Image load failed'));
     img.src=URL.createObjectURL(file);
   });
 }
@@ -513,33 +516,69 @@ async function frontUploadAll(){
   frontUploadAllProceed();
 }
 async function frontUploadAllProceed(){
-  let biz=document.getElementById('frontBiz').value,phone=document.getElementById('frontPhoneReal').value,loc=document.getElementById('frontLocation').value||'Kampala',main=document.getElementById('frontMain').value||'General';
-  if(!document.getElementById('fprice_0').value){alert('Enter price Boss!');return;}
+  let biz=document.getElementById('frontBiz').value.trim();
+  let phone=document.getElementById('frontPhoneReal').value.trim();
+  let loc=document.getElementById('frontLocation').value.trim()||'Kampala';
+  let main=document.getElementById('frontMain').value.trim()||'General';
+  let priceEl=document.getElementById('fprice_0');
+  if(!biz){ alert('Enter Business Name Boss!'); return; }
+  if(!phone){ alert('Enter Phone Boss!'); return; }
+  if(!priceEl ||!priceEl.value){ alert('Enter Selling Price Boss!'); return; }
+
   let status=document.getElementById('frontStatus');
-  status.innerHTML='⏳ Compressing 4 photos...';
+  status.innerHTML='⏳ Compressing '+frontFiles.length+' photos...';
+  status.style.background='#000'; status.style.color='#FFCC02';
+
   let comp=[];
-  for(let i=0;i<frontFiles.length;i++){ comp.push(await compressImage(frontFiles[i])); }
+  try{
+    for(let i=0;i<frontFiles.length;i++){
+      comp.push(await compressImage(frontFiles[i]));
+    }
+  }catch(e){
+    alert('Photo compress failed: '+e.message);
+    return;
+  }
+
   let fd=new FormData();
   fd.append('name',document.getElementById('fname_0').value);
-  fd.append('price',document.getElementById('fprice_0').value);
-  fd.append('original_price',document.getElementById('forig_0')?.value||document.getElementById('fprice_0').value);
+  fd.append('product_name',document.getElementById('fname_0').value); // for backend compat
+  fd.append('price',priceEl.value);
+  fd.append('original_price',document.getElementById('forig_0')?.value||priceEl.value);
   fd.append('stock','10');
   fd.append('promo_commission',document.getElementById('frontPromoComm')?.value||'3');
-  fd.append('business',biz);fd.append('location',loc);fd.append('phone',phone);fd.append('main_category',main);
+  fd.append('business',biz);
+  fd.append('business_name',biz); // FIX for backend
+  fd.append('location',loc);
+  fd.append('phone',phone);
+  fd.append('main_category',main);
+  fd.append('category',main); // FIX
   fd.append('user_email',currentUser?currentUser.email:'');
+  fd.append('email',currentUser?currentUser.email:'');
   fd.append('desc',document.getElementById('fdesc_0')?.value||'');
   fd.append('description',document.getElementById('fdesc_0')?.value||'');
+
   comp.forEach((file, idx)=>{ fd.append(`image_${idx}`, file); });
   fd.append('image_count', comp.length);
-  fd.append('image', comp[0]);
-  status.innerHTML='⏳ Uploading...';
-  let r=await fetch('/api/sell',{method:'POST',body:fd});
-  let d=await r.json();
-  if(!r.ok){status.innerHTML=`❌ ${d.message}`;return;}
-  status.innerHTML=`✅ DONE! ${comp.length} Photos Live`;
-  doFilter();
-  setTimeout(()=>closeSellModal(),1000);
-}async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
+  fd.append('image', comp[0]); // main image
+  fd.append('images', comp[0]); // compat
+
+  status.innerHTML='⏳ Uploading to SANNLAS...';
+  try{
+    let r=await fetch('/api/sell',{method:'POST',body:fd});
+    let text = await r.text();
+    let d={};
+    try{ d=JSON.parse(text); }catch(e){ d={message:text}; }
+    if(!r.ok){ status.innerHTML=`❌ ${d.message||'Failed'}`; status.style.background='#ff0000'; return; }
+    status.innerHTML=`✅ DONE! ${comp.length} Photos Live - ${d.product_id||''}`;
+    status.style.background='#00FF00'; status.style.color='#000';
+    doFilter();
+    setTimeout(()=>closeSellModal(),1500);
+  }catch(e){
+    status.innerHTML='❌ Network error: '+e.message;
+    status.style.background='#ff0000';
+  }
+}
+async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
 function doLogout(){localStorage.clear();location.reload();}
 function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
 async function showAllShops(){
