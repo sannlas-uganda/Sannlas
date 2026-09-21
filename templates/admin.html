@@ -180,7 +180,7 @@ function showAdmin(){document.getElementById('loginBox').style.display='none';do
 async function logout(){await fetch('/admin/logout');localStorage.removeItem('sannlas_admin');location.reload();}
 function filterUsers(f){USER_FILTER=f; renderUsers();}
 
-// SORTED SHOPS BY total_products DESC
+// SORTED SHOPS BY total_products DESC - WITH DELETE IMAGE BUTTON
 function renderShops(){
   let shops=[...(ALL.shops||[])].sort((a,b)=>(b.total_products||0)-(a.total_products||0)); 
   let box=document.getElementById('shopsBox'); 
@@ -197,17 +197,68 @@ function renderShops(){
         </span><br>
         <small>📍 ${s.location||''} | 📞 ${s.phone||''}</small>
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        <a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a>
-        ${isVer 
-          ? `<button onclick="verifyShop('${s.shop_slug}','unverify')" style="background:#ff0000;color:white;font-size:10px">❌ Unverify</button>` 
-          : `<button onclick="verifyShop('${s.shop_slug}','verify')" style="background:#00FF00;color:#000;font-size:10px;font-weight:900">✅ Verify</button>`
-        }
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <a href="/shop/${s.shop_slug}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:11px">Visit</button></a>
+          ${isVer 
+            ? `<button onclick="verifyShop('${s.shop_slug}','unverify')" style="background:#ff0000;color:white;font-size:10px">❌ Unverify</button>` 
+            : `<button onclick="verifyShop('${s.shop_slug}','verify')" style="background:#00FF00;color:#000;font-size:10px;font-weight:900">✅ Verify</button>`
+          }
+        </div>
+        <!-- DELETE BUTTON WITH YOUR IMAGE -->
+        <button onclick="deleteShop('${s.shop_slug}')" title="DELETE ${s.shop_slug}" style="background:transparent;border:none;cursor:pointer;padding:0;width:70px;height:70px">
+          <img src="https://i.imgur.com/8Km9tLL.png" alt="delete" style="width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 3px 5px rgba(0,0,0,0.5));transition:0.15s" 
+               onmouseover="this.style.transform='scale(1.15)'" 
+               onmouseout="this.style.transform='scale(1)'"
+               onmousedown="this.style.transform='scale(0.9) translateY(3px)'"
+               onmouseup="this.style.transform='scale(1.15)'">
+        </button>
       </div>
     </div>`;
   }).join('');
 }
+async function verifyShop(slug, action){
+  if(!confirm(action+' shop '+slug+'?')) return;
+  let d = await safeFetchJson('/api/admin/shop/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({shop_slug:slug, action:action})
+  });
+  if(d && d.success){
+    alert('✅ Shop '+action+'d!');
+    loadData();
+  } else {
+    alert('Failed: '+(d?d.message:'Server waking, retry'));
+  }
+}
 
+async function deleteShop(slug){
+  if(!confirm(`⚠️ DELETE SHOP "${slug}"?\n\nThis will DELETE:\n- Shop record\n- All its products\n\nCANNOT be undone!\n\nContinue Boss?`)) return;
+  if(!confirm(`FINAL CONFIRM: Delete "${slug}" FOREVER?`)) return;
+  
+  // Show loading
+  let box=document.getElementById('shopsBox');
+  let oldHtml=box.innerHTML;
+  box.innerHTML='<p style="text-align:center;padding:20px;color:#ff0000;font-weight:900">⏳ Deleting '+slug+'...</p>';
+
+  try{
+    let r = await fetch(`/api/admin/delete_shop/${slug}`, {method:'DELETE'});
+    let text = await r.text();
+    let d={};
+    try{ d=JSON.parse(text); }catch(e){ d={message:text}; }
+    
+    if(r.ok && d.success){
+      alert(`✅ Shop ${slug} DELETED!`);
+      loadData();
+    }else{
+      alert('❌ Failed: '+(d.message||'Server error'));
+      box.innerHTML=oldHtml;
+    }
+  }catch(e){
+    alert('❌ Network error: '+e.message);
+    box.innerHTML=oldHtml;
+  }
+}
 async function verifyShop(slug, action){
   if(!confirm(action+' shop '+slug+'?')) return;
   let d = await safeFetchJson('/api/admin/shop/verify',{
