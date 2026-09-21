@@ -807,8 +807,11 @@ def home():
             products = PRODUCTS_CACHE["data"]
         else:
             products = load_db('products.json', [])
+            products = sorted(products, key=lambda x: x.get('created', 0), reverse=True)
             PRODUCTS_CACHE["data"] = products
             PRODUCTS_CACHE["time"] = now
+        # ALSO sort cached ones (in case cache was old)
+        products = sorted(products, key=lambda x: x.get('created', 0), reverse=True)
         first_12 = products[:12]
     except:
         first_12 = []
