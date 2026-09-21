@@ -963,65 +963,39 @@ def admin_verify_shop():
     if not slug:
         return jsonify(success=False, message="No slug"), 400
     try:
-        # Find your json files - try common names
         shops_path = 'shops.json'
-        users_path = 'users.json'
-        
-        # If you store in data/ folder, check there too
         if not os.path.exists(shops_path) and os.path.exists('data/shops.json'):
             shops_path = 'data/shops.json'
-            users_path = 'data/users.json'
         
-        # Load shops
         shops = []
         if os.path.exists(shops_path):
             with open(shops_path, 'r', encoding='utf-8') as f:
-                try:
-                    shops = json.load(f)
-                except:
-                    shops = []
-        
-        users = []
-        if os.path.exists(users_path):
-            with open(users_path, 'r', encoding='utf-8') as f:
-                try:
-                    users = json.load(f)
-                except:
-                    users = []
+                shops = json.load(f)
         
         found = False
         is_verify = True if action == 'verify' else False
         
         for s in shops:
             s_slug = (s.get('shop_slug') or s.get('slug') or '').lower()
-            if s_slug == slug:
+            s_phone = (s.get('phone') or '').replace(' ','')
+            # CHECK BOTH SLUG AND PHONE
+            if s_slug == slug or s_phone == slug:
                 s['verified'] = is_verify
                 s['is_verified'] = is_verify
                 s['status'] = 'verified' if is_verify else 'pending'
                 found = True
+                slug = s_slug # use real slug for message
                 break
         
-        for u in users:
-            if (u.get('shop_slug') or '').lower() == slug:
-                u['verified'] = is_verify
-        
-        # Save back
         with open(shops_path, 'w', encoding='utf-8') as f:
             json.dump(shops, f, indent=2)
-        if users:
-            with open(users_path, 'w', encoding='utf-8') as f:
-                json.dump(users, f, indent=2)
         
         if not found:
             return jsonify(success=False, message=f"Shop {slug} not found"), 404
             
         return jsonify(success=True, message=f"Shop {slug} {action}d ✅")
     except Exception as e:
-        print("VERIFY ERROR:", e)
-        import traceback; traceback.print_exc()
         return jsonify(success=False, message=f"Failed: {str(e)}"), 500
-
-COIN_CONFIG_CACHE = {"data": None, "time": 0}
 
 @app.route('/api/coins/config')
 def coins_config():
@@ -1035,6 +1009,7 @@ def coins_config():
         return jsonify(cfg)
     except:
         return jsonify({'remaining': 1000000000})
+        
 @app.route('/api/coins/packs')
 def coins_packs(): return jsonify(COIN_PACKS)
 @app.route('/api/coins/balance')
