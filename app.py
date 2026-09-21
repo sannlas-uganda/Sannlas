@@ -799,7 +799,22 @@ def home():
     ref = request.args.get('ref')
     promo = request.args.get('promo','')
     product = request.args.get('product','')
-    resp = make_response(render_template('index.html'))
+    
+    # --- FAST PRODUCTS FIX ---
+    try:
+        now = time.time()
+        if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
+            products = PRODUCTS_CACHE["data"]
+        else:
+            products = load_db('products.json', [])
+            PRODUCTS_CACHE["data"] = products
+            PRODUCTS_CACHE["time"] = now
+        first_12 = products[:12]
+    except:
+        first_12 = []
+    # --- END FAST FIX ---
+    
+    resp = make_response(render_template('index.html', first_products=first_12))
     if ref:
         resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
     if promo and product:
@@ -1493,26 +1508,56 @@ def login():
 
 @app.route('/api/products')
 def get_products():
-    q = request.args.get('q','').lower()
-    q_expanded = expand_search_query(q) if q else ""
-    shop_slug = request.args.get('shop') or request.args.get('shop_slug')
-    products=load_db('products.json', [])
-    filtered=products
-    if q_expanded:
-        q_words = q_expanded.split()
-        def match(p):
-            hay = f"{p.get('name','')} {p.get('business','')} {p.get('main_category','')} {p.get('category','')} {p.get('description','')} {p.get('desc','')} {p.get('smart_keywords','')}".lower()
-            return any(w in hay for w in q_words)
-        filtered=[p for p in filtered if match(p)]
-    if shop_slug:
-        sf = shop_slug.strip()
-        exact = [p for p in filtered if p.get('shop_slug')==sf]
-        if exact: filtered = exact
-    filtered=sorted(filtered,key=lambda x:x.get('created',0),reverse=True)
-    public=[]
-    for p in filtered:
-        pp=p.copy(); pp.pop('phone',None); public.append(pp)
-    return jsonify(public)
+    try:
+        q = request.args.get('q','').lower()
+        q_expanded = expand_search_query(q) if q else ""
+        shop_slug = request.args.get('shop') or request.args.get('shop_slug')
+        limit = int(request.args.get('limit', 200))  # default 200
+        offset = int(request.args.get('offset', 0))
+        
+        # FAST CACHE
+        now = time.time()
+        if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
+            products = PRODUCTS_CACHE["data"]
+        else:
+            products = load_db('products.json', [])
+            PRODUCTS_CACHE["data"] = products
+            PRODUCTS_CACHE["time"] = now
+            
+        filtered = products
+        
+        if q_expanded:
+            q_words = q_expanded.split()
+            def match(p):
+                hay = f"{p.get('name','')} {p.get('business','')} {p.get('main_category','')} {p.get('category','')} {p.get('description','')} {p.get('desc','')} {p.get('smart_keywords','')}".lower()
+                return any(w in hay for w in q_words)
+            filtered = [p for p in filtered if match(p)]
+            
+        if shop_slug:
+            sf = shop_slug.strip()
+            exact = [p for p in filtered if p.get('shop_slug')==sf]
+            if exact: 
+                filtered = exact
+                
+        filtered = sorted(filtered, key=lambda x:x.get('created',0), reverse=True)
+        
+        # PAGINATION - FAST!
+        chunk = filtered[offset:offset+limit]
+        
+        # LIGHT FIELDS - Remove phone + heavy data
+        public=[]
+        for p in chunk:
+            pp = p.copy()
+            pp.pop('phone', None)
+            # Keep only 1 image for list view - super fast!
+            if pp.get('images') and len(pp.get('images', [])) > 1:
+                pp['images'] = pp['images'][:1]
+            public.append(pp)
+            
+        return jsonify(public)
+    except Exception as e:
+        print(f"Products API error: {e}")
+        return jsonify([])
 
 @app.route('/api/sell', methods=['POST'])
 def sell():
