@@ -303,6 +303,48 @@ def admin_required(f):
         return redirect('/admin/login')
     return decorated
 
+# ================= KASSAG SEPARATE ADMIN - NEW! =================
+KASSAG_ADMIN_PASSWORD = "KASSAG2024"  # CHANGE THIS! Give to treasurer
+
+def kassag_admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # Allow BOTH main admin AND kassag admin
+        if session.get('is_admin') or session.get('is_kassag_admin'):
+            return f(*args, **kwargs)
+        if request.path.startswith('/api/kassag/admin'):
+            return jsonify({'success': False, 'message': 'KASSAG admin login required'}), 401
+        return redirect('/kassag/admin/login')
+    return decorated
+
+@app.route('/kassag/admin/login', methods=['GET','POST'])
+def kassag_admin_login():
+    if request.method == 'GET':
+        return '''
+        <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>body{background:#f8fafc;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:Arial}
+        .box{background:white;padding:30px;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,0.1);width:350px;text-align:center;border:2px solid #FFCC02}
+        input{width:90%;padding:14px;border:1px solid #ddd;border-radius:12px;margin:10px 0}
+        button{width:95%;padding:14px;background:#FFCC02;border:2px solid #000;border-radius:12px;font-weight:900;cursor:pointer}
+        </style></head><body>
+        <div class="box">
+        <h2>🏦 KASSAG ADMIN</h2><p style="color:#666;font-size:13px">Private - Treasurer/Secretary Only</p>
+        <form method="POST"><input type="password" name="password" placeholder="KASSAG Password" required>
+        <button type="submit">Unlock KASSAG 👑</button></form>
+        <p style="margin-top:15px;font-size:12px"><a href="/kassag" style="color:#666">← Back to Group</a></p>
+        </div></body></html>
+        '''
+    pwd = request.form.get('password','')
+    if pwd == KASSAG_ADMIN_PASSWORD:
+        session['is_kassag_admin'] = True
+        return redirect('/kassag/admin')
+    return '<h3 style="text-align:center;margin-top:100px">❌ Wrong Password! <a href="/kassag/admin/login">Retry</a></h3>'
+
+@app.route('/kassag/admin/logout')
+def kassag_admin_logout():
+    session.pop('is_kassag_admin', None)
+    return redirect('/kassag/admin/login')
+
 @app.after_request
 def clarity_headers(response):
     response.headers['X-Clarity'] = 'HD-Enabled'
@@ -2603,23 +2645,22 @@ def kassag_history():
 
 # --- ADMIN API FOR KASSAG ---
 @app.route('/kassag/admin')
+@kassag_admin_required
 def kassag_admin_page():
-    if not session.get('is_admin'):
-        return redirect('/admin/login')
     return render_template('kassag_admin.html')
 
 @app.route('/api/kassag/admin/members')
-@admin_required
+@kassag_admin_required
 def kassag_admin_members():
     return jsonify(get_kassag_members())
 
 @app.route('/api/kassag/admin/payments')
-@admin_required
+@kassag_admin_required
 def kassag_admin_payments():
     return jsonify(get_kassag_payments())
 
 @app.route('/api/kassag/admin/action/member', methods=['POST'])
-@admin_required
+@kassag_admin_required
 def kassag_member_action():
     data = request.get_json() or {}
     mid = int(data.get('id',0))
@@ -2643,7 +2684,7 @@ def kassag_member_action():
     return jsonify({'success':True})
 
 @app.route('/api/kassag/admin/action/payment', methods=['POST'])
-@admin_required
+@kassag_admin_required
 def kassag_payment_action():
     data = request.get_json() or {}
     pid = int(data.get('id',0))
@@ -2657,7 +2698,7 @@ def kassag_payment_action():
     return jsonify({'success':True})
 
 @app.route('/api/kassag/admin/info', methods=['GET','POST'])
-@admin_required
+@kassag_admin_required
 def kassag_admin_info():
     if request.method=='GET':
         return jsonify(get_kassag_info())
@@ -2670,7 +2711,7 @@ def kassag_admin_info():
     return jsonify({'success':True,'info':info})
 
 @app.route('/api/kassag/admin/export/members')
-@admin_required
+@kassag_admin_required
 def kassag_export_members():
     import csv, io
     members = get_kassag_members()
@@ -2683,7 +2724,7 @@ def kassag_export_members():
     return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_members.csv"})
 
 @app.route('/api/kassag/admin/export/payments')
-@admin_required
+@kassag_admin_required
 def kassag_export_payments():
     import csv, io
     pays = get_kassag_payments()
