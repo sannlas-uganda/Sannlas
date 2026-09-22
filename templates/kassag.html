@@ -73,17 +73,84 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
   <div class="hidden-link">sannlas private kassag</div>
 </div>
 
-<!-- JOIN MODAL -->
-<div id="joinModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-  <div class="card p-6 w-full max-w-sm bg-white">
-    <h3 class="font-black text-lg mb-3 text-black">Join KASSAG</h3>
-    <input id="jName" placeholder="Full Name" class="w-full input-white p-3 rounded-xl mb-2">
-    <input id="jPhone" placeholder="Phone 07..." class="w-full input-white p-3 rounded-xl mb-2">
-    <select id="jRole" class="w-full input-white p-3 rounded-xl mb-2"><option>Member</option><option>Leader</option><option>Treasurer</option><option>Secretary</option></select>
-    <label class="text-xs text-gray-600 font-bold">Your Photo</label>
-    <input id="jPhoto" type="file" accept="image/*" class="w-full mb-3 text-sm">
-    <div class="flex gap-2"><button onclick="closeJoin()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">Cancel</button><button onclick="doJoin()" class="flex-1 gold-bg py-3 rounded-xl font-bold border-2 border-black">Request Join</button></div>
-    <div id="jMsg" class="text-xs mt-2 font-bold"></div>
+<!-- KASSAG DETAILED JOIN MODAL - PRIVATE -->
+<div id="joinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto">
+  <div style="background:white;width:100%;max-width:650px;border-radius:20px;padding:25px;margin:20px auto;max-height:95vh;overflow-y:auto">
+    <h2 style="text-align:center;font-weight:900">🏦 Join KASSAG - Private Form</h2>
+    <p style="text-align:center;font-size:12px;color:#666;margin-bottom:15px">All info is PRIVATE - Only seen by Admin 🔒</p>
+    
+    <form id="kassagJoinForm" enctype="multipart/form-data">
+      <!-- SECTION 1: PERSONAL IDENTIFICATION -->
+      <div style="background:#fff8e1;border:1px solid #FFCC02;border-radius:12px;padding:15px;margin-bottom:15px">
+        <h4 style="margin:0 0 10px;font-size:14px">👤 PERSONAL IDENTIFICATION</h4>
+        <input name="name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input name="dob" type="date" placeholder="Date of Birth *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <select name="gender" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px"><option value="">Gender *</option><option>Male</option><option>Female</option></select>
+        </div>
+        <input name="nin" placeholder="NIN - National ID No *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="occupation" placeholder="Occupation *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="workplace" placeholder="Workplace / Area of Occupation" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="phone" placeholder="Phone 07... *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="email" type="email" placeholder="Email Address" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <label style="font-size:12px">Your Photo *</label><input name="photo" type="file" accept="image/*" required style="width:100%;margin-bottom:5px">
+        <select name="role" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px"><option value="Member">Member</option><option value="Treasurer">Treasurer</option><option value="Secretary">Secretary</option></select>
+      </div>
+
+      <!-- SECTION 2: RESIDENTIAL ADDRESS -->
+      <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:12px;padding:15px;margin-bottom:15px">
+        <h4 style="margin:0 0 10px;font-size:14px">📍 RESIDENTIAL ADDRESS / LOCAL GOVT HIERARCHY</h4>
+        <input name="country" value="Uganda" placeholder="Country of Origin" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input name="district" placeholder="District *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <input name="county" placeholder="County / Constituency *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input name="subcounty" placeholder="Subcounty / Town Council *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <input name="parish" placeholder="Parish / Ward *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input name="village" placeholder="Village / Zone *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <input name="cell" placeholder="Cell / LC1 *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+        </div>
+      </div>
+
+      <!-- SECTION 3: FAMILY BACKGROUND -->
+      <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;padding:15px;margin-bottom:15px">
+        <h4 style="margin:0 0 10px;font-size:14px">👨‍👩‍👧 FAMILY BACKGROUND</h4>
+        <input name="father_name" placeholder="Father's Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="mother_name" placeholder="Mother's Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
+      </div>
+
+      <!-- SECTION 4: NEXT OF KIN 1 -->
+      <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:15px;margin-bottom:15px">
+        <h4 style="margin:0 0 10px;font-size:14px">🧑 NEXT OF KIN 1 *</h4>
+        <input name="kin1_name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input name="kin1_relationship" placeholder="Relationship *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <input name="kin1_phone" placeholder="Telephone *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+        </div>
+        <input name="kin1_nin" placeholder="NIN (optional)" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="kin1_address" placeholder="Residential Address *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
+      </div>
+
+      <!-- SECTION 5: NEXT OF KIN 2 -->
+      <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:15px;margin-bottom:15px">
+        <h4 style="margin:0 0 10px;font-size:14px">🧑 NEXT OF KIN 2 *</h4>
+        <input name="kin2_name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input name="kin2_relationship" placeholder="Relationship *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <input name="kin2_phone" placeholder="Telephone *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+        </div>
+        <input name="kin2_nin" placeholder="NIN (optional)" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+        <input name="kin2_address" placeholder="Residential Address *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="button" onclick="document.getElementById('joinModal').style.display='none'" style="flex:1;padding:14px;border-radius:12px;border:1px solid #ddd;background:#eee;font-weight:700">Cancel</button>
+        <button type="submit" style="flex:2;padding:14px;border-radius:12px;background:#FFCC02;border:2px solid #000;font-weight:900">Request Join 🔒</button>
+      </div>
+    </form>
   </div>
 </div>
 
