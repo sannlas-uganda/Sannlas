@@ -29,10 +29,12 @@ input, select{ -webkit-appearance:none; appearance:none; }
     </div>
   </div>
 
-  <div class="grid grid-cols-3 gap-3 my-4">
+  <!-- UPDATED 4 BOXES WITH EXPENDITURE -->
+  <div class="grid grid-cols-2 gap-3 my-4">
     <div class="card p-4 text-center"><div class="text-2xl font-black text-black" id="sMembers">0</div><div class="text-xs text-gray-500 font-bold">Active Members</div></div>
-    <div class="card p-4 text-center"><div class="text-2xl font-black text-black" id="sPot">0</div><div class="text-xs text-gray-500 font-bold">Total Pot UGX</div></div>
-    <div class="card p-4 text-center"><div class="text-2xl font-black text-black" id="sPending">0</div><div class="text-xs text-gray-500 font-bold">Pending</div></div>
+    <div class="card p-4 text-center" style="border-left:4px solid #10b981"><div class="text-lg font-black text-green-600" id="sPot">0</div><div class="text-[10px] text-gray-500 font-bold">Total Pot (Gross)</div></div>
+    <div class="card p-4 text-center" style="border-left:4px solid #ef4444"><div class="text-lg font-black text-red-600" id="sExpend">0</div><div class="text-[10px] text-gray-500 font-bold">Total Expenditure</div></div>
+    <div class="card p-4 text-center" style="border-left:4px solid #f59e0b;background:#fffbeb"><div class="text-xl font-black text-black" id="sActual">0</div><div class="text-[10px] text-gray-700 font-black">ACTUAL BALANCE ✅</div></div>
   </div>
 
   <div class="flex gap-2 my-4 overflow-x-auto">
@@ -70,7 +72,7 @@ input, select{ -webkit-appearance:none; appearance:none; }
   </div>
 </div>
 
-<!-- KASSAG DETAILED JOIN MODAL - FIXED! -->
+<!-- JOIN MODAL SAME AS YOURS -->
 <div id="joinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto">
   <div style="background:white;width:100%;max-width:650px;border-radius:20px;padding:25px;margin:20px auto;max-height:95vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -78,7 +80,6 @@ input, select{ -webkit-appearance:none; appearance:none; }
       <button onclick="closeJoin()" style="background:#eee;padding:6px 10px;border-radius:50%;font-weight:900">✕</button>
     </div>
     <p style="text-align:center;font-size:12px;color:#666;margin-bottom:15px">All info is PRIVATE - Only seen by Admin 🔒</p>
-
     <form id="kassagJoinForm" enctype="multipart/form-data">
       <div style="background:#fff8e1;border:1px solid #FFCC02;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">👤 PERSONAL IDENTIFICATION</h4>
@@ -90,17 +91,14 @@ input, select{ -webkit-appearance:none; appearance:none; }
         <input name="nin" placeholder="NIN - National ID No *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <input name="occupation" placeholder="Occupation *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <input name="workplace" placeholder="Workplace / Area of Occupation" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
-
         <div style="display:flex;align-items:center;gap:0;width:100%;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:8px;background:white">
           <span style="padding:12px 10px;background:#f5f5f5;font-weight:800;border-right:1px solid #ddd;color:#111">+256</span>
           <input name="phone" id="joinPhone" type="tel" placeholder="795712326 (without 0) *" required
           style="flex:1;padding:12px;border:none;outline:none"
           oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,9)">
         </div>
-
         <input name="email" type="email" autocomplete="email" placeholder="Email Address" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <label style="font-size:12px">Your Photo *</label><input name="photo" type="file" accept="image/*" required style="width:100%;margin-bottom:5px">
-
         <select name="role" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
           <option value="Member">Member</option>
           <option value="Chairperson">Chairperson / Leader</option>
@@ -111,9 +109,8 @@ input, select{ -webkit-appearance:none; appearance:none; }
           <option value="Advisor">Advisor</option>
         </select>
       </div>
-
       <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:12px;padding:15px;margin-bottom:15px">
-        <h4 style="margin:0 0 10px;font-size:14px">📍 RESIDENTIAL ADDRESS / LOCAL GOVT HIERARCHY</h4>
+        <h4 style="margin:0 0 10px;font-size:14px">📍 RESIDENTIAL ADDRESS</h4>
         <input name="country" value="Uganda" placeholder="Country of Origin" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <input name="district" placeholder="District *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
@@ -128,7 +125,6 @@ input, select{ -webkit-appearance:none; appearance:none; }
           <input name="cell" placeholder="Cell / LC1 *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
         </div>
       </div>
-
       <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">👨‍👩‍👧 FAMILY BACKGROUND</h4>
         <div style="margin-bottom:10px">
@@ -144,7 +140,6 @@ input, select{ -webkit-appearance:none; appearance:none; }
           </label>
         </div>
       </div>
-
       <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">🧑 NEXT OF KIN 1 *</h4>
         <input name="kin1_name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
@@ -155,7 +150,6 @@ input, select{ -webkit-appearance:none; appearance:none; }
         <input name="kin1_nin" placeholder="NIN (optional)" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <input name="kin1_address" placeholder="Residential Address *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
       </div>
-
       <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">🧑 NEXT OF KIN 2 *</h4>
         <input name="kin2_name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
@@ -166,7 +160,6 @@ input, select{ -webkit-appearance:none; appearance:none; }
         <input name="kin2_nin" placeholder="NIN (optional)" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <input name="kin2_address" placeholder="Residential Address *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
       </div>
-
       <div style="display:flex;gap:10px">
         <button type="button" onclick="closeJoin()" style="flex:1;padding:14px;border-radius:12px;border:1px solid #ddd;background:#eee;font-weight:700">Cancel</button>
         <button type="submit" id="joinSubmitBtn" style="flex:2;padding:14px;border-radius:12px;background:#FFCC02;border:2px solid #000;font-weight:900">Request Join 🔒</button>
@@ -195,22 +188,11 @@ if(myPhoneStored){
   let short = myPhoneStored.replace('+256','').replace(/^0+/,'');
   document.getElementById('myPhone').value=short;
 }
-
-function showJoin(){
-  document.getElementById('joinModal').style.display='flex';
-  document.body.style.overflow='hidden';
-}
-function closeJoin(){
-  document.getElementById('joinModal').style.display='none';
-  document.body.style.overflow='auto';
-}
+function showJoin(){ document.getElementById('joinModal').style.display='flex'; document.body.style.overflow='hidden'; }
+function closeJoin(){ document.getElementById('joinModal').style.display='none'; document.body.style.overflow='auto'; }
 function showLogin(){document.getElementById('loginModal').classList.remove('hidden'); document.getElementById('loginModal').classList.add('flex');}
 function closeLogin(){document.getElementById('loginModal').classList.add('hidden'); document.getElementById('loginModal').classList.remove('flex');}
-
-document.getElementById('joinModal').addEventListener('click', function(e){
-  if(e.target.id==='joinModal') closeJoin();
-});
-
+document.getElementById('joinModal').addEventListener('click', function(e){ if(e.target.id==='joinModal') closeJoin(); });
 function tab(t){
   document.getElementById('secMembers').classList.add('hidden');
   document.getElementById('secSavings').classList.add('hidden');
@@ -222,17 +204,15 @@ function tab(t){
   if(t=='savings'){document.getElementById('secSavings').classList.remove('hidden'); document.getElementById('tabSavings').className="gold-bg px-4 py-2 rounded-full text-sm font-bold border-2 border-black";}
   if(t=='about'){document.getElementById('secAbout').classList.remove('hidden'); document.getElementById('tabAbout').className="gold-bg px-4 py-2 rounded-full text-sm font-bold border-2 border-black";}
 }
-
 async function loadInfo(){
   const d=await fetch('/api/kassag/stats').then(r=>r.json()).catch(()=>({})); updateStats(d);
 }
 function updateStats(s){
   document.getElementById('sMembers').innerText=s.total_members||0;
-  document.getElementById('sPot').innerText=(s.total_pot||0).toLocaleString();
-  document.getElementById('sPending').innerText=(s.pending_members||0)+(s.pending_payments||0);
+  document.getElementById('sPot').innerText='UGX '+(s.total_pot||0).toLocaleString();
+  document.getElementById('sExpend').innerText='UGX '+(s.total_expenditure||0).toLocaleString();
+  document.getElementById('sActual').innerText='UGX '+(s.actual_balance||0).toLocaleString();
 }
-
-// JOIN WITH +256 AUTO
 document.getElementById('kassagJoinForm').addEventListener('submit', async function(e){
   e.preventDefault();
   let btn = document.getElementById('joinSubmitBtn');
@@ -244,83 +224,47 @@ document.getElementById('kassagJoinForm').addEventListener('submit', async funct
     let rawPhone = document.getElementById('joinPhone').value.replace(/\D/g,'').replace(/^0+/,'');
     let fullPhone = '+256' + rawPhone;
     fd.set('phone', fullPhone);
-
     let res = await fetch('/api/kassag/join',{method:'POST',body:fd});
     let data = await res.json();
     msg.innerText = data.message || JSON.stringify(data);
-    if(data.success){
-      alert('✅ '+data.message + '\\nWait for Admin approval!');
-      closeJoin();
-      e.target.reset();
-    }else{
-      alert('❌ '+data.message);
-    }
-  }catch(err){
-    msg.innerText='Error: '+err.message;
-    alert('❌ '+err.message);
-  }
+    if(data.success){ alert('✅ '+data.message + '\\nWait for Admin approval!'); closeJoin(); e.target.reset(); }
+    else{ alert('❌ '+data.message); }
+  }catch(err){ msg.innerText='Error: '+err.message; alert('❌ '+err.message); }
   btn.innerText=oldText; btn.disabled=false;
 });
-
 async function doLogin(){
   let raw = document.getElementById('lPhone').value.replace(/\D/g,'').replace(/^0+/,'');
   let phone = '+256' + raw;
   const r=await fetch('/api/kassag/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone})});
   const j=await r.json();
   document.getElementById('lMsg').innerText=j.message||'';
-  if(j.success){
-    localStorage.setItem('kassag_phone',phone);
-    document.getElementById('myPhone').value=raw;
-    closeLogin();
-    tab('savings');
-    loadMyHistory();
-  }
+  if(j.success){ localStorage.setItem('kassag_phone',phone); document.getElementById('myPhone').value=raw; closeLogin(); tab('savings'); loadMyHistory(); }
 }
-
-// ===== FIXED PAYMENT WITH +256 AUTO - THIS IS WHERE YOU ASKED =====
 async function doPayment(e){
   e.preventDefault();
   let rawPhone = document.getElementById('myPhone').value.replace(/\D/g,'').replace(/^0+/,'');
-  if(rawPhone.length < 9){
-    alert('Enter 9 digits e.g. 795712326');
-    return;
-  }
+  if(rawPhone.length < 9){ alert('Enter 9 digits e.g. 795712326'); return; }
   let fullPhone = '+256' + rawPhone;
-
   let fd = new FormData();
   fd.append('phone', fullPhone);
   fd.append('amount', document.getElementById('myAmount').value);
   fd.append('week', document.getElementById('myWeek').value);
   const f = document.getElementById('myProof').files[0];
   if(f) fd.append('screenshot', f);
-
-  let btn = e.target;
-  let old = btn.innerText;
-  btn.innerText = 'Sending... ⏳';
-
+  let btn = e.target; let old = btn.innerText; btn.innerText = 'Sending... ⏳';
   try{
     let res = await fetch('/api/kassag/savings/submit', {method:'POST', body: fd});
     let data = await res.json();
     alert(data.message);
-    if(data.success){
-      localStorage.setItem('kassag_phone', fullPhone);
-      loadMyHistory();
-      document.getElementById('myAmount').value='';
-      document.getElementById('myWeek').value='';
-    }
+    if(data.success){ localStorage.setItem('kassag_phone', fullPhone); loadMyHistory(); document.getElementById('myAmount').value=''; document.getElementById('myWeek').value=''; }
   }catch(err){ alert('Error: '+err.message); }
   btn.innerText = old;
 }
-
 async function submitSaving(){ return doPayment(event); }
-
 async function loadMyHistory(){
   const phoneStored = localStorage.getItem('kassag_phone')||'';
   let phone = phoneStored;
-  if(!phone){
-    let raw = document.getElementById('myPhone').value.replace(/\D/g,'').replace(/^0+/,'');
-    if(raw) phone = '+256'+raw;
-  }
+  if(!phone){ let raw = document.getElementById('myPhone').value.replace(/\D/g,'').replace(/^0+/,''); if(raw) phone = '+256'+raw; }
   if(!phone) return;
   const r=await fetch('/api/kassag/my-history?phone='+phone);
   const j=await r.json();
@@ -328,29 +272,14 @@ async function loadMyHistory(){
   html+= (j.payments||[]).map(p=>`<div class="card p-3 mt-2 flex justify-between"><div><div class="font-bold text-black">${p.week} - UGX ${p.amount}</div><div class="text-xs text-gray-500">${p.status}</div></div><div class="text-xs">${new Date(p.date).toLocaleDateString()}</div></div>`).join('');
   document.getElementById('myHistory').innerHTML=html;
 }
-
 function toggleDeceased(who){
   let nameInput = document.getElementById(who+'_name');
   let check = document.getElementById(who+'_deceased');
-  if(check.checked){
-    nameInput.value = 'Late / Deceased';
-    nameInput.style.background='#f0f0f0';
-    nameInput.style.color='#888';
-    nameInput.removeAttribute('required');
-    nameInput.readOnly = true;
-  }else{
-    nameInput.value = '';
-    nameInput.style.background='white';
-    nameInput.style.color='black';
-    nameInput.setAttribute('required','required');
-    nameInput.readOnly = false;
-    nameInput.placeholder = who=='father'? "Father's Name *" : "Mother's Name *";
-  }
+  if(check.checked){ nameInput.value = 'Late / Deceased'; nameInput.style.background='#f0f0f0'; nameInput.style.color='#888'; nameInput.removeAttribute('required'); nameInput.readOnly = true; }
+  else{ nameInput.value = ''; nameInput.style.background='white'; nameInput.style.color='black'; nameInput.setAttribute('required','required'); nameInput.readOnly = false; nameInput.placeholder = who=='father'? "Father's Name *" : "Mother's Name *"; }
 }
-
 loadInfo(); loadMyHistory();
 </script>
-
 {% if info %}
 <script>
 document.getElementById('gName').innerText="{{ info.name }}";
