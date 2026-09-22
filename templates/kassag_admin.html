@@ -8,9 +8,13 @@
 <style>body{background:#0a0a0a;color:#fff}.card{background:#18181b;border:1px solid #27272a;border-radius:14px}.gold-bg{background:#FFCC02;color:#000}</style>
 </head>
 <body class="p-4 max-w-6xl mx-auto">
-<div class="flex justify-between items-center py-4">
+<div class="flex justify-between items-center py-4 flex-wrap gap-2">
   <h1 class="text-xl font-black">🔒 KASSAG ADMIN</h1>
-  <a href="/kassag" class="card px-4 py-2 text-sm">View Group</a>
+  <div class="flex gap-2">
+    <a href="/api/kassag/admin/export/members" class="bg-green-600 px-3 py-2 rounded-full text-xs font-bold">📥 Members Excel</a>
+    <a href="/api/kassag/admin/export/payments" class="bg-blue-600 px-3 py-2 rounded-full text-xs font-bold">📥 Payments Excel</a>
+    <a href="/kassag" class="card px-4 py-2 text-sm">View Group</a>
+  </div>
 </div>
 
 <!-- STATS -->
