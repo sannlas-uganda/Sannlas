@@ -2539,6 +2539,22 @@ def get_kassag_payments():
 def save_kassag_payments(p):
     save_db(KASSAG_PAYMENTS_FILE, p)
 
+# ===== EXPENDITURE DATABASE =====
+EXPEND_FILE = 'kassag_expenditures.json'
+
+def get_kassag_expenditures():
+    if not os.path.exists(EXPEND_FILE):
+        return []
+    try:
+        with open(EXPEND_FILE,'r') as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_kassag_expenditures(data):
+    with open(EXPEND_FILE,'w') as f:
+        json.dump(data,f,indent=2)
+
 @app.route('/api/kassag/join', methods=['POST'])
 def kassag_join():
     # Get all fields
@@ -2782,20 +2798,61 @@ def kassag_export_payments():
     output.seek(0)
     return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_payments.csv"})
 
+# ===== EXPENDITURE APIS - STEP 2 =====
+@app.route('/api/kassag/expenditure/add', methods=['POST'])
+@kassag_admin_required
+def add_expenditure():
+    data = request.get_json() or {}
+    exps = get_kassag_expenditures()
+    exps.append({
+        'id': int(time.time()*1000),
+        'title': data.get('title',''),
+        'amount': float(data.get('amount',0)),
+        'date': data.get('date',''),
+        'reason': data.get('reason',''),
+        'created': datetime.utcnow().isoformat()
+    })
+    save_kassag_expenditures(exps)
+    return jsonify({'success':True})
+
+@app.route('/api/kassag/expenditure/list')
+@kassag_admin_required
+def list_expenditure():
+    return jsonify(get_kassag_expenditures())
+
+@app.route('/api/kassag/expenditure/delete/<int:exp_id>', methods=['DELETE'])
+@kassag_admin_required
+def delete_expenditure(exp_id):
+    exps = get_kassag_expenditures()
+    exps = [e for e in exps if e['id'] != exp_id]
+    save_kassag_expenditures(exps)
+    return jsonify({'success':True})
+
+# ===== END EXPENDITURE APIS =====
+
 @app.route('/api/kassag/stats')
 def kassag_stats():
     members = get_kassag_members()
     payments = get_kassag_payments()
+    exps = get_kassag_expenditures()
+    
     active = [m for m in members if m.get('status')=='Active']
     pending_m = [m for m in members if m.get('status')=='Pending']
     pending_p = [p for p in payments if p.get('status')=='Pending']
-    total_pot = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved')
-    this_week = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved' and '2026' in str(p.get('date','')))
+    
+    total_pot_gross = sum(int(float(p.get('amount',0))) for p in payments if p.get('status')=='Approved')
+    total_expend = sum(int(float(e.get('amount',0))) for e in exps)
+    actual_balance = total_pot_gross - total_expend
+    
+    this_week = sum(int(float(p.get('amount',0))) for p in payments if p.get('status')=='Approved' and '2026' in str(p.get('date','')))
+    
     return jsonify({
         'total_members': len(active),
         'pending_members': len(pending_m),
         'pending_payments': len(pending_p),
-        'total_pot': total_pot,
+        'total_pot': total_pot_gross,  # Gross pot
+        'total_expenditure': total_expend, # Total spent
+        'actual_balance': actual_balance, # Pot - Expenditure = REAL MONEY LEFT
         'this_week': this_week
     })
 
