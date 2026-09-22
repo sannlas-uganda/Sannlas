@@ -204,10 +204,11 @@ input, select{ -webkit-appearance:none; appearance:none; }
 
 <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
   <div class="card p-6 w-full max-w-sm bg-white">
-    <h3 class="font-black text-black">Member Login</h3><p class="text-xs text-gray-600 mb-3">Enter phone to view your savings</p>
+    <h3 class="font-black text-black">Member Login</h3>
+    <p class="text-xs text-gray-600 mb-3">Enter phone to view your savings</p>
     <div style="display:flex;align-items:center;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:8px">
       <span style="padding:12px 10px;background:#f5f5f5;font-weight:800;border-right:1px solid #d1d5db">+256</span>
-      <input id="lPhone" type="tel" placeholder="7xxxxxxxx" value="" autocomplete="off"> class="w-full p-3 border-none outline-none">
+      <input id="lPhone" type="tel" placeholder="7xxxxxxxx" value="" autocomplete="off" style="flex:1;padding:12px;border:none;outline:none">
     </div>
     <button onclick="doLogin()" class="w-full gold-bg py-3 rounded-xl font-bold border-2 border-black">Login</button>
     <button onclick="closeLogin()" class="w-full mt-2 text-sm text-gray-500">Close</button>
