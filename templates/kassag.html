@@ -45,21 +45,54 @@ input, select{ -webkit-appearance:none; appearance:none; }
 
   <div id="secMembers" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
 
-  <div id="secSavings" class="hidden">
-    <div class="card p-5">
-      <h3 class="font-black mb-3 text-black">Submit Weekly Savings</h3>
-      <div style="display:flex;align-items:center;gap:0;width:100%;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:8px;background:white">
-        <span style="padding:12px 10px;background:#f5f5f5;font-weight:800;border-right:1px solid #d1d5db;color:#111">+256</span>
-        <input id="myPhone" type="tel" placeholder="795712326 (without 0)" required
-        style="flex:1;padding:12px;border:none;outline:none"
-        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,9)">
+ <div id="secSavings" class="hidden">
+    <!-- LOGIN REQUIRED NOTICE -->
+    <div id="needLogin" class="card p-6 text-center">
+      <h3 class="font-black text-lg">🔒 Private - Login Required</h3>
+      <p class="text-xs text-gray-500 mt-1">Login to view your personal private savings</p>
+      <button onclick="showLogin()" class="gold-bg px-6 py-2 rounded-full mt-3 font-bold border-2 border-black">Login Now</button>
+    </div>
+
+    <!-- PRIVATE DASHBOARD - SHOW AFTER LOGIN -->
+    <div id="privateDashboard" class="hidden">
+      <!-- MY PERSONAL CARDS -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="card p-4" style="background:#fffbeb;border-left:4px solid #f59e0b"><div id="myApproved" class="text-xl font-black">UGX 0</div><div class="text-[11px] font-bold">✅ My Approved Savings</div></div>
+        <div class="card p-4"><div id="myPending" class="text-xl font-black text-yellow-600">UGX 0</div><div class="text-[11px]">⏳ My Pending</div></div>
+        <div class="card p-4" style="background:#f0fdf4;border-left:4px solid #10b981"><div id="myTotal" class="text-xl font-black text-green-700">UGX 0</div><div class="text-[11px] font-bold">💰 My Total Submitted</div></div>
+        <div class="card p-4"><div id="myShare" class="text-xl font-black">0%</div><div class="text-[11px]">📊 My Share of Pot</div></div>
       </div>
-      <input id="myAmount" type="number" placeholder="Amount UGX" class="w-full input-white p-3 rounded-xl mb-2">
-      <input id="myWeek" placeholder="Week - e.g. Week 42" class="w-full input-white p-3 rounded-xl mb-2">
-      <label class="text-xs text-gray-600 font-bold">Screenshot proof (MoMo)</label>
-      <input id="myProof" type="file" accept="image/*" class="w-full mb-3 text-sm">
-      <button onclick="doPayment(event)" class="w-full gold-bg py-3 rounded-xl font-black border-2 border-black">Submit Proof ✅</button>
-      <div id="myHistory" class="mt-4"></div>
+
+      <!-- GROUP ACTUAL FOR ME -->
+      <div class="card p-4 mb-4" style="background:#fffbeb;border:2px solid #FFCC02">
+        <div class="flex justify-between"><span class="text-xs font-bold">Group Gross Pot:</span><span id="dashGross" class="text-xs font-bold">UGX 0</span></div>
+        <div class="flex justify-between"><span class="text-xs">- Group Expenditure:</span><span id="dashExpend" class="text-xs text-red-600">UGX 0</span></div>
+        <div class="border-t my-2"></div>
+        <div class="flex justify-between"><span class="text-sm font-black">Group Actual Balance:</span><span id="dashActual" class="text-sm font-black">UGX 0</span></div>
+        <div class="text-[10px] text-gray-500 mt-1">* This is real money left in group after expenses</div>
+      </div>
+
+      <!-- SUBMIT NEW -->
+      <div class="card p-5 mb-4">
+        <h3 class="font-black mb-3">Submit New Saving</h3>
+        <div style="display:flex;align-items:center;gap:0;width:100%;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:8px;background:white">
+          <span style="padding:12px 10px;background:#f5f5f5;font-weight:800;border-right:1px solid #d1d5db">+256</span>
+          <input id="myPhone" type="tel" placeholder="795712326" style="flex:1;padding:12px;border:none;outline:none" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,9)">
+        </div>
+        <input id="myAmount" type="number" placeholder="Amount UGX" class="w-full input-white p-3 rounded-xl mb-2">
+        <input id="myWeek" placeholder="Week - e.g. Week 42" class="w-full input-white p-3 rounded-xl mb-2">
+        <label class="text-xs font-bold">Proof (MoMo)</label>
+        <input id="myProof" type="file" accept="image/*" class="w-full mb-3 text-sm">
+        <button onclick="doPayment(event)" class="w-full gold-bg py-3 rounded-xl font-black border-2 border-black">Submit Proof ✅</button>
+      </div>
+
+      <!-- MY HISTORY PRIVATE -->
+      <div class="card p-4">
+        <h3 class="font-black mb-2">📜 My Private History</h3>
+        <div id="myHistory"></div>
+      </div>
+
+      <button onclick="logoutMe()" class="w-full mt-4 bg-red-50 text-red-600 py-2 rounded-xl text-sm font-bold">Logout 🔓</button>
     </div>
   </div>
 
@@ -264,13 +297,41 @@ async function submitSaving(){ return doPayment(event); }
 async function loadMyHistory(){
   const phoneStored = localStorage.getItem('kassag_phone')||'';
   let phone = phoneStored;
-  if(!phone){ let raw = document.getElementById('myPhone').value.replace(/\D/g,'').replace(/^0+/,''); if(raw) phone = '+256'+raw; }
-  if(!phone) return;
-  const r=await fetch('/api/kassag/my-history?phone='+phone);
+  if(!phone){
+    let raw = document.getElementById('myPhone').value.replace(/\D/g,'').replace(/^0+/,'');
+    if(raw) phone = '+256'+raw;
+  }
+  if(!phone){
+    document.getElementById('needLogin').classList.remove('hidden');
+    document.getElementById('privateDashboard').classList.add('hidden');
+    return;
+  }
+  // SHOW DASHBOARD
+  document.getElementById('needLogin').classList.add('hidden');
+  document.getElementById('privateDashboard').classList.remove('hidden');
+
+  const r=await fetch('/api/kassag/my-dashboard?phone='+encodeURIComponent(phone));
   const j=await r.json();
-  let html=`<div class="mt-3 font-black text-black">Total Approved: UGX ${(j.total||0).toLocaleString()}</div>`;
-  html+= (j.payments||[]).map(p=>`<div class="card p-3 mt-2 flex justify-between"><div><div class="font-bold text-black">${p.week} - UGX ${p.amount}</div><div class="text-xs text-gray-500">${p.status}</div></div><div class="text-xs">${new Date(p.date).toLocaleDateString()}</div></div>`).join('');
+
+  document.getElementById('myApproved').innerText='UGX '+(j.my_approved||0).toLocaleString();
+  document.getElementById('myPending').innerText='UGX '+(j.my_pending||0).toLocaleString();
+  document.getElementById('myTotal').innerText='UGX '+(j.my_total||0).toLocaleString();
+  document.getElementById('myShare').innerText=(j.my_share_percent||0)+'%';
+  document.getElementById('dashGross').innerText='UGX '+(j.group_gross||0).toLocaleString();
+  document.getElementById('dashExpend').innerText='UGX '+(j.group_expend||0).toLocaleString();
+  document.getElementById('dashActual').innerText='UGX '+(j.group_actual||0).toLocaleString();
+
+  let html = '';
+  html+= (j.payments||[]).map(p=>`<div class="card p-3 mt-2 flex justify-between" style="border-left:4px solid ${p.status=='Approved'?'#10b981':'#f59e0b'}"><div><div class="font-bold text-sm">${p.week} - UGX ${Number(p.amount).toLocaleString()}</div><div class="text-[11px] ${p.status=='Approved'?'text-green-600':'text-yellow-600'} font-bold">${p.status}</div></div><div class="text-[11px] text-gray-500">${new Date(p.date).toLocaleDateString()}</div></div>`).join('');
+  if(html=='') html='<div class="text-xs text-gray-400">No savings yet</div>';
   document.getElementById('myHistory').innerHTML=html;
+}
+function logoutMe(){
+  localStorage.removeItem('kassag_phone');
+  document.getElementById('myPhone').value='';
+  document.getElementById('needLogin').classList.remove('hidden');
+  document.getElementById('privateDashboard').classList.add('hidden');
+  alert('Logged out');
 }
 function toggleDeceased(who){
   let nameInput = document.getElementById(who+'_name');
