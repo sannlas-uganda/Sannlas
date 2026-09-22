@@ -2705,6 +2705,36 @@ def kassag_history():
     total = sum(int(p.get('amount',0)) for p in my if p.get('status')=='Approved')
     return jsonify({'payments': sorted(my, key=lambda x: x['date'], reverse=True), 'total': total})
 
+# ===== PRIVATE PERSONAL DASHBOARD =====
+@app.route('/api/kassag/my-dashboard')
+def my_dashboard():
+    phone = request.args.get('phone','').strip()
+    payments = get_kassag_payments()
+    exps = get_kassag_expenditures()
+
+    my_pays = [p for p in payments if p.get('member_phone')==phone]
+    my_approved = sum(int(float(p.get('amount',0))) for p in my_pays if p.get('status')=='Approved')
+    my_pending = sum(int(float(p.get('amount',0))) for p in my_pays if p.get('status')=='Pending')
+    my_total = my_approved + my_pending
+
+    group_gross = sum(int(float(p.get('amount',0))) for p in payments if p.get('status')=='Approved')
+    group_expend = sum(int(float(e.get('amount',0))) for e in exps)
+    group_actual = group_gross - group_expend
+
+    share = (my_approved / group_gross * 100) if group_gross>0 else 0
+
+    return jsonify({
+        'my_approved': my_approved,
+        'my_pending': my_pending,
+        'my_total': my_total,
+        'my_count': len(my_pays),
+        'group_gross': group_gross,
+        'group_expend': group_expend,
+        'group_actual': group_actual,
+        'my_share_percent': round(share,2),
+        'payments': sorted(my_pays, key=lambda x: x['date'], reverse=True)
+    })
+
 # --- ADMIN API FOR KASSAG ---
 @app.route('/kassag/admin')
 @kassag_admin_required
