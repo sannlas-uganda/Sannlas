@@ -14,6 +14,7 @@
     <a href="/api/kassag/admin/export/members" class="bg-green-600 px-3 py-2 rounded-full text-xs font-bold">📥 Members Excel</a>
     <a href="/api/kassag/admin/export/payments" class="bg-blue-600 px-3 py-2 rounded-full text-xs font-bold">📥 Payments Excel</a>
     <a href="/kassag" class="card px-4 py-2 text-sm">View Group</a>
+    <a href="/kassag/admin/logout" class="bg-red-600 px-3 py-2 rounded-full text-xs">Logout</a>
   </div>
 </div>
 
@@ -57,6 +58,17 @@
   </div>
 </div>
 
+<!-- PRIVATE DETAILS MODAL - NEW! -->
+<div id="privateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;justify-content:center;align-items:flex-start;padding:15px;overflow-y:auto">
+  <div style="background:#18181b;border:2px solid #FFCC02;border-radius:16px;width:100%;max-width:600px;margin:20px auto;padding:20px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+      <h2 style="font-weight:900;font-size:18px;color:#FFCC02">🔒 PRIVATE DETAILS</h2>
+      <button onclick="document.getElementById('privateModal').style.display='none'" style="background:#333;padding:8px 12px;border-radius:50%">✕</button>
+    </div>
+    <div id="privateContent" style="font-size:13px;line-height:1.6;white-space:pre-wrap"></div>
+  </div>
+</div>
+
 <script>
 function showTab(t){
   document.getElementById('tab-members').classList.add('hidden');
@@ -84,8 +96,10 @@ async function loadMembers(){
       <div class="flex-1">
         <div class="font-bold">${m.name} ${m.is_admin?'👑':''}</div>
         <div class="text-xs text-gray-400">${m.phone} • ${m.role} • ${m.status}</div>
+        ${m.private?`<div class="text-xs text-yellow-500 mt-1">NIN: ${m.private.nin||'N/A'} • ${m.private.district||''}</div>`:''}
         <div class="flex gap-1 mt-2 flex-wrap">
           ${m.status=='Pending'?`<button onclick="memberAct(${m.id},'approve')" class="gold-bg px-3 py-1 rounded-full text-xs font-bold">Approve</button><button onclick="memberAct(${m.id},'reject')" class="bg-red-600 px-3 py-1 rounded-full text-xs">Reject</button>`:''}
+          <button onclick="viewPrivate(${m.id})" class="bg-yellow-500 text-black px-3 py-1 rounded-full text-xs font-black">🔒 View Private</button>
           <button onclick="memberAct(${m.id},'make_admin')" class="card px-3 py-1 text-xs">${m.is_admin?'Remove Admin':'Make Admin'}</button>
           <button onclick="memberAct(${m.id},'remove')" class="card px-3 py-1 text-xs text-red-400">Remove</button>
         </div>
@@ -144,6 +158,69 @@ async function saveInfo(){
   const r=await fetch('/api/kassag/admin/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
   const j=await r.json();
   alert('Saved!');
+}
+
+// ========= NEW PRIVATE VIEW FUNCTION =========
+async function viewPrivate(id){
+  try{
+    const r = await fetch('/api/kassag/admin/members');
+    const members = await r.json();
+    let m = members.find(x=>x.id==id);
+    if(!m){ alert('Member not found'); return; }
+    if(!m.private){ alert('No private data for this member - Old member! New members will have private data.'); return; }
+    let p = m.private;
+    let html = `
+<div style="background:#000;padding:12px;border-radius:10px;margin-bottom:10px">
+<b style="color:#FFCC02">👤 ${m.name} - ${m.phone}</b><br>
+<span style="color:#aaa">Role: ${m.role} | Status: ${m.status}</span>
+</div>
+
+<div style="background:#fff8e1;color:#000;padding:12px;border-radius:10px;margin-bottom:10px">
+<b>🪪 PERSONAL IDENTIFICATION</b><br>
+NIN: <b>${p.nin||'N/A'}</b><br>
+DOB: ${p.dob||'N/A'} | Gender: ${p.gender||'N/A'}<br>
+Occupation: ${p.occupation||'N/A'}<br>
+Workplace: ${p.workplace||'N/A'}<br>
+Email: ${p.email||'N/A'}<br>
+Phone: ${m.phone}
+</div>
+
+<div style="background:#e3f2fd;color:#000;padding:12px;border-radius:10px;margin-bottom:10px">
+<b>📍 RESIDENTIAL / LOCAL GOVT</b><br>
+Country: ${p.country||'Uganda'}<br>
+District: ${p.district||'N/A'} | County: ${p.county||'N/A'}<br>
+Subcounty: ${p.subcounty||'N/A'} | Parish: ${p.parish||'N/A'}<br>
+Village/Zone: ${p.village||'N/A'}<br>
+Cell/LC1: ${p.cell||'N/A'}
+</div>
+
+<div style="background:#f3e5f5;color:#000;padding:12px;border-radius:10px;margin-bottom:10px">
+<b>👨‍👩‍👧 FAMILY BACKGROUND</b><br>
+Father: ${p.father_name||'N/A'}<br>
+Mother: ${p.mother_name||'N/A'}
+</div>
+
+<div style="background:#e8f5e9;color:#000;padding:12px;border-radius:10px;margin-bottom:10px">
+<b>🧑 NEXT OF KIN 1</b><br>
+Name: ${p.kin1?.name||'N/A'}<br>
+Relationship: ${p.kin1?.relationship||'N/A'}<br>
+Phone: ${p.kin1?.phone||'N/A'} | NIN: ${p.kin1?.nin||'N/A'}<br>
+Address: ${p.kin1?.address||'N/A'}
+</div>
+
+<div style="background:#e8f5e9;color:#000;padding:12px;border-radius:10px">
+<b>🧑 NEXT OF KIN 2</b><br>
+Name: ${p.kin2?.name||'N/A'}<br>
+Relationship: ${p.kin2?.relationship||'N/A'}<br>
+Phone: ${p.kin2?.phone||'N/A'} | NIN: ${p.kin2?.nin||'N/A'}<br>
+Address: ${p.kin2?.address||'N/A'}
+</div>
+    `;
+    document.getElementById('privateContent').innerHTML = html;
+    document.getElementById('privateModal').style.display = 'flex';
+  }catch(e){
+    alert('Error: '+e);
+  }
 }
 
 loadStats(); loadMembers();
