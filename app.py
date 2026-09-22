@@ -2459,6 +2459,233 @@ def chat_threads_new():
         print(f"threads error: {e}")
         return jsonify([])
 
+# ============================================================
+# 🔒 KASSAG - PRIVATE SAVINGS GROUP - HIDDEN FROM MAIN SITE
+# Link: /kassag - Not in menu, not indexed
+# ============================================================
+import base64
+
+KASSAG_INFO_FILE = 'kassag_info.json'
+KASSAG_MEMBERS_FILE = 'kassag_members.json'
+KASSAG_PAYMENTS_FILE = 'kassag_payments.json'
+
+def get_kassag_info():
+    info = load_db(KASSAG_INFO_FILE, None)
+    if not info:
+        info = {
+            "name": "KASSAG",
+            "logo": "",
+            "goals": "To save together and grow wealth",
+            "vision": "Financial freedom for all members",
+            "mission": "Weekly savings, transparency, trust",
+            "terms": "1. Pay weekly\n2. No late fees excuse\n3. Admin approval required",
+            "privacy": "Only members can view savings. Private group.",
+            "max_members": 50
+        }
+        save_db(KASSAG_INFO_FILE, info)
+    return info
+
+def get_kassag_members():
+    return load_db(KASSAG_MEMBERS_FILE, [])
+
+def save_kassag_members(m):
+    save_db(KASSAG_MEMBERS_FILE, m)
+
+def get_kassag_payments():
+    return load_db(KASSAG_PAYMENTS_FILE, [])
+
+def save_kassag_payments(p):
+    save_db(KASSAG_PAYMENTS_FILE, p)
+
+@app.route('/kassag')
+def kassag_home():
+    info = get_kassag_info()
+    members = get_kassag_members()
+    active = [m for m in members if m.get('status')=='Active']
+    payments = get_kassag_payments()
+    total_pot = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved')
+    return render_template('kassag.html', info=info, members=active, all_members=members, total_members=len(active), total_pot=total_pot, payments=payments)
+
+@app.route('/api/kassag/join', methods=['POST'])
+def kassag_join():
+    name = request.form.get('name','').strip()
+    phone = request.form.get('phone','').strip()
+    role = request.form.get('role','Member')
+    photo_url = ""
+    f = request.files.get('photo')
+    if f and f.filename:
+        try:
+            res = cloudinary.uploader.upload(f, folder="kassag/members")
+            photo_url = res['secure_url']
+        except:
+            filename = f"{int(time.time())}_{secure_filename(f.filename)}"
+            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            f.save(path)
+            photo_url = f"/static/uploads/{filename}"
+
+    members = get_kassag_members()
+    info = get_kassag_info()
+    if len([m for m in members if m.get('status')=='Active']) >= info.get('max_members',50):
+        return jsonify({'success':False,'message': f"Group full! Max {info.get('max_members')} members"}), 400
+
+    if any(m.get('phone')==phone for m in members):
+        return jsonify({'success':False,'message':'Phone already registered'}), 400
+
+    new_m = {
+        "id": int(time.time()*1000),
+        "name": name,
+        "phone": phone,
+        "photo": photo_url,
+        "role": role,
+        "status": "Pending",
+        "join_date": datetime.utcnow().isoformat(),
+        "is_admin": False
+    }
+    members.append(new_m)
+    save_kassag_members(members)
+    return jsonify({'success':True,'message':'Request sent! Wait for admin approval','member':new_m})
+
+@app.route('/api/kassag/login', methods=['POST'])
+def kassag_login():
+    data = request.get_json() or {}
+    phone = data.get('phone','').strip()
+    members = get_kassag_members()
+    m = next((x for x in members if x.get('phone')==phone and x.get('status')=='Active'), None)
+    if not m:
+        return jsonify({'success':False,'message':'Not approved or not found'}), 404
+    return jsonify({'success':True,'member':m})
+
+@app.route('/api/kassag/savings/submit', methods=['POST'])
+def kassag_submit_saving():
+    phone = request.form.get('phone','').strip()
+    amount = int(request.form.get('amount',0))
+    week = request.form.get('week','')
+    screenshot_url = ""
+    f = request.files.get('screenshot')
+    if f and f.filename:
+        try:
+            res = cloudinary.uploader.upload(f, folder="kassag/proofs")
+            screenshot_url = res['secure_url']
+        except:
+            filename = f"proof_{int(time.time())}_{secure_filename(f.filename)}"
+            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            f.save(path)
+            screenshot_url = f"/static/uploads/{filename}"
+
+    members = get_kassag_members()
+    m = next((x for x in members if x.get('phone')==phone and x.get('status')=='Active'), None)
+    if not m:
+        return jsonify({'success':False,'message':'Member not found'}), 404
+
+    payments = get_kassag_payments()
+    new_p = {
+        "id": int(time.time()*1000),
+        "member_id": m['id'],
+        "member_name": m['name'],
+        "member_phone": phone,
+        "amount": amount,
+        "week": week,
+        "screenshot": screenshot_url,
+        "status": "Pending",
+        "date": datetime.utcnow().isoformat()
+    }
+    payments.append(new_p)
+    save_kassag_payments(payments)
+    return jsonify({'success':True,'payment':new_p})
+
+@app.route('/api/kassag/my-history')
+def kassag_history():
+    phone = request.args.get('phone','').strip()
+    payments = get_kassag_payments()
+    my = [p for p in payments if p.get('member_phone')==phone]
+    total = sum(int(p.get('amount',0)) for p in my if p.get('status')=='Approved')
+    return jsonify({'payments': sorted(my, key=lambda x: x['date'], reverse=True), 'total': total})
+
+# --- ADMIN API FOR KASSAG ---
+@app.route('/kassag/admin')
+def kassag_admin_page():
+    if not session.get('is_admin'):
+        return redirect('/admin/login')
+    return render_template('kassag_admin.html')
+
+@app.route('/api/kassag/admin/members')
+@admin_required
+def kassag_admin_members():
+    return jsonify(get_kassag_members())
+
+@app.route('/api/kassag/admin/payments')
+@admin_required
+def kassag_admin_payments():
+    return jsonify(get_kassag_payments())
+
+@app.route('/api/kassag/admin/action/member', methods=['POST'])
+@admin_required
+def kassag_member_action():
+    data = request.get_json() or {}
+    mid = int(data.get('id',0))
+    action = data.get('action','approve') # approve, reject, make_admin, remove, edit_role
+    members = get_kassag_members()
+    for m in members:
+        if m['id']==mid:
+            if action=='approve':
+                m['status']='Active'
+            elif action=='reject':
+                m['status']='Rejected'
+            elif action=='remove':
+                members = [x for x in members if x['id']!=mid]
+            elif action=='make_admin':
+                m['is_admin']= not m.get('is_admin',False)
+                m['role']='Treasurer' if m.get('is_admin') else 'Member'
+            elif action=='edit_role':
+                m['role']=data.get('role','Member')
+            break
+    save_kassag_members(members)
+    return jsonify({'success':True})
+
+@app.route('/api/kassag/admin/action/payment', methods=['POST'])
+@admin_required
+def kassag_payment_action():
+    data = request.get_json() or {}
+    pid = int(data.get('id',0))
+    action = data.get('action','approve')
+    payments = get_kassag_payments()
+    for p in payments:
+        if p['id']==pid:
+            p['status']='Approved' if action=='approve' else 'Rejected'
+            break
+    save_kassag_payments(payments)
+    return jsonify({'success':True})
+
+@app.route('/api/kassag/admin/info', methods=['GET','POST'])
+@admin_required
+def kassag_admin_info():
+    if request.method=='GET':
+        return jsonify(get_kassag_info())
+    data = request.get_json() or {}
+    info = get_kassag_info()
+    for k in ['name','goals','vision','mission','terms','privacy','max_members','logo']:
+        if k in data:
+            info[k]=data[k]
+    save_db(KASSAG_INFO_FILE, info)
+    return jsonify({'success':True,'info':info})
+
+@app.route('/api/kassag/stats')
+def kassag_stats():
+    members = get_kassag_members()
+    payments = get_kassag_payments()
+    active = [m for m in members if m.get('status')=='Active']
+    pending_m = [m for m in members if m.get('status')=='Pending']
+    pending_p = [p for p in payments if p.get('status')=='Pending']
+    total_pot = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved')
+    this_week = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved' and '2026' in str(p.get('date','')))
+    return jsonify({
+        'total_members': len(active),
+        'pending_members': len(pending_m),
+        'pending_payments': len(pending_p),
+        'total_pot': total_pot,
+        'this_week': this_week
+    })
+
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
