@@ -2539,20 +2539,48 @@ def get_kassag_payments():
 def save_kassag_payments(p):
     save_db(KASSAG_PAYMENTS_FILE, p)
 
-@app.route('/kassag')
-def kassag_home():
-    info = get_kassag_info()
-    members = get_kassag_members()
-    active = [m for m in members if m.get('status')=='Active']
-    payments = get_kassag_payments()
-    total_pot = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved')
-    return render_template('kassag.html', info=info, members=active, all_members=members, total_members=len(active), total_pot=total_pot, payments=payments)
-
 @app.route('/api/kassag/join', methods=['POST'])
 def kassag_join():
+    # Get all fields
     name = request.form.get('name','').strip()
     phone = request.form.get('phone','').strip()
     role = request.form.get('role','Member')
+    
+    # Personal ID
+    dob = request.form.get('dob','')
+    gender = request.form.get('gender','')
+    nin = request.form.get('nin','')
+    occupation = request.form.get('occupation','')
+    workplace = request.form.get('workplace','')
+    email = request.form.get('email','')
+    
+    # Residential
+    country = request.form.get('country','Uganda')
+    district = request.form.get('district','')
+    county = request.form.get('county','')
+    subcounty = request.form.get('subcounty','')
+    parish = request.form.get('parish','')
+    village = request.form.get('village','')
+    cell = request.form.get('cell','')
+    
+    # Family
+    father_name = request.form.get('father_name','')
+    mother_name = request.form.get('mother_name','')
+    
+    # Kin 1
+    kin1_name = request.form.get('kin1_name','')
+    kin1_relationship = request.form.get('kin1_relationship','')
+    kin1_phone = request.form.get('kin1_phone','')
+    kin1_nin = request.form.get('kin1_nin','')
+    kin1_address = request.form.get('kin1_address','')
+    
+    # Kin 2
+    kin2_name = request.form.get('kin2_name','')
+    kin2_relationship = request.form.get('kin2_relationship','')
+    kin2_phone = request.form.get('kin2_phone','')
+    kin2_nin = request.form.get('kin2_nin','')
+    kin2_address = request.form.get('kin2_address','')
+
     photo_url = ""
     f = request.files.get('photo')
     if f and f.filename:
@@ -2569,24 +2597,42 @@ def kassag_join():
     info = get_kassag_info()
     if len([m for m in members if m.get('status')=='Active']) >= info.get('max_members',50):
         return jsonify({'success':False,'message': f"Group full! Max {info.get('max_members')} members"}), 400
-
     if any(m.get('phone')==phone for m in members):
         return jsonify({'success':False,'message':'Phone already registered'}), 400
 
     new_m = {
         "id": int(time.time()*1000),
-        "name": name,
-        "phone": phone,
-        "photo": photo_url,
-        "role": role,
-        "status": "Pending",
-        "join_date": datetime.utcnow().isoformat(),
-        "is_admin": False
+        "name": name, "phone": phone, "photo": photo_url, "role": role,
+        "status": "Pending", "join_date": datetime.utcnow().isoformat(), "is_admin": False,
+        # PRIVATE - Only admin sees
+        "private": {
+            "dob": dob, "gender": gender, "nin": nin, "occupation": occupation,
+            "workplace": workplace, "email": email,
+            "country": country, "district": district, "county": county,
+            "subcounty": subcounty, "parish": parish, "village": village, "cell": cell,
+            "father_name": father_name, "mother_name": mother_name,
+            "kin1": {"name": kin1_name, "relationship": kin1_relationship, "phone": kin1_phone, "nin": kin1_nin, "address": kin1_address},
+            "kin2": {"name": kin2_name, "relationship": kin2_relationship, "phone": kin2_phone, "nin": kin2_nin, "address": kin2_address}
+        }
     }
     members.append(new_m)
     save_kassag_members(members)
     return jsonify({'success':True,'message':'Request sent! Wait for admin approval','member':new_m})
 
+# PUBLIC - Hide private data
+@app.route('/kassag')
+def kassag_home():
+    info = get_kassag_info()
+    members = get_kassag_members()
+    active = [m for m in members if m.get('status')=='Active']
+    # REMOVE private before public
+    public_members = []
+    for m in active:
+        pm = {k:v for k,v in m.items() if k != 'private'}
+        public_members.append(pm)
+    payments = get_kassag_payments()
+    total_pot = sum(int(p.get('amount',0)) for p in payments if p.get('status')=='Approved')
+    return render_template('kassag.html', info=info, members=public_members, all_members=members, total_members=len(active), total_pot=total_pot, payments=payments)
 @app.route('/api/kassag/login', methods=['POST'])
 def kassag_login():
     data = request.get_json() or {}
