@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <style>
-body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
+body{background:#ffffff;color:#111;font-family:Inter, sans-serif}
 .card{background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 2px 10px rgba(0,0,0,0.04)}
 .gold{color:#000}
 .gold-bg{background:#FFCC02;color:#000;font-weight:900}
@@ -16,11 +16,9 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
 </style>
 </head>
 <body class="pb-24">
-<!-- PRIVATE BANNER -->
 <div class="bg-yellow-400 text-black text-center py-2 text-xs font-black tracking-wide">🔒 PRIVATE GROUP - KASSAG - MEMBERS ONLY</div>
 
 <div class="max-w-4xl mx-auto p-4">
-  <!-- HEADER -->
   <div class="flex justify-between items-center py-4">
     <h1 class="text-2xl font-black text-black">🏦 <span id="gName">KASSAG</span></h1>
     <div class="flex gap-2">
@@ -29,25 +27,20 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
     </div>
   </div>
 
-  <!-- STATS -->
   <div class="grid grid-cols-3 gap-3 my-4">
     <div class="card p-4 text-center"><div class="text-2xl font-black text-black" id="sMembers">0</div><div class="text-xs text-gray-500 font-bold">Active Members</div></div>
     <div class="card p-4 text-center"><div class="text-2xl font-black text-black" id="sPot">0</div><div class="text-xs text-gray-500 font-bold">Total Pot UGX</div></div>
     <div class="card p-4 text-center"><div class="text-2xl font-black text-black" id="sPending">0</div><div class="text-xs text-gray-500 font-bold">Pending</div></div>
   </div>
 
-  <!-- TABS -->
   <div class="flex gap-2 my-4 overflow-x-auto">
     <button onclick="tab('members')" id="tabMembers" class="gold-bg px-4 py-2 rounded-full text-sm font-bold border-2 border-black">👥 Members</button>
     <button onclick="tab('savings')" id="tabSavings" class="bg-white border border-gray-300 px-4 py-2 rounded-full text-sm font-bold">💰 My Savings</button>
     <button onclick="tab('about')" id="tabAbout" class="bg-white border border-gray-300 px-4 py-2 rounded-full text-sm font-bold">📜 Rules</button>
   </div>
 
-  <!-- MEMBERS GRID -->
-  <div id="secMembers" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-  </div>
+  <div id="secMembers" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
 
-  <!-- MY SAVINGS -->
   <div id="secSavings" class="hidden">
     <div class="card p-5">
       <h3 class="font-black mb-3 text-black">Submit Weekly Savings</h3>
@@ -61,7 +54,6 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
     </div>
   </div>
 
-  <!-- ABOUT -->
   <div id="secAbout" class="hidden space-y-3">
     <div class="card p-5"><h4 class="font-black">🎯 Goals</h4><p id="gGoals" class="text-sm text-gray-700 mt-1"></p></div>
     <div class="card p-5"><h4 class="font-black">👁️ Vision</h4><p id="gVision" class="text-sm text-gray-700 mt-1"></p></div>
@@ -69,23 +61,23 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
     <div class="card p-5"><h4 class="font-black">📜 Terms</h4><p id="gTerms" class="text-sm text-gray-700 mt-1 whitespace-pre-line"></p></div>
     <div class="card p-5"><h4 class="font-black">🔐 Privacy</h4><p id="gPrivacy" class="text-sm text-gray-700 mt-1"></p></div>
   </div>
-
-  <div class="hidden-link">sannlas private kassag</div>
 </div>
 
-<!-- KASSAG DETAILED JOIN MODAL - PRIVATE -->
+<!-- KASSAG DETAILED JOIN MODAL - FIXED! -->
 <div id="joinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto">
   <div style="background:white;width:100%;max-width:650px;border-radius:20px;padding:25px;margin:20px auto;max-height:95vh;overflow-y:auto">
-    <h2 style="text-align:center;font-weight:900">🏦 Join KASSAG - Private Form</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h2 style="text-align:center;font-weight:900">🏦 Join KASSAG - Private Form</h2>
+      <button onclick="closeJoin()" style="background:#eee;padding:6px 10px;border-radius:50%;font-weight:900">✕</button>
+    </div>
     <p style="text-align:center;font-size:12px;color:#666;margin-bottom:15px">All info is PRIVATE - Only seen by Admin 🔒</p>
-    
+
     <form id="kassagJoinForm" enctype="multipart/form-data">
-      <!-- SECTION 1: PERSONAL IDENTIFICATION -->
       <div style="background:#fff8e1;border:1px solid #FFCC02;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">👤 PERSONAL IDENTIFICATION</h4>
         <input name="name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input name="dob" type="date" placeholder="Date of Birth *" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
+          <input name="dob" type="date" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px">
           <select name="gender" required style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px"><option value="">Gender *</option><option>Male</option><option>Female</option></select>
         </div>
         <input name="nin" placeholder="NIN - National ID No *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
@@ -97,7 +89,6 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
         <select name="role" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px"><option value="Member">Member</option><option value="Treasurer">Treasurer</option><option value="Secretary">Secretary</option></select>
       </div>
 
-      <!-- SECTION 2: RESIDENTIAL ADDRESS -->
       <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">📍 RESIDENTIAL ADDRESS / LOCAL GOVT HIERARCHY</h4>
         <input name="country" value="Uganda" placeholder="Country of Origin" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
@@ -115,14 +106,12 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
         </div>
       </div>
 
-      <!-- SECTION 3: FAMILY BACKGROUND -->
       <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">👨‍👩‍👧 FAMILY BACKGROUND</h4>
         <input name="father_name" placeholder="Father's Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
         <input name="mother_name" placeholder="Mother's Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
       </div>
 
-      <!-- SECTION 4: NEXT OF KIN 1 -->
       <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">🧑 NEXT OF KIN 1 *</h4>
         <input name="kin1_name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
@@ -134,7 +123,6 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
         <input name="kin1_address" placeholder="Residential Address *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px">
       </div>
 
-      <!-- SECTION 5: NEXT OF KIN 2 -->
       <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:15px;margin-bottom:15px">
         <h4 style="margin:0 0 10px;font-size:14px">🧑 NEXT OF KIN 2 *</h4>
         <input name="kin2_name" placeholder="Full Name *" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
@@ -147,14 +135,14 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
       </div>
 
       <div style="display:flex;gap:10px">
-        <button type="button" onclick="document.getElementById('joinModal').style.display='none'" style="flex:1;padding:14px;border-radius:12px;border:1px solid #ddd;background:#eee;font-weight:700">Cancel</button>
-        <button type="submit" style="flex:2;padding:14px;border-radius:12px;background:#FFCC02;border:2px solid #000;font-weight:900">Request Join 🔒</button>
+        <button type="button" onclick="closeJoin()" style="flex:1;padding:14px;border-radius:12px;border:1px solid #ddd;background:#eee;font-weight:700">Cancel</button>
+        <button type="submit" id="joinSubmitBtn" style="flex:2;padding:14px;border-radius:12px;background:#FFCC02;border:2px solid #000;font-weight:900">Request Join 🔒</button>
       </div>
+      <div id="jMsg" class="text-center text-xs mt-2"></div>
     </form>
   </div>
 </div>
 
-<!-- LOGIN MODAL -->
 <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
   <div class="card p-6 w-full max-w-sm bg-white">
     <h3 class="font-black text-black">Member Login</h3><p class="text-xs text-gray-600 mb-3">Enter phone to view your savings</p>
@@ -169,10 +157,22 @@ body{background:#f8fafc;color:#111;font-family:Inter, sans-serif}
 let myPhoneStored = localStorage.getItem('kassag_phone')||'';
 if(myPhoneStored) document.getElementById('myPhone').value=myPhoneStored;
 
-function showJoin(){document.getElementById('joinModal').classList.remove('hidden')}
-function closeJoin(){document.getElementById('joinModal').classList.add('hidden')}
-function showLogin(){document.getElementById('loginModal').classList.remove('hidden')}
-function closeLogin(){document.getElementById('loginModal').classList.add('hidden')}
+// ===== FIXED SHOW/HIDE - THIS WAS THE BUG! =====
+function showJoin(){
+  document.getElementById('joinModal').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeJoin(){
+  document.getElementById('joinModal').style.display='none';
+  document.body.style.overflow='auto';
+}
+function showLogin(){document.getElementById('loginModal').classList.remove('hidden'); document.getElementById('loginModal').classList.add('flex');}
+function closeLogin(){document.getElementById('loginModal').classList.add('hidden'); document.getElementById('loginModal').classList.remove('flex');}
+
+// Close modal when clicking outside
+document.getElementById('joinModal').addEventListener('click', function(e){
+  if(e.target.id==='joinModal') closeJoin();
+});
 
 function tab(t){
   document.getElementById('secMembers').classList.add('hidden');
@@ -189,26 +189,37 @@ function tab(t){
 async function loadInfo(){
   const d=await fetch('/api/kassag/stats').then(r=>r.json()).catch(()=>({})); updateStats(d);
 }
-
 function updateStats(s){
   document.getElementById('sMembers').innerText=s.total_members||0;
   document.getElementById('sPot').innerText=(s.total_pot||0).toLocaleString();
   document.getElementById('sPending').innerText=(s.pending_members||0)+(s.pending_payments||0);
 }
 
-async function doJoin(){
-  const fd = new FormData();
-  fd.append('name', document.getElementById('jName').value);
-  fd.append('phone', document.getElementById('jPhone').value);
-  fd.append('role', document.getElementById('jRole').value);
-  const photo = document.getElementById('jPhoto').files[0];
-  if(photo) fd.append('photo', photo);
-  document.getElementById('jMsg').innerText='Sending...';
-  const r = await fetch('/api/kassag/join',{method:'POST',body:fd});
-  const j = await r.json();
-  document.getElementById('jMsg').innerText=j.message||JSON.stringify(j);
-  if(j.success) setTimeout(closeJoin,1500);
-}
+// ===== NEW DETAILED JOIN SUBMIT - FIXED! =====
+document.getElementById('kassagJoinForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  let btn = document.getElementById('joinSubmitBtn');
+  let msg = document.getElementById('jMsg');
+  let oldText = btn.innerText;
+  btn.innerText = 'Sending... ⏳'; btn.disabled=true; msg.innerText='Uploading...';
+  try{
+    let fd = new FormData(e.target);
+    let res = await fetch('/api/kassag/join',{method:'POST',body:fd});
+    let data = await res.json();
+    msg.innerText = data.message || JSON.stringify(data);
+    if(data.success){
+      alert('✅ '+data.message + '\\nWait for Admin approval!');
+      closeJoin();
+      e.target.reset();
+    }else{
+      alert('❌ '+data.message);
+    }
+  }catch(err){
+    msg.innerText='Error: '+err.message;
+    alert('❌ '+err.message);
+  }
+  btn.innerText=oldText; btn.disabled=false;
+});
 
 async function doLogin(){
   const phone=document.getElementById('lPhone').value;
