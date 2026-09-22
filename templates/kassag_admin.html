@@ -22,13 +22,23 @@ body{background:#ffffff;color:#111827}
   </div>
 </div>
 
-<!-- STATS - WHITE CARDS -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
+<!-- STATS - 6 BOXES WITH EXPENDITURE -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3 my-4">
   <div class="card p-4"><div id="stMembers" class="text-2xl font-black text-black">0</div><div class="text-xs text-gray-500">Active</div></div>
   <div class="card p-4"><div id="stPendingM" class="text-2xl font-black text-black">0</div><div class="text-xs text-gray-500">Pending Members</div></div>
-  <div class="card p-4"><div id="stPot" class="text-2xl font-black text-green-600">0</div><div class="text-xs text-gray-500">Total Pot</div></div>
+  <div class="card p-4" style="border-left:4px solid #10b981"><div id="stPot" class="text-xl font-black text-green-600">0</div><div class="text-xs text-gray-500">Total Pot (Gross)</div></div>
+  <div class="card p-4" style="border-left:4px solid #ef4444"><div id="stExpend" class="text-xl font-black text-red-600">0</div><div class="text-xs text-gray-500">Total Expenditure</div></div>
+  <div class="card p-4" style="border-left:4px solid #f59e0b;background:#fffbeb"><div id="stActual" class="text-2xl font-black text-black">0</div><div class="text-xs text-gray-700 font-bold">Actual Balance ✅</div><div class="text-[10px] text-gray-500">Pot - Expenditure</div></div>
   <div class="card p-4"><div id="stPendingP" class="text-2xl font-black text-red-500">0</div><div class="text-xs text-gray-500">Pending Proofs</div></div>
 </div>
+
+<!-- EXPENDITURE BUTTONS -->
+<div class="flex gap-2 mb-4">
+  <button onclick="showExpendModal()" class="bg-red-600 text-white px-5 py-2 rounded-full text-sm font-black">+ Add Expenditure 💸</button>
+  <button onclick="loadExpenditures()" class="card px-5 py-2 rounded-full text-sm font-bold">View Expenditures 📋</button>
+</div>
+
+<div id="expendList" class="card p-4 hidden mb-4"></div>
 
 <!-- TABS -->
 <div class="flex gap-2 mb-4">
@@ -73,6 +83,21 @@ body{background:#ffffff;color:#111827}
   </div>
 </div>
 
+<!-- EXPENDITURE MODAL -->
+<div id="expendModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;justify-content:center;align-items:center;padding:20px">
+  <div style="background:white;width:100%;max-width:400px;border-radius:18px;padding:20px">
+    <h3 style="font-weight:900;margin-bottom:12px;color:#000">Add Group Expenditure 💸</h3>
+    <input id="expTitle" placeholder="Expenditure - e.g. Transport, Lunch" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+    <input id="expAmount" type="number" placeholder="Amount UGX" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+    <input id="expDate" type="date" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px">
+    <textarea id="expReason" placeholder="Reason / Details" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;height:80px"></textarea>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeExpendModal()" style="flex:1;padding:12px;background:#eee;border-radius:10px;font-weight:700">Cancel</button>
+      <button onclick="saveExpenditure()" style="flex:1;padding:12px;background:#ef4444;color:white;border-radius:10px;font-weight:900">Save Deduct ✅</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function showTab(t){
   document.getElementById('tab-members').classList.add('hidden');
@@ -83,13 +108,55 @@ function showTab(t){
   if(t=='payments') loadPayments();
   if(t=='settings') loadInfo();
 }
+
+// NEW STATS WITH EXPENDITURE
 async function loadStats(){
   const r=await fetch('/api/kassag/stats'); const s=await r.json();
-  document.getElementById('stMembers').innerText=s.total_members;
-  document.getElementById('stPendingM').innerText=s.pending_members;
-  document.getElementById('stPot').innerText='UGX '+s.total_pot.toLocaleString();
-  document.getElementById('stPendingP').innerText=s.pending_payments;
+  document.getElementById('stMembers').innerText=s.total_members||0;
+  document.getElementById('stPendingM').innerText=s.pending_members||0;
+  document.getElementById('stPot').innerText='UGX '+(s.total_pot||0).toLocaleString();
+  document.getElementById('stExpend').innerText='UGX '+(s.total_expenditure||0).toLocaleString();
+  document.getElementById('stActual').innerText='UGX '+(s.actual_balance||0).toLocaleString();
+  document.getElementById('stPendingP').innerText=s.pending_payments||0;
 }
+
+// EXPENDITURE FUNCTIONS
+function showExpendModal(){ document.getElementById('expendModal').style.display='flex'; document.getElementById('expDate').valueAsDate=new Date(); }
+function closeExpendModal(){ document.getElementById('expendModal').style.display='none'; }
+async function saveExpenditure(){
+  let data = {
+    title: document.getElementById('expTitle').value,
+    amount: document.getElementById('expAmount').value,
+    date: document.getElementById('expDate').value,
+    reason: document.getElementById('expReason').value
+  };
+  if(!data.title ||!data.amount){ alert('Enter title and amount'); return; }
+  let res = await fetch('/api/kassag/expenditure/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  let j = await res.json();
+  if(j.success){ alert('Expenditure saved! Deducted from pot ✅'); closeExpendModal(); loadStats(); loadExpenditures();
+    document.getElementById('expTitle').value=''; document.getElementById('expAmount').value=''; document.getElementById('expReason').value='';
+  }
+}
+async function loadExpenditures(){
+  let res = await fetch('/api/kassag/expenditure/list');
+  let list = await res.json();
+  let div = document.getElementById('expendList');
+  div.classList.remove('hidden');
+  div.style.display='block';
+  if(list.length==0){ div.innerHTML='<b>No expenditures yet</b>'; return; }
+  div.innerHTML = '<h4 style="font-weight:900;margin-bottom:10px;color:#000">💸 All Group Expenditures</h4>' + list.reverse().map(e=>`
+    <div style="display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:10px 0">
+      <div><b style="color:#000">${e.title}</b> - <span style="color:#dc2626;font-weight:900">UGX ${Number(e.amount).toLocaleString()}</span><br><span style="font-size:11px;color:#666">${e.date||''} - ${e.reason||''}</span></div>
+      <button onclick="deleteExp(${e.id})" style="color:red;font-size:12px;font-weight:bold">Delete</button>
+    </div>
+  `).join('');
+}
+async function deleteExp(id){
+  if(!confirm('Delete this expenditure? Balance will increase back.')) return;
+  await fetch('/api/kassag/expenditure/delete/'+id,{method:'DELETE'});
+  loadStats(); loadExpenditures();
+}
+
 async function loadMembers(){
   const r=await fetch('/api/kassag/admin/members'); const members=await r.json();
   document.getElementById('membersList').innerHTML=members.map(m=>`
@@ -160,7 +227,7 @@ async function viewPrivate(id){
     const r = await fetch('/api/kassag/admin/members');
     const members = await r.json();
     let m = members.find(x=>x.id==id);
-    if(!m || !m.private){ alert('No private data - Old member!'); return; }
+    if(!m ||!m.private){ alert('No private data - Old member!'); return; }
     let p = m.private;
     let html = `
 <div style="background:#f8fafc;padding:12px;border-radius:10px;margin-bottom:10px;border:1px solid #e5e7eb">
