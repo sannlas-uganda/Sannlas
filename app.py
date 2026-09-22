@@ -2669,6 +2669,32 @@ def kassag_admin_info():
     save_db(KASSAG_INFO_FILE, info)
     return jsonify({'success':True,'info':info})
 
+@app.route('/api/kassag/admin/export/members')
+@admin_required
+def kassag_export_members():
+    import csv, io
+    members = get_kassag_members()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID','Name','Phone','Role','Status','Is Admin','Join Date'])
+    for m in members:
+        writer.writerow([m.get('id'), m.get('name'), m.get('phone'), m.get('role'), m.get('status'), m.get('is_admin'), m.get('join_date')])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_members.csv"})
+
+@app.route('/api/kassag/admin/export/payments')
+@admin_required
+def kassag_export_payments():
+    import csv, io
+    pays = get_kassag_payments()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID','Member Name','Phone','Week','Amount','Status','Date','Screenshot'])
+    for p in pays:
+        writer.writerow([p.get('id'), p.get('member_name'), p.get('member_phone'), p.get('week'), p.get('amount'), p.get('status'), p.get('date'), p.get('screenshot')])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_payments.csv"})
+
 @app.route('/api/kassag/stats')
 def kassag_stats():
     members = get_kassag_members()
