@@ -77,7 +77,7 @@ input, select{ -webkit-appearance:none; appearance:none; }
         <h3 class="font-black mb-3">Submit New Saving</h3>
         <div style="display:flex;align-items:center;gap:0;width:100%;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:8px;background:white">
           <span style="padding:12px 10px;background:#f5f5f5;font-weight:800;border-right:1px solid #d1d5db">+256</span>
-          <input id="myPhone" type="tel" placeholder="795712326" style="flex:1;padding:12px;border:none;outline:none" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,9)">
+         <input id="myPhone" type="tel" placeholder="7xxxxxxxx" autocomplete="off" style="flex:1;padding:12px;border:none;outline:none" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,9)">
         </div>
         <input id="myAmount" type="number" placeholder="Amount UGX" class="w-full input-white p-3 rounded-xl mb-2">
         <input id="myWeek" placeholder="Week - e.g. Week 42" class="w-full input-white p-3 rounded-xl mb-2">
@@ -207,7 +207,7 @@ input, select{ -webkit-appearance:none; appearance:none; }
     <h3 class="font-black text-black">Member Login</h3><p class="text-xs text-gray-600 mb-3">Enter phone to view your savings</p>
     <div style="display:flex;align-items:center;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:8px">
       <span style="padding:12px 10px;background:#f5f5f5;font-weight:800;border-right:1px solid #d1d5db">+256</span>
-      <input id="lPhone" type="tel" placeholder="795712326" class="w-full p-3 border-none outline-none">
+      <input id="lPhone" type="tel" placeholder="7xxxxxxxx" value="" autocomplete="off"> class="w-full p-3 border-none outline-none">
     </div>
     <button onclick="doLogin()" class="w-full gold-bg py-3 rounded-xl font-bold border-2 border-black">Login</button>
     <button onclick="closeLogin()" class="w-full mt-2 text-sm text-gray-500">Close</button>
@@ -217,10 +217,7 @@ input, select{ -webkit-appearance:none; appearance:none; }
 
 <script>
 let myPhoneStored = localStorage.getItem('kassag_phone')||'';
-if(myPhoneStored){
-  let short = myPhoneStored.replace('+256','').replace(/^0+/,'');
-  document.getElementById('myPhone').value=short;
-}
+// Don't auto-show number to public - only inside private dashboard after login
 function showJoin(){ document.getElementById('joinModal').style.display='flex'; document.body.style.overflow='hidden'; }
 function closeJoin(){ document.getElementById('joinModal').style.display='none'; document.body.style.overflow='auto'; }
 function showLogin(){document.getElementById('loginModal').classList.remove('hidden'); document.getElementById('loginModal').classList.add('flex');}
@@ -267,11 +264,21 @@ document.getElementById('kassagJoinForm').addEventListener('submit', async funct
 });
 async function doLogin(){
   let raw = document.getElementById('lPhone').value.replace(/\D/g,'').replace(/^0+/,'');
+  if(raw.length < 9){ 
+    document.getElementById('lMsg').innerText='Enter 9 digits e.g. 7XXXXXXXX'; 
+    return; 
+  }
   let phone = '+256' + raw;
   const r=await fetch('/api/kassag/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone})});
   const j=await r.json();
   document.getElementById('lMsg').innerText=j.message||'';
-  if(j.success){ localStorage.setItem('kassag_phone',phone); document.getElementById('myPhone').value=raw; closeLogin(); tab('savings'); loadMyHistory(); }
+  if(j.success){ 
+    localStorage.setItem('kassag_phone',phone); 
+    document.getElementById('lPhone').value=''; // clear login box - hide number!
+    closeLogin(); 
+    tab('savings'); 
+    loadMyHistory(); 
+  }
 }
 async function doPayment(e){
   e.preventDefault();
