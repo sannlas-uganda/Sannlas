@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KASSAG Admin - Private</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>body{background:#0a0a0a;color:#fff}.card{background:#18181b;border:1px solid #27272a;border-radius:14px}.gold-bg{background:#FFCC02;color:#000}</style>
+</head>
+<body class="p-4 max-w-6xl mx-auto">
+<div class="flex justify-between items-center py-4">
+  <h1 class="text-xl font-black">🔒 KASSAG ADMIN</h1>
+  <a href="/kassag" class="card px-4 py-2 text-sm">View Group</a>
+</div>
+
+<!-- STATS -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
+  <div class="card p-4"><div id="stMembers" class="text-2xl font-black text-yellow-400">0</div><div class="text-xs text-gray-400">Active</div></div>
+  <div class="card p-4"><div id="stPendingM" class="text-2xl font-black">0</div><div class="text-xs text-gray-400">Pending Members</div></div>
+  <div class="card p-4"><div id="stPot" class="text-2xl font-black text-green-400">0</div><div class="text-xs text-gray-400">Total Pot</div></div>
+  <div class="card p-4"><div id="stPendingP" class="text-2xl font-black text-red-400">0</div><div class="text-xs text-gray-400">Pending Proofs</div></div>
+</div>
+
+<!-- TABS -->
+<div class="flex gap-2 mb-4">
+  <button onclick="showTab('members')" class="gold-bg px-4 py-2 rounded-full text-sm font-bold">Members</button>
+  <button onclick="showTab('payments')" class="card px-4 py-2 rounded-full text-sm">Payments</button>
+  <button onclick="showTab('settings')" class="card px-4 py-2 rounded-full text-sm">Settings</button>
+</div>
+
+<!-- MEMBERS -->
+<div id="tab-members">
+  <div id="membersList" class="grid md:grid-cols-2 gap-3"></div>
+</div>
+
+<!-- PAYMENTS -->
+<div id="tab-payments" class="hidden">
+  <div id="paymentsList" class="space-y-3"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="tab-settings" class="hidden">
+  <div class="card p-5 max-w-2xl">
+    <h3 class="font-bold mb-3">Edit Group Info</h3>
+    <input id="setName" placeholder="Group Name" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-2">
+    <textarea id="setGoals" placeholder="Goals" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-2 h-20"></textarea>
+    <textarea id="setVision" placeholder="Vision" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-2 h-20"></textarea>
+    <textarea id="setMission" placeholder="Mission" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-2 h-20"></textarea>
+    <textarea id="setTerms" placeholder="Terms & Conditions" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-2 h-24"></textarea>
+    <textarea id="setPrivacy" placeholder="Privacy" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-2 h-20"></textarea>
+    <input id="setMax" type="number" placeholder="Max Members" class="w-full bg-black border border-gray-800 p-3 rounded-xl mb-3">
+    <button onclick="saveInfo()" class="w-full gold-bg py-3 rounded-xl font-black">Save Info</button>
+  </div>
+</div>
+
+<script>
+function showTab(t){
+  document.getElementById('tab-members').classList.add('hidden');
+  document.getElementById('tab-payments').classList.add('hidden');
+  document.getElementById('tab-settings').classList.add('hidden');
+  document.getElementById('tab-'+t).classList.remove('hidden');
+  if(t=='members') loadMembers();
+  if(t=='payments') loadPayments();
+  if(t=='settings') loadInfo();
+}
+
+async function loadStats(){
+  const r=await fetch('/api/kassag/stats'); const s=await r.json();
+  document.getElementById('stMembers').innerText=s.total_members;
+  document.getElementById('stPendingM').innerText=s.pending_members;
+  document.getElementById('stPot').innerText='UGX '+s.total_pot.toLocaleString();
+  document.getElementById('stPendingP').innerText=s.pending_payments;
+}
+
+async function loadMembers(){
+  const r=await fetch('/api/kassag/admin/members'); const members=await r.json();
+  document.getElementById('membersList').innerHTML=members.map(m=>`
+    <div class="card p-4 flex gap-3">
+      <img src="${m.photo||'https://via.placeholder.com/80'}" class="w-14 h-14 rounded-full object-cover">
+      <div class="flex-1">
+        <div class="font-bold">${m.name} ${m.is_admin?'👑':''}</div>
+        <div class="text-xs text-gray-400">${m.phone} • ${m.role} • ${m.status}</div>
+        <div class="flex gap-1 mt-2 flex-wrap">
+          ${m.status=='Pending'?`<button onclick="memberAct(${m.id},'approve')" class="gold-bg px-3 py-1 rounded-full text-xs font-bold">Approve</button><button onclick="memberAct(${m.id},'reject')" class="bg-red-600 px-3 py-1 rounded-full text-xs">Reject</button>`:''}
+          <button onclick="memberAct(${m.id},'make_admin')" class="card px-3 py-1 text-xs">${m.is_admin?'Remove Admin':'Make Admin'}</button>
+          <button onclick="memberAct(${m.id},'remove')" class="card px-3 py-1 text-xs text-red-400">Remove</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadPayments(){
+  const r=await fetch('/api/kassag/admin/payments'); const pays=await r.json();
+  document.getElementById('paymentsList').innerHTML=pays.reverse().map(p=>`
+    <div class="card p-4 flex gap-3">
+      <div class="flex-1">
+        <div class="font-bold">${p.member_name} - UGX ${p.amount} - ${p.week}</div>
+        <div class="text-xs text-gray-400">${p.member_phone} • ${new Date(p.date).toLocaleString()} • <span class="${p.status=='Approved'?'text-green-400':p.status=='Pending'?'text-yellow-400':'text-red-400'}">${p.status}</span></div>
+        ${p.screenshot?`<a href="${p.screenshot}" target="_blank" class="text-xs text-yellow-400 underline">View Proof 📸</a>`:''}
+      </div>
+      <div class="flex flex-col gap-1">
+        ${p.status=='Pending'?`<button onclick="payAct(${p.id},'approve')" class="gold-bg px-4 py-2 rounded-full text-xs font-bold">Approve ✅</button><button onclick="payAct(${p.id},'reject')" class="bg-red-600 px-4 py-2 rounded-full text-xs">Reject ❌</button>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function memberAct(id, action){
+  await fetch('/api/kassag/admin/action/member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})});
+  loadMembers(); loadStats();
+}
+
+async function payAct(id, action){
+  await fetch('/api/kassag/admin/action/payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})});
+  loadPayments(); loadStats();
+}
+
+async function loadInfo(){
+  const r=await fetch('/api/kassag/admin/info'); const j=await r.json();
+  document.getElementById('setName').value=j.name||'';
+  document.getElementById('setGoals').value=j.goals||'';
+  document.getElementById('setVision').value=j.vision||'';
+  document.getElementById('setMission').value=j.mission||'';
+  document.getElementById('setTerms').value=j.terms||'';
+  document.getElementById('setPrivacy').value=j.privacy||'';
+  document.getElementById('setMax').value=j.max_members||50;
+}
+
+async function saveInfo(){
+  const data={
+    name: document.getElementById('setName').value,
+    goals: document.getElementById('setGoals').value,
+    vision: document.getElementById('setVision').value,
+    mission: document.getElementById('setMission').value,
+    terms: document.getElementById('setTerms').value,
+    privacy: document.getElementById('setPrivacy').value,
+    max_members: parseInt(document.getElementById('setMax').value)||50
+  };
+  const r=await fetch('/api/kassag/admin/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const j=await r.json();
+  alert('Saved!');
+}
+
+loadStats(); loadMembers();
+</script>
+</body>
+</html>
