@@ -412,30 +412,38 @@ function drawAnalyticsCharts(){
 }
 
 async function loadData(){
- document.getElementById('stats').innerHTML='<div class="card">⏳ Loading... (Fast mode - 3 sec)</div>';
- 
- // OPTION 1 - TRY FAST ENDPOINT FIRST
- let d = await safeFetchJson('/api/admin/data-fixed');
- if(!d){
-   console.log("data-fixed failed, trying full /api/admin/data");
-   d = await safeFetchJson('/api/admin/data');
- }
+ document.getElementById('stats').innerHTML='<div class="card" style="border:2px solid #FFCC02">⏳ Loading REAL Control Centre... Connecting to full website...</div>';
+ let d = await safeFetchJson('/api/admin/data');
  if(!d){
    showErrorTop('');
-   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid yellow"><h3 style="color:yellow">⏳ Server Waking... Neon + Render sleeping</h3><p>Wait 15 sec then click <button onclick="loadData()" style="background:yellow;color:black;padding:10px 20px;border-radius:8px;font-weight:bold">RELOAD</button></p><p style="font-size:12px;margin-top:10px">If still fails, go to <a href="/compress-neon-now" target="_blank" style="color:yellow">/compress-neon-now</a> to clean big images</p></div>`;
+   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid yellow"><h3 style="color:yellow">⏳ Server Waking... Neon + Render sleeping (free tier)</h3><p>Wait 15 sec then click <button onclick="loadData()" style="background:yellow;color:black;padding:10px 20px;border-radius:8px;font-weight:bold">RELOAD CONTROL CENTRE</button></p></div>`;
    return;
  }
  showErrorTop('');
  ALL=d;
- // Fill category filter
  let sel=document.getElementById('prodCatFilter');
  if(sel.options.length==1){ CATEGORY_MAP.forEach(c=>{let o=document.createElement('option');o.value=c;o.text=c;sel.appendChild(o);}); }
  let prods=d.products||[], users=d.users||[], orders=d.orders||[], contacts=d.contacts||[]; let coinTxs=d.coin_transactions||[]; let coinCfg=d.coin_config||{remaining:1000000000,sold:0}; let shops=d.shops||[]; let withdraws=d.withdraws||[]; let wants=d.wants||[];
- document.getElementById('cUsers').innerText=users.length; document.getElementById('cContacts').innerText=contacts.length; document.getElementById('cOrders').innerText=orders.length; document.getElementById('cProds').innerText=prods.length; document.getElementById('cCoins').innerText=coinTxs.length; document.getElementById('cShops').innerText=shops.length; document.getElementById('cWithdraws').innerText=withdraws.length;
- let wantsEl=document.getElementById('cWants'); if(wantsEl) wantsEl.innerText=wants.length;
- let wantsHeader=document.getElementById('wantsTotalHeader'); if(wantsHeader) wantsHeader.innerText=wants.length;
- document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div>`;
- document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">✅ FAST MODE ACTIVE - Using data-fixed</p></div>`;
+ // REAL COUNTS - Control Centre Connected
+ let usersCount = d.users_count ?? users.length;
+ let contactsCount = d.contacts_count ?? contacts.length;
+ let ordersCount = d.orders_count ?? orders.length;
+ let prodsCount = d.products_count ?? prods.length;
+ let coinsCount = d.coin_transactions_count ?? coinTxs.length;
+ let shopsCount = d.shops_count ?? shops.length;
+ let withdrawsCount = d.withdraws_count ?? withdraws.length;
+ let wantsCount = d.wants_count ?? wants.length;
+ document.getElementById('cUsers').innerText=usersCount; 
+ document.getElementById('cContacts').innerText=contactsCount; 
+ document.getElementById('cOrders').innerText=ordersCount; 
+ document.getElementById('cProds').innerText=prodsCount; 
+ document.getElementById('cCoins').innerText=coinsCount; 
+ document.getElementById('cShops').innerText=shopsCount; 
+ document.getElementById('cWithdraws').innerText=withdrawsCount;
+ let wantsEl=document.getElementById('cWants'); if(wantsEl) wantsEl.innerText=wantsCount;
+ let wantsHeader=document.getElementById('wantsTotalHeader'); if(wantsHeader) wantsHeader.innerText=wantsCount;
+ document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${usersCount}</b></div><div class="stat">Products<br><b>${prodsCount}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shopsCount}</b></div><div class="stat">Orders<br><b>${ordersCount}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div>`;
+ document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length} (Total: ${usersCount})</p><p style="color:#00FF00;font-weight:900">✅ CONTROL CENTRE CONNECTED - Real Website Data: ${prodsCount} Products, ${shopsCount} Shops, ${ordersCount} Orders, ${usersCount} Users</p><p style="font-size:11px;color:#aaa">Showing last 50 products (light) but counts are FULL</p></div>`;
  renderUsers(); renderShops(); loadCoinsTab(); loadWithdraws(); loadBillboard(); renderWants(); renderProductsSorted();
  document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages';
  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td></tr>`).join('')+'</table>':'No orders';
