@@ -2050,12 +2050,13 @@ def admin_data():
         withdraws_full = load_db('withdraws.json', []) or []
         wants_full = load_db('wants.json', []) or []
 
-        # --- FIX: Recalculate real total_products from products_full (not from stale shops.json) ---
-        from collections import Counter
-        shop_counts = Counter(p.get('shop_slug','') for p in products_full)
+               shop_counts = {}
+        for p in products_full:
+            sl = p.get('shop_slug','') or ''
+            if sl:
+                shop_counts[sl] = shop_counts.get(sl,0) + 1
         for s in shops_full:
-            slug = s.get('shop_slug','')
-            s['total_products'] = shop_counts.get(slug, 0)
+            s['total_products'] = shop_counts.get(s.get('shop_slug',''),0)
 
         # For display - trim images only, but keep ALL items for counts
         safe_products = []
