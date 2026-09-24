@@ -412,11 +412,17 @@ function drawAnalyticsCharts(){
 }
 
 async function loadData(){
- document.getElementById('stats').innerHTML='<div class="card">⏳ Loading... Render may be waking (wait 15 sec)</div>';
- let d = await safeFetchJson('/api/admin/data');
+ document.getElementById('stats').innerHTML='<div class="card">⏳ Loading... (Fast mode - 3 sec)</div>';
+ 
+ // OPTION 1 - TRY FAST ENDPOINT FIRST
+ let d = await safeFetchJson('/api/admin/data-fixed');
+ if(!d){
+   console.log("data-fixed failed, trying full /api/admin/data");
+   d = await safeFetchJson('/api/admin/data');
+ }
  if(!d){
    showErrorTop('');
-   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid yellow"><h3 style="color:yellow">⏳ Server Waking...</h3><p>Render free tier sleeps. Wait 10 sec then click <button onclick="loadData()" style="background:yellow;color:black">RELOAD</button></p></div>`;
+   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid yellow"><h3 style="color:yellow">⏳ Server Waking... Neon + Render sleeping</h3><p>Wait 15 sec then click <button onclick="loadData()" style="background:yellow;color:black;padding:10px 20px;border-radius:8px;font-weight:bold">RELOAD</button></p><p style="font-size:12px;margin-top:10px">If still fails, go to <a href="/compress-neon-now" target="_blank" style="color:yellow">/compress-neon-now</a> to clean big images</p></div>`;
    return;
  }
  showErrorTop('');
@@ -429,7 +435,7 @@ async function loadData(){
  let wantsEl=document.getElementById('cWants'); if(wantsEl) wantsEl.innerText=wants.length;
  let wantsHeader=document.getElementById('wantsTotalHeader'); if(wantsHeader) wantsHeader.innerText=wants.length;
  document.getElementById('stats').innerHTML=`<div class="stat">Users<br><b>${users.length}</b></div><div class="stat">Products<br><b>${prods.length}</b></div><div class="stat">Shops<br><b style="color:#FFCC02">${shops.length}</b></div><div class="stat">Orders<br><b>${orders.length}</b></div><div class="stat" style="background:#FFCC02;color:#000">Coins Left<br><b>${Number(coinCfg.remaining||1000000000).toLocaleString()}</b></div>`;
- document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">✅ SORTED SYSTEM ACTIVE — 5 Files Collected: app.py, index.html, my_shop.html, shop.html, admin.html</p></div>`;
+ document.getElementById('overviewData').innerHTML=`<div class="card"><h3>Owner: natelieabigail@gmail.com</h3><p>Active: ${users.filter(u=>u.subscription_expires>Date.now()/1000 && u.paid).length} / ${users.length}</p><p style="color:#FFCC02">✅ FAST MODE ACTIVE - Using data-fixed</p></div>`;
  renderUsers(); renderShops(); loadCoinsTab(); loadWithdraws(); loadBillboard(); renderWants(); renderProductsSorted();
  document.getElementById('contactsBox').innerHTML=contacts.length?contacts.slice().reverse().map(c=>`<div style="border-bottom:1px solid #333;padding:8px 0"><b>${c.name}</b> - ${c.email}<br>${c.message}</div>`).join(''):'No messages';
  document.getElementById('ordersBox').innerHTML=orders.length?'<table><tr><th>ID</th><th>Buyer</th></tr>'+orders.slice().reverse().map(o=>`<tr><td>${o.id}</td><td>${o.buyer?.names||''}</td></tr>`).join('')+'</table>':'No orders';
