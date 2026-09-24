@@ -2039,40 +2039,58 @@ def unlock_chat():
 @admin_required
 def admin_data():
     try:
-        # FAST - Don't load full products, just counts and last 20
-        products = load_db('products.json', []) or []
-        users = load_db('users.json', []) or []
-        shops = load_db('shops.json', []) or []
+        # Load FULL data from Neon - real website data
+        products_full = load_db('products.json', []) or []
+        users_full = load_db('users.json', []) or []
+        shops_full = load_db('shops.json', []) or []
+        orders_full = load_db('orders.json', []) or []
+        coins_full = load_db('coin_transactions.json', []) or []
+        billboard = load_db('billboard.json', {}) or {}
+        contacts_full = load_db('contacts.json', []) or []
+        withdraws_full = load_db('withdraws.json', []) or []
+        wants_full = load_db('wants.json', []) or []
 
-        # Trim to avoid 502
+        # For display - trim images only, but keep ALL items for counts
         safe_products = []
-        for p in products[-20:][::-1]: # Only last 20!
-            np = {}
-            for k,v in p.items():
-                if k == 'images': continue
-                if k == 'image' and len(str(v)) > 500:
-                    np[k] = v[:500] + "..."
-                else:
-                    np[k] = str(v)[:300] if isinstance(v,str) and len(v)>300 else v
+        for p in products_full[-50:][::-1]: # Show last 50 for grid
+            np = dict(p)
+            if 'images' in np: del np['images']
+            # Don't send huge base64 image string
+            if 'image' in np and len(str(np.get('image',''))) > 700:
+                # Keep URL only if it's http, else empty
+                if not str(np['image']).startswith('http'):
+                    np['image'] = ""
             safe_products.append(np)
+
+        if billboard.get('media_url','') and len(str(billboard.get('media_url','')))>1500:
+            billboard['media_url']=""
+            billboard['active']=False
 
         return jsonify({
             'products': safe_products,
-            'users': users[-100:],
-            'shops': shops,
-            'billboard': load_db('billboard.json', {}) or {},
-            'orders': load_db('orders.json', [])[-30:] or [],
-            'orders_v2': load_db('orders_v2.json', [])[-30:] or [],
-            'contacts': load_db('contacts.json', [])[-30:] or [],
-            'coin_transactions': load_db('coin_transactions.json', [])[-100:] or [],
+            'products_count': len(products_full), # REAL
+            'users': users_full[-100:],
+            'users_count': len(users_full),
+            'shops': shops_full, # ALL 14 shops
+            'shops_count': len(shops_full),
+            'orders': orders_full[-50:],
+            'orders_count': len(orders_full),
+            'billboard': billboard,
+            'contacts': contacts_full[-50:],
+            'contacts_count': len(contacts_full),
+            'coin_transactions': coins_full[-100:],
+            'coin_transactions_count': len(coins_full),
             'coin_config': load_db('coin_config.json', {}) or {},
-            'withdraws': load_db('withdraws.json', [])[-50:] or [],
-            'wants': load_db('wants.json', [])[-50:] or [],
+            'withdraws': withdraws_full[-50:],
+            'withdraws_count': len(withdraws_full),
+            'wants': wants_full[-50:],
+            'wants_count': len(wants_full),
             'chat_unlocks': []
         })
     except Exception as e:
         print("admin_data error:", e)
-        return jsonify({'products':[],'users':[],'shops':[],'coin_transactions':[],'coin_config':{},'error':str(e)})
+        import traceback; traceback.print_exc()
+        return jsonify({'products':[],'users':[],'shops':[],'error':str(e)})
 
 @app.route('/api/admin/transactions')
 @admin_required
