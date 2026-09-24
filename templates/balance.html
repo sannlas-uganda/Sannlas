@@ -20,6 +20,7 @@ body{font-family:Arial;background:#f5f5f5;margin:0;padding:15px;padding-bottom:8
 .btn-buy{background:#ff6f00;color:#fff}
 .btn-pack{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;text-align:left}
 .btn-pack.active{background:#FFCC02;color:#000}
+.btn-share{background:#111;color:#FFCC02;border:2px solid #FFCC02}
 input,select{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;margin:8px 0;box-sizing:border-box}
 small{color:#666;display:block;margin-top:4px}
 h2{margin:0 0 12px 0}
@@ -27,6 +28,7 @@ h2{margin:0 0 12px 0}
 .nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:10px;border-top:1px solid #ddd}
 .nav a{text-decoration:none;color:#666;text-align:center;font-size:12px}
 .nav a.active{color:#7b1fa2;font-weight:bold}
+.share-preview{background:#111;color:#fff;padding:10px;border-radius:8px;margin:8px 0;font-size:13px;border-left:4px solid #FFCC02}
 </style>
 </head>
 <body>
@@ -51,6 +53,25 @@ h2{margin:0 0 12px 0}
 <small style="font-size:13px;color:#4a148c">TOTAL - 10 free trial</small>
 <b id="withdrawableUgx" style="margin-top:6px;font-size:18px">UGX 0</b>
 <small id="withdrawableMsg">Min 50 coins = UGX 29,950</small>
+</div>
+</div>
+
+<!-- 🔥 NEW SHARE COINS CARD - YOUR REQUESTED FEATURE -->
+<div class="card" style="border:2px solid #FFCC02">
+<h3>🔄 Share Coins - Send to Friend</h3>
+<small style="background:#000;color:#FFCC02;padding:6px;border-radius:6px;display:block">⚠️ Bonus 10 locked, only bought/earned coins shareable. 10% fee = Sannlas profit. No self-share. Min 10.</small>
+<div style="margin-top:10px">
+<input id="shareReceiver" placeholder="Receiver Email or Phone (07... or email)">
+<input id="shareAmount" type="number" placeholder="Coins to share (Min 10)" oninput="calcShareFee()">
+<div id="sharePreview" class="share-preview" style="display:none">
+You pay: <b id="sharePay" style="color:#FFCC02">0</b> | Receiver gets: <b id="shareGet" style="color:#00FF00">0</b><br>
+Fee (10%): <b id="shareFee" style="color:#ff6a00">0</b> = UGX <span id="shareFeeUgx">0</span> profit for Sannlas
+</div>
+<input id="sharePin" type="password" placeholder="Your Sannlas PIN (default 1234, set in profile)">
+<button class="btn btn-share" onclick="shareCoinsNow()">🚀 SEND COINS NOW</button>
+<p id="shareMsg" style="font-weight:bold;text-align:center"></p>
+<div id="shareableInfo" style="font-size:12px;color:#666;text-align:center;margin:6px 0"></div>
+<div id="myShares" style="max-height:200px;overflow:auto"></div>
 </div>
 </div>
 
@@ -91,6 +112,7 @@ const COIN_PRICE = 599;
 let myUser = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
 if(myUser.user) myUser = myUser.user;
 let selectedPack = '10';
+let GLOBAL_TOTAL = 0;
 
 async function loadPacks(){
  let res = await fetch('/api/coins/packs');
@@ -111,6 +133,19 @@ function selectPack(id){
  document.getElementById('pack_'+id).classList.add('active');
 }
 
+// SHARE LOGIC
+function calcShareFee(){
+ let amt = parseInt(document.getElementById('shareAmount').value)||0;
+ if(amt < 10){ document.getElementById('sharePreview').style.display='none'; return; }
+ let fee = Math.ceil(amt*0.10);
+ let receive = amt - fee;
+ document.getElementById('sharePreview').style.display='block';
+ document.getElementById('sharePay').innerText = amt;
+ document.getElementById('shareGet').innerText = receive;
+ document.getElementById('shareFee').innerText = fee;
+ document.getElementById('shareFeeUgx').innerText = (fee*COIN_PRICE).toLocaleString();
+}
+
 async function loadBalance(){
  if(!myUser.email &&!myUser.phone){
    document.getElementById('history').innerHTML = 'Login first!';
@@ -118,6 +153,7 @@ async function loadBalance(){
  }
  const res = await fetch(`/api/coins/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);
  const d = await res.json();
+ GLOBAL_TOTAL = d.total||0;
  document.getElementById('bought').innerText = d.bought||0;
  document.getElementById('boughtUgx').innerText = `UGX ${(d.bought_value||0).toLocaleString()}`;
  document.getElementById('earned').innerText = d.earned||0;
@@ -130,8 +166,10 @@ async function loadBalance(){
  document.getElementById('withdrawable').innerText = d.withdrawable||0;
  document.getElementById('withdrawableUgx').innerText = `UGX ${(d.withdrawable_value||0).toLocaleString()}`;
  document.getElementById('withdrawableMsg').innerText = (d.withdrawable||0) >= MIN_WITHDRAW? `✅ Ready to withdraw! Min ${MIN_WITHDRAW}` : `Need ${MIN_WITHDRAW - (d.withdrawable||0)} more coins (Min ${MIN_WITHDRAW})`;
- 
- // SYNC to index page so top/bottom match!
+
+ let shareable = Math.max(0, GLOBAL_TOTAL - FREE_TRIAL);
+ document.getElementById('shareableInfo').innerHTML = `Shareable: <b style="color:#0d47a1">${shareable}</b> (Total ${GLOBAL_TOTAL} - ${FREE_TRIAL} locked bonus)`;
+
 let allData = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
 if(allData.user) allData.user.coins = d.total;
 else allData.coins = d.total;
@@ -147,6 +185,7 @@ localStorage.setItem('sannlas_user', JSON.stringify(allData));
    });
  } else html='No transactions yet';
  document.getElementById('history').innerHTML = html;
+ loadMyShares();
 }
 
 async function buyCoins(){
@@ -154,29 +193,13 @@ async function buyCoins(){
  let mphone = document.getElementById('buyMomoPhone').value.trim();
  if(!mphone) return alert('Enter your MoMo number Boss!');
  if(!code) return alert('Enter MoMo Transaction Code after paying to 0795712326!');
-
- // === NEW VALIDATION YOU ASKED FOR ===
- // 1. Must be 10 digits (MTN is 10, Airtel 10-13)
- if(code.length < 10 || code.length > 13){
-   return alert('Transaction ID must be 10 to 13 digits Boss! Check SMS again');
- }
- // 2. Only numbers and letters (MTN uses numbers only, but Airtel has letters)
- if(!/^[A-Z0-9]+$/.test(code)){
-   return alert('Only letters and numbers allowed, no spaces!');
- }
- // 3. Check locally if you used this code before (prevent double click)
+ if(code.length < 10 || code.length > 13){ return alert('Transaction ID must be 10 to 13 digits Boss!'); }
+ if(!/^[A-Z0-9]+$/.test(code)){ return alert('Only letters and numbers allowed!'); }
  let usedCodes = JSON.parse(localStorage.getItem('used_codes')||'[]');
- if(usedCodes.includes(code)){
-   return alert('You already submitted this code before! Wait for admin approval');
- }
- // === END VALIDATION ===
- 
+ if(usedCodes.includes(code)){ return alert('You already submitted this code before!'); }
  if(!confirm(`Confirm? Pack ${selectedPack} - Code ${code} from ${mphone}`)) return;
- 
- // Save locally to prevent duplicate submit
  usedCodes.push(code);
  localStorage.setItem('used_codes', JSON.stringify(usedCodes));
-
  let res = await fetch('/api/coins/buy',{
    method:'POST',
    headers:{'Content-Type':'application/json'},
@@ -192,7 +215,7 @@ async function withdraw(){
  const momo = document.getElementById('momo').value.trim();
  const coins = parseInt(document.getElementById('coinsToWithdraw').value);
  if(!momo) return alert('Enter MoMo number');
- if(!coins || coins < MIN_WITHDRAW) return alert(`Min withdraw is ${MIN_WITHDRAW} coins = UGX ${MIN_WITHDRAW*COIN_PRICE}!`);
+ if(!coins || coins < MIN_WITHDRAW) return alert(`Min withdraw is ${MIN_WITHDRAW} coins!`);
  if(!confirm(`Withdraw ${coins} coins = UGX ${coins*COIN_PRICE} to ${momo}?`)) return;
  const res = await fetch('/api/withdraw/coins',{
    method:'POST',
@@ -203,6 +226,47 @@ async function withdraw(){
  document.getElementById('msg').innerText = d.message;
  alert(d.message);
  if(d.success) loadBalance();
+}
+
+async function shareCoinsNow(){
+ let receiver = document.getElementById('shareReceiver').value.trim().toLowerCase();
+ let amount = parseInt(document.getElementById('shareAmount').value);
+ let pin = document.getElementById('sharePin').value.trim();
+ if(!receiver) return alert('Enter receiver email or phone Boss!');
+ if(!amount || amount < 10) return alert('Min 10 coins Boss!');
+ let shareable = Math.max(0, GLOBAL_TOTAL - FREE_TRIAL);
+ if(amount > shareable) return alert(`You only have ${shareable} shareable! ${FREE_TRIAL} bonus locked. Buy more!`);
+ if(myUser.email && receiver == myUser.email.toLowerCase()) return alert('Cannot share to yourself!');
+ if(myUser.phone && receiver == myUser.phone) return alert('Cannot share to yourself! Same phone!');
+ if(!pin) return alert('Enter PIN! Default is 1234 if you never set');
+ if(!confirm(`Send ${amount} coins to ${receiver}? They will get ${amount - Math.ceil(amount*0.10)} after 10% fee. No reverse!`)) return;
+ document.getElementById('shareMsg').innerText = '⏳ Sending...';
+ let res = await fetch('/api/coins/share',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body: JSON.stringify({email:myUser.email, phone:myUser.phone, receiver:receiver, amount:amount, pin:pin})
+ });
+ let d = await res.json();
+ document.getElementById('shareMsg').innerText = d.message|| (d.success? '✅ Sent!':'❌ Failed');
+ document.getElementById('shareMsg').style.color = d.success? 'green':'red';
+ if(d.success){
+   alert(`✅ Sent ${d.sent} to ${receiver}, they got ${d.receiver_gets}, fee ${d.fee}`);
+   document.getElementById('shareReceiver').value='';
+   document.getElementById('shareAmount').value='';
+   document.getElementById('sharePreview').style.display='none';
+   loadBalance();
+ }
+}
+
+async function loadMyShares(){
+ let res = await fetch(`/api/coins/share/history?email=${myUser.email||''}&phone=${myUser.phone||''}`);
+ let d = await res.json().catch(()=>null);
+ if(!d ||!d.history) return;
+ let html = '<b style="font-size:12px">Recent Shares:</b>';
+ d.history.slice(-5).reverse().forEach(h=>{
+   html+=`<div class="history-item" style="font-size:12px">${h.type=='sent'?`📤 Sent ${h.amount} → ${h.to} (fee ${h.fee})`:`📥 Received ${h.amount} from ${h.from}`} <br><small>${new Date(h.time*1000).toLocaleString()}</small></div>`;
+ });
+ document.getElementById('myShares').innerHTML = html;
 }
 
 loadPacks();
