@@ -2039,22 +2039,40 @@ def unlock_chat():
 @admin_required
 def admin_data():
     try:
+        # FAST - Don't load full products, just counts and last 20
         products = load_db('products.json', []) or []
         users = load_db('users.json', []) or []
         shops = load_db('shops.json', []) or []
-        billboard = load_db('billboard.json', {}) or {}
+
+        # Trim to avoid 502
         safe_products = []
-        for p in products[-50:][::-1]:
-            np = dict(p)
-            if 'images' in np: del np['images']
-            if 'image' in np and len(str(np.get('image',''))) > 500: np['image']=""
+        for p in products[-20:][::-1]: # Only last 20!
+            np = {}
+            for k,v in p.items():
+                if k == 'images': continue
+                if k == 'image' and len(str(v)) > 500:
+                    np[k] = v[:500] + "..."
+                else:
+                    np[k] = str(v)[:300] if isinstance(v,str) and len(v)>300 else v
             safe_products.append(np)
-        if billboard.get('media_url','') and len(str(billboard.get('media_url','')))>1000:
-            billboard['media_url']=""
-            billboard['active']=False
-        return jsonify({'products':safe_products,'users':users[-100:],'shops':shops,'billboard':billboard,'orders':load_db('orders.json',[]) or [],'orders_v2':load_db('orders_v2.json',[]) or [],'contacts':load_db('contacts.json',[]) or [],'coin_transactions':load_db('coin_transactions.json',[]) or [],'coin_config':load_db('coin_config.json',{}) or {},'withdraws':load_db('withdraws.json',[]) or [],'wants':load_db('wants.json',[]) or [],'chat_unlocks':load_db('chat_unlocks.json',[]) or []})
+
+        return jsonify({
+            'products': safe_products,
+            'users': users[-100:],
+            'shops': shops,
+            'billboard': load_db('billboard.json', {}) or {},
+            'orders': load_db('orders.json', [])[-30:] or [],
+            'orders_v2': load_db('orders_v2.json', [])[-30:] or [],
+            'contacts': load_db('contacts.json', [])[-30:] or [],
+            'coin_transactions': load_db('coin_transactions.json', [])[-100:] or [],
+            'coin_config': load_db('coin_config.json', {}) or {},
+            'withdraws': load_db('withdraws.json', [])[-50:] or [],
+            'wants': load_db('wants.json', [])[-50:] or [],
+            'chat_unlocks': []
+        })
     except Exception as e:
-        return jsonify({'products':[],'users':[],'shops':[],'error':str(e)})
+        print("admin_data error:", e)
+        return jsonify({'products':[],'users':[],'shops':[],'coin_transactions':[],'coin_config':{},'error':str(e)})
 
 @app.route('/api/admin/transactions')
 @admin_required
