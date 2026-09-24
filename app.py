@@ -1179,9 +1179,15 @@ def coins_verify():
                     u['bought'] = int(u.get('bought',0)) + int(target_tx.get('coins',0))
                     u['bought_coins'] = u['bought']
                     u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
+
+            # === AUTO DEDUCT FROM MAJOR 1B - PASTE HERE Boss!!! ===
+            coins_bought = int(target_tx.get('coins',0))
+            cfg['remaining'] = max(0, cfg.get('remaining',1000000000) - coins_bought)
+            cfg['sold'] = cfg.get('sold',0) + coins_bought
+            # === END AUTO DEDUCT ===
+
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
     return jsonify({'success':True, 'action': action})
-
 # ============================================================
 # 🔄 SHARE COINS SYSTEM - BOSS SIMPLIFIED RULES
 # Bonus 10 locked, 10% fee profit, no self-share, min 10
@@ -1556,6 +1562,15 @@ def register():
                 txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
                 save_db('coin_transactions.json', txs)
                 break
+
+    # === AUTO DEDUCT BONUS 10 FROM MAJOR 1B === PASTE HERE Boss!!!
+    coin_cfg = load_db("coin_config.json", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
+    bonus = 10
+    coin_cfg["remaining"] = max(0, coin_cfg.get("remaining", 1000000000) - bonus)
+    coin_cfg["sold"] = coin_cfg.get("sold",0) + bonus
+    save_db("coin_config.json", coin_cfg)
+    # === END AUTO DEDUCT ===
+
     save_db('users.json',users)
     try: shop = ensure_shop_for_user(user)
     except: shop = None
@@ -3092,6 +3107,18 @@ def kassag_stats():
         'actual_balance': actual_balance, # Pot - Expenditure = REAL MONEY LEFT
         'this_week': this_week
     })
+
+@app.route('/api/admin/coins/major/add', methods=['POST'])
+def add_major_coins():
+    data = request.get_json()
+    amount = int(data.get("amount",0))
+    if amount <=0:
+        return jsonify({"success":False, "message":"Enter amount"})
+    cfg = load_db("coin_config", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
+    cfg["total"] = cfg.get("total",1000000000) + amount
+    cfg["remaining"] = cfg.get("remaining",1000000000) + amount
+    save_db("coin_config", cfg)
+    return jsonify({"success":True, "message":f"Added {amount} to major pool", "config":cfg})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
