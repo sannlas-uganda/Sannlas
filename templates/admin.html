@@ -290,8 +290,36 @@ async function verifyShop(slug, action){
 }
 function renderUsers(){let users=ALL.users||[]; let filtered=users; if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000); if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000); document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business</th><th>Coins</th><th>Status</th></tr>'+filtered.map(u=>{let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;padding:3px 6px;border-radius:5px">✅</span>'; return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span></td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${statusBadge}</td></tr>`}).join('')+'</table>':'No users';}
 
-function loadCoinsTab(){let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; let txs = ALL.coin_transactions || []; document.getElementById('cCoins').innerText=txs.length; document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('coinsProgress').style.width=(cfg.remaining/1000000000*100)+'%'; if(document.getElementById('aCoinsRemain')){document.getElementById('aCoinsRemain').innerText=Number(cfg.remaining||1000000000).toLocaleString(); document.getElementById('aCoinsProgress').style.width=(cfg.remaining/1000000000*100)+'%';} let box=document.getElementById('coinsBox'); if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} box.innerHTML='<table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Action</th></tr>'+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b></td><td><button style="background:green;font-size:10px" onclick="verifyCoin('${t.momo_code}','verify')">✅</button><button style="background:red;font-size:10px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌</button></td></tr>`).join('')+'</table>';}
-
+function loadCoinsTab(){
+  let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; 
+  let txs = ALL.coin_transactions || []; 
+  document.getElementById('cCoins').innerText=txs.length; 
+  document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); 
+  // ... keep your progress bar code
+  
+  let box=document.getElementById('coinsBox'); 
+  if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} 
+  
+  // FILTER PENDING ONLY - This is the Manual Payments List
+  let pending = txs.filter(t=> t.status=='pending').reverse();
+  let html = `<h3 style="color:#FFCC02">⏳ PENDING - Check 0795712326 MoMo SMS</h3>`;
+  if(!pending.length) html += '<p style="color:#00FF00">No pending - All cleared ✅</p>';
+  else {
+    html += pending.map(t=>`
+      <div style="background:#111;border:2px solid orange;padding:10px;margin:8px 0;border-radius:10px">
+        <b style="color:#FFCC02">${t.coins} coins - UGX ${Number(t.price||0).toLocaleString()}</b><br>
+        <b style="color:#00FF00">Code: ${t.momo_code}</b> | Phone: ${t.momo_phone||'N/A'}<br>
+        <small>${t.email||''} | ${new Date((t.time||0)*1000).toLocaleString()}</small><br>
+        <button style="background:green;font-size:12px;padding:8px 15px" onclick="verifyCoin('${t.momo_code}','verify')">✅ APPROVE</button>
+        <button style="background:red;font-size:12px;padding:8px 15px" onclick="verifyCoin('${t.momo_code}','block_fake')">❌ FAKE BLOCK</button>
+      </div>
+    `).join('');
+  }
+  
+  html += `<hr><h4>All Transactions</h4><table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Status</th></tr>`+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b><br><small>${t.status}</small></td><td>${t.status}</td></tr>`).join('')+'</table>';
+  
+  box.innerHTML = html;
+}
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
 async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let d = await safeFetchJson('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); document.getElementById('addCoinStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${(d && d.message)||'Server waking, retry'}</span>`; if(d && d.success) loadData();}
 function loadWithdraws(){ let withdraws=ALL.withdraws||[]; document.getElementById('cWithdraws').innerText=withdraws.length; let box=document.getElementById('withdrawsBox'); if(!withdraws.length){box.innerHTML='<p>No withdraws</p>';return;} box.innerHTML='<table><tr><th>User</th><th>Amount</th><th>MoMo</th><th>Status</th><th>Action</th></tr>'+withdraws.slice().reverse().map(w=>`<tr><td style="font-size:11px">${w.email}</td><td><b style="color:#00FF00">UGX ${Number(w.amount).toLocaleString()}</b></td><td><b>${w.momo_number}</b></td><td>${w.status}</td><td>${w.status=='pending'?`<button style="background:#00FF00;color:#000;font-size:10px" onclick="withdrawAction(${w.id},'paid')">✅ PAID</button>`:''}</td></tr>`).join('')+'</table>';}
