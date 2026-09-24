@@ -2049,7 +2049,7 @@ def admin_data():
         contacts_full = load_db('contacts.json', []) or []
         withdraws_full = load_db('withdraws.json', []) or []
         wants_full = load_db('wants.json', []) or []
-      
+        for s in shops_full: s['total_products'] = sum(1 for p in products_full if p.get('shop_slug','')==s.get('shop_slug',''))
         # For display - trim images only, but keep ALL items for counts
         safe_products = []
         for p in products_full[-50:][::-1]: # Show last 50 for grid
