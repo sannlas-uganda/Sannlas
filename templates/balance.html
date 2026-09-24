@@ -56,19 +56,25 @@ h2{margin:0 0 12px 0}
 </div>
 </div>
 
-<!-- 🔥 NEW SHARE COINS CARD - YOUR REQUESTED FEATURE -->
+<!-- 🔥 FIXED SHARE COINS CARD -->
 <div class="card" style="border:2px solid #FFCC02">
 <h3>🔄 Share Coins - Send to Friend</h3>
 <small style="background:#000;color:#FFCC02;padding:6px;border-radius:6px;display:block">⚠️ Bonus 10 locked, only bought/earned coins shareable. 10% fee = Sannlas profit. No self-share. Min 10.</small>
 <div style="margin-top:10px">
-<input id="shareReceiver" placeholder="Receiver Email or Phone (07... or email)">
+<label style="font-weight:800;font-size:12px">👤 SEND TO - Receiver Email/Phone</label>
+<input id="shareReceiver" type="text" autocomplete="off" value="" placeholder="👤 Receiver Email or Phone - e.g friend@gmail.com or 07..." style="border:2px solid #FFCC02">
+
+<label style="font-weight:800;font-size:12px">💰 Amount</label>
 <input id="shareAmount" type="number" placeholder="Coins to share (Min 10)" oninput="calcShareFee()">
+
 <div id="sharePreview" class="share-preview" style="display:none">
 You pay: <b id="sharePay" style="color:#FFCC02">0</b> | Receiver gets: <b id="shareGet" style="color:#00FF00">0</b><br>
 Fee (10%): <b id="shareFee" style="color:#ff6a00">0</b> = UGX <span id="shareFeeUgx">0</span> profit for Sannlas
 </div>
-<input id="sharePin" type="password" placeholder="Your LOGIN password (private PIN)">
-<small style="color:#FFCC02;font-size:11px;display:block">🔒 Use your login password as PIN - private & secure!</small>
+
+<label style="font-weight:800;font-size:12px">🔒 YOUR Login Password (NOT receiver's)</label>
+<input id="sharePin" type="password" autocomplete="new-password" placeholder="Enter YOUR OWN login password - e.g your Sannlas password">
+<small style="color:#FFCC02;font-size:11px;display:block">🔒 Use YOUR login password as PIN - private & secure! Sender = you, logged in now.</small>
 <button class="btn btn-share" onclick="shareCoinsNow()">🚀 SEND COINS NOW</button>
 <p id="shareMsg" style="font-weight:bold;text-align:center"></p>
 <div id="shareableInfo" style="font-size:12px;color:#666;text-align:center;margin:6px 0"></div>
@@ -134,7 +140,6 @@ function selectPack(id){
  document.getElementById('pack_'+id).classList.add('active');
 }
 
-// SHARE LOGIC
 function calcShareFee(){
  let amt = parseInt(document.getElementById('shareAmount').value)||0;
  if(amt < 10){ document.getElementById('sharePreview').style.display='none'; return; }
@@ -167,15 +172,12 @@ async function loadBalance(){
  document.getElementById('withdrawable').innerText = d.withdrawable||0;
  document.getElementById('withdrawableUgx').innerText = `UGX ${(d.withdrawable_value||0).toLocaleString()}`;
  document.getElementById('withdrawableMsg').innerText = (d.withdrawable||0) >= MIN_WITHDRAW? `✅ Ready to withdraw! Min ${MIN_WITHDRAW}` : `Need ${MIN_WITHDRAW - (d.withdrawable||0)} more coins (Min ${MIN_WITHDRAW})`;
-
  let shareable = Math.max(0, GLOBAL_TOTAL - FREE_TRIAL);
  document.getElementById('shareableInfo').innerHTML = `Shareable: <b style="color:#0d47a1">${shareable}</b> (Total ${GLOBAL_TOTAL} - ${FREE_TRIAL} locked bonus)`;
-
 let allData = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
 if(allData.user) allData.user.coins = d.total;
 else allData.coins = d.total;
 localStorage.setItem('sannlas_user', JSON.stringify(allData));
-
  const res2 = await fetch(`/api/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);
  const d2 = await res2.json();
  let html='';
@@ -239,7 +241,7 @@ async function shareCoinsNow(){
  if(amount > shareable) return alert(`You only have ${shareable} shareable! ${FREE_TRIAL} bonus locked. Buy more!`);
  if(myUser.email && receiver == myUser.email.toLowerCase()) return alert('Cannot share to yourself!');
  if(myUser.phone && receiver == myUser.phone) return alert('Cannot share to yourself! Same phone!');
- if(!pin) return alert('Enter your LOGIN password!');
+ if(!pin) return alert('Enter YOUR LOGIN password! Not receiver password!');
  if(!confirm(`Send ${amount} coins to ${receiver}? They will get ${amount - Math.ceil(amount*0.10)} after 10% fee. No reverse!`)) return;
  document.getElementById('shareMsg').innerText = '⏳ Sending...';
  let res = await fetch('/api/coins/share',{
@@ -254,8 +256,11 @@ async function shareCoinsNow(){
    alert(`✅ Sent ${d.sent} to ${receiver}, they got ${d.receiver_gets}, fee ${d.fee}`);
    document.getElementById('shareReceiver').value='';
    document.getElementById('shareAmount').value='';
+   document.getElementById('sharePin').value='';
    document.getElementById('sharePreview').style.display='none';
    loadBalance();
+ } else {
+   alert(d.message || d.error);
  }
 }
 
