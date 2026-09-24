@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory, session, redirect, make_response
-import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re
+import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re, math
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -1181,6 +1181,136 @@ def coins_verify():
                     u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
     return jsonify({'success':True, 'action': action})
+
+# ============================================================
+# 🔄 SHARE COINS SYSTEM - BOSS SIMPLIFIED RULES
+# Bonus 10 locked, 10% fee profit, no self-share, min 10
+# ============================================================
+
+SHARE_FILE = 'share_transactions.json'
+
+def get_share_history():
+    return load_db(SHARE_FILE, [])
+
+def save_share_history(data):
+    save_db(SHARE_FILE, data)
+
+@app.route('/api/coins/share', methods=['POST'])
+def share_coins():
+    data = request.json or {}
+    email = data.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    receiver_raw = data.get('receiver','').lower().strip()
+    amount = int(data.get('amount',0))
+    pin = data.get('pin','').strip()
+    
+    if not receiver_raw: return jsonify({'success':False,'message':'Enter receiver!'}),400
+    if amount < 10: return jsonify({'success':False,'message':'Min 10 coins Boss!'}),400
+    
+    users = load_db('users.json', [])
+    sender = next((u for u in users if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone)), None)
+    if not sender:
+        return jsonify({'success':False,'message':'Sender not found - Login again'}),404
+    
+    # PIN CHECK - default 1234 if not set
+    saved_pin = str(sender.get('coin_pin') or sender.get('pin') or '1234')
+    if pin != saved_pin:
+        return jsonify({'success':False,'message':f'❌ Wrong PIN! Default is 1234 if you never set. Your PIN is {saved_pin[:1]}***'}),400
+    
+    # Find receiver by email OR phone (case-insensitive for email)
+    receiver = next((u for u in users if str(u.get('email','')).lower()==receiver_raw or str(u.get('phone','')).strip()==receiver_raw or str(u.get('phone','')).strip().lower()==receiver_raw), None)
+    if not receiver:
+        return jsonify({'success':False,'message':f'Receiver {receiver_raw} not found! Tell them to register on Sannlas first'}),404
+    
+    # NO SELF-SHARE CHECK
+    if str(sender.get('email','')).lower()==str(receiver.get('email','')).lower() or str(sender.get('phone','')).strip()==str(receiver.get('phone','')).strip():
+        return jsonify({'success':False,'message':'❌ Cannot share to yourself Boss!'}),400
+    
+    # CALCULATE SHAREABLE = Total - 10 bonus locked
+    bought = int(sender.get('bought',0))
+    earned = int(sender.get('earned',0))
+    spent = int(sender.get('spent',0))
+    total = bought + earned - spent
+    if total < 0: total = 0
+    shareable = total - FREE_TRIAL
+    if shareable < 0: shareable = 0
+    
+    if amount > shareable:
+        return jsonify({'success':False,'message':f'❌ You have {total} total but {FREE_TRIAL} locked bonus. Shareable = {shareable}. Need buy more!'}),400
+    
+    # FEE 10%
+    fee = math.ceil(amount * 0.10)
+    if fee < 1 and amount >= 10: fee = 1
+    receiver_gets = amount - fee
+    
+    if receiver_gets < 1:
+        return jsonify({'success':False,'message':'Amount too small after fee!'}),400
+    
+    # DO TRANSFER
+    sender['spent'] = spent + amount
+    sender['coins'] = int(sender.get('bought',0)) + int(sender.get('earned',0)) - int(sender['spent'])
+    if sender['coins'] < 0: sender['coins'] = 0
+    
+    receiver['earned'] = int(receiver.get('earned',0)) + receiver_gets
+    receiver['earned_coins'] = receiver['earned']
+    receiver['coins'] = int(receiver.get('bought',0)) + int(receiver.get('earned',0)) - int(receiver.get('spent',0))
+    
+    save_db('users.json', users)
+    
+    # LOG TRANSACTIONS
+    txs = load_db('coin_transactions.json', [])
+    now = time.time()
+    txs.append({'id': int(now*1000), 'email': sender.get('email'), 'phone': sender.get('phone'), 'coins': -amount, 'price': 0, 'momo_code': f'SHARE-SENT-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Sent {amount} to {receiver_raw} (fee {fee}, they got {receiver_gets})', 'time': now, 'status': 'share_sent', 'to': receiver_raw, 'fee': fee})
+    txs.append({'id': int(now*1000)+1, 'email': receiver.get('email'), 'phone': receiver.get('phone'), 'coins': receiver_gets, 'price': 0, 'momo_code': f'SHARE-RECV-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Received {receiver_gets} from {sender.get("email") or sender.get("phone")} (sent {amount}, fee {fee})', 'time': now, 'status': 'share_received', 'from': sender.get('email') or sender.get('phone'), 'fee': fee})
+    save_db('coin_transactions.json', txs)
+    
+    # SHARE HISTORY FOR PREVIEW
+    shares = get_share_history()
+    shares.append({'id': int(now*1000), 'from_email': sender.get('email'), 'from_phone': sender.get('phone'), 'to': receiver_raw, 'to_email': receiver.get('email'), 'to_phone': receiver.get('phone'), 'amount': amount, 'fee': fee, 'receiver_gets': receiver_gets, 'time': now, 'type': 'sent'})
+    shares.append({'id': int(now*1000)+1, 'from_email': sender.get('email'), 'from_phone': sender.get('phone'), 'to': receiver_raw, 'to_email': receiver.get('email'), 'to_phone': receiver.get('phone'), 'amount': receiver_gets, 'fee': fee, 'original_amount': amount, 'time': now, 'type': 'received', 'from': sender.get('email') or sender.get('phone')})
+    save_db(SHARE_FILE, shares)
+    
+    # SANNLAS PROFIT TRACK
+    try:
+        cfg = get_coin_config()
+        cfg['share_profit_coins'] = int(cfg.get('share_profit_coins',0)) + fee
+        cfg['share_profit_ugx'] = int(cfg.get('share_profit_ugx',0)) + fee*COIN_PRICE
+        save_coin_config(cfg)
+    except:
+        pass
+    
+    return jsonify({'success':True, 'message':f'✅ Sent {amount}! {receiver_raw} got {receiver_gets}, fee {fee} profit for Sannlas', 'sent': amount, 'fee': fee, 'receiver_gets': receiver_gets, 'shareable_left': shareable - amount})
+
+@app.route('/api/coins/share/history')
+def share_history():
+    email = request.args.get('email','').lower().strip()
+    phone = request.args.get('phone','').strip()
+    shares = get_share_history()
+    my = [s for s in shares if (email and (str(s.get('from_email','')).lower()==email or str(s.get('to_email','')).lower()==email)) or (phone and (str(s.get('from_phone',''))==phone or str(s.get('to_phone',''))==phone))]
+    # Format for frontend
+    history = []
+    for s in my:
+        if str(s.get('from_email','')).lower()==email or str(s.get('from_phone',''))==phone:
+            history.append({'type':'sent','amount':s.get('amount',0),'fee':s.get('fee',0),'to':s.get('to',''),'time':s.get('time',0)})
+        else:
+            history.append({'type':'received','amount':s.get('amount',0),'from':s.get('from_email') or s.get('from_phone',''),'time':s.get('time',0)})
+    return jsonify({'success':True,'history':sorted(history, key=lambda x:x.get('time',0), reverse=True)[:20]})
+
+@app.route('/api/coins/set-pin', methods=['POST'])
+def set_coin_pin():
+    data = request.json or {}
+    email = data.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    new_pin = str(data.get('pin','')).strip()
+    if len(new_pin) < 4: return jsonify({'success':False,'message':'PIN min 4 digits'}),400
+    users = load_db('users.json', [])
+    for u in users:
+        if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone):
+            u['coin_pin'] = new_pin
+            u['pin'] = new_pin
+            save_db('users.json', users)
+            return jsonify({'success':True,'message':f'✅ PIN set to {new_pin}!'})
+    return jsonify({'success':False,'message':'User not found'}),404
 
 @app.route('/api/admin/coins/add', methods=['POST'])
 @admin_required
