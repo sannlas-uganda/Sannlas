@@ -67,7 +67,8 @@ h2{margin:0 0 12px 0}
 You pay: <b id="sharePay" style="color:#FFCC02">0</b> | Receiver gets: <b id="shareGet" style="color:#00FF00">0</b><br>
 Fee (10%): <b id="shareFee" style="color:#ff6a00">0</b> = UGX <span id="shareFeeUgx">0</span> profit for Sannlas
 </div>
-<input id="sharePin" type="password" placeholder="Your Sannlas PIN (default 1234, set in profile)">
+<input id="sharePin" type="password" placeholder="Your LOGIN password (private PIN)">
+<small style="color:#FFCC02;font-size:11px;display:block">🔒 Use your login password as PIN - private & secure!</small>
 <button class="btn btn-share" onclick="shareCoinsNow()">🚀 SEND COINS NOW</button>
 <p id="shareMsg" style="font-weight:bold;text-align:center"></p>
 <div id="shareableInfo" style="font-size:12px;color:#666;text-align:center;margin:6px 0"></div>
@@ -238,7 +239,7 @@ async function shareCoinsNow(){
  if(amount > shareable) return alert(`You only have ${shareable} shareable! ${FREE_TRIAL} bonus locked. Buy more!`);
  if(myUser.email && receiver == myUser.email.toLowerCase()) return alert('Cannot share to yourself!');
  if(myUser.phone && receiver == myUser.phone) return alert('Cannot share to yourself! Same phone!');
- if(!pin) return alert('Enter PIN! Default is 1234 if you never set');
+ if(!pin) return alert('Enter your LOGIN password!');
  if(!confirm(`Send ${amount} coins to ${receiver}? They will get ${amount - Math.ceil(amount*0.10)} after 10% fee. No reverse!`)) return;
  document.getElementById('shareMsg').innerText = '⏳ Sending...';
  let res = await fetch('/api/coins/share',{
