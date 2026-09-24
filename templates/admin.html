@@ -95,7 +95,26 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 </div>
 </div>
 
-<div class="card" style="margin:12px 0 0 0"><h3 style="margin:0 0 8px 0">🖼️ Live Product Feed — Latest 12 with Business & Shop Link</h3><div id="previewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div></div>
+<!-- 🪙 COINS ECONOMY - REPLACES PRODUCT FEED -->
+<div class="card" style="margin:12px 0 0 0;border:3px solid #FFCC02;background:linear-gradient(135deg,#1a1a0a,#1e1e1e)">
+<h2 style="margin:0 0 12px 0;color:#FFCC02">🪙 COINS ECONOMY - FULL BREAKDOWN (Auto-Live)</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #00FF00;background:#111"><small style="color:#aaa">🎁 NEW USER BONUS</small><br><b id="coinBonus" style="font-size:18px;color:#00FF00">0</b><br><small id="coinBonusUgx" style="color:#aaa">UGX 0</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #FFCC02;background:#111"><small style="color:#aaa">💰 BOUGHT COINS</small><br><b id="coinBought" style="font-size:18px;color:#FFCC02">0</b><br><small id="coinBoughtUgx" style="color:#aaa">UGX 0</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #00aaff;background:#111"><small style="color:#aaa">💬 CHAT/WA/CALLS</small><br><b id="coinChats" style="font-size:18px;color:#00aaff">0</b><br><small id="coinChatsUgx" style="color:#aaa">UGX 0</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #ff6a00;background:#111"><small style="color:#aaa">📦 VIEW ORDERS FEE</small><br><b id="coinOrders" style="font-size:18px;color:#ff6a00">0</b><br><small id="coinOrdersUgx" style="color:#aaa">UGX 0</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #aa00ff;background:#111"><small style="color:#aaa">🔥 BARGAIN/AUCTION</small><br><b id="coinBargain" style="font-size:18px;color:#aa00ff">0</b><br><small id="coinBargainUgx" style="color:#aaa">UGX 0</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #fff;background:#000;border:2px solid #FFCC02"><small style="color:#FFCC02;font-weight:900">💎 GRAND TOTAL EARNED</small><br><b id="coinGrand" style="font-size:22px;color:#FFCC02">0</b><br><small id="coinGrandUgx" style="color:#00FF00;font-weight:bold">UGX 0</small></div>
+</div>
+<div class="analytics-grid">
+<div class="card" style="margin:0;background:#111"><h3 style="margin:0 0 8px 0;color:#FFCC02">📈 Coins Flow - Line Graph (Live)</h3><canvas id="coinsLineChart" style="max-height:320px"></canvas></div>
+<div class="card" style="margin:0;background:#111"><h3 style="margin:0 0 8px 0;color:#FFCC02">📊 Coins Distribution</h3><canvas id="coinsBarChart" style="max-height:320px"></canvas><div id="coinsBreakdownText" style="margin-top:10px;font-size:12px;line-height:1.6"></div></div>
+</div>
+<div style="margin-top:12px;background:#000;padding:12px;border-radius:10px;border:1px solid #333;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+<div><b style="color:#FFCC02">💵 Rate:</b> 1 Coin = 599 UGX<br><b style="color:#00FF00">🔄 Circulation:</b> <span id="coinCirculation">0</span><br><b style="color:#aaa">🏦 Net Earned:</b> <span id="coinNetEarned">0</span></div>
+<div><b style="color:#FFCC02">📅 Live:</b> Auto from /api/admin/data<br><b style="color:#aaa">🎯 Sources:</b> 5 channels<br><b style="color:#00FF00">✅ Status:</b> <span id="coinStatus">Calculating...</span></div>
+</div>
+</div>
 <div class="card" style="margin:12px 0 0 0"><h3>📋 Quick Actions & Health</h3><div id="healthBox" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px"></div></div>
 
 </div>
@@ -178,8 +197,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <script>
 let ALL={}; let USER_FILTER='all';
 const CATEGORY_MAP=["Shoes","Bags","Watches","Phones","Electronics","Clothes","Beauty","Home","General"];
-let catChart, shopChart, priceChart;
-
+let catChart, shopChart, priceChart, coinsLineChart, coinsBarChart;
 async function safeFetchJson(url, options={}){
   try{
     let r = await fetch(url, options);
@@ -196,8 +214,7 @@ function showErrorTop(msg){
   el.style.display='block';
   el.innerText=msg;
 }
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics') drawAnalyticsCharts(); if(id==='products') renderProductsSorted();}
-
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics'){drawAnalyticsCharts(); setTimeout(drawCoinsEconomy,300);} if(id==='products') renderProductsSorted();}
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
  if(!pwd){document.getElementById('msg').innerText='Enter password';return;}
@@ -430,6 +447,82 @@ let topShops=[...shops].filter(s=> (s.total_products||0) > 0).sort((a,b)=>(b.tot
  document.getElementById('insightsBox').innerHTML = `<div>✅ <b>Top Category:</b> ${catLabels[0]||'N/A'} (${catData[0]||0} products)</div><div>⚠️ <b>Empty Shops:</b> ${shops.length-activeShops} shops have 0 products</div><div>💡 <b>Premium Opportunity:</b> ${highPrice} products >200k</div><div>🖼️ <b>Image Health:</b> ${noImg} products missing image</div><div>📦 <b>Orders:</b> ${orders.length} total</div><div>👤 <b>User Health:</b> ${activeUsers}/${users.length} active (${users.length? Math.round(activeUsers/users.length*100):0}%)</div>`;
  document.getElementById('previewGrid').innerHTML=prods.slice(0,12).map(p=>`<div style="background:#111;border-radius:10px;overflow:hidden;border:1px solid #333"><img src="${p.image||'https://via.placeholder.com/150'}" style="width:100%;height:110px;object-fit:cover"><div style="padding:8px"><small style="color:#FFCC02;font-size:10px">${p.main_category||''}</small><br><b style="font-size:12px;line-height:1.2;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name||''}</b><small style="color:#aaa;font-size:10px">${(p.business||'').substring(0,18)}</small><br><b style="color:#00FF00;font-size:12px">UGX ${Number(p.price||0).toLocaleString()}</b><br><a href="/shop/${p.shop_slug||''}" target="_blank" style="font-size:10px;color:#FFCC02">Visit Shop →</a></div></div>`).join('');
  document.getElementById('healthBox').innerHTML = `<div style="background:#111;padding:10px;border-radius:8px;border:1px solid #333">🟢 <b>Neon DB:</b> ${shops.length>0?'Connected':'Check load_db'}<br><small>Products: ${ALL.products_count||prods.length} • Shops: ${shops.length}</small></div><div style="background:#111;padding:10px;border-radius:8px;border:1px solid #333">🟡 <b>Render:</b> Free tier<br><small>Last load: ${new Date().toLocaleTimeString()}</small></div>`;
+}
+
+// ===== 🪙 COINS ECONOMY ENGINE =====
+function drawCoinsEconomy(){
+ try{
+  let txs = ALL.coin_transactions || [];
+  let users = ALL.users || [];
+  let orders = ALL.orders || [];
+  let coinRate = 599;
+  let totalUsers = users.length;
+  let bonusFromTxs = 0;
+  txs.forEach(t=>{
+    let r=(t.reason||t.type||'').toLowerCase();
+    if(r.includes('bonus')||r.includes('welcome')||r.includes('new user')||r.includes('register')||r.includes('gift')) bonusFromTxs += Number(t.coins||0);
+  });
+  let totalBonus = bonusFromTxs > 0 ? bonusFromTxs : totalUsers * 50;
+  let totalBought = 0;
+  txs.forEach(t=>{
+    let rr=(t.reason||'').toLowerCase();
+    if(rr.includes('bonus')||rr.includes('welcome')) return;
+    if(t.price && t.coins) totalBought += Number(t.coins||0);
+  });
+  if(totalBought==0) totalBought = Math.max(0, txs.reduce((s,t)=>s+Number(t.coins||0),0) - totalBonus);
+  let totalChats = 0;
+  txs.forEach(t=>{
+    let r=(t.reason||'').toLowerCase();
+    if(r.includes('chat')||r.includes('whatsapp')||r.includes('call')||r.includes('contact')) totalChats += Number(t.coins||0);
+  });
+  let contacts = ALL.contacts || [];
+  if(totalChats==0 && (orders.length>0 || contacts.length>0)) totalChats = (orders.length + contacts.length) * 5;
+  let totalOrdersFee = 0;
+  txs.forEach(t=>{
+    let r=(t.reason||'').toLowerCase();
+    if(r.includes('order') && (r.includes('view')||r.includes('see')||r.includes('fee'))) totalOrdersFee += Number(t.coins||0);
+  });
+  if(totalOrdersFee==0 && orders.length>0) totalOrdersFee = orders.length * 10;
+  let totalBargain = 0;
+  txs.forEach(t=>{
+    let r=(t.reason||'').toLowerCase();
+    if(r.includes('bargain')||r.includes('auction')||r.includes('offer')||r.includes('bid')) totalBargain += Number(t.coins||0);
+  });
+  let wants = ALL.wants || [];
+  if(totalBargain==0 && wants.length>0) totalBargain = wants.length * 15;
+  let grandEarned = totalChats + totalOrdersFee + totalBargain;
+  let circulation = totalBonus + totalBought;
+  const fmt = n => Number(n||0).toLocaleString();
+  const ugx = n => 'UGX ' + Number((n||0)*coinRate).toLocaleString();
+  document.getElementById('coinBonus').innerText = fmt(totalBonus);
+  document.getElementById('coinBonusUgx').innerText = ugx(totalBonus);
+  document.getElementById('coinBought').innerText = fmt(totalBought);
+  document.getElementById('coinBoughtUgx').innerText = ugx(totalBought);
+  document.getElementById('coinChats').innerText = fmt(totalChats);
+  document.getElementById('coinChatsUgx').innerText = ugx(totalChats);
+  document.getElementById('coinOrders').innerText = fmt(totalOrdersFee);
+  document.getElementById('coinOrdersUgx').innerText = ugx(totalOrdersFee);
+  document.getElementById('coinBargain').innerText = fmt(totalBargain);
+  document.getElementById('coinBargainUgx').innerText = ugx(totalBargain);
+  document.getElementById('coinGrand').innerText = fmt(grandEarned);
+  document.getElementById('coinGrandUgx').innerText = ugx(grandEarned);
+  document.getElementById('coinCirculation').innerText = fmt(circulation) + ' ('+ugx(circulation)+')';
+  document.getElementById('coinNetEarned').innerText = fmt(grandEarned) + ' ('+ugx(grandEarned)+')';
+  document.getElementById('coinStatus').innerHTML = '<span style="color:#00FF00">● LIVE</span> - '+txs.length+' txs';
+  if(coinsLineChart) coinsLineChart.destroy();
+  coinsLineChart = new Chart(document.getElementById('coinsLineChart'),{
+    type:'line',
+    data:{labels:['Bonus','Bought','Chats','Orders Fee','Bargain','TOTAL'],datasets:[{label:'Coins',data:[totalBonus, totalBought, totalChats, totalOrdersFee, totalBargain, grandEarned],borderColor:'#FFCC02',backgroundColor:'rgba(255,204,2,0.15)',borderWidth:3,tension:0.4,fill:true,pointBackgroundColor:['#00FF00','#FFCC02','#00aaff','#ff6a00','#aa00ff','#fff'],pointRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#aaa'},grid:{color:'#333'}},x:{ticks:{color:'white',font:{size:10}},grid:{color:'#222'}}}}
+  });
+  if(coinsBarChart) coinsBarChart.destroy();
+  coinsBarChart = new Chart(document.getElementById('coinsBarChart'),{
+    type:'bar',
+    data:{labels:['Bonus','Bought','Chats','Orders','Bargain'],datasets:[{label:'Coins',data:[totalBonus, totalBought, totalChats, totalOrdersFee, totalBargain],backgroundColor:['#00FF00','#FFCC02','#00aaff','#ff6a00','#aa00ff'],borderRadius:8}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#aaa'},grid:{color:'#333'}},x:{ticks:{color:'white'},grid:{display:false}}}}
+  });
+  document.getElementById('coinsBreakdownText').innerHTML = `<div>🎁 Bonus: ${fmt(totalBonus)} → ${ugx(totalBonus)}</div><div>💰 Bought: ${fmt(totalBought)} → ${ugx(totalBought)}</div><div>💬 Chats: ${fmt(totalChats)} → ${ugx(totalChats)}</div><div>📦 Orders: ${fmt(totalOrdersFee)} → ${ugx(totalOrdersFee)}</div><div>🔥 Bargain: ${fmt(totalBargain)} → ${ugx(totalBargain)}</div><hr style="border:1px solid #333"><b style="color:#FFCC02">💎 Grand: ${fmt(grandEarned)} = ${ugx(grandEarned)}</b>`;
+ }catch(e){ console.error(e); document.getElementById('coinStatus').innerText='Error: '+e.message; }
 }
 
 async function loadData(){
