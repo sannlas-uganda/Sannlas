@@ -1212,40 +1212,40 @@ def share_coins():
     if not sender:
         return jsonify({'success':False,'message':'Sender not found - Login again'}),404
     
-       # === USE LOGIN PASSWORD AS PRIVATE PIN ===
-    user_password = str(sender.get('password','') or '')
-    user_pin = str(sender.get('coin_pin') or sender.get('pin') or '')
+    # === FIXED: HASH CHECK (Your password is SHA256 hashed!) ===
+    stored_pwd = str(sender.get('password','') or '')
+    stored_pwd2 = str(sender.get('password_hash','') or '')
+    stored_pin = str(sender.get('coin_pin') or sender.get('pin') or '')
     
-    # Check if password matches (support both plain and hashed check)
-    # Try direct match first, then check if they saved pin
     is_correct = False
-    if pin == user_password and user_password:
+    # Your hash_pwd = sha256
+    if stored_pwd == hashlib.sha256(pin.encode()).hexdigest():
         is_correct = True
-    elif pin == user_pin and user_pin:
+    elif stored_pin and pin == stored_pin:
         is_correct = True
-    elif not user_password and pin == '1234':  # fallback for old users without password
+    elif stored_pwd and len(stored_pwd) < 20 and pin == stored_pwd: # old plain
         is_correct = True
-    # If password is hashed (check common hash), allow 1234 fallback or user_pin
-    elif user_password and len(user_password) > 20:
-        # Password is hashed - check against pin field or allow if pin field matches
-        if user_pin and pin == user_pin:
-            is_correct = True
-        elif pin == '1234' and not user_pin:
-            is_correct = True
+    else:
+        try:
+            from werkzeug.security import check_password_hash
+            if stored_pwd2 and check_password_hash(stored_pwd2, pin):
+                is_correct = True
+        except:
+            pass
     
     if not is_correct:
-        return jsonify({'success':False,'message':f'❌ Wrong password! Use your LOGIN password Boss!'}),400
+        return jsonify({'success':False,'message':f'❌ Wrong password! Use YOUR login password Boss! Not receiver! You entered {pin[:2]}***'}),400
     
-    # Find receiver by email OR phone (case-insensitive for email)
+    # Find receiver by email OR phone
     receiver = next((u for u in users if str(u.get('email','')).lower()==receiver_raw or str(u.get('phone','')).strip()==receiver_raw or str(u.get('phone','')).strip().lower()==receiver_raw), None)
     if not receiver:
         return jsonify({'success':False,'message':f'Receiver {receiver_raw} not found! Tell them to register on Sannlas first'}),404
     
-    # NO SELF-SHARE CHECK
+    # NO SELF-SHARE
     if str(sender.get('email','')).lower()==str(receiver.get('email','')).lower() or str(sender.get('phone','')).strip()==str(receiver.get('phone','')).strip():
         return jsonify({'success':False,'message':'❌ Cannot share to yourself Boss!'}),400
     
-    # CALCULATE SHAREABLE = Total - 10 bonus locked
+    # SHAREABLE = Total - 10 bonus locked
     bought = int(sender.get('bought',0))
     earned = int(sender.get('earned',0))
     spent = int(sender.get('spent',0))
@@ -1283,13 +1283,11 @@ def share_coins():
     txs.append({'id': int(now*1000)+1, 'email': receiver.get('email'), 'phone': receiver.get('phone'), 'coins': receiver_gets, 'price': 0, 'momo_code': f'SHARE-RECV-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Received {receiver_gets} from {sender.get("email") or sender.get("phone")} (sent {amount}, fee {fee})', 'time': now, 'status': 'share_received', 'from': sender.get('email') or sender.get('phone'), 'fee': fee})
     save_db('coin_transactions.json', txs)
     
-    # SHARE HISTORY FOR PREVIEW
     shares = get_share_history()
     shares.append({'id': int(now*1000), 'from_email': sender.get('email'), 'from_phone': sender.get('phone'), 'to': receiver_raw, 'to_email': receiver.get('email'), 'to_phone': receiver.get('phone'), 'amount': amount, 'fee': fee, 'receiver_gets': receiver_gets, 'time': now, 'type': 'sent'})
     shares.append({'id': int(now*1000)+1, 'from_email': sender.get('email'), 'from_phone': sender.get('phone'), 'to': receiver_raw, 'to_email': receiver.get('email'), 'to_phone': receiver.get('phone'), 'amount': receiver_gets, 'fee': fee, 'original_amount': amount, 'time': now, 'type': 'received', 'from': sender.get('email') or sender.get('phone')})
     save_db(SHARE_FILE, shares)
     
-    # SANNLAS PROFIT TRACK
     try:
         cfg = get_coin_config()
         cfg['share_profit_coins'] = int(cfg.get('share_profit_coins',0)) + fee
@@ -1299,7 +1297,7 @@ def share_coins():
         pass
     
     return jsonify({'success':True, 'message':f'✅ Sent {amount}! {receiver_raw} got {receiver_gets}, fee {fee} profit for Sannlas', 'sent': amount, 'fee': fee, 'receiver_gets': receiver_gets, 'shareable_left': shareable - amount})
-
+    
 @app.route('/api/coins/share/history')
 def share_history():
     email = request.args.get('email','').lower().strip()
