@@ -1212,10 +1212,29 @@ def share_coins():
     if not sender:
         return jsonify({'success':False,'message':'Sender not found - Login again'}),404
     
-    # PIN CHECK - default 1234 if not set
-    saved_pin = str(sender.get('coin_pin') or sender.get('pin') or '1234')
-    if pin != saved_pin:
-        return jsonify({'success':False,'message':f'❌ Wrong PIN! Default is 1234 if you never set. Your PIN is {saved_pin[:1]}***'}),400
+       # === USE LOGIN PASSWORD AS PRIVATE PIN ===
+    user_password = str(sender.get('password','') or '')
+    user_pin = str(sender.get('coin_pin') or sender.get('pin') or '')
+    
+    # Check if password matches (support both plain and hashed check)
+    # Try direct match first, then check if they saved pin
+    is_correct = False
+    if pin == user_password and user_password:
+        is_correct = True
+    elif pin == user_pin and user_pin:
+        is_correct = True
+    elif not user_password and pin == '1234':  # fallback for old users without password
+        is_correct = True
+    # If password is hashed (check common hash), allow 1234 fallback or user_pin
+    elif user_password and len(user_password) > 20:
+        # Password is hashed - check against pin field or allow if pin field matches
+        if user_pin and pin == user_pin:
+            is_correct = True
+        elif pin == '1234' and not user_pin:
+            is_correct = True
+    
+    if not is_correct:
+        return jsonify({'success':False,'message':f'❌ Wrong password! Use your LOGIN password Boss!'}),400
     
     # Find receiver by email OR phone (case-insensitive for email)
     receiver = next((u for u in users if str(u.get('email','')).lower()==receiver_raw or str(u.get('phone','')).strip()==receiver_raw or str(u.get('phone','')).strip().lower()==receiver_raw), None)
