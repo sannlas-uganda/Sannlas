@@ -98,6 +98,19 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <!-- 🪙 COINS ECONOMY - REPLACES PRODUCT FEED -->
 <div class="card" style="margin:12px 0 0 0;border:3px solid #FFCC02;background:linear-gradient(135deg,#1a1a0a,#1e1e1e)">
 <h2 style="margin:0 0 12px 0;color:#FFCC02">🪙 COINS ECONOMY - FULL BREAKDOWN (Auto-Live)</h2>
+  <!-- 📅 DATE FILTERS + 📤 EXPORT CSV -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px 0;background:#000;padding:10px;border-radius:10px;border:1px solid #333">
+  <div style="display:flex;gap:5px;flex-wrap:wrap">
+    <button id="filterToday" onclick="setCoinDateFilter('today')" style="background:#333;color:white;font-size:11px;padding:8px 12px">Today</button>
+    <button id="filterWeek" onclick="setCoinDateFilter('week')" style="background:#333;color:white;font-size:11px;padding:8px 12px">This Week</button>
+    <button id="filterMonth" onclick="setCoinDateFilter('month')" style="background:#333;color:white;font-size:11px;padding:8px 12px">This Month</button>
+    <button id="filterAll" onclick="setCoinDateFilter('all')" style="background:#FFCC02;color:#000;font-size:11px;padding:8px 12px;font-weight:900">All Time</button>
+  </div>
+  <div style="flex:1"></div>
+  <button onclick="exportCoinsCSV()" style="background:#00FF00;color:#000;font-size:11px;padding:8px 14px;font-weight:900;border-radius:20px">📤 Export CSV (Excel)</button>
+  <button onclick="drawCoinsEconomy()" style="background:#111;color:#FFCC02;border:1px solid #FFCC02;font-size:11px;padding:8px 12px">🔄 Refresh</button>
+</div>
+<div id="coinFilterInfo" style="font-size:11px;color:#aaa;margin-bottom:8px;text-align:center">Showing: <b style="color:#FFCC02">All Time</b> • 1 Coin = 599 UGX • Auto-live</div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">
 <div class="card" style="margin:0;text-align:center;border-left:4px solid #00FF00;background:#111"><small style="color:#aaa">🎁 NEW USER BONUS</small><br><b id="coinBonus" style="font-size:18px;color:#00FF00">0</b><br><small id="coinBonusUgx" style="color:#aaa">UGX 0</small></div>
 <div class="card" style="margin:0;text-align:center;border-left:4px solid #FFCC02;background:#111"><small style="color:#aaa">💰 BOUGHT COINS</small><br><b id="coinBought" style="font-size:18px;color:#FFCC02">0</b><br><small id="coinBoughtUgx" style="color:#aaa">UGX 0</small></div>
@@ -449,10 +462,72 @@ let topShops=[...shops].filter(s=> (s.total_products||0) > 0).sort((a,b)=>(b.tot
  document.getElementById('healthBox').innerHTML = `<div style="background:#111;padding:10px;border-radius:8px;border:1px solid #333">🟢 <b>Neon DB:</b> ${shops.length>0?'Connected':'Check load_db'}<br><small>Products: ${ALL.products_count||prods.length} • Shops: ${shops.length}</small></div><div style="background:#111;padding:10px;border-radius:8px;border:1px solid #333">🟡 <b>Render:</b> Free tier<br><small>Last load: ${new Date().toLocaleTimeString()}</small></div>`;
 }
 
+  // ===== 📅 DATE FILTER + 📤 CSV EXPORT =====
+let COIN_DATE_FILTER = 'all';
+function setCoinDateFilter(filter){
+  COIN_DATE_FILTER = filter;
+  document.querySelectorAll('[id^="filter"]').forEach(b=>{b.style.background='#333'; b.style.color='white';});
+  let active = document.getElementById('filter'+filter.charAt(0).toUpperCase()+filter.slice(1));
+  if(active){ active.style.background='#FFCC02'; active.style.color='#000'; }
+  document.getElementById('coinFilterInfo').innerHTML = `Showing: <b style="color:#FFCC02">${filter.toUpperCase()}</b> • 1 Coin = 599 UGX • ${new Date().toLocaleString()}`;
+  drawCoinsEconomy();
+}
+function getFilteredTxs(){
+  let txs = ALL.coin_transactions || [];
+  if(COIN_DATE_FILTER=='all') return txs;
+  let now = Date.now()/1000;
+  let limit = now;
+  if(COIN_DATE_FILTER=='today') limit = now - 86400;
+  if(COIN_DATE_FILTER=='week') limit = now - 7*86400;
+  if(COIN_DATE_FILTER=='month') limit = now - 30*86400;
+  return txs.filter(t=> (t.time||0) >= limit);
+}
+function exportCoinsCSV(){
+  let txs = getFilteredTxs();
+  let users = ALL.users || [];
+  let rate = 599;
+  // Calculate totals
+  let bonus = 0; let bought=0; let chats=0; let orders=0; let bargain=0;
+  txs.forEach(t=>{
+    let r=(t.reason||'').toLowerCase();
+    if(r.includes('bonus')||r.includes('welcome')) bonus+=Number(t.coins||0);
+    else if(r.includes('chat')||r.includes('whatsapp')||r.includes('call')) chats+=Number(t.coins||0);
+    else if(r.includes('order')&& (r.includes('view')||r.includes('fee'))) orders+=Number(t.coins||0);
+    else if(r.includes('bargain')||r.includes('auction')) bargain+=Number(t.coins||0);
+    else if(t.price) bought+=Number(t.coins||0);
+  });
+  let grand = chats+orders+bargain;
+  let csv = "SANNLAS COINS ECONOMY REPORT\n";
+  csv += `Date,${new Date().toLocaleString()}\n`;
+  csv += `Filter,${COIN_DATE_FILTER}\n`;
+  csv += `Rate,1 Coin = ${rate} UGX\n\n`;
+  csv += "SUMMARY\n";
+  csv += "Category,Coins,UGX\n";
+  csv += `New User Bonus,${bonus},${bonus*rate}\n`;
+  csv += `Bought Coins,${bought},${bought*rate}\n`;
+  csv += `Chats/WA/Calls,${chats},${chats*rate}\n`;
+  csv += `View Orders Fee,${orders},${orders*rate}\n`;
+  csv += `Bargain/Auction,${bargain},${bargain*rate}\n`;
+  csv += `GRAND EARNED,${grand},${grand*rate}\n\n`;
+  csv += "ALL TRANSACTIONS\n";
+  csv += "Email,Phone,Coins,Price UGX,Momo Code,Reason,Status,Date\n";
+  txs.forEach(t=>{
+    let date = t.time? new Date(t.time*1000).toLocaleString() : '';
+    csv += `"${t.email||''}","${t.momo_phone||t.phone||''}",${t.coins||0},${t.price||0},"${t.momo_code||''}","${(t.reason||'').replace(/"/g,'')}","${t.status||''}","${date}"\n`;
+  });
+  let blob = new Blob([csv], {type:'text/csv'});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = `sannlas_coins_${COIN_DATE_FILTER}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  alert('✅ CSV Downloaded! Open in Excel / Google Sheets');
+}
+
 // ===== 🪙 COINS ECONOMY ENGINE =====
 function drawCoinsEconomy(){
- try{
-  let txs = ALL.coin_transactions || [];
+ try{let txs = getFilteredTxs();
   let users = ALL.users || [];
   let orders = ALL.orders || [];
   let coinRate = 599;
