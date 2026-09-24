@@ -112,15 +112,20 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register FREE</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><select id="gateRegRole" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:14px;text-align:center;font-size:20px;margin:10px 0;border:1px solid #ddd;border-radius:10px"><button class="btn btn-yellow" style="width:100%;padding:12px" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><button class="btn" style="width:100%;background:#000;color:#fff;padding:14px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:12px;margin:10px 0;border:2px solid #000;border-radius:10px"><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:#eee;margin-top:8px;color:#000" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
-<div class="navbar" style="background:#fff!important;padding:14px 16px!important;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:30;border-bottom:1px solid #eee!important;flex-direction:row!important;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+<div class="navbar" style="background:#fff!important;padding:12px 14px!important;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:30;border-bottom:1px solid #eee!important;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
   <div style="display:flex;align-items:center;gap:10px">
-    <button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:20px;padding:8px 12px;border-radius:50%;background:#000;color:#FFCC02">☰</button>
+    <button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:18px;padding:8px 12px;border-radius:50%;background:#000;color:#FFCC02">☰</button>
     <div style="display:flex;flex-direction:column;line-height:0.9">
-      <div style="display:flex;align-items:center;gap:6px;font-weight:900;font-size:26px;color:#FF6A00;letter-spacing:0.5px">◆ SANNLAS</div>
-      <small style="font-size:9px;letter-spacing:3px;color:#666;margin-top:3px">UGANDA • MARKETPLACE</small>
+      <div style="display:flex;align-items:center;gap:6px;font-weight:900;font-size:22px;color:#FF6A00;">◆ SANNLAS</div>
+      <small style="font-size:8px;letter-spacing:2px;color:#666;margin-top:2px">UGANDA • MARKETPLACE</small>
     </div>
   </div>
-  <div style="display:none" class="coin-live-bar"></div>
+
+  <!-- LOGIN BUTTON TOP RIGHT / SAME LOGO AREA -->
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="topLoginBtn" onclick="handleTopLogin()" style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:8px 16px;border-radius:20px;font-weight:900;font-size:12px;cursor:pointer">👤 LOGIN</button>
+    <span id="userInfo" style="display:none;background:#FFCC02;color:#000;padding:6px 10px;border-radius:15px;font-size:10px;font-weight:800;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  </div>
 </div>
 
 <div style="background:#fff;padding:14px 14px 12px;position:sticky;top:58px;z-index:12;border-bottom:1px solid #eee">
@@ -611,7 +616,9 @@ async function frontUploadAllProceed(){
   }
 }
 async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
+
 function doLogout(){localStorage.clear();location.reload();}
+
 function showLogoutConfirm(){
   document.getElementById('mainLogoutBtn').style.display='none';
   document.getElementById('logoutConfirm').style.display='block';
@@ -620,6 +627,16 @@ function cancelLogout(){
   document.getElementById('logoutConfirm').style.display='none';
   document.getElementById('mainLogoutBtn').style.display='block';
 }
+function handleTopLogin(){
+  let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}
+  if(u&&u.email){openMyAccountInfo();}else{showGate();switchGate('login');}
+}
+function updateTopLoginUI(){
+  let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}
+  let btn=document.getElementById('topLoginBtn');
+  if(btn){btn.innerText=(u&&u.email)?'👤 ACCOUNT':'👤 LOGIN';}
+}
+
 function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
 async function showAllShops(){
   document.getElementById('shopsContent').innerHTML = '<h3>⏳ Loading Shops... Render waking (15 sec)...</h3><p style="font-size:12px;color:#888">Free server sleeps, first load is slow. Please wait Boss.</p>';
