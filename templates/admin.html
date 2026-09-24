@@ -81,12 +81,22 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="card" style="margin:0;text-align:center;border-left:4px solid #FFCC02"><small style="color:#aaa">ACTIVE SHOPS</small><br><b id="kpiShops" style="font-size:20px;color:#FFCC02">0 / 0</b><br><small id="kpiShopsSub" style="color:#aaa">With products</small></div>
 <div class="card" style="margin:0;text-align:center;border-left:4px solid #00aaff"><small style="color:#aaa">USERS</small><br><b id="kpiUsers" style="font-size:20px;color:#00aaff">0</b><br><small id="kpiUsersSub" style="color:#aaa">Active / Total</small></div>
 <div class="card" style="margin:0;text-align:center;border-left:4px solid #ff6a00"><small style="color:#aaa">COINS SOLD</small><br><b id="kpiCoins" style="font-size:20px;color:#ff6a00">0</b><br><small id="kpiCoinsSub" style="color:#aaa">Remaining</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #ff00ff"><small style="color:#aaa">SHARE VOLUME</small><br><b id="kpiShare" style="font-size:20px;color:#ff00ff">0</b><br><small id="kpiShareSub" style="color:#aaa">Coins shared</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #FFCC02"><small style="color:#aaa">SHARE PROFIT 🔥</small><br><b id="kpiProfit" style="font-size:20px;color:#FFCC02">0</b><br><small id="kpiProfitSub" style="color:#aaa">UGX 0 Sannlas</small></div>
 </div>
 
 <div class="analytics-grid">
 <div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">📦 Top Categories (Top 6 + Others)</h3><canvas id="catPie" style="max-height:280px"></canvas><div id="catLegend" style="margin-top:8px;font-size:11px"></div></div>
 <div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">🏪 Top 5 Shops Performance</h3><canvas id="shopBar" style="max-height:280px"></canvas></div>
 </div>
+
+<div class="analytics-grid" style="margin-top:12px">
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0;color:#ff00ff">🔄 Share Coins - 10% Sannlas Profit</h3><canvas id="shareChart" style="max-height:280px"></canvas><div id="shareStats" style="margin-top:8px;font-size:12px"></div></div>
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">💸 Withdraws vs Share Profit</h3><canvas id="profitChart" style="max-height:280px"></canvas></div>
+</div>
+
+<div class="analytics-grid" style="margin-top:12px">
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">💰 Price Distribution
 
 <div class="analytics-grid" style="margin-top:12px">
 <div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">💰 Price Distribution & Stock Value</h3><canvas id="priceBar" style="max-height:220px"></canvas><div id="priceStats" style="font-size:12px;margin-top:8px;color:#aaa"></div></div>
@@ -210,7 +220,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <script>
 let ALL={}; let USER_FILTER='all';
 const CATEGORY_MAP=["Shoes","Bags","Watches","Phones","Electronics","Clothes","Beauty","Home","General"];
-let catChart, shopChart, priceChart, coinsLineChart, coinsBarChart;
+let catChart, shopChart, priceChart, coinsLineChart, coinsBarChart, shareChart, profitChart;
 async function safeFetchJson(url, options={}){
   try{
     let r = await fetch(url, options);
@@ -456,6 +466,33 @@ let topShops=[...shops].filter(s=> (s.total_products||0) > 0).sort((a,b)=>(b.tot
  document.getElementById('priceStats').innerHTML = `Low: ${prices.low} • Mid: ${prices.mid} • Premium: ${prices.high} • Total Value: <b style="color:#00FF00">UGX ${totalValue.toLocaleString()}</b>`;
  let remain = Number(coinCfg.remaining||1000000000); let sold = Number(coinCfg.sold||0); let total = Number(coinCfg.total||1000000000); let pct = total? (remain/total*100):100;
  document.getElementById('aCoinsRemain').innerText=remain.toLocaleString(); document.getElementById('aCoinsSold').innerText=sold.toLocaleString(); document.getElementById('aCoinsProgress').style.width = pct+'%'; document.getElementById('aCoinsInfo').innerText = `Progress: ${pct.toFixed(2)}% remain • Sold value: UGX ${(sold*599).toLocaleString()}`;
+ // === SHARE PROFIT 6th KPI ===
+ let shareTxs = ALL.share_transactions || [];
+ let totalShared = shareTxs.reduce((s,t)=>s+ (Number(t.amount)||0),0);
+ let totalFee = ALL.share_profit_coins || shareTxs.reduce((s,t)=>s+ (Number(t.fee)||0),0);
+ let totalFeeUgx = ALL.share_profit_ugx || totalFee*599;
+ let elShare = document.getElementById('kpiShare');
+ if(elShare){
+   elShare.innerText = totalShared.toLocaleString();
+   document.getElementById('kpiShareSub').innerText = shareTxs.length + ' transfers';
+   document.getElementById('kpiProfit').innerText = totalFee.toLocaleString() + ' coins';
+   document.getElementById('kpiProfitSub').innerText = 'UGX ' + totalFeeUgx.toLocaleString() + ' profit';
+   if(shareChart) shareChart.destroy();
+   shareChart = new Chart(document.getElementById('shareChart'),{
+     type:'bar',
+     data:{labels:['Shared','Fee Profit','Got'], datasets:[{label:'Coins', data:[totalShared, totalFee, totalShared-totalFee], backgroundColor:['#ff00ff','#FFCC02','#00FF00'], borderRadius:8}]},
+     options:{plugins:{legend:{display:false}}, scales:{y:{ticks:{color:'#aaa'},grid:{color:'#333'}}, x:{ticks:{color:'white'},grid:{display:false}}}}
+   });
+   document.getElementById('shareStats').innerHTML = `Shared: <b style="color:#ff00ff">${totalShared.toLocaleString()}</b> • Fee: <b style="color:#FFCC02">${totalFee.toLocaleString()} = UGX ${totalFeeUgx.toLocaleString()}</b> • Sannlas keeps 10% 🔥`;
+   if(profitChart) profitChart.destroy();
+   let withdraws = ALL.withdraws||[];
+   let totalWithdraw = withdraws.reduce((s,w)=>s+Number(w.amount||0),0);
+   profitChart = new Chart(document.getElementById('profitChart'),{
+     type:'doughnut',
+     data:{labels:['Share Profit','Withdraws'], datasets:[{data:[totalFeeUgx, totalWithdraw], backgroundColor:['#FFCC02','#ff6a00'], borderWidth:2, borderColor:'#1e1e1e'}]},
+     options:{plugins:{legend:{position:'bottom', labels:{color:'white'}}}, cutout:'60%'}
+   });
+ }
  let noImg = prods.filter(p=>!p.image).length; let highPrice = prods.filter(p=> (p.price||0) > 200000).length;
  document.getElementById('insightsBox').innerHTML = `<div>✅ <b>Top Category:</b> ${catLabels[0]||'N/A'} (${catData[0]||0} products)</div><div>⚠️ <b>Empty Shops:</b> ${shops.length-activeShops} shops have 0 products</div><div>💡 <b>Premium Opportunity:</b> ${highPrice} products >200k</div><div>🖼️ <b>Image Health:</b> ${noImg} products missing image</div><div>📦 <b>Orders:</b> ${orders.length} total</div><div>👤 <b>User Health:</b> ${activeUsers}/${users.length} active (${users.length? Math.round(activeUsers/users.length*100):0}%)</div>`;
  document.getElementById('previewGrid').innerHTML=prods.slice(0,12).map(p=>`<div style="background:#111;border-radius:10px;overflow:hidden;border:1px solid #333"><img src="${p.image||'https://via.placeholder.com/150'}" style="width:100%;height:110px;object-fit:cover"><div style="padding:8px"><small style="color:#FFCC02;font-size:10px">${p.main_category||''}</small><br><b style="font-size:12px;line-height:1.2;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name||''}</b><small style="color:#aaa;font-size:10px">${(p.business||'').substring(0,18)}</small><br><b style="color:#00FF00;font-size:12px">UGX ${Number(p.price||0).toLocaleString()}</b><br><a href="/shop/${p.shop_slug||''}" target="_blank" style="font-size:10px;color:#FFCC02">Visit Shop →</a></div></div>`).join('');
