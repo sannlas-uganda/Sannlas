@@ -62,6 +62,7 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="t" style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="tab('shops',this)">🏪 Shops <span id="cShops" class="badge" style="background:#FFCC02;color:#000">0</span></div>
 <div class="t" onclick="tab('users',this)">🔐 Users <span id="cUsers" class="badge">0</span></div>
 <div class="t" style="background:#FFCC02;color:#000;border:2px solid #000" onclick="tab('coins',this)">🪙 Coins <span id="cCoins" class="badge" style="background:#000;color:#FFCC02">0</span></div>
+<div class="t" style="background:#ff00ff;color:#fff;border:2px solid #fff;font-weight:900" onclick="tab('shares',this)">🔄 Shares <span id="cShares" class="badge" style="background:#fff;color:#ff00ff">0</span></div>
 <div class="t" onclick="tab('products',this)">📦 Products <span id="cProds" class="badge">0</span></div>
 <div class="t" onclick="tab('orders',this)">🛒 Orders <span id="cOrders" class="badge">0</span></div>
 <div class="t" style="background:#ff6a00;color:#000" onclick="tab('withdraws',this)">💸 Withdraws <span id="cWithdraws" class="badge" style="background:#000;color:#fff">0</span></div>
@@ -162,6 +163,18 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center"><div style="font-size:13px;color:#FFCC02">🔴 LIVE REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div></div>
 <div id="coinsBox">Loading...</div></div></div>
 
+<div id="shares" class="tabPane" style="display:none">
+<div class="card" style="border:3px solid #ff00ff">
+<h2 style="color:#ff00ff">🔄 All Coin Shares - Auto Live Connected</h2>
+<div style="background:#111;padding:12px;border-radius:10px;border:2px solid #ff00ff;margin-bottom:10px;text-align:center">
+<div>🔥 Total Shared: <b id="shareTotalAll" style="color:#ff00ff;font-size:22px">0</b> coins</div>
+<div>💰 Sannlas Profit (10%): <b id="shareProfitAll" style="color:#FFCC02;font-size:22px">0</b> coins = UGX <span id="shareProfitUgx">0</span></div>
+<div style="font-size:11px;color:#aaa;margin-top:5px">Every share from ANY user to ANY user auto-recorded here</div>
+</div>
+<div id="sharesBox">Loading shares...</div>
+</div>
+</div>
+
 <!-- SORTED PRODUCTS WITH FILTER -->
 <div id="products" class="tabPane" style="display:none"><div class="card"><h2>📦 Products — SORTED by Category</h2>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
@@ -237,7 +250,7 @@ function showErrorTop(msg){
   el.style.display='block';
   el.innerText=msg;
 }
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics'){drawAnalyticsCharts(); setTimeout(drawCoinsEconomy,300);} if(id==='products') renderProductsSorted();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='shares') renderShares(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics'){drawAnalyticsCharts(); setTimeout(drawCoinsEconomy,300);} if(id==='products') renderProductsSorted();}
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
  if(!pwd){document.getElementById('msg').innerText='Enter password';return;}
@@ -359,6 +372,32 @@ function loadCoinsTab(){
   html += `<hr><h4>All Transactions</h4><table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Status</th></tr>`+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b><br><small>${t.status}</small></td><td>${t.status}</td></tr>`).join('')+'</table>';
   
   box.innerHTML = html;
+}
+function renderShares(){
+  let shares = ALL.shares || ALL.share_transactions || [];
+  let profitCoins = ALL.share_profit_coins || 0;
+  let profitUgx = ALL.share_profit_ugx || profitCoins*599;
+  document.getElementById('cShares').innerText = ALL.shares_count || shares.length;
+  document.getElementById('shareTotalAll').innerText = shares.reduce((s,x)=>s+(x.amount||x.receiver_gets||0),0).toLocaleString();
+  document.getElementById('shareProfitAll').innerText = profitCoins.toLocaleString();
+  document.getElementById('shareProfitUgx').innerText = profitUgx.toLocaleString();
+  let box=document.getElementById('sharesBox');
+  if(!shares.length){box.innerHTML='<p style="text-align:center;padding:20px">No shares yet Boss - Share will appear here auto</p>';return;}
+  box.innerHTML = shares.map(s=>`
+    <div style="background:#111;border-left:4px solid #ff00ff;padding:10px;margin:8px 0;border-radius:8px;display:flex;justify-content:space-between;flex-wrap:wrap">
+      <div>
+        <b style="color:#00FF00">${s.from_email||s.from_phone||'?'}</b> 
+        <span style="color:#fff">→</span> 
+        <b style="color:#FFCC02">${s.to||s.to_email||s.to_phone||'?'}</b><br>
+        <small style="color:#aaa">${new Date((s.time||0)*1000).toLocaleString()}</small>
+      </div>
+      <div style="text-align:right">
+        <b style="color:#ff00ff">${s.amount||0} sent</b> | fee <b style="color:#FFCC02">${s.fee||0}</b><br>
+        <small style="color:#00FF00">Receiver got: ${s.receiver_gets|| (s.amount - (s.fee||0))} coins</small><br>
+        <small style="color:#888">${s.type||'sent'}</small>
+      </div>
+    </div>
+  `).join('');
 }
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
 async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let d = await safeFetchJson('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); document.getElementById('addCoinStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${(d && d.message)||'Server waking, retry'}</span>`; if(d && d.success) loadData();}
