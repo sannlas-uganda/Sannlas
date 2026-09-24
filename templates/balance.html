@@ -150,11 +150,33 @@ localStorage.setItem('sannlas_user', JSON.stringify(allData));
 }
 
 async function buyCoins(){
- let code = document.getElementById('buyMomoCode').value.trim().toUpperCase();
+ let code = document.getElementById('buyMomoCode').value.trim().toUpperCase().replace(/\s/g,'');
  let mphone = document.getElementById('buyMomoPhone').value.trim();
  if(!mphone) return alert('Enter your MoMo number Boss!');
  if(!code) return alert('Enter MoMo Transaction Code after paying to 0795712326!');
+
+ // === NEW VALIDATION YOU ASKED FOR ===
+ // 1. Must be 10 digits (MTN is 10, Airtel 10-13)
+ if(code.length < 10 || code.length > 13){
+   return alert('Transaction ID must be 10 to 13 digits Boss! Check SMS again');
+ }
+ // 2. Only numbers and letters (MTN uses numbers only, but Airtel has letters)
+ if(!/^[A-Z0-9]+$/.test(code)){
+   return alert('Only letters and numbers allowed, no spaces!');
+ }
+ // 3. Check locally if you used this code before (prevent double click)
+ let usedCodes = JSON.parse(localStorage.getItem('used_codes')||'[]');
+ if(usedCodes.includes(code)){
+   return alert('You already submitted this code before! Wait for admin approval');
+ }
+ // === END VALIDATION ===
+ 
  if(!confirm(`Confirm? Pack ${selectedPack} - Code ${code} from ${mphone}`)) return;
+ 
+ // Save locally to prevent duplicate submit
+ usedCodes.push(code);
+ localStorage.setItem('used_codes', JSON.stringify(usedCodes));
+
  let res = await fetch('/api/coins/buy',{
    method:'POST',
    headers:{'Content-Type':'application/json'},
