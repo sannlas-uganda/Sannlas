@@ -156,7 +156,17 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <button onclick="adminAddCoins()" style="width:100%;background:#00FF00;color:#000">💰 Add Coins</button>
 <div id="addCoinStatus" style="margin-top:5px;font-size:12px"></div>
 </div>
-<div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center"><div style="font-size:13px;color:#FFCC02">🔴 LIVE REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div></div>
+<div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center">
+<div style="font-size:13px;color:#FFCC02">🔴 LIVE MAJOR BALANCE - Auto Deduct 10 Bonus</div>
+<div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div>
+<div style="font-size:14px;color:#FFCC02" id="coinsRemainUgx">UGX 599,000,000,000</div>
+<div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div>
+<div style="display:flex;gap:5px;justify-content:center;margin-top:10px">
+<input id="majorAddAmount" type="number" placeholder="Add to Major" style="width:140px;background:#111;border:1px solid #FFCC02">
+<button onclick="addMajorCoins()" style="background:#FFCC02;color:#000;font-weight:900">➕ Add to Major</button>
+</div>
+<small style="color:#aaa">Register -10 | Buy -amount | 1 coin = 599 UGX</small>
+</div>
 <div id="coinsBox">Loading...</div></div></div>
 
 <div id="shares" class="tabPane" style="display:none">
@@ -343,8 +353,14 @@ function loadCoinsTab(){
   let cfg = ALL.coin_config || {total:1000000000, remaining:1000000000, sold:0}; 
   let txs = ALL.coin_transactions || []; 
   document.getElementById('cCoins').innerText=txs.length; 
-  document.getElementById('coinsRemainShow').innerText=Number(cfg.remaining||1000000000).toLocaleString(); 
-  // ... keep your progress bar code
+
+  // === FIXED HERE Boss - Auto UGX ===
+  let rEl=document.getElementById('coinsRemainShow'); 
+  if(rEl) rEl.innerText=Number(cfg.remaining||0).toLocaleString();
+  let ugxEl=document.getElementById('coinsRemainUgx'); 
+  if(ugxEl) ugxEl.innerText='UGX '+(Number(cfg.remaining||0)*599).toLocaleString();
+  let prog=document.getElementById('coinsProgress');
+  if(prog) prog.style.width=(cfg.remaining/cfg.total*100)+'%';
   
   let box=document.getElementById('coinsBox'); 
   if(!txs.length){box.innerHTML='<p>No coin sales</p>';return;} 
@@ -356,7 +372,7 @@ function loadCoinsTab(){
   else {
     html += pending.map(t=>`
       <div style="background:#111;border:2px solid orange;padding:10px;margin:8px 0;border-radius:10px">
-        <b style="color:#FFCC02">${t.coins} coins - UGX ${Number(t.price||0).toLocaleString()}</b><br>
+        <b style="color:#FFCC02">${t.coins} coins = UGX ${Number(t.coins*599).toLocaleString()} (Price UGX ${Number(t.price||0).toLocaleString()})</b><br>
         <b style="color:#00FF00">Code: ${t.momo_code}</b> | Phone: ${t.momo_phone||'N/A'}<br>
         <small>${t.email||''} | ${new Date((t.time||0)*1000).toLocaleString()}</small><br>
         <button style="background:green;font-size:12px;padding:8px 15px" onclick="verifyCoin('${t.momo_code}','verify')">✅ APPROVE</button>
@@ -365,7 +381,7 @@ function loadCoinsTab(){
     `).join('');
   }
   
-  html += `<hr><h4>All Transactions</h4><table><tr><th>Email</th><th>Coins</th><th>Code</th><th>Status</th></tr>`+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b><br><small>${t.status}</small></td><td>${t.status}</td></tr>`).join('')+'</table>';
+  html += `<hr><h4>All Transactions (10 Bonus = UGX 5,990)</h4><table><tr><th>Email</th><th>Coins (UGX)</th><th>Code</th><th>Status</th></tr>`+txs.slice().reverse().map(t=>`<tr><td style="font-size:11px">${t.email||''}</td><td><b style="color:#FFCC02">${t.coins||0}</b><br><small style="color:#00FF00">UGX ${(t.coins*599).toLocaleString()}</small></td><td><b style="color:#00FF00;font-size:11px">${t.momo_code||''}</b><br><small>${t.status}</small></td><td>${t.status}</td></tr>`).join('')+'</table>';
   
   box.innerHTML = html;
 }
@@ -397,6 +413,14 @@ function renderShares(){
 }
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
 async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let d = await safeFetchJson('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); document.getElementById('addCoinStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${(d && d.message)||'Server waking, retry'}</span>`; if(d && d.success) loadData();}
+async function addMajorCoins(){
+  let amt=parseInt(document.getElementById('majorAddAmount').value);
+  if(!amt) return alert('Enter amount Boss!');
+  if(!confirm('Add '+amt.toLocaleString()+' to MAJOR?')) return;
+  let d=await safeFetchJson('/api/admin/coins/major/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amt})});
+  if(d&&d.success){alert('✅ Added!'); loadData();}
+  else alert('Failed');
+}  
 function loadWithdraws(){ let withdraws=ALL.withdraws||[]; document.getElementById('cWithdraws').innerText=withdraws.length; let box=document.getElementById('withdrawsBox'); if(!withdraws.length){box.innerHTML='<p>No withdraws</p>';return;} box.innerHTML='<table><tr><th>User</th><th>Amount</th><th>MoMo</th><th>Status</th><th>Action</th></tr>'+withdraws.slice().reverse().map(w=>`<tr><td style="font-size:11px">${w.email}</td><td><b style="color:#00FF00">UGX ${Number(w.amount).toLocaleString()}</b></td><td><b>${w.momo_number}</b></td><td>${w.status}</td><td>${w.status=='pending'?`<button style="background:#00FF00;color:#000;font-size:10px" onclick="withdrawAction(${w.id},'paid')">✅ PAID</button>`:''}</td></tr>`).join('')+'</table>';}
 function withdrawAction(id,action){if(!confirm(action+' '+id+'?'))return;fetch('/api/admin/withdraw/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})}).then(()=>loadData());}
 async function uploadBillboardFile(){ const fileInput=document.getElementById('bbFileInput'); const file=fileInput.files[0]; if(!file){alert('Choose file');return;} const form=new FormData(); form.append('file',file); form.append('text',document.getElementById('bbText').value.trim()); form.append('link',document.getElementById('bbLink').value.trim()); form.append('duration',document.getElementById('bbDuration').value); document.getElementById('bbUploadStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>'; let d = await safeFetchJson('/api/upload/billboard',{method:'POST',body:form}); if(d && d.success){document.getElementById('bbUploadStatus').innerHTML='<span style="color:#00FF00">✅ LIVE!</span>'; loadData();} else document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+(d?d.error:'Server waking, retry')+'</span>';}
@@ -609,7 +633,7 @@ function drawCoinsEconomy(){
     let r=(t.reason||t.type||'').toLowerCase();
     if(r.includes('bonus')||r.includes('welcome')||r.includes('new user')||r.includes('register')||r.includes('gift')) bonusFromTxs += Number(t.coins||0);
   });
-  let totalBonus = bonusFromTxs > 0 ? bonusFromTxs : totalUsers * 50;
+  let totalBonus = bonusFromTxs > 0 ? bonusFromTxs : totalUsers * 10;
   let totalBought = 0;
   txs.forEach(t=>{
     let rr=(t.reason||'').toLowerCase();
