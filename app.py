@@ -3109,16 +3109,22 @@ def kassag_stats():
     })
 
 @app.route('/api/admin/coins/major/add', methods=['POST'])
+@admin_required
 def add_major_coins():
-    data = request.get_json()
-    amount = int(data.get("amount",0))
+    data=request.json
+    amount=int(data.get('amount',0))
+    action=data.get('type','add')  # add or remove
     if amount <=0:
-        return jsonify({"success":False, "message":"Enter amount"})
-    cfg = load_db("coin_config", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
-    cfg["total"] = cfg.get("total",1000000000) + amount
-    cfg["remaining"] = cfg.get("remaining",1000000000) + amount
-    save_db("coin_config", cfg)
-    return jsonify({"success":True, "message":f"Added {amount} to major pool", "config":cfg})
+        return jsonify({'success':False,'message':'Enter amount'})
+    cfg=get_coin_config()
+    if action == 'remove':
+        cfg['total'] = max(0, cfg.get('total',1000000000) - amount)
+        cfg['remaining'] = max(0, cfg.get('remaining',1000000000) - amount)
+    else:
+        cfg['total'] = cfg.get('total',1000000000) + amount
+        cfg['remaining'] = cfg.get('remaining',1000000000) + amount
+    save_coin_config(cfg)
+    return jsonify({'success':True,'message':f'{action} {amount} done','config':cfg})
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
