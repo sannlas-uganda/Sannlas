@@ -396,7 +396,12 @@ function drawAnalyticsCharts(){
  let prods=ALL.products||[]; let shops=ALL.shops||[]; let users=ALL.users||[]; let coinCfg=ALL.coin_config||{remaining:1000000000, total:1000000000, sold:0}; let orders=ALL.orders||[];
  let totalValue = prods.reduce((s,p)=>s+(Number(p.price)||0),0);
  let avgPrice = prods.length? Math.round(totalValue/prods.length):0;
- let activeShops = shops.filter(s=> (s.total_products||0) > 0).length;
+// Real count from products if total_products is stale
+let shopCounts = {};
+prods.forEach(p=>{ let sl=p.shop_slug||''; shopCounts[sl]=(shopCounts[sl]||0)+1; });
+shops.forEach(s=>{ if(!s.total_products) s.total_products = shopCounts[s.shop_slug]||0; });
+let activeShops = shops.filter(s=> (s.total_products||0) > 0).length;
+let topShops=[...shops].filter(s=> (s.total_products||0) > 0).sort((a,b)=>(b.total_products||0)-(a.total_products||0)).slice(0,5);
  let activeUsers = users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000).length;
  document.getElementById('kpiGmv').innerText = 'UGX '+totalValue.toLocaleString();
  document.getElementById('kpiGmvSub').innerText = 'Avg UGX '+avgPrice.toLocaleString()+' • '+prods.length+' items';
