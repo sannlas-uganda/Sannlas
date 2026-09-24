@@ -418,7 +418,6 @@ let topShops=[...shops].filter(s=> (s.total_products||0) > 0).sort((a,b)=>(b.tot
  if(catChart) catChart.destroy();
  catChart=new Chart(document.getElementById('catPie'),{type:'doughnut',data:{labels:catLabels, datasets:[{data:catData, backgroundColor:colors, borderWidth:2, borderColor:'#1e1e1e'}]},options:{plugins:{legend:{position:'bottom', labels:{color:'white', font:{size:11}, boxWidth:12}}}, cutout:'55%'}});
  document.getElementById('catLegend').innerHTML = topCats.map((c,i)=>`<span style="display:inline-block;margin:2px 6px"><span style="display:inline-block;width:10px;height:10px;background:${colors[i]};border-radius:2px"></span> ${c[0]}: <b>${c[1]}</b> (${Math.round(c[1]/prods.length*100)}%)</span>`).join('');
- let topShops=[...shops].sort((a,b)=>(b.total_products||0)-(a.total_products||0)).slice(0,5);
  if(shopChart) shopChart.destroy();
  shopChart=new Chart(document.getElementById('shopBar'),{type:'bar',data:{labels:topShops.map(s=>(s.business_name||s.shop_slug||'Shop').substring(0,14)), datasets:[{label:'Products', data:topShops.map(s=>s.total_products||0), backgroundColor:'#FFCC02', borderRadius:6}]},options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#aaa'}, grid:{color:'#333'}}, y:{ticks:{color:'white', font:{size:11}}, grid:{display:false}}}}});
  let prices={low:0,mid:0,high:0}; prods.forEach(p=>{let pr=Number(p.price)||0; if(pr<20000) prices.low++; else if(pr<100000) prices.mid++; else prices.high++;});
