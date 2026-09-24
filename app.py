@@ -2049,12 +2049,11 @@ def admin_data():
         contacts_full = load_db('contacts.json', []) or []
         withdraws_full = load_db('withdraws.json', []) or []
         wants_full = load_db('wants.json', []) or []
-
         shop_counts = {}
         for p in products_full:
             sl = p.get('shop_slug','') or ''
             if sl:
-        shop_counts[sl] = shop_counts.get(sl,0) + 1
+                shop_counts[sl] = shop_counts.get(sl,0) + 1
         for s in shops_full:
             s['total_products'] = shop_counts.get(s.get('shop_slug',''),0)
 
