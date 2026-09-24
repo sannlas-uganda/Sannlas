@@ -157,9 +157,6 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
     <button onclick="closeSideMenu();openMySales()" style="background:#fff;color:#000;border:1px solid #ddd;padding:14px;border-radius:12px;font-weight:700;text-align:left">📦 My Sales Orders</button>
     <button onclick="closeSideMenu();openSecurity()" style="background:#fff;color:#000;border:1px solid #ddd;padding:14px;border-radius:12px;font-weight:700;text-align:left">🔒 Security</button>
     <button onclick="closeSideMenu();location.href='/invite'" style="background:#00FF00;color:#000;padding:14px;border:none;border-radius:12px;font-weight:900;text-align:left">👥 Invite & Earn Coins</button>
-    
-    <div style="height:1px;background:#eee;margin:6px 0"></div>
-    <button onclick="doLogout()" style="background:#ff0000;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:900;text-align:left">🚪 Logout</button>
   </div>
 </div>
 <div class="search-section">
@@ -245,7 +242,19 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
 <button onclick="location.href='/balance'" style="width:100%;background:#000;color:#FFCC02;padding:12px;border:none;border-radius:10px;font-weight:900;margin-top:12px">💰 Open Full Balance & Withdraw</button>
 </div>
 <button onclick="goToMyShop()" style="width:100%;background:#fff;color:#000;border:2px solid #000;padding:12px;border-radius:10px;font-weight:800">🏪 MY SHOP</button>
-<button style="width:100%;background:#ff0000;color:#fff;margin-top:10px;padding:12px;border:none;border-radius:10px;font-weight:800" onclick="doLogout()">Logout</button>
+<!-- LOGOUT WITH CANCEL -->
+<div id="logoutArea" style="margin-top:12px">
+<button id="mainLogoutBtn" onclick="showLogoutConfirm()" style="width:100%;background:#ff0000;color:#fff;padding:12px;border:none;border-radius:10px;font-weight:900">🚪 Logout</button>
+
+<div id="logoutConfirm" style="display:none;background:#111;border:2px solid #ff0000;border-radius:12px;padding:14px;margin-top:10px;text-align:center">
+<p style="color:#fff;font-weight:900;margin:0 0 6px 0">⚠️ Logout?</p>
+<p style="color:#aaa;font-size:12px;margin:0 0 10px 0">You will need to login again</p>
+<div style="display:flex;gap:8px">
+<button onclick="cancelLogout()" style="flex:1;padding:12px;background:#333;color:#fff;border:none;border-radius:8px;font-weight:800">❌ Cancel</button>
+<button onclick="doLogout()" style="flex:1;padding:12px;background:#ff0000;color:#fff;border:none;border-radius:8px;font-weight:900">✅ Yes Logout</button>
+</div>
+</div>
+</div>
 <button onclick="closePop('authPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>
 </div>
 </div>
@@ -603,6 +612,14 @@ async function frontUploadAllProceed(){
 }
 async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
 function doLogout(){localStorage.clear();location.reload();}
+function showLogoutConfirm(){
+  document.getElementById('mainLogoutBtn').style.display='none';
+  document.getElementById('logoutConfirm').style.display='block';
+}
+function cancelLogout(){
+  document.getElementById('logoutConfirm').style.display='none';
+  document.getElementById('mainLogoutBtn').style.display='block';
+}
 function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
 async function showAllShops(){
   document.getElementById('shopsContent').innerHTML = '<h3>⏳ Loading Shops... Render waking (15 sec)...</h3><p style="font-size:12px;color:#888">Free server sleeps, first load is slow. Please wait Boss.</p>';
