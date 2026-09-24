@@ -71,19 +71,33 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <a href="/admin/chats" style="background:#25D366;color:#000;padding:9px 12px;border-radius:20px;text-decoration:none;font-weight:900;font-size:12px;display:flex;align-items:center;border:2px solid #000">💬 Chat Preview</a></div>
 <div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Option B System - SORTED</h2><div id="overviewData"></div></div></div>
 
-<!-- NEW ANALYTICS TAB -->
+<!-- PRO ANALYTICS TAB -->
 <div id="analytics" class="tabPane" style="display:none">
-<div class="card" style="border:3px solid #FFCC02">
-<h2 style="color:#FFCC02">📈 Analytics Preview — Real Data from YOUR 5 Files</h2>
+<div class="card" style="border:3px solid #FFCC02; padding:10px">
+<h2 style="color:#FFCC02; margin:5px">📈 SANNLAS PRO ANALYTICS — Real-Time Control Centre</h2>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0">
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #00FF00"><small style="color:#aaa">TOTAL GMV</small><br><b id="kpiGmv" style="font-size:20px;color:#00FF00">UGX 0</b><br><small id="kpiGmvSub" style="color:#aaa">Avg price</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #FFCC02"><small style="color:#aaa">ACTIVE SHOPS</small><br><b id="kpiShops" style="font-size:20px;color:#FFCC02">0 / 0</b><br><small id="kpiShopsSub" style="color:#aaa">With products</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #00aaff"><small style="color:#aaa">USERS</small><br><b id="kpiUsers" style="font-size:20px;color:#00aaff">0</b><br><small id="kpiUsersSub" style="color:#aaa">Active / Total</small></div>
+<div class="card" style="margin:0;text-align:center;border-left:4px solid #ff6a00"><small style="color:#aaa">COINS SOLD</small><br><b id="kpiCoins" style="font-size:20px;color:#ff6a00">0</b><br><small id="kpiCoinsSub" style="color:#aaa">Remaining</small></div>
+</div>
+
 <div class="analytics-grid">
-<div class="card"><h3>📦 Category Distribution</h3><canvas id="catPie"></canvas><small style="color:#aaa">From main_category in app.py + index.html + shop.html</small></div>
-<div class="card"><h3>🏪 Top 5 Shops by Products</h3><canvas id="shopBar"></canvas><small style="color:#aaa">Sorted by total_products from shop fast count</small></div>
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">📦 Top Categories (Top 6 + Others)</h3><canvas id="catPie" style="max-height:280px"></canvas><div id="catLegend" style="margin-top:8px;font-size:11px"></div></div>
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">🏪 Top 5 Shops Performance</h3><canvas id="shopBar" style="max-height:280px"></canvas></div>
 </div>
+
 <div class="analytics-grid" style="margin-top:12px">
-<div class="card"><h3>💰 Price Range</h3><canvas id="priceBar" style="max-height:250px"></canvas></div>
-<div class="card"><h3>🔥 Coins LIVE</h3><div style="text-align:center"><div style="font-size:13px;color:#FFCC02">REMAINING</div><div style="font-size:32px;font-weight:bold;color:#00FF00" id="aCoinsRemain">1B</div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0"><div id="aCoinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div></div></div>
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">💰 Price Distribution & Stock Value</h3><canvas id="priceBar" style="max-height:220px"></canvas><div id="priceStats" style="font-size:12px;margin-top:8px;color:#aaa"></div></div>
+<div class="card" style="margin:0"><h3 style="margin:0 0 8px 0">📊 Business Insights</h3><div id="insightsBox" style="font-size:13px;line-height:1.6"></div>
+<div style="margin-top:12px"><h4 style="color:#FFCC02;margin:0">🔥 Coins LIVE Engine</h4><div style="background:#000;padding:12px;border-radius:10px;border:1px solid #333;margin-top:6px;text-align:center"><div style="font-size:12px;color:#FFCC02">REMAINING / SOLD</div><div style="display:flex;justify-content:space-between"><b id="aCoinsRemain" style="color:#00FF00">1,000,000,000</b><b id="aCoinsSold" style="color:#ff6a00">0</b></div><div style="width:100%;height:14px;background:#333;border-radius:10px;margin:8px 0;overflow:hidden"><div id="aCoinsProgress" style="height:100%;background:linear-gradient(90deg,#00FF00,#FFCC02);width:100%"></div></div><small id="aCoinsInfo" style="color:#aaa">1B @ 599 UGX = UGX 599B Potential</small></div></div>
 </div>
-<div class="card"><h3>🖼️ Preview Grid — 12 Latest Products</h3><div id="previewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div></div>
+</div>
+
+<div class="card" style="margin:12px 0 0 0"><h3 style="margin:0 0 8px 0">🖼️ Live Product Feed — Latest 12 with Business & Shop Link</h3><div id="previewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div></div>
+<div class="card" style="margin:12px 0 0 0"><h3>📋 Quick Actions & Health</h3><div id="healthBox" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px"></div></div>
+
 </div>
 </div>
 
@@ -274,20 +288,6 @@ async function deleteShop(slug){
     box.innerHTML=oldHtml;
   }
 }
-async function verifyShop(slug, action){
-  if(!confirm(action+' shop '+slug+'?')) return;
-  let d = await safeFetchJson('/api/admin/shop/verify',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({shop_slug:slug, action:action})
-  });
-  if(d && d.success){
-    alert('✅ Shop '+action+'d!');
-    loadData();
-  } else {
-    alert('Failed: '+(d?d.message:'Server waking, retry'));
-  }
-}
 function renderUsers(){let users=ALL.users||[]; let filtered=users; if(USER_FILTER==='pending') filtered=users.filter(u=>!u.paid || u.subscription_expires < Date.now()/1000); if(USER_FILTER==='active') filtered=users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000); document.getElementById('usersBox').innerHTML=filtered.length?'<table><tr><th>Email</th><th>Business</th><th>Coins</th><th>Status</th></tr>'+filtered.map(u=>{let isExpired = u.subscription_expires < Date.now()/1000; let statusBadge = (!u.paid || isExpired)?'<span style="background:red;padding:3px 6px;border-radius:5px">⛔</span>':'<span style="background:green;padding:3px 6px;border-radius:5px">✅</span>'; return `<tr><td style="font-size:11px">${u.email}</td><td><span class="yellow-box">${u.business||''}</span></td><td><b style="color:#FFCC02">${u.coins||0}</b></td><td>${statusBadge}</td></tr>`}).join('')+'</table>':'No users';}
 
 function loadCoinsTab(){
@@ -391,24 +391,41 @@ function renderProductsSorted(){
  document.getElementById('productsBox').innerHTML=list.length?list.slice(0,80).map(p=>`<div class="prod-row"><img src="${p.image}"><div style="flex:1"><b>${p.name}</b> <span style="background:#FFCC02;color:#000;padding:2px 6px;border-radius:8px;font-size:10px">${p.main_category||'General'}</span> - UGX ${Number(p.price).toLocaleString()}<br><small>${p.business||''} | 📍 ${p.location||''}</small><br><button style="background:#900;font-size:10px" onclick="delProd(${p.id})">Delete</button> <a href="/shop/${p.shop_slug||''}" target="_blank"><button style="background:#FFCC02;color:#000;font-size:10px">Shop</button></a></div></div>`).join(''):'No products match filter';
 }
 
-// ===== NEW ANALYTICS CHARTS =====
+// ===== PRO ANALYTICS CHARTS =====
 function drawAnalyticsCharts(){
- let prods=ALL.products||[]; let shops=ALL.shops||[]; let coinCfg=ALL.coin_config||{remaining:1000000000};
- // Category Pie
- let cats={}; prods.forEach(p=>{let c=p.main_category||'General'; cats[c]=(cats[c]||0)+1;});
- let catLabels=Object.keys(cats); let catData=Object.values(cats);
+ let prods=ALL.products||[]; let shops=ALL.shops||[]; let users=ALL.users||[]; let coinCfg=ALL.coin_config||{remaining:1000000000, total:1000000000, sold:0}; let orders=ALL.orders||[];
+ let totalValue = prods.reduce((s,p)=>s+(Number(p.price)||0),0);
+ let avgPrice = prods.length? Math.round(totalValue/prods.length):0;
+ let activeShops = shops.filter(s=> (s.total_products||0) > 0).length;
+ let activeUsers = users.filter(u=>u.paid && u.subscription_expires > Date.now()/1000).length;
+ document.getElementById('kpiGmv').innerText = 'UGX '+totalValue.toLocaleString();
+ document.getElementById('kpiGmvSub').innerText = 'Avg UGX '+avgPrice.toLocaleString()+' • '+prods.length+' items';
+ document.getElementById('kpiShops').innerText = activeShops+' / '+shops.length;
+ document.getElementById('kpiShopsSub').innerText = (shops.length-activeShops)+' empty shops';
+ document.getElementById('kpiUsers').innerText = users.length;
+ document.getElementById('kpiUsersSub').innerText = activeUsers+' active • '+(users.length-activeUsers)+' expired';
+ document.getElementById('kpiCoins').innerText = Number(coinCfg.sold||0).toLocaleString()+' sold';
+ document.getElementById('kpiCoinsSub').innerText = Number(coinCfg.remaining||1000000000).toLocaleString()+' remain';
+ let cats={}; prods.forEach(p=>{let c=(p.main_category||'General').trim(); cats[c]=(cats[c]||0)+1;});
+ let sortedCats = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+ let topCats = sortedCats.slice(0,6); let otherCount = sortedCats.slice(6).reduce((s,c)=>s+c[1],0); if(otherCount>0) topCats.push(['Others', otherCount]);
+ let catLabels=topCats.map(c=>c[0]); let catData=topCats.map(c=>c[1]); let colors = ['#FFCC02','#ff6a00','#00FF00','#00aaff','#ff0000','#aa00ff','#555','#888'];
  if(catChart) catChart.destroy();
- catChart=new Chart(document.getElementById('catPie'),{type:'pie',data:{labels:catLabels,datasets:[{data:catData,backgroundColor:['#FFCC02','#ff6a00','#00FF00','#ff0000','#333','#aaa','#FFCC02','#ff6a00','#00FF00']}]},options:{plugins:{legend:{labels:{color:'white'}}}}});
- // Top Shops Bar
+ catChart=new Chart(document.getElementById('catPie'),{type:'doughnut',data:{labels:catLabels, datasets:[{data:catData, backgroundColor:colors, borderWidth:2, borderColor:'#1e1e1e'}]},options:{plugins:{legend:{position:'bottom', labels:{color:'white', font:{size:11}, boxWidth:12}}}, cutout:'55%'}});
+ document.getElementById('catLegend').innerHTML = topCats.map((c,i)=>`<span style="display:inline-block;margin:2px 6px"><span style="display:inline-block;width:10px;height:10px;background:${colors[i]};border-radius:2px"></span> ${c[0]}: <b>${c[1]}</b> (${Math.round(c[1]/prods.length*100)}%)</span>`).join('');
  let topShops=[...shops].sort((a,b)=>(b.total_products||0)-(a.total_products||0)).slice(0,5);
  if(shopChart) shopChart.destroy();
- shopChart=new Chart(document.getElementById('shopBar'),{type:'bar',data:{labels:topShops.map(s=>(s.business_name||'Shop').substring(0,12)),datasets:[{label:'Products',data:topShops.map(s=>s.total_products||0),backgroundColor:'#FFCC02'}]},options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'}}},plugins:{legend:{labels:{color:'white'}}}}});
- // Price Histogram
- let prices={low:0,mid:0,high:0}; prods.forEach(p=>{if(p.price<20000) prices.low++; else if(p.price<100000) prices.mid++; else prices.high++;});
+ shopChart=new Chart(document.getElementById('shopBar'),{type:'bar',data:{labels:topShops.map(s=>(s.business_name||s.shop_slug||'Shop').substring(0,14)), datasets:[{label:'Products', data:topShops.map(s=>s.total_products||0), backgroundColor:'#FFCC02', borderRadius:6}]},options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#aaa'}, grid:{color:'#333'}}, y:{ticks:{color:'white', font:{size:11}}, grid:{display:false}}}}});
+ let prices={low:0,mid:0,high:0}; prods.forEach(p=>{let pr=Number(p.price)||0; if(pr<20000) prices.low++; else if(pr<100000) prices.mid++; else prices.high++;});
  if(priceChart) priceChart.destroy();
- priceChart=new Chart(document.getElementById('priceBar'),{type:'bar',data:{labels:['0-20k','20k-100k','100k+'],datasets:[{label:'Products',data:[prices.low,prices.mid,prices.high],backgroundColor:['#FFCC02','#ff6a00','#00FF00']}]},options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'}}},plugins:{legend:{labels:{color:'white'}}}}});
- // Preview Grid
- document.getElementById('previewGrid').innerHTML=prods.slice(0,12).map(p=>`<div style="background:#111;border-radius:10px;overflow:hidden;border:1px solid #333"><img src="${p.image}" style="width:100%;height:90px;object-fit:cover"><div style="padding:6px"><small style="color:#FFCC02">${p.main_category||''}</small><br><b style="font-size:11px">${(p.name||'').substring(0,18)}</b><br><b style="color:#00FF00;font-size:11px">UGX ${Number(p.price||0).toLocaleString()}</b></div></div>`).join('');
+ priceChart=new Chart(document.getElementById('priceBar'),{type:'bar',data:{labels:['0-20k (Low)','20k-100k (Mid)','100k+ (Premium)'], datasets:[{label:'Products', data:[prices.low,prices.mid,prices.high], backgroundColor:['#FFCC02','#ff6a00','#00FF00'], borderRadius:6}]},options:{plugins:{legend:{display:false}}, scales:{y:{ticks:{color:'#aaa'}, grid:{color:'#333'}}, x:{ticks:{color:'white', font:{size:11}}, grid:{display:false}}}}});
+ document.getElementById('priceStats').innerHTML = `Low: ${prices.low} • Mid: ${prices.mid} • Premium: ${prices.high} • Total Value: <b style="color:#00FF00">UGX ${totalValue.toLocaleString()}</b>`;
+ let remain = Number(coinCfg.remaining||1000000000); let sold = Number(coinCfg.sold||0); let total = Number(coinCfg.total||1000000000); let pct = total? (remain/total*100):100;
+ document.getElementById('aCoinsRemain').innerText=remain.toLocaleString(); document.getElementById('aCoinsSold').innerText=sold.toLocaleString(); document.getElementById('aCoinsProgress').style.width = pct+'%'; document.getElementById('aCoinsInfo').innerText = `Progress: ${pct.toFixed(2)}% remain • Sold value: UGX ${(sold*599).toLocaleString()}`;
+ let noImg = prods.filter(p=>!p.image).length; let highPrice = prods.filter(p=> (p.price||0) > 200000).length;
+ document.getElementById('insightsBox').innerHTML = `<div>✅ <b>Top Category:</b> ${catLabels[0]||'N/A'} (${catData[0]||0} products)</div><div>⚠️ <b>Empty Shops:</b> ${shops.length-activeShops} shops have 0 products</div><div>💡 <b>Premium Opportunity:</b> ${highPrice} products >200k</div><div>🖼️ <b>Image Health:</b> ${noImg} products missing image</div><div>📦 <b>Orders:</b> ${orders.length} total</div><div>👤 <b>User Health:</b> ${activeUsers}/${users.length} active (${users.length? Math.round(activeUsers/users.length*100):0}%)</div>`;
+ document.getElementById('previewGrid').innerHTML=prods.slice(0,12).map(p=>`<div style="background:#111;border-radius:10px;overflow:hidden;border:1px solid #333"><img src="${p.image||'https://via.placeholder.com/150'}" style="width:100%;height:110px;object-fit:cover"><div style="padding:8px"><small style="color:#FFCC02;font-size:10px">${p.main_category||''}</small><br><b style="font-size:12px;line-height:1.2;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name||''}</b><small style="color:#aaa;font-size:10px">${(p.business||'').substring(0,18)}</small><br><b style="color:#00FF00;font-size:12px">UGX ${Number(p.price||0).toLocaleString()}</b><br><a href="/shop/${p.shop_slug||''}" target="_blank" style="font-size:10px;color:#FFCC02">Visit Shop →</a></div></div>`).join('');
+ document.getElementById('healthBox').innerHTML = `<div style="background:#111;padding:10px;border-radius:8px;border:1px solid #333">🟢 <b>Neon DB:</b> ${shops.length>0?'Connected':'Check load_db'}<br><small>Products: ${ALL.products_count||prods.length} • Shops: ${shops.length}</small></div><div style="background:#111;padding:10px;border-radius:8px;border:1px solid #333">🟡 <b>Render:</b> Free tier<br><small>Last load: ${new Date().toLocaleTimeString()}</small></div>`;
 }
 
 async function loadData(){
