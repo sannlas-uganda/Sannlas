@@ -2196,6 +2196,8 @@ def admin_data():
         contacts_full = load_db('contacts.json', []) or []
         withdraws_full = load_db('withdraws.json', []) or []
         wants_full = load_db('wants.json', []) or []
+        shares_full = load_db('share_transactions.json', []) or []
+        coin_cfg = load_db('coin_config.json', {}) or {}
         for s in shops_full: s['total_products'] = sum(1 for p in products_full if p.get('shop_slug','')==s.get('shop_slug',''))
         # For display - trim images only, but keep ALL items for counts
         safe_products = []
@@ -2232,6 +2234,10 @@ def admin_data():
             'withdraws_count': len(withdraws_full),
             'wants': wants_full[-50:],
             'wants_count': len(wants_full),
+            'shares': shares_full[-100:][::-1],
+            'shares_count': len(shares_full),
+            'share_profit_coins': coin_cfg.get('share_profit_coins',0),
+            'share_profit_ugx': coin_cfg.get('share_profit_ugx',0),
             'chat_unlocks': []
         })
     except Exception as e:
