@@ -1119,19 +1119,37 @@ def coins_buy():
     email=data.get('email','').lower().strip()
     phone=data.get('phone','').strip()
     pack_id=data.get('pack','10')
-    momo_code=data.get('momo_code','').strip().upper()
+    momo_code=data.get('momo_code','').strip().upper().replace(" ","")
     momo_phone=data.get('momo_phone','').strip()
     pack = COIN_PACKS.get(pack_id)
     if not pack: return jsonify({'success':False,'message':'Invalid pack'}),400
+    
+    # === NEW SECURITY CHECKS YOU ASKED FOR ===
+    # 1. Length check - MTN 10 digits
+    if len(momo_code) < 10 or len(momo_code) > 13:
+        return jsonify({'success':False,'message':'❌ Transaction ID must be 10-13 digits! Check SMS'}),400
+    # 2. Only letters/numbers
+    if not re.match(r'^[A-Z0-9]+$', momo_code):
+        return jsonify({'success':False,'message':'❌ Only letters and numbers allowed!'}),400
+    # 3. Phone check
+    if len(momo_phone) < 9:
+        return jsonify({'success':False,'message':'❌ Enter valid MoMo number'}),400
+    # 4. Already used? (Fake detection)
     txs = load_db('coin_transactions.json', [])
     if any(t.get('momo_code','').upper()==momo_code for t in txs):
-        return jsonify({'success':False,'message':f'{momo_code} already used!'}),400
+        return jsonify({'success':False,'message':f'❌ {momo_code} already used! Fake detected - Blocked!'}),400
+    # 5. Same phone trying to spam? Check last 2 mins
+    recent = [t for t in txs if t.get('phone')==phone and time.time() - t.get('time',0) < 120]
+    if len(recent) >= 3:
+        return jsonify({'success':False,'message':'❌ Too many tries! Wait 2 mins Boss'}),400
+
+    # === END CHECKS ===
     cfg = get_coin_config()
     if cfg['remaining'] < pack['coins']: return jsonify({'success':False,'message':'Coins finished!'}),400
     new_tx = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'pack': pack_id, 'coins': pack['coins'], 'price': pack['price'], 'momo_code': momo_code, 'momo_phone': momo_phone, 'time': time.time(), 'status': 'pending'}
     txs.append(new_tx); save_db('coin_transactions.json', txs)
     cfg['remaining'] -= pack['coins']; cfg['sold'] += pack['coins']; save_coin_config(cfg)
-    return jsonify({'success':True,'message':'Pending verification by owner!','coins': 0, 'config': cfg, 'pending': True})
+    return jsonify({'success':True,'message':'✅ Pending verification by owner! Admin will check MoMo SMS - 0795712326','coins': 0, 'config': cfg, 'pending': True})
 
 @app.route('/api/coins/verify', methods=['POST'])
 @admin_required
