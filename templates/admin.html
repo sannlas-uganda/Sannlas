@@ -157,15 +157,17 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div id="addCoinStatus" style="margin-top:5px;font-size:12px"></div>
 </div>
 <div id="coinsLiveBox" style="background:#000;padding:15px;border-radius:12px;border:2px solid #FFCC02;margin:10px 0;text-align:center">
-<div style="font-size:13px;color:#FFCC02">🔴 LIVE MAJOR BALANCE - Auto Deduct 10 Bonus</div>
+<div style="font-size:13px;color:#FFCC02">🔴 LIVE MAJOR BALANCE - 1 coin = 599 UGX</div>
 <div style="font-size:32px;font-weight:bold;color:#00FF00" id="coinsRemainShow">1,000,000,000</div>
 <div style="font-size:14px;color:#FFCC02" id="coinsRemainUgx">UGX 599,000,000,000</div>
 <div style="width:100%;height:14px;background:#333;border-radius:10px;margin:10px 0;overflow:hidden"><div id="coinsProgress" style="height:100%;background:linear-gradient(90deg,#FFCC02,#ff6a00);width:100%"></div></div>
-<div style="display:flex;gap:5px;justify-content:center;margin-top:10px">
-<input id="majorAddAmount" type="number" placeholder="Add to Major" style="width:140px;background:#111;border:1px solid #FFCC02">
-<button onclick="addMajorCoins()" style="background:#FFCC02;color:#000;font-weight:900">➕ Add to Major</button>
+<div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+<input id="majorAddAmount" type="number" placeholder="Amount" style="width:120px;background:#111;border:1px solid #FFCC02;color:#fff;padding:8px;border-radius:8px">
+<button onclick="addMajorCoins('add')" style="background:#00FF00;color:#000;font-weight:900;padding:8px 15px;border-radius:8px;border:none">➕ ADD</button>
+<button onclick="addMajorCoins('remove')" style="background:#FF4444;color:#fff;font-weight:900;padding:8px 15px;border-radius:8px;border:none">➖ REDUCE</button>
+<button onclick="loadData()" style="background:#FFCC02;color:#000;font-weight:900;padding:8px 15px;border-radius:8px;border:none">🔄 REFRESH</button>
 </div>
-<small style="color:#aaa">Register -10 | Buy -amount | 1 coin = 599 UGX</small>
+<small style="color:#aaa">Register -10 auto | Buy -amount auto | Add/Reduce manual</small>
 </div>
 <div id="coinsBox">Loading...</div></div></div>
 
@@ -413,14 +415,20 @@ function renderShares(){
 }
 function verifyCoin(code, action){if(!confirm(action+' '+code+'?'))return; fetch('/api/coins/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({momo_code:code, action:action})}).then(()=>loadData());}
 async function adminAddCoins(){ let email=document.getElementById('addCoinEmail').value.trim().toLowerCase(); let phone=document.getElementById('addCoinPhone').value.trim(); let coins=parseInt(document.getElementById('addCoinAmount').value); let reason=document.getElementById('addCoinReason').value.trim()||'Admin refill'; if(!coins){alert('Enter coins');return;} if(!email &&!phone){alert('Enter email or phone');return;} let d = await safeFetchJson('/api/admin/coins/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,coins,reason})}); document.getElementById('addCoinStatus').innerHTML=d && d.success?`<span style="color:#00FF00">✅ ${d.message}</span>`:`<span style="color:red">${(d && d.message)||'Server waking, retry'}</span>`; if(d && d.success) loadData();}
-async function addMajorCoins(){
+async function addMajorCoins(type='add'){
   let amt=parseInt(document.getElementById('majorAddAmount').value);
   if(!amt) return alert('Enter amount Boss!');
-  if(!confirm('Add '+amt.toLocaleString()+' to MAJOR?')) return;
-  let d=await safeFetchJson('/api/admin/coins/major/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amt})});
-  if(d&&d.success){alert('✅ Added!'); loadData();}
-  else alert('Failed');
-}  
+  if(!confirm((type=='add'?'ADD ':'REDUCE ')+amt.toLocaleString()+' from MAJOR?')) return;
+  let d=await safeFetchJson('/api/admin/coins/major/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amt,type:type})});
+  if(d&&d.success){
+    alert('✅ '+d.message);
+    // UPDATE LIVE WITHOUT REFRESH
+    document.getElementById('coinsRemainShow').innerText=Number(d.config.remaining||0).toLocaleString();
+    document.getElementById('coinsRemainUgx').innerText='UGX '+(Number(d.config.remaining||0)*599).toLocaleString();
+    document.getElementById('coinsProgress').style.width=(d.config.remaining/d.config.total*100)+'%';
+    ALL.coin_config=d.config;
+  } else alert('Failed: '+(d?d.message:'Network'));
+}
 function loadWithdraws(){ let withdraws=ALL.withdraws||[]; document.getElementById('cWithdraws').innerText=withdraws.length; let box=document.getElementById('withdrawsBox'); if(!withdraws.length){box.innerHTML='<p>No withdraws</p>';return;} box.innerHTML='<table><tr><th>User</th><th>Amount</th><th>MoMo</th><th>Status</th><th>Action</th></tr>'+withdraws.slice().reverse().map(w=>`<tr><td style="font-size:11px">${w.email}</td><td><b style="color:#00FF00">UGX ${Number(w.amount).toLocaleString()}</b></td><td><b>${w.momo_number}</b></td><td>${w.status}</td><td>${w.status=='pending'?`<button style="background:#00FF00;color:#000;font-size:10px" onclick="withdrawAction(${w.id},'paid')">✅ PAID</button>`:''}</td></tr>`).join('')+'</table>';}
 function withdrawAction(id,action){if(!confirm(action+' '+id+'?'))return;fetch('/api/admin/withdraw/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})}).then(()=>loadData());}
 async function uploadBillboardFile(){ const fileInput=document.getElementById('bbFileInput'); const file=fileInput.files[0]; if(!file){alert('Choose file');return;} const form=new FormData(); form.append('file',file); form.append('text',document.getElementById('bbText').value.trim()); form.append('link',document.getElementById('bbLink').value.trim()); form.append('duration',document.getElementById('bbDuration').value); document.getElementById('bbUploadStatus').innerHTML='<span style="color:yellow">⏳ Uploading...</span>'; let d = await safeFetchJson('/api/upload/billboard',{method:'POST',body:form}); if(d && d.success){document.getElementById('bbUploadStatus').innerHTML='<span style="color:#00FF00">✅ LIVE!</span>'; loadData();} else document.getElementById('bbUploadStatus').innerHTML='<span style="color:red">❌ '+(d?d.error:'Server waking, retry')+'</span>';}
