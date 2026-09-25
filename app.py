@@ -196,20 +196,18 @@ def get_db():
     return get_conn()
 
 def ensure_tables():
-    if not DATABASE_URL:
-        return
+    if not DATABASE_URL: return
     try:
-        conn = get_conn()
-        cur = conn.cursor()
+        conn = get_conn(); cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS shops (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
-        conn.commit()
-        cur.close()
-        conn.close()
+        cur.execute("CREATE TABLE IF NOT EXISTS chat_unlocks (buyer_email TEXT, shop_slug TEXT, unlock_type TEXT, created TIMESTAMP DEFAULT NOW(), PRIMARY KEY (buyer_email, shop_slug, unlock_type));")
+        cur.execute("CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, buyer_email TEXT, shop_slug TEXT, sender TEXT, text TEXT, time BIGINT);")
+        conn.commit(); cur.close(); conn.close()
     except Exception as e:
         print("ensure_tables:", e)
-
+        
 def load_db(file, default):
     try:
         if DATABASE_URL:
@@ -738,51 +736,6 @@ def wants_page():
 @app.route('/wants/<int:wid>')
 def want_detail_page(wid):
     return render_template('want_detail.html')
-
-def send_reset_email(to_email, otp, user_name="Boss"):
-    try:
-        import socket
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        msg = MIMEMultipart()
-        msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Your Sannla Reset Code is {otp}"
-        body = f"""
-        <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
-          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
-          <div style="padding:22px">
-            <h3>Hi {user_name},</h3>
-            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
-            <p>Expires in <b>10 mins</b></p>
-          </div>
-        </div>
-        """
-        msg.attach(MIMEText(body, 'html'))
-        pass_clean = EMAIL_APP_PASSWORD.replace(' ','')
-        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
-        if not infos:
-            raise Exception("No IPv4 for gmail")
-        af, socktype, proto, canonname, sa = infos[0]
-        sock = socket.socket(af, socktype, proto)
-        sock.settimeout(20)
-        sock.connect(sa)
-        server = smtplib.SMTP(timeout=20)
-        server.sock = sock
-        server._host = 'smtp.gmail.com'
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(EMAIL_FROM, pass_clean)
-        server.send_message(msg)
-        server.quit()
-        print(f"✅ Email sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"Email error: {e}")
-        import traceback; traceback.print_exc()
-        return False
 
 @app.route('/product/<pid>')
 def product_link(pid):
@@ -1879,59 +1832,30 @@ def get_shop_by_slug(slug):
         if DATABASE_URL:
             try:
                 conn = get_conn()
-                # Try psycopg3 first, fallback to psycopg2
-                try:
-                    from psycopg.rows import dict_row
-                    cur = conn.cursor(row_factory=dict_row)
-                    cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s OR LOWER(data->>'slug') = %s LIMIT 1", (slug_lower, slug_lower))
-                    row = cur.fetchone()
-                    if row:
-                        shop_data = row['data']
-                        if isinstance(shop_data, str): shop_data = json.loads(shop_data)
-                        shop_data['id'] = row['id']
-                        real_slug = shop_data.get('shop_slug') or slug
-                        cur.execute("SELECT data FROM products WHERE LOWER(data->>'shop_slug') = LOWER(%s) ORDER BY id DESC LIMIT 100", (real_slug,))
-                        rows = cur.fetchall()
-                        products = []
-                        for r in rows:
-                            d = r['data']
-                            if isinstance(d, str):
-                                try: d = json.loads(d)
-                                except: continue
-                            if isinstance(d, dict):
-                                d.pop('phone', None)
-                                products.append(d)
-                        cur.close(); conn.close()
-                        return jsonify({'success':True,'shop':shop_data,'products':products})
-                except ImportError:
-                    # psycopg3 not installed, use psycopg2
-                    import psycopg2.extras
-                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                    cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s OR LOWER(data->>'slug') = %s LIMIT 1", (slug_lower, slug_lower))
-                    row = cur.fetchone()
-                    if not row:
-                        cur.close(); conn.close()
-                        return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
-                    shop_data = row['data']
-                    if isinstance(shop_data, str): shop_data = json.loads(shop_data)
-                    shop_data['id'] = row['id']
-                    real_slug = shop_data.get('shop_slug') or slug
-                    cur.execute("SELECT data FROM products WHERE LOWER(data->>'shop_slug') = LOWER(%s) ORDER BY id DESC LIMIT 100", (real_slug,))
-                    rows = cur.fetchall()
-                    products = []
-                    for r in rows:
-                        d = r['data']
-                        if isinstance(d, str):
-                            try: d = json.loads(d)
-                            except: continue
-                        if isinstance(d, dict):
-                            d.pop('phone', None)
-                            products.append(d)
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s OR LOWER(data->>'slug') = %s LIMIT 1", (slug_lower, slug_lower))
+                row = cur.fetchone()
+                if not row:
                     cur.close(); conn.close()
-                    return jsonify({'success':True,'shop':shop_data,'products':products})
-
+                    return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
+                shop_data = row['data']
+                if isinstance(shop_data, str): shop_data = json.loads(shop_data)
+                shop_data['id'] = row['id']
+                real_slug = shop_data.get('shop_slug') or slug
+                cur.execute("SELECT data FROM products WHERE LOWER(data->>'shop_slug') = LOWER(%s) ORDER BY id DESC LIMIT 100", (real_slug,))
+                rows = cur.fetchall()
+                products = []
+                for r in rows:
+                    d = r['data']
+                    if isinstance(d, str):
+                        try: d = json.loads(d)
+                        except: continue
+                    if isinstance(d, dict):
+                        d.pop('phone', None)
+                        products.append(d)
                 cur.close(); conn.close()
-                return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
+                return jsonify({'success':True,'shop':shop_data,'products':products})
             except Exception as e:
                 print("SHOP SLUG ERROR:", e)
                 import traceback; traceback.print_exc()
@@ -2597,66 +2521,37 @@ def add_cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
-# ============ SANNLAS CONTACT SYSTEM - 1 COIN PER CONTACT - FIXED ============
-def get_db():
-    return get_conn()
-
 @app.route('/api/chat/check-unlock')
 def check_unlock_status():
     buyer = request.args.get('buyer','').lower().strip()
     shop = request.args.get('shop','').lower().strip()
     unlock_type = request.args.get('type','chat').lower().strip()
     try:
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer, shop, unlock_type))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        return jsonify({"unlocked": bool(row)})
-    except Exception as e:
-        print(f"check-unlock error: {e}")
+        data = load_db('chat_unlocks.json', [])
+        found = any(str(x.get('buyer_email','')).lower()==buyer and str(x.get('shop_slug','')).lower()==shop and str(x.get('unlock_type','')).lower()==unlock_type for x in data)
+        return jsonify({"unlocked": found})
+    except:
         return jsonify({"unlocked": False})
 
 @app.route('/api/chat/unlock', methods=['POST'])
 def unlock_chat_new():
-    try:
-        data = request.get_json()
-        buyer_email = data.get('buyer_email','').lower().strip()
-        shop_slug = data.get('shop_slug','').lower().strip()
-        unlock_type = data.get('type','chat').lower().strip()
-
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
-        if cur.fetchone():
-            cur.close()
-            conn.close()
-            return jsonify({"success": True, "already_unlocked": True})
-
-        cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
-        u = cur.fetchone()
-        if not u:
-            cur.execute("INSERT INTO users (email, coins) VALUES (%s, 5) ON CONFLICT (email) DO NOTHING", (buyer_email,))
-            conn.commit()
-            cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
-            u = cur.fetchone()
-
-        if not u or (u[0] or 0) < 1:
-            cur.close()
-            conn.close()
-            return jsonify({"success": False, "error": "Not enough coins!"}), 400
-
-        cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
-        new_balance = cur.fetchone()[0]
-        cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type) VALUES (%s, %s, %s) ON CONFLICT (buyer_email, shop_slug, unlock_type) DO NOTHING", (buyer_email, shop_slug, unlock_type))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"success": True, "new_balance": new_balance, "type": unlock_type})
-    except Exception as e:
-        print(f"unlock error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+    data = request.get_json() or {}
+    buyer_email = data.get('buyer_email','').lower().strip()
+    shop_slug = data.get('shop_slug','').lower().strip()
+    unlock_type = data.get('type','chat').lower().strip()
+    unlocks = load_db('chat_unlocks.json', [])
+    if any(str(x.get('buyer_email','')).lower()==buyer_email and str(x.get('shop_slug','')).lower()==shop_slug for x in unlocks):
+        return jsonify({"success": True, "already_unlocked": True})
+    users = load_db('users.json', [])
+    u = next((x for x in users if str(x.get('email','')).lower()==buyer_email), None)
+    if not u or int(u.get('coins',0)) < 1:
+        return jsonify({"success": False, "error": "Not enough coins!"}), 400
+    u['spent'] = int(u.get('spent',0))+1
+    u['coins'] = int(u.get('bought',0))+int(u.get('earned',0))-int(u.get('spent',0))
+    save_db('users.json', users)
+    unlocks.append({"buyer_email":buyer_email,"shop_slug":shop_slug,"unlock_type":unlock_type,"time":time.time()})
+    save_db('chat_unlocks.json', unlocks)
+    return jsonify({"success": True, "new_balance": u['coins']})
 
 @app.route('/api/chat/send', methods=['POST'])
 def chat_send_new():
