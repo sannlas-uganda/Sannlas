@@ -1841,160 +1841,99 @@ def sell():
 @app.route('/api/shops')
 def list_shops():
     try:
-        shops = []
-        # --- TRY NEON FIRST ---
+        shops = load_db('shops.json', [])
+        # FAST COUNT - Don't load full products if using Postgres
         if DATABASE_URL:
             try:
                 conn = get_conn()
-                from psycopg.rows import dict_row
-                cur = conn.cursor(row_factory=dict_row)
-
-                # Get all shops from Neon (id + data)
-                cur.execute("SELECT id, data FROM shops ORDER BY id DESC LIMIT 100")
-                shop_rows = cur.fetchall()
-
-                # Get counts from products
+                cur = conn.cursor()
                 cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY slug")
-                count_rows = cur.fetchall()
-
+                rows = cur.fetchall()
                 counts = {}
-                for r in count_rows:
-                    counts[r['slug']] = int(r['cnt']) if isinstance(r, dict) else int(r[1])
-
-                for r in shop_rows:
-                    d = r['data']
-                    if isinstance(d, str):
-                        try:
-                            d = json.loads(d)
-                        except:
-                            continue
-                    if not isinstance(d, dict):
-                        continue
-
-                    # Keep original keys but ensure counts
-                    slug = d.get('shop_slug') or d.get('slug')
-                    d['total_products'] = counts.get(slug, 0)
-                    # Make sure id is there
-                    d['id'] = r['id']
-                    shops.append(d)
-
+                for r in rows:
+                    # r can be tuple or dict
+                    if isinstance(r, dict):
+                        counts[r['slug']] = int(r['cnt'])
+                    else:
+                        counts[str(r[0])] = int(r[1])
                 cur.close()
                 conn.close()
             except Exception as e:
-                print("shops neon error:", e)
-                import traceback
-                traceback.print_exc()
-                shops = []
-
-        # Fallback to file if Neon fails or empty
-        if not shops:
-            shops = load_db('shops.json', [])
-            # still calc counts local...
+                print("shops fast count error:", e)
+                counts = {}
+                try: conn.close()
+                except: pass
+        else:
+            # Local file - still fast, only read slugs
             try:
-                if DATABASE_URL:
-                    # already tried
-                    pass
+                path = 'data/products.json'
+                if os.path.exists(path):
+                    data = json.load(open(path))
+                    counts = {}
+                    for p in data:
+                        slug = p.get('shop_slug')
+                        if slug:
+                            counts[slug] = counts.get(slug, 0) + 1
                 else:
-                    path = 'data/products.json'
-                    if os.path.exists(path):
-                        data = json.load(open(path))
-                        counts = {}
-                        for p in data:
-                            slug = p.get('shop_slug')
-                            if slug:
-                                counts[slug] = counts.get(slug, 0) + 1
-                        for s in shops:
-                            s['total_products'] = counts.get(s.get('shop_slug'), 0)
+                    counts = {}
             except:
-                pass
+                counts = {}
+
+        for s in shops:
+            slug = s.get('shop_slug')
+            s['total_products'] = counts.get(slug, 0)
 
         filtered = [s for s in shops if s.get('total_products',0)>0]
         if not filtered:
-            filtered = shops[:50]
+            filtered = shops[:50] # Show at least 50 if counts fail
 
         return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
-
     except Exception as e:
         print("SHOPS ERROR:", e)
-        import traceback
-        traceback.print_exc()
-        return jsonify([])
+        try:
+            shops = load_db('shops.json', [])[:50]
+            return jsonify(shops)
+        except:
+            return jsonify([])
 
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     try:
-        shop = None
-        # --- TRY NEON FIRST ---
+        shops = load_db('shops.json', [])
+        shop = next((s for s in shops if s.get('shop_slug')==slug), None)
+        if not shop:
+            return jsonify({'success':False,'message':'Shop not found'}),404 
+
+        # FAST LOAD - Only products for this shop
         if DATABASE_URL:
             try:
                 conn = get_conn()
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
-
-                # Find shop in Neon where data->>'shop_slug' = slug OR slug OR name
-                cur.execute("""
-                    SELECT id, data FROM shops
-                    WHERE data->>'shop_slug' = %s
-                       OR data->>'slug' = %s
-                       OR data->>'name' = %s
-                       OR LOWER(data->>'name') = LOWER(%s)
-                    LIMIT 1
-                """, (slug, slug, slug, slug))
-                row = cur.fetchone()
-
-                if row:
-                    d = row['data']
-                    if isinstance(d, str):
-                        d = json.loads(d)
-                    d['id'] = row['id']
-                    shop = d
-                    # Get products for this shop
-                    cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s OR data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (shop.get('shop_slug'), slug))
-                    # Try both slug variations
-                    rows = cur.fetchall()
-                    shop_products = []
-                    for r in rows:
-                        pd = r['data']
-                        if isinstance(pd, str):
-                            try: pd = json.loads(pd)
-                            except: continue
-                        pp = pd.copy()
-                        pp.pop('phone', None)
-                        shop_products.append(pp)
-                else:
-                    shop_products = []
-
+                cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
+                rows = cur.fetchall()
+                shop_products = []
+                for r in rows:
+                    d=r['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
+                        except: pass
+                    pp=d.copy()
+                    pp.pop('phone',None)
+                    shop_products.append(pp)
                 cur.close()
                 conn.close()
-
-                if shop:
-                    return jsonify({'success': True, 'shop': shop, 'products': shop_products})
-
             except Exception as e:
-                print("shop slug neon error:", e)
-                import traceback
-                traceback.print_exc()
-                try:
-                    conn.close()
-                except:
-                    pass
-
-        # FALLBACK TO JSON FILE
-        shops = load_db('shops.json', [])
-        shop = next((s for s in shops if s.get('shop_slug') == slug or s.get('slug') == slug), None)
-        if not shop:
-            return jsonify({'success': False, 'message': 'Shop not found'}), 404
-
-        products = load_db('products.json', [])
-        shop_products = [p for p in products if p.get('shop_slug') == slug][:100]
-
-        return jsonify({'success': True, 'shop': shop, 'products': shop_products})
-
+                print("shop slug error:", e)
+                products = load_db('products.json', [])
+                shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+        else:
+            products = load_db('products.json', [])
+            shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+        return jsonify({'success':True,'shop':shop,'products':shop_products})
     except Exception as e:
         print("get_shop_by_slug error:", e)
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': 'Server busy, try again'}), 500
+        return jsonify({'success':False,'message':'Server busy, try again'}),500
         
 @app.route('/api/shop/upload-logo', methods=['POST'])
 def upload_shop_logo():
