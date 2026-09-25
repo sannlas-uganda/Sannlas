@@ -1,9 +1,9 @@
-Flask
-psycopg2-binary
-Flask-Talisman
-Flask-Limiter
-Flask-Cors
-gunicorn
+Flask==3.0.3
+psycopg2-binary==2.9.9
+Flask-Talisman==1.1.0
+Flask-Limiter==3.5.1
+Flask-Cors==4.0.1
+gunicorn==22.0.0
 Pillow==10.4.0
-requests
-cloudinary
+requests==2.32.3
+cloudinary==1.40.0
