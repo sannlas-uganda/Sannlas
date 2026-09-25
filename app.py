@@ -878,10 +878,6 @@ def wallet_page():
 def balance_page(): return render_template('balance.html')
 @app.route('/invite')
 def invite_page(): return render_template('invite.html')
-@app.route('/shop/<slug>')
-def shop_page_slug(slug): return render_template('shop.html')
-@app.route('/shop')
-def shop_page(): return render_template('shop.html')
 
 @app.route('/sell')
 def sell_page():
@@ -2703,46 +2699,6 @@ def check_unlock_status():
         print(f"check-unlock error: {e}")
         return jsonify({"unlocked": False})
 
-@app.route('/api/chat/unlock', methods=['POST'])
-def unlock_chat_new():
-    try:
-        data = request.get_json()
-        buyer_email = data.get('buyer_email','').lower().strip()
-        shop_slug = data.get('shop_slug','').lower().strip()
-        unlock_type = data.get('type','chat').lower().strip()
-
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
-        if cur.fetchone():
-            cur.close()
-            conn.close()
-            return jsonify({"success": True, "already_unlocked": True})
-
-        cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
-        u = cur.fetchone()
-        if not u:
-            cur.execute("INSERT INTO users (email, coins) VALUES (%s, 5) ON CONFLICT (email) DO NOTHING", (buyer_email,))
-            conn.commit()
-            cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
-            u = cur.fetchone()
-
-        if not u or (u[0] or 0) < 1:
-            cur.close()
-            conn.close()
-            return jsonify({"success": False, "error": "Not enough coins!"}), 400
-
-        cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
-        new_balance = cur.fetchone()[0]
-        cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type) VALUES (%s, %s, %s) ON CONFLICT (buyer_email, shop_slug, unlock_type) DO NOTHING", (buyer_email, shop_slug, unlock_type))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"success": True, "new_balance": new_balance, "type": unlock_type})
-    except Exception as e:
-        print(f"unlock error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
 @app.route('/api/chat/send', methods=['POST'])
 def chat_send_new():
     try:
@@ -3198,6 +3154,85 @@ def add_major_coins():
         cfg['remaining'] = cfg.get('remaining',1000000000) + amount
     save_coin_config(cfg)
     return jsonify({'success':True,'message':f'{action} {amount} done','config':cfg})
+
+# ===== FIXED SHOP SYSTEM - NO MORE LOADING FOREVER =====
+@app.route('/shop/<path:slug>')
+def shop_page_slug(slug):
+    return """
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop</title>
+<style>body{font-family:Arial;padding:20px;max-width:1000px;margin:auto}
+.product{border:1px solid #ddd;padding:10px;margin:10px;display:inline-block;width:200px;border-radius:10px}
+.product img{width:100%;height:150px;object-fit:cover;border-radius:8px}
+#loading{text-align:center;margin-top:60px;font-size:20px}</style></head>
+<body>
+<a href="/all-shops">← Back to Shops</a>
+<div id="loading">Loading shop...</div>
+<div id="shop-info" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p></div>
+<div id="products"></div>
+<script>
+async function loadShop(){
+ try{
+  const slug = window.location.pathname.split('/shop/')[1].split('?')[0];
+  console.log("SLUG:",slug);
+  const res = await fetch('/api/shop/' + encodeURIComponent(slug));
+  const data = await res.json();
+  console.log("API:",data);
+  if(!res.ok ||!data.shop){
+    document.getElementById('loading').innerHTML='Shop not found: '+slug+'<br>'+JSON.stringify(data);
+    return;
+  }
+  const shop=data.shop; const products=data.products||[];
+  document.getElementById('loading').style.display='none';
+  document.getElementById('shop-info').style.display='block';
+  document.getElementById('shop-name').textContent=shop.business_name||shop.name||slug;
+  document.getElementById('shop-desc').textContent=shop.description||'';
+  let html='';
+  if(products.length===0) html='<p>No products yet</p>';
+  else products.forEach(p=>{
+    html+=`<div class="product"><img src="${p.image||'https://via.placeholder.com/150'}" onerror="this.src='https://via.placeholder.com/150'"><h4>${(p.name||'').replace(/</g,'&lt;')}</h4><p>UGX ${(p.price||0).toLocaleString()}</p><a href="/product/${p.id}">View</a></div>`;
+  });
+  document.getElementById('products').innerHTML=html;
+ }catch(e){ console.error(e); document.getElementById('loading').innerHTML='Error: '+e.message; }
+}
+loadShop();
+</script></body></html>
+"""
+
+@app.route('/api/shop/<path:slug>')
+def get_shop_by_slug(slug):
+    try:
+        clean = slug.lower().strip()
+        shops = load_db('shops.json', [])
+        # FIND SHOP - try every field
+        shop = None
+        for s in shops:
+            for key in ['shop_slug','slug','business_name','name']:
+                if str(s.get(key,'')).lower().strip() == clean: shop=s; break
+            if shop: break
+        if not shop:
+            for s in shops:
+                if clean in str(s.get('shop_slug','')).lower() or clean in str(s.get('business_name','')).lower():
+                    shop=s; break
+        if not shop:
+            return jsonify({'success':False,'message':f'Shop {slug} not found','shop':None,'products':[]}),404
+
+        real_slug = str(shop.get('shop_slug') or shop.get('slug') or slug).lower()
+        real_name = str(shop.get('business_name') or shop.get('name') or '').lower()
+
+        products = load_db('products.json', [])
+        shop_products=[]
+        for p in products:
+            ps = str(p.get('shop_slug','')).lower()
+            pn = str(p.get('business','')).lower()
+            if ps==real_slug or ps==clean or pn==real_name or real_slug in ps:
+                pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
+
+        return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success':False,'message':str(e)}),500
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
