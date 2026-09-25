@@ -189,24 +189,24 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 def get_conn():
     if not DATABASE_URL:
         raise Exception("No DATABASE_URL")
-    try:
-        import psycopg
-        return psycopg.connect(DATABASE_URL, connect_timeout=10)
-    except Exception as e:
-        print("DB connect error:", e)
-        raise Exception(f"DB connection failed: {e}")
+    import psycopg
+    return psycopg.connect(DATABASE_URL, connect_timeout=10)
 
 def get_db():
     return get_conn()
 
 def ensure_tables():
-    if not DATABASE_URL: return
+    if not DATABASE_URL:
+        return
     try:
-        conn = get_conn(); cur = conn.cursor()
+        conn = get_conn()
+        cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS shops (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
-        conn.commit(); cur.close(); conn.close()
+        conn.commit()
+        cur.close()
+        conn.close()
     except Exception as e:
         print("ensure_tables:", e)
 
@@ -219,11 +219,11 @@ def load_db(file, default):
             if file == 'products.json':
                 cur.execute("SELECT data FROM products ORDER BY id ASC")
                 rows = cur.fetchall()
-                result=[]
+                result = []
                 for r in rows:
-                    d=r['data']
-                    if isinstance(d,str):
-                        try: d=json.loads(d)
+                    d = r['data']
+                    if isinstance(d, str):
+                        try: d = json.loads(d)
                         except: pass
                     result.append(d)
                 cur.close(); conn.close()
@@ -233,13 +233,13 @@ def load_db(file, default):
                 row = cur.fetchone()
                 cur.close(); conn.close()
                 if not row: return default
-                d=row['data']
-                if isinstance(d,str):
-                    try: d=json.loads(d)
+                d = row['data']
+                if isinstance(d, str):
+                    try: d = json.loads(d)
                     except: pass
                 return d
         else:
-            path=f'data/{file}'
+            path = f'data/{file}'
             if os.path.exists(path):
                 try: return json.load(open(path))
                 except: return default
