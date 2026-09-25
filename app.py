@@ -180,20 +180,23 @@ WITHDRAW_MIN_COINS = 50
 FREE_TRIAL = 10
 PLANS = {"free14":{"days":14,"price":0,"name":"14 Days FREE"},"30":{"days":30,"price":6540,"name":"30 Days"},"60":{"days":60,"price":13090,"name":"2 Months"},"180":{"days":180,"price":39500,"name":"6 Months"},"365":{"days":365,"price":80000,"name":"1 Year"}}
 COIN_PACKS = {"10":{"coins":10,"price":5990,"name":"Starter"},"30":{"coins":30,"price":17970,"name":"Popular"},"60":{"coins":60,"price":35940,"name":"Business"},"150":{"coins":150,"price":89850,"name":"Boss Pro"}}
-DATABASE_URL = os.environ.get('DATABASE_URL','').strip()
-if DATABASE_URL and "sslmode" not in DATABASE_URL:
-    DATABASE_URL += "&sslmode=require" if "?" in DATABASE_URL else "?sslmode=require"
+DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_conn():
     if not DATABASE_URL:
         raise Exception("No DATABASE_URL")
-    import psycopg
-    return psycopg.connect(DATABASE_URL, connect_timeout=10)
-
-def get_db():
-    return get_conn()
+    try:
+        import psycopg
+        return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+    except Exception as e:
+        try:
+            import psycopg2
+            return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+        except Exception as e2:
+            print("DB connect error:", e, e2)
+            raise Exception("DB connection failed")
 
 def ensure_tables():
     if not DATABASE_URL: return
@@ -201,50 +204,67 @@ def ensure_tables():
         conn = get_conn(); cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
-        cur.execute("CREATE TABLE IF NOT EXISTS shops (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
-        cur.execute("CREATE TABLE IF NOT EXISTS chat_unlocks (buyer_email TEXT, shop_slug TEXT, unlock_type TEXT, created TIMESTAMP DEFAULT NOW(), PRIMARY KEY (buyer_email, shop_slug, unlock_type));")
-        cur.execute("CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, buyer_email TEXT, shop_slug TEXT, sender TEXT, text TEXT, time BIGINT);")
         conn.commit(); cur.close(); conn.close()
-    except Exception as e:
+    except Exception as e: 
         print("ensure_tables:", e)
-        
 def load_db(file, default):
     try:
         if DATABASE_URL:
-            conn = get_conn()
-            from psycopg.rows import dict_row
-            cur = conn.cursor(row_factory=dict_row)
-            if file == 'products.json':
-                cur.execute("SELECT data FROM products ORDER BY id ASC")
-                rows = cur.fetchall()
-                result = []
-                for r in rows:
-                    d = r['data']
-                    if isinstance(d, str):
-                        try: d = json.loads(d)
+            ensure_tables(); conn = get_conn()
+            try:
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                if file == 'products.json':
+                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                    result=[]
+                    for r in rows:
+                        d=r['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        result.append(d)
+                    return result
+                else:
+                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                    if not row: return default
+                    d=row['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
                         except: pass
-                    result.append(d)
-                cur.close(); conn.close()
-                return result
-            else:
-                cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                row = cur.fetchone()
-                cur.close(); conn.close()
-                if not row: return default
-                d = row['data']
-                if isinstance(d, str):
-                    try: d = json.loads(d)
+                    return d
+            except:
+                try:
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    if file == 'products.json':
+                        cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                        result=[]
+                        for r in rows:
+                            d=r['data']
+                            if isinstance(d,str):
+                                try: d=json.loads(d)
+                                except: pass
+                            result.append(d)
+                        return result
+                    else:
+                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                        if not row: return default
+                        d=row['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        return d
+                except:
+                    try: conn.close()
                     except: pass
-                return d
+                    return default
         else:
-            path = f'data/{file}'
+            path=f'data/{file}'
             if os.path.exists(path):
                 try: return json.load(open(path))
                 except: return default
             return default
-    except Exception as e:
-        print("load_db error:", e)
-        return default
+    except: return default
 
 def save_db(file, data):
     global PRODUCTS_CACHE
@@ -736,6 +756,51 @@ def wants_page():
 @app.route('/wants/<int:wid>')
 def want_detail_page(wid):
     return render_template('want_detail.html')
+
+def send_reset_email(to_email, otp, user_name="Boss"):
+    try:
+        import socket
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        msg = MIMEMultipart()
+        msg['From'] = f"Sannla Shop <{EMAIL_FROM}>"
+        msg['To'] = to_email
+        msg['Subject'] = f"Your Sannla Reset Code is {otp}"
+        body = f"""
+        <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
+          <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
+          <div style="padding:22px">
+            <h3>Hi {user_name},</h3>
+            <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
+            <p>Expires in <b>10 mins</b></p>
+          </div>
+        </div>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        pass_clean = EMAIL_APP_PASSWORD.replace(' ','')
+        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
+        if not infos:
+            raise Exception("No IPv4 for gmail")
+        af, socktype, proto, canonname, sa = infos[0]
+        sock = socket.socket(af, socktype, proto)
+        sock.settimeout(20)
+        sock.connect(sa)
+        server = smtplib.SMTP(timeout=20)
+        server.sock = sock
+        server._host = 'smtp.gmail.com'
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(EMAIL_FROM, pass_clean)
+        server.send_message(msg)
+        server.quit()
+        print(f"✅ Email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        import traceback; traceback.print_exc()
+        return False
 
 @app.route('/product/<pid>')
 def product_link(pid):
@@ -1776,74 +1841,99 @@ def sell():
 @app.route('/api/shops')
 def list_shops():
     try:
-        shops = []
-        counts = {}
-        # SUPER FAST COUNT - No LOWER
+        shops = load_db('shops.json', [])
+        # FAST COUNT - Don't load full products if using Postgres
         if DATABASE_URL:
             try:
                 conn = get_conn()
-                from psycopg.rows import dict_row
-                cur = conn.cursor(row_factory=dict_row)
-                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY data->>'shop_slug'")
-                for r in cur.fetchall():
-                    if r['slug']:
+                cur = conn.cursor()
+                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY slug")
+                rows = cur.fetchall()
+                counts = {}
+                for r in rows:
+                    # r can be tuple or dict
+                    if isinstance(r, dict):
                         counts[r['slug']] = int(r['cnt'])
-                        counts[r['slug'].lower()] = int(r['cnt']) # also lower key
-                cur.execute("SELECT id, data FROM shops ORDER BY id DESC LIMIT 200")
-                for r in cur.fetchall():
-                    d = r['data']
-                    if isinstance(d, str):
-                        try: d = json.loads(d)
-                        except: continue
-                    if not isinstance(d, dict): continue
-                    d['id'] = r['id']
-                    slug_key = str(d.get('shop_slug',''))
-                    d['total_products'] = counts.get(slug_key, 0) or counts.get(slug_key.lower(), 0)
-                    shops.append(d)
-                cur.close(); conn.close()
+                    else:
+                        counts[str(r[0])] = int(r[1])
+                cur.close()
+                conn.close()
             except Exception as e:
-                print("shops error:", e)
-                shops = []
-
-        if not shops:
-            shops = load_db('shops.json', [])[:100]
-            # local count
+                print("shops fast count error:", e)
+                counts = {}
+                try: conn.close()
+                except: pass
+        else:
+            # Local file - still fast, only read slugs
             try:
-                prods = load_db('products.json', [])
-                lc = {}
-                for p in prods:
-                    s = p.get('shop_slug')
-                    if s: lc[s] = lc.get(s,0)+1; lc[s.lower()] = lc.get(s.lower(),0)+1
-                for s in shops:
-                    s['total_products'] = lc.get(s.get('shop_slug',''),0) or lc.get(str(s.get('shop_slug','')).lower(),0)
-            except: pass
+                path = 'data/products.json'
+                if os.path.exists(path):
+                    data = json.load(open(path))
+                    counts = {}
+                    for p in data:
+                        slug = p.get('shop_slug')
+                        if slug:
+                            counts[slug] = counts.get(slug, 0) + 1
+                else:
+                    counts = {}
+            except:
+                counts = {}
+
+        for s in shops:
+            slug = s.get('shop_slug')
+            s['total_products'] = counts.get(slug, 0)
 
         filtered = [s for s in shops if s.get('total_products',0)>0]
-        if not filtered: filtered = shops[:50]
+        if not filtered:
+            filtered = shops[:50] # Show at least 50 if counts fail
+
         return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
     except Exception as e:
         print("SHOPS ERROR:", e)
-        return jsonify(load_db('shops.json', [])[:50])
+        try:
+            shops = load_db('shops.json', [])[:50]
+            return jsonify(shops)
+        except:
+            return jsonify([])
 
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     try:
-        slug_lower = slug.strip().lower()
         if DATABASE_URL:
             try:
                 conn = get_conn()
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
-                cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s OR LOWER(data->>'slug') = %s LIMIT 1", (slug_lower, slug_lower))
+
+                # Clean slug - uppercase handling (STOMA vs stoma)
+                cur.execute("""
+                    SELECT id, data FROM shops
+                    WHERE LOWER(data->>'shop_slug') = LOWER(%s)
+                       OR LOWER(data->>'slug') = LOWER(%s)
+                       OR LOWER(data->>'name') = LOWER(%s)
+                    LIMIT 1
+                """, (slug, slug, slug))
                 row = cur.fetchone()
+
                 if not row:
-                    cur.close(); conn.close()
-                    return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
+                    cur.close()
+                    conn.close()
+                    return jsonify({'success':False,'message':f'Shop {slug} not found in Neon'}),404
+
                 shop_data = row['data']
-                if isinstance(shop_data, str): shop_data = json.loads(shop_data)
+                if isinstance(shop_data, str):
+                    shop_data = json.loads(shop_data)
                 shop_data['id'] = row['id']
-                real_slug = shop_data.get('shop_slug') or slug
-                cur.execute("SELECT data FROM products WHERE LOWER(data->>'shop_slug') = LOWER(%s) ORDER BY id DESC LIMIT 100", (real_slug,))
+
+                real_slug = shop_data.get('shop_slug') or shop_data.get('slug') or slug
+
+                # Get products - FAST with index
+                cur.execute("""
+                    SELECT data FROM products
+                    WHERE LOWER(data->>'shop_slug') = LOWER(%s)
+                    ORDER BY id DESC LIMIT 100
+                """, (real_slug,))
+
                 rows = cur.fetchall()
                 products = []
                 for r in rows:
@@ -1851,26 +1941,34 @@ def get_shop_by_slug(slug):
                     if isinstance(d, str):
                         try: d = json.loads(d)
                         except: continue
+                    # remove phone for safety
                     if isinstance(d, dict):
                         d.pop('phone', None)
                         products.append(d)
-                cur.close(); conn.close()
+
+                cur.close()
+                conn.close()
                 return jsonify({'success':True,'shop':shop_data,'products':products})
+
             except Exception as e:
-                print("SHOP SLUG ERROR:", e)
-                import traceback; traceback.print_exc()
+                print("NEON SHOP ERROR:", e)
+                import traceback
+                traceback.print_exc()
                 try: conn.close()
                 except: pass
                 return jsonify({'success':False,'message': str(e)}),500
 
+        # Local fallback
         shops = load_db('shops.json', [])
-        shop = next((s for s in shops if str(s.get('shop_slug','')).lower()==slug_lower), None)
-        if not shop: return jsonify({'success':False,'message':'Shop not found'}),404
+        shop = next((s for s in shops if s.get('shop_slug','').lower()==slug.lower()), None)
+        if not shop:
+            return jsonify({'success':False,'message':'Shop not found'}),404
         products = load_db('products.json', [])
-        shop_products = [p for p in products if str(p.get('shop_slug','')).lower()==slug_lower][:100]
+        shop_products = [p for p in products if p.get('shop_slug','').lower()==slug.lower()][:100]
         return jsonify({'success':True,'shop':shop,'products':shop_products})
+
     except Exception as e:
-        print("get_shop fatal:", e)
+        print("get_shop_by_slug fatal:", e)
         return jsonify({'success':False,'message':'Server busy'}),500
         
 @app.route('/api/shop/upload-logo', methods=['POST'])
@@ -2072,6 +2170,69 @@ def delete_prod(pid):
 # ============================================================
 # END MY SHOP
 # ============================================================
+
+@app.route('/api/fix-slugs')
+def fix_slugs():
+    products = load_db('products.json', [])
+    for p in products:
+        b = p.get('business') or ''
+        if b: p['shop_slug'] = make_shop_slug(b)
+    save_db('products.json', products)
+    PRODUCTS_CACHE["data"] = None
+    PRODUCTS_CACHE["time"] = 0
+    return jsonify({'success':True,'message':'Fixed'})
+    
+    # ============ CHAT UNLOCK 1 COIN SYSTEM - OPTION A ============
+def get_chat_unlocks():
+    return load_db(CHAT_UNLOCKS_FILE, [])
+
+def save_chat_unlocks(data):
+    save_db(CHAT_UNLOCKS_FILE, data)
+
+@app.route('/api/chat/unlock', methods=['POST'])
+def unlock_chat():
+    try:
+        data = request.get_json()
+        buyer_email = data.get('buyer_email','').lower().strip()
+        shop_slug = data.get('shop_slug','').lower().strip()
+        unlock_type = data.get('type','chat').lower().strip() # NEW: whatsapp / chat / call
+
+        if not buyer_email or not shop_slug:
+            return jsonify({"success": False, "error": "Missing data"}), 400
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        # Check already unlocked for THIS TYPE
+        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"success": True, "already_unlocked": True})
+
+        # Check coins
+        cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
+        u = cur.fetchone()
+        if not u or (u[0] or 0) < 1:
+            cur.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Not enough coins! Buy coins Boss!"}), 400
+
+        # Deduct 1 coin
+        cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
+        new_balance = cur.fetchone()[0]
+
+        # Save unlock WITH TYPE
+        cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type, unlocked_at) VALUES (%s, %s, %s, NOW()) ON CONFLICT DO NOTHING", (buyer_email, shop_slug, unlock_type))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"success": True, "new_balance": new_balance, "type": unlock_type})
+    except Exception as e:
+        print(f"unlock error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
         
 @app.route('/api/admin/data')
 @admin_required
@@ -2521,37 +2682,66 @@ def add_cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
+# ============ SANNLAS CONTACT SYSTEM - 1 COIN PER CONTACT - FIXED ============
+def get_db():
+    return get_conn()
+
 @app.route('/api/chat/check-unlock')
 def check_unlock_status():
     buyer = request.args.get('buyer','').lower().strip()
     shop = request.args.get('shop','').lower().strip()
     unlock_type = request.args.get('type','chat').lower().strip()
     try:
-        data = load_db('chat_unlocks.json', [])
-        found = any(str(x.get('buyer_email','')).lower()==buyer and str(x.get('shop_slug','')).lower()==shop and str(x.get('unlock_type','')).lower()==unlock_type for x in data)
-        return jsonify({"unlocked": found})
-    except:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer, shop, unlock_type))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify({"unlocked": bool(row)})
+    except Exception as e:
+        print(f"check-unlock error: {e}")
         return jsonify({"unlocked": False})
 
 @app.route('/api/chat/unlock', methods=['POST'])
 def unlock_chat_new():
-    data = request.get_json() or {}
-    buyer_email = data.get('buyer_email','').lower().strip()
-    shop_slug = data.get('shop_slug','').lower().strip()
-    unlock_type = data.get('type','chat').lower().strip()
-    unlocks = load_db('chat_unlocks.json', [])
-    if any(str(x.get('buyer_email','')).lower()==buyer_email and str(x.get('shop_slug','')).lower()==shop_slug for x in unlocks):
-        return jsonify({"success": True, "already_unlocked": True})
-    users = load_db('users.json', [])
-    u = next((x for x in users if str(x.get('email','')).lower()==buyer_email), None)
-    if not u or int(u.get('coins',0)) < 1:
-        return jsonify({"success": False, "error": "Not enough coins!"}), 400
-    u['spent'] = int(u.get('spent',0))+1
-    u['coins'] = int(u.get('bought',0))+int(u.get('earned',0))-int(u.get('spent',0))
-    save_db('users.json', users)
-    unlocks.append({"buyer_email":buyer_email,"shop_slug":shop_slug,"unlock_type":unlock_type,"time":time.time()})
-    save_db('chat_unlocks.json', unlocks)
-    return jsonify({"success": True, "new_balance": u['coins']})
+    try:
+        data = request.get_json()
+        buyer_email = data.get('buyer_email','').lower().strip()
+        shop_slug = data.get('shop_slug','').lower().strip()
+        unlock_type = data.get('type','chat').lower().strip()
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"success": True, "already_unlocked": True})
+
+        cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
+        u = cur.fetchone()
+        if not u:
+            cur.execute("INSERT INTO users (email, coins) VALUES (%s, 5) ON CONFLICT (email) DO NOTHING", (buyer_email,))
+            conn.commit()
+            cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
+            u = cur.fetchone()
+
+        if not u or (u[0] or 0) < 1:
+            cur.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Not enough coins!"}), 400
+
+        cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
+        new_balance = cur.fetchone()[0]
+        cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type) VALUES (%s, %s, %s) ON CONFLICT (buyer_email, shop_slug, unlock_type) DO NOTHING", (buyer_email, shop_slug, unlock_type))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"success": True, "new_balance": new_balance, "type": unlock_type})
+    except Exception as e:
+        print(f"unlock error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/chat/send', methods=['POST'])
 def chat_send_new():
