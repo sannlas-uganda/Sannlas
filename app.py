@@ -1899,41 +1899,77 @@ def list_shops():
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     try:
-        shops = load_db('shops.json', [])
-        shop = next((s for s in shops if s.get('shop_slug')==slug), None)
-        if not shop:
-            return jsonify({'success':False,'message':'Shop not found'}),404 
-
-        # FAST LOAD - Only products for this shop
         if DATABASE_URL:
             try:
                 conn = get_conn()
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
-                cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (slug,))
+
+                # Clean slug - uppercase handling (STOMA vs stoma)
+                cur.execute("""
+                    SELECT id, data FROM shops
+                    WHERE LOWER(data->>'shop_slug') = LOWER(%s)
+                       OR LOWER(data->>'slug') = LOWER(%s)
+                       OR LOWER(data->>'name') = LOWER(%s)
+                    LIMIT 1
+                """, (slug, slug, slug))
+                row = cur.fetchone()
+
+                if not row:
+                    cur.close()
+                    conn.close()
+                    return jsonify({'success':False,'message':f'Shop {slug} not found in Neon'}),404
+
+                shop_data = row['data']
+                if isinstance(shop_data, str):
+                    shop_data = json.loads(shop_data)
+                shop_data['id'] = row['id']
+
+                real_slug = shop_data.get('shop_slug') or shop_data.get('slug') or slug
+
+                # Get products - FAST with index
+                cur.execute("""
+                    SELECT data FROM products
+                    WHERE LOWER(data->>'shop_slug') = LOWER(%s)
+                    ORDER BY id DESC LIMIT 100
+                """, (real_slug,))
+
                 rows = cur.fetchall()
-                shop_products = []
+                products = []
                 for r in rows:
-                    d=r['data']
-                    if isinstance(d,str):
-                        try: d=json.loads(d)
-                        except: pass
-                    pp=d.copy()
-                    pp.pop('phone',None)
-                    shop_products.append(pp)
+                    d = r['data']
+                    if isinstance(d, str):
+                        try: d = json.loads(d)
+                        except: continue
+                    # remove phone for safety
+                    if isinstance(d, dict):
+                        d.pop('phone', None)
+                        products.append(d)
+
                 cur.close()
                 conn.close()
+                return jsonify({'success':True,'shop':shop_data,'products':products})
+
             except Exception as e:
-                print("shop slug error:", e)
-                products = load_db('products.json', [])
-                shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
-        else:
-            products = load_db('products.json', [])
-            shop_products = [p for p in products if p.get('shop_slug')==slug][:100]
+                print("NEON SHOP ERROR:", e)
+                import traceback
+                traceback.print_exc()
+                try: conn.close()
+                except: pass
+                return jsonify({'success':False,'message': str(e)}),500
+
+        # Local fallback
+        shops = load_db('shops.json', [])
+        shop = next((s for s in shops if s.get('shop_slug','').lower()==slug.lower()), None)
+        if not shop:
+            return jsonify({'success':False,'message':'Shop not found'}),404
+        products = load_db('products.json', [])
+        shop_products = [p for p in products if p.get('shop_slug','').lower()==slug.lower()][:100]
         return jsonify({'success':True,'shop':shop,'products':shop_products})
+
     except Exception as e:
-        print("get_shop_by_slug error:", e)
-        return jsonify({'success':False,'message':'Server busy, try again'}),500
+        print("get_shop_by_slug fatal:", e)
+        return jsonify({'success':False,'message':'Server busy'}),500
         
 @app.route('/api/shop/upload-logo', methods=['POST'])
 def upload_shop_logo():
