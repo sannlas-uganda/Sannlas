@@ -2544,44 +2544,87 @@ def admin_delete_shop(slug):
         conn = get_conn()
         cur = conn.cursor()
 
-        # 1. Find the shop ID first from slug
-        cur.execute("SELECT id FROM shops WHERE slug = %s", (slug,))
-        shop_row = cur.fetchone()
+        # --- AUTO DETECT shops table columns ---
+        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='shops'")
+        shop_cols = [r[0] for r in cur.fetchall()]
+        print("shops columns:", shop_cols)
 
-        if shop_row:
-            shop_id = shop_row[0] if isinstance(shop_row, (list, tuple)) else shop_row['id']
-            # Delete products using CORRECT column - shop_id
-            try:
-                cur.execute("DELETE FROM products WHERE shop_id = %s", (shop_id,))
-            except Exception as e:
-                print(f"shop_id failed, trying shop: {e}")
-                # Fallback if column name is different
+        # --- AUTO DETECT products table columns ---
+        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='products'")
+        prod_cols = [r[0] for r in cur.fetchall()]
+        print("products columns:", prod_cols)
+
+        # 1. Find shop_id if exists
+        shop_id_value = None
+        # Try to find shop row by ANY possible column
+        for col in ['slug', 'shop_slug', 'name', 'shop_name', 'id']:
+            if col in shop_cols:
                 try:
-                    cur.execute("DELETE FROM products WHERE shop = %s", (slug,))
-                except:
-                    try:
-                        cur.execute("DELETE FROM products WHERE shop_name = %s", (slug,))
-                    except:
-                        cur.execute("DELETE FROM products WHERE owner_shop = %s", (slug,))
+                    # if col is id, try if slug is numeric or skip
+                    if col == 'id':
+                        continue
+                    cur.execute(f"SELECT id FROM shops WHERE {col} = %s LIMIT 1", (slug,))
+                    row = cur.fetchone()
+                    if row:
+                        shop_id_value = row[0] if isinstance(row, (list,tuple)) else row['id']
+                        break
+                except Exception as e:
+                    print(f"Try {col} failed: {e}")
 
-        else:
-            # If shop not found by slug, try deleting products directly by slug if column exists
-            try:
-                cur.execute("DELETE FROM products WHERE shop_id = %s", (slug,))
-            except:
-                pass
+        # 2. Delete products - try every possible link column
+        for pcol in ['shop_id', 'shop_slug', 'shop', 'shop_name', 'store_id', 'owner_shop']:
+            if pcol in prod_cols:
+                try:
+                    if pcol == 'shop_id' and shop_id_value:
+                        cur.execute(f"DELETE FROM products WHERE {pcol} = %s", (shop_id_value,))
+                    else:
+                        cur.execute(f"DELETE FROM products WHERE {pcol} = %s", (slug,))
+                    print(f"Deleted products using {pcol}")
+                except Exception as e:
+                    print(f"Delete products by {pcol} failed: {e}")
 
-        # 2. Delete shop itself - ONLY use slug (shops table HAS slug)
-        cur.execute("DELETE FROM shops WHERE slug = %s", (slug,))
+        # If products linked by shop_id but we didn't have id, try direct id match from name
+        if not shop_id_value:
+            # Try get id by name
+            if 'name' in shop_cols:
+                cur.execute("SELECT id FROM shops WHERE name = %s", (slug,))
+                r = cur.fetchone()
+                if r:
+                    shop_id_value = r[0] if isinstance(r, (list,tuple)) else r['id']
+                    if 'shop_id' in prod_cols:
+                        cur.execute("DELETE FROM products WHERE shop_id = %s", (shop_id_value,))
+
+        # 3. Delete shop itself - try every identifier
+        deleted = False
+        for scol in ['slug', 'shop_slug', 'name', 'shop_name']:
+            if scol in shop_cols:
+                try:
+                    cur.execute(f"DELETE FROM shops WHERE {scol} = %s", (slug,))
+                    if cur.rowcount > 0:
+                        deleted = True
+                        print(f"Deleted shop using {scol}")
+                        break
+                except Exception as e:
+                    print(f"Delete shop by {scol} failed: {e}")
+
+        # Fallback delete by id if we found it
+        if not deleted and shop_id_value:
+            cur.execute("DELETE FROM shops WHERE id = %s", (shop_id_value,))
 
         conn.commit()
         cur.close()
         conn.close()
         return jsonify({"success": True, "message": f"Shop {slug} deleted!"})
+
     except Exception as e:
         print("Delete shop error:", e)
+        import traceback
+        traceback.print_exc()
         if 'conn' in locals():
-            conn.rollback()
+            try:
+                conn.rollback()
+            except:
+                pass
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/compress-neon-now')
