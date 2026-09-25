@@ -2543,21 +2543,45 @@ def admin_delete_shop(slug):
     try:
         conn = get_conn()
         cur = conn.cursor()
-        # Delete all products of this shop first
-        cur.execute("DELETE FROM products WHERE shop_slug = %s", (slug,))
-        # Delete shop itself - try both tables name
-        try:
-            cur.execute("DELETE FROM shops WHERE slug = %s", (slug,))
-        except:
-            cur.execute("DELETE FROM shops WHERE shop_slug = %s", (slug,))
-        # Also delete users if shop is fake (optional)
-        # cur.execute("DELETE FROM users WHERE shop_slug = %s", (slug,))
+
+        # 1. Find the shop ID first from slug
+        cur.execute("SELECT id FROM shops WHERE slug = %s", (slug,))
+        shop_row = cur.fetchone()
+
+        if shop_row:
+            shop_id = shop_row[0] if isinstance(shop_row, (list, tuple)) else shop_row['id']
+            # Delete products using CORRECT column - shop_id
+            try:
+                cur.execute("DELETE FROM products WHERE shop_id = %s", (shop_id,))
+            except Exception as e:
+                print(f"shop_id failed, trying shop: {e}")
+                # Fallback if column name is different
+                try:
+                    cur.execute("DELETE FROM products WHERE shop = %s", (slug,))
+                except:
+                    try:
+                        cur.execute("DELETE FROM products WHERE shop_name = %s", (slug,))
+                    except:
+                        cur.execute("DELETE FROM products WHERE owner_shop = %s", (slug,))
+
+        else:
+            # If shop not found by slug, try deleting products directly by slug if column exists
+            try:
+                cur.execute("DELETE FROM products WHERE shop_id = %s", (slug,))
+            except:
+                pass
+
+        # 2. Delete shop itself - ONLY use slug (shops table HAS slug)
+        cur.execute("DELETE FROM shops WHERE slug = %s", (slug,))
+
         conn.commit()
         cur.close()
         conn.close()
         return jsonify({"success": True, "message": f"Shop {slug} deleted!"})
     except Exception as e:
         print("Delete shop error:", e)
+        if 'conn' in locals():
+            conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/compress-neon-now')
