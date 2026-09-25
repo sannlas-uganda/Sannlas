@@ -3105,7 +3105,7 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 #loading{text-align:center;padding:60px 20px;font-size:18px}
 </style></head>
 <body>
-<div class="header"><a href="/all-shops">← All Shops</a><a href="/">SANNLAS</a></div>
+<div class="header"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
 <div id="loading">⏳ Loading shop...</div>
 <div id="shop-hero" class="shop-hero" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p><p id="shop-count"></p></div>
 <div id="products" class="grid"></div>
@@ -3131,6 +3131,55 @@ async function loadShop(){
  }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
 loadShop();
+</script></body></html>
+"""
+
+@app.route('/all-shops')
+@app.route('/shops')
+def all_shops_page():
+    return """
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All Shops - Sannlas</title>
+<style>
+body{font-family:system-ui;background:#f8fafc;margin:0}
+.header{background:#000;color:#FFCC02;padding:14px 16px;display:flex;justify-content:space-between}
+.header a{color:#FFCC02;text-decoration:none;font-weight:900}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px;max-width:1100px;margin:auto}
+@media(min-width:700px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr)}}
+.shop-card{background:white;border-radius:18px;padding:16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #eee;cursor:pointer;transition:.2s}
+.shop-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
+.shop-logo{width:70px;height:70px;border-radius:50%;object-fit:cover;margin:auto;background:#f1f5f9;display:block;border:2px solid #FFCC02}
+.shop-name{font-weight:900;margin:10px 0 4px;font-size:15px}
+.shop-meta{font-size:12px;color:#64748b}
+.badge{background:#FFCC02;color:#000;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:900}
+#loading{text-align:center;padding:60px}
+</style></head>
+<body>
+<div class="header"><a href="/">← Home</a><span>ALL SHOPS</span><a href="/">SANNLAS</a></div>
+<div id="loading">⏳ Loading shops...</div>
+<div id="shops" class="grid"></div>
+<script>
+async function loadShops(){
+ try{
+  const r=await fetch('/api/shops');
+  const shops=await r.json();
+  document.getElementById('loading').style.display='none';
+  if(!shops.length){document.getElementById('shops').innerHTML='<p style=padding:20px>No shops yet</p>';return;}
+  let h='';
+  shops.forEach(s=>{
+    const name=s.business_name||s.name||s.shop_slug||'Shop';
+    const slug=s.shop_slug||s.slug||name.toLowerCase().replace(/\\s+/g,'-');
+    const count=s.total_products||s.product_count||0;
+    const logo=s.logo||s.logo_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(name)+'&background=000&color=FFCC02&bold=true';
+    const verified=s.verified?'<span class=badge>✓ VERIFIED</span>':'';
+    h+=`<div class="shop-card" onclick="location.href='/shop/${slug}'"><img class="shop-logo" src="${logo}" onerror="this.src='https://via.placeholder.com/70'"><div class="shop-name">${name}</div><div class="shop-meta">${count} products<br>${s.location||'Kampala'}<br>${verified}</div></div>`;
+  });
+  document.getElementById('shops').innerHTML=h;
+ }catch(e){document.getElementById('loading').innerHTML='Error: '+e.message;}
+}
+loadShops();
 </script></body></html>
 """
 
