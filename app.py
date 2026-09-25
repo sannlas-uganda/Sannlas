@@ -3087,77 +3087,52 @@ def shop_page_slug(slug):
 <!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shop</title>
-<style>body{font-family:Arial;padding:20px;max-width:1000px;margin:auto}
-.product{border:1px solid #ddd;padding:10px;margin:10px;display:inline-block;width:200px;border-radius:10px}
-.product img{width:100%;height:150px;object-fit:cover;border-radius:8px}
-#loading{text-align:center;margin-top:60px;font-size:20px}</style></head>
+<style>
+body{font-family:system-ui;background:#f8fafc;margin:0}
+.header{background:#000;color:#FFCC02;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.header a{color:#FFCC02;text-decoration:none;font-weight:900}
+.shop-hero{background:linear-gradient(135deg,#000 0%,#222 100%);color:white;padding:30px 20px;text-align:center}
+.shop-hero h1{margin:0;color:#FFCC02;font-size:28px}
+.shop-hero p{opacity:.8;margin:8px 0 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px;max-width:1000px;margin:auto}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #eee}
+.card img{width:100%;height:160px;object-fit:cover}
+.card-body{padding:10px 12px}
+.card h4{margin:0 0 6px;font-size:14px;line-height:1.2;height:34px;overflow:hidden}
+.price{font-weight:900;color:#000}
+.btn{display:block;text-align:center;background:#000;color:#FFCC02;padding:8px;border-radius:10px;text-decoration:none;margin-top:8px;font-weight:800;font-size:13px}
+#loading{text-align:center;padding:60px 20px;font-size:18px}
+</style></head>
 <body>
-<a href="/all-shops">← Back to Shops</a>
-<div id="loading">Loading shop...</div>
-<div id="shop-info" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p></div>
-<div id="products"></div>
+<div class="header"><a href="/all-shops">← All Shops</a><a href="/">SANNLAS</a></div>
+<div id="loading">⏳ Loading shop...</div>
+<div id="shop-hero" class="shop-hero" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p><p id="shop-count"></p></div>
+<div id="products" class="grid"></div>
 <script>
 async function loadShop(){
+ const slug=location.pathname.split('/shop/')[1].split('?')[0].split('/')[0];
  try{
-  const slug = window.location.pathname.split('/shop/')[1].split('?')[0];
-  console.log("SLUG:",slug);
-  const res = await fetch('/api/shop/' + encodeURIComponent(slug));
-  const data = await res.json();
-  console.log("API:",data);
-  if(!res.ok ||!data.shop){
-    document.getElementById('loading').innerHTML='Shop not found: '+slug+'<br>'+JSON.stringify(data);
-    return;
-  }
-  const shop=data.shop; const products=data.products||[];
+  const r=await fetch('/api/shop/'+encodeURIComponent(slug));
+  const d=await r.json();
+  if(!d.shop){ document.getElementById('loading').innerHTML='❌ Shop not found: '+slug; return;}
+  const shop=d.shop, prods=d.products||[];
   document.getElementById('loading').style.display='none';
-  document.getElementById('shop-info').style.display='block';
+  document.getElementById('shop-hero').style.display='block';
   document.getElementById('shop-name').textContent=shop.business_name||shop.name||slug;
-  document.getElementById('shop-desc').textContent=shop.description||'';
-  let html='';
-  if(products.length===0) html='<p>No products yet</p>';
-  else products.forEach(p=>{
-    html+=`<div class="product"><img src="${p.image||'https://via.placeholder.com/150'}" onerror="this.src='https://via.placeholder.com/150'"><h4>${(p.name||'').replace(/</g,'&lt;')}</h4><p>UGX ${(p.price||0).toLocaleString()}</p><a href="/product/${p.id}">View</a></div>`;
+  document.getElementById('shop-desc').textContent=shop.description||'Welcome to '+ (shop.business_name||slug) +' shop!';
+  document.getElementById('shop-count').textContent=prods.length+' products • '+ (shop.location||'Kampala');
+  let h='';
+  prods.forEach(p=>{
+   h+=`<div class="card"><img src="${p.image||'https://via.placeholder.com/300'}" onerror="this.src='https://via.placeholder.com/300'"><div class="card-body"><h4>${(p.name||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id}">View Product</a></div></div>`;
   });
-  document.getElementById('products').innerHTML=html;
- }catch(e){ console.error(e); document.getElementById('loading').innerHTML='Error: '+e.message; }
+  if(!prods.length) h='<p style="padding:20px">No products yet</p>';
+  document.getElementById('products').innerHTML=h;
+ }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
 loadShop();
 </script></body></html>
 """
-
-@app.route('/api/shop/<path:slug>')
-def get_shop_by_slug(slug):
-    try:
-        clean = slug.lower().strip()
-        shops = load_db('shops.json', [])
-        # FIND SHOP - try every field
-        shop = None
-        for s in shops:
-            for key in ['shop_slug','slug','business_name','name']:
-                if str(s.get(key,'')).lower().strip() == clean: shop=s; break
-            if shop: break
-        if not shop:
-            for s in shops:
-                if clean in str(s.get('shop_slug','')).lower() or clean in str(s.get('business_name','')).lower():
-                    shop=s; break
-        if not shop:
-            return jsonify({'success':False,'message':f'Shop {slug} not found','shop':None,'products':[]}),404
-
-        real_slug = str(shop.get('shop_slug') or shop.get('slug') or slug).lower()
-        real_name = str(shop.get('business_name') or shop.get('name') or '').lower()
-
-        products = load_db('products.json', [])
-        shop_products=[]
-        for p in products:
-            ps = str(p.get('shop_slug','')).lower()
-            pn = str(p.get('business','')).lower()
-            if ps==real_slug or ps==clean or pn==real_name or real_slug in ps:
-                pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
-
-        return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success':False,'message':str(e)}),500
 
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
