@@ -3134,6 +3134,40 @@ loadShop();
 </script></body></html>
 """
 
+@app.route('/api/shop/<path:slug>')
+def get_shop_by_slug(slug):
+    try:
+        clean = slug.lower().strip()
+        shops = load_db('shops.json', [])
+        # FIND SHOP - try every field
+        shop = None
+        for s in shops:
+            for key in ['shop_slug','slug','business_name','name']:
+                if str(s.get(key,'')).lower().strip() == clean: shop=s; break
+            if shop: break
+        if not shop:
+            for s in shops:
+                if clean in str(s.get('shop_slug','')).lower() or clean in str(s.get('business_name','')).lower():
+                    shop=s; break
+        if not shop:
+            return jsonify({'success':False,'message':f'Shop {slug} not found','shop':None,'products':[]}),404
+
+        real_slug = str(shop.get('shop_slug') or shop.get('slug') or slug).lower()
+        real_name = str(shop.get('business_name') or shop.get('name') or '').lower()
+
+        products = load_db('products.json', [])
+        shop_products=[]
+        for p in products:
+            ps = str(p.get('shop_slug','')).lower()
+            pn = str(p.get('business','')).lower()
+            if ps==real_slug or ps==clean or pn==real_name or real_slug in ps:
+                pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
+
+        return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success':False,'message':str(e)}),500
+        
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
