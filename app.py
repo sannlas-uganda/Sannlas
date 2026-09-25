@@ -182,7 +182,8 @@ PLANS = {"free14":{"days":14,"price":0,"name":"14 Days FREE"},"30":{"days":30,"p
 COIN_PACKS = {"10":{"coins":10,"price":5990,"name":"Starter"},"30":{"coins":30,"price":17970,"name":"Popular"},"60":{"coins":60,"price":35940,"name":"Business"},"150":{"coins":150,"price":89850,"name":"Boss Pro"}}
 DATABASE_URL = os.environ.get('DATABASE_URL','').strip()
 if DATABASE_URL and "sslmode" not in DATABASE_URL:
-    DATABASE_URL += "&sslmode=require" if "?" in DATABASE_URL else "?sslmode=require"if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL += "&sslmode=require" if "?" in DATABASE_URL else "?sslmode=require"
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_conn():
@@ -190,14 +191,13 @@ def get_conn():
         raise Exception("No DATABASE_URL")
     try:
         import psycopg
-        return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+        return psycopg.connect(DATABASE_URL, connect_timeout=10)
     except Exception as e:
-        try:
-            import psycopg2
-            return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
-        except Exception as e2:
-            print("DB connect error:", e, e2)
-            raise Exception("DB connection failed")
+        print("DB connect error:", e)
+        raise Exception(f"DB connection failed: {e}")
+
+def get_db():
+    return get_conn()
 
 def ensure_tables():
     if not DATABASE_URL: return
@@ -205,67 +205,48 @@ def ensure_tables():
         conn = get_conn(); cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+        cur.execute("CREATE TABLE IF NOT EXISTS shops (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         conn.commit(); cur.close(); conn.close()
-    except Exception as e: 
+    except Exception as e:
         print("ensure_tables:", e)
+
 def load_db(file, default):
     try:
         if DATABASE_URL:
-            ensure_tables(); conn = get_conn()
-            try:
-                from psycopg.rows import dict_row
-                cur = conn.cursor(row_factory=dict_row)
-                if file == 'products.json':
-                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                    result=[]
-                    for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        result.append(d)
-                    return result
-                else:
-                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
-                    if not row: return default
-                    d=row['data']
+            conn = get_conn()
+            from psycopg.rows import dict_row
+            cur = conn.cursor(row_factory=dict_row)
+            if file == 'products.json':
+                cur.execute("SELECT data FROM products ORDER BY id ASC")
+                rows = cur.fetchall()
+                result=[]
+                for r in rows:
+                    d=r['data']
                     if isinstance(d,str):
                         try: d=json.loads(d)
                         except: pass
-                    return d
-            except:
-                try:
-                    import psycopg2.extras
-                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                    if file == 'products.json':
-                        cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                        result=[]
-                        for r in rows:
-                            d=r['data']
-                            if isinstance(d,str):
-                                try: d=json.loads(d)
-                                except: pass
-                            result.append(d)
-                        return result
-                    else:
-                        cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
-                        if not row: return default
-                        d=row['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        return d
-                except:
-                    try: conn.close()
+                    result.append(d)
+                cur.close(); conn.close()
+                return result
+            else:
+                cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
+                row = cur.fetchone()
+                cur.close(); conn.close()
+                if not row: return default
+                d=row['data']
+                if isinstance(d,str):
+                    try: d=json.loads(d)
                     except: pass
-                    return default
+                return d
         else:
             path=f'data/{file}'
             if os.path.exists(path):
                 try: return json.load(open(path))
                 except: return default
             return default
-    except: return default
+    except Exception as e:
+        print("load_db error:", e)
+        return default
 
 def save_db(file, data):
     global PRODUCTS_CACHE
