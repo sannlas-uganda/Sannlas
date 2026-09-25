@@ -1841,99 +1841,84 @@ def sell():
 @app.route('/api/shops')
 def list_shops():
     try:
-        shops = load_db('shops.json', [])
-        # FAST COUNT - Don't load full products if using Postgres
-        if DATABASE_URL:
-            try:
-                conn = get_conn()
-                cur = conn.cursor()
-                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY slug")
-                rows = cur.fetchall()
-                counts = {}
-                for r in rows:
-                    # r can be tuple or dict
-                    if isinstance(r, dict):
-                        counts[r['slug']] = int(r['cnt'])
-                    else:
-                        counts[str(r[0])] = int(r[1])
-                cur.close()
-                conn.close()
-            except Exception as e:
-                print("shops fast count error:", e)
-                counts = {}
-                try: conn.close()
-                except: pass
-        else:
-            # Local file - still fast, only read slugs
-            try:
-                path = 'data/products.json'
-                if os.path.exists(path):
-                    data = json.load(open(path))
-                    counts = {}
-                    for p in data:
-                        slug = p.get('shop_slug')
-                        if slug:
-                            counts[slug] = counts.get(slug, 0) + 1
-                else:
-                    counts = {}
-            except:
-                counts = {}
-
-        for s in shops:
-            slug = s.get('shop_slug')
-            s['total_products'] = counts.get(slug, 0)
-
-        filtered = [s for s in shops if s.get('total_products',0)>0]
-        if not filtered:
-            filtered = shops[:50] # Show at least 50 if counts fail
-
-        return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
-    except Exception as e:
-        print("SHOPS ERROR:", e)
-        try:
-            shops = load_db('shops.json', [])[:50]
-            return jsonify(shops)
-        except:
-            return jsonify([])
-
-@app.route('/api/shop/<slug>')
-def get_shop_by_slug(slug):
-    try:
+        shops = []
+        counts = {}
+        # SUPER FAST COUNT - No LOWER
         if DATABASE_URL:
             try:
                 conn = get_conn()
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
+                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY data->>'shop_slug'")
+                for r in cur.fetchall():
+                    if r['slug']:
+                        counts[r['slug']] = int(r['cnt'])
+                        counts[r['slug'].lower()] = int(r['cnt']) # also lower key
+                cur.execute("SELECT id, data FROM shops ORDER BY id DESC LIMIT 200")
+                for r in cur.fetchall():
+                    d = r['data']
+                    if isinstance(d, str):
+                        try: d = json.loads(d)
+                        except: continue
+                    if not isinstance(d, dict): continue
+                    d['id'] = r['id']
+                    slug_key = str(d.get('shop_slug',''))
+                    d['total_products'] = counts.get(slug_key, 0) or counts.get(slug_key.lower(), 0)
+                    shops.append(d)
+                cur.close(); conn.close()
+            except Exception as e:
+                print("shops error:", e)
+                shops = []
 
-                # Clean slug - uppercase handling (STOMA vs stoma)
-                cur.execute("""
-                    SELECT id, data FROM shops
-                    WHERE LOWER(data->>'shop_slug') = LOWER(%s)
-                       OR LOWER(data->>'slug') = LOWER(%s)
-                       OR LOWER(data->>'name') = LOWER(%s)
-                    LIMIT 1
-                """, (slug, slug, slug))
+        if not shops:
+            shops = load_db('shops.json', [])[:100]
+            # local count
+            try:
+                prods = load_db('products.json', [])
+                lc = {}
+                for p in prods:
+                    s = p.get('shop_slug')
+                    if s: lc[s] = lc.get(s,0)+1; lc[s.lower()] = lc.get(s.lower(),0)+1
+                for s in shops:
+                    s['total_products'] = lc.get(s.get('shop_slug',''),0) or lc.get(str(s.get('shop_slug','')).lower(),0)
+            except: pass
+
+        filtered = [s for s in shops if s.get('total_products',0)>0]
+        if not filtered: filtered = shops[:50]
+        return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
+    except Exception as e:
+        print("SHOPS ERROR:", e)
+        return jsonify(load_db('shops.json', [])[:50])
+
+@app.route('/api/shop/<slug>')
+def get_shop_by_slug(slug):
+    try:
+        slug_clean = slug.strip()
+        slug_lower = slug_clean.lower()
+        if DATABASE_URL:
+            try:
+                conn = get_conn()
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                # Try exact first, then LOWER - FAST
+                cur.execute("SELECT id, data FROM shops WHERE data->>'shop_slug' = %s OR data->>'shop_slug' = %s OR data->>'slug' = %s LIMIT 1", (slug_clean, slug_lower, slug_lower))
                 row = cur.fetchone()
+                if not row:
+                    # try case-insensitive as last resort
+                    cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s LIMIT 1", (slug_lower,))
+                    row = cur.fetchone()
 
                 if not row:
-                    cur.close()
-                    conn.close()
-                    return jsonify({'success':False,'message':f'Shop {slug} not found in Neon'}),404
+                    cur.close(); conn.close()
+                    return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
 
                 shop_data = row['data']
                 if isinstance(shop_data, str):
                     shop_data = json.loads(shop_data)
                 shop_data['id'] = row['id']
+                real_slug = shop_data.get('shop_slug') or slug_clean
 
-                real_slug = shop_data.get('shop_slug') or shop_data.get('slug') or slug
-
-                # Get products - FAST with index
-                cur.execute("""
-                    SELECT data FROM products
-                    WHERE LOWER(data->>'shop_slug') = LOWER(%s)
-                    ORDER BY id DESC LIMIT 100
-                """, (real_slug,))
-
+                cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s OR data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (real_slug, real_slug.lower()))
                 rows = cur.fetchall()
                 products = []
                 for r in rows:
@@ -1941,34 +1926,27 @@ def get_shop_by_slug(slug):
                     if isinstance(d, str):
                         try: d = json.loads(d)
                         except: continue
-                    # remove phone for safety
                     if isinstance(d, dict):
-                        d.pop('phone', None)
+                        d.pop('phone',None)
                         products.append(d)
 
-                cur.close()
-                conn.close()
+                cur.close(); conn.close()
                 return jsonify({'success':True,'shop':shop_data,'products':products})
-
             except Exception as e:
-                print("NEON SHOP ERROR:", e)
-                import traceback
-                traceback.print_exc()
+                print("SHOP SLUG ERROR:", e)
+                import traceback; traceback.print_exc()
                 try: conn.close()
                 except: pass
                 return jsonify({'success':False,'message': str(e)}),500
 
-        # Local fallback
         shops = load_db('shops.json', [])
-        shop = next((s for s in shops if s.get('shop_slug','').lower()==slug.lower()), None)
-        if not shop:
-            return jsonify({'success':False,'message':'Shop not found'}),404
+        shop = next((s for s in shops if str(s.get('shop_slug','')).lower()==slug_lower), None)
+        if not shop: return jsonify({'success':False,'message':'Shop not found'}),404
         products = load_db('products.json', [])
-        shop_products = [p for p in products if p.get('shop_slug','').lower()==slug.lower()][:100]
+        shop_products = [p for p in products if str(p.get('shop_slug','')).lower()==slug_lower][:100]
         return jsonify({'success':True,'shop':shop,'products':shop_products})
-
     except Exception as e:
-        print("get_shop_by_slug fatal:", e)
+        print("get_shop fatal:", e)
         return jsonify({'success':False,'message':'Server busy'}),500
         
 @app.route('/api/shop/upload-logo', methods=['POST'])
@@ -2170,68 +2148,6 @@ def delete_prod(pid):
 # ============================================================
 # END MY SHOP
 # ============================================================
-@app.route('/api/fix-slugs')
-def fix_slugs():
-    products = load_db('products.json', [])
-    for p in products:
-        b = p.get('business') or ''
-        if b: p['shop_slug'] = make_shop_slug(b)
-    save_db('products.json', products)
-    PRODUCTS_CACHE["data"] = None
-    PRODUCTS_CACHE["time"] = 0
-    return jsonify({'success':True,'message':'Fixed'})
-    
-    # ============ CHAT UNLOCK 1 COIN SYSTEM - OPTION A ============
-def get_chat_unlocks():
-    return load_db(CHAT_UNLOCKS_FILE, [])
-
-def save_chat_unlocks(data):
-    save_db(CHAT_UNLOCKS_FILE, data)
-
-@app.route('/api/chat/unlock', methods=['POST'])
-def unlock_chat():
-    try:
-        data = request.get_json()
-        buyer_email = data.get('buyer_email','').lower().strip()
-        shop_slug = data.get('shop_slug','').lower().strip()
-        unlock_type = data.get('type','chat').lower().strip() # NEW: whatsapp / chat / call
-
-        if not buyer_email or not shop_slug:
-            return jsonify({"success": False, "error": "Missing data"}), 400
-
-        conn = get_db()
-        cur = conn.cursor()
-
-        # Check already unlocked for THIS TYPE
-        cur.execute("SELECT 1 FROM chat_unlocks WHERE LOWER(buyer_email)=%s AND LOWER(shop_slug)=%s AND LOWER(unlock_type)=%s", (buyer_email, shop_slug, unlock_type))
-        if cur.fetchone():
-            cur.close()
-            conn.close()
-            return jsonify({"success": True, "already_unlocked": True})
-
-        # Check coins
-        cur.execute("SELECT coins FROM users WHERE LOWER(email)=%s", (buyer_email,))
-        u = cur.fetchone()
-        if not u or (u[0] or 0) < 1:
-            cur.close()
-            conn.close()
-            return jsonify({"success": False, "error": "Not enough coins! Buy coins Boss!"}), 400
-
-        # Deduct 1 coin
-        cur.execute("UPDATE users SET coins = coins - 1 WHERE LOWER(email)=%s RETURNING coins", (buyer_email,))
-        new_balance = cur.fetchone()[0]
-
-        # Save unlock WITH TYPE
-        cur.execute("INSERT INTO chat_unlocks (buyer_email, shop_slug, unlock_type, unlocked_at) VALUES (%s, %s, %s, NOW()) ON CONFLICT DO NOTHING", (buyer_email, shop_slug, unlock_type))
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return jsonify({"success": True, "new_balance": new_balance, "type": unlock_type})
-    except Exception as e:
-        print(f"unlock error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
         
 @app.route('/api/admin/data')
 @admin_required
