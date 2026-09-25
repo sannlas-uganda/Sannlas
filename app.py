@@ -1893,45 +1893,63 @@ def list_shops():
 @app.route('/api/shop/<slug>')
 def get_shop_by_slug(slug):
     try:
-        slug_clean = slug.strip()
-        slug_lower = slug_clean.lower()
+        slug_lower = slug.strip().lower()
         if DATABASE_URL:
             try:
                 conn = get_conn()
-                from psycopg.rows import dict_row
-                cur = conn.cursor(row_factory=dict_row)
-                # Try exact first, then LOWER - FAST
-                cur.execute("SELECT id, data FROM shops WHERE data->>'shop_slug' = %s OR data->>'shop_slug' = %s OR data->>'slug' = %s LIMIT 1", (slug_clean, slug_lower, slug_lower))
-                row = cur.fetchone()
-                if not row:
-                    # try case-insensitive as last resort
-                    cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s LIMIT 1", (slug_lower,))
+                # Try psycopg3 first, fallback to psycopg2
+                try:
+                    from psycopg.rows import dict_row
+                    cur = conn.cursor(row_factory=dict_row)
+                    cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s OR LOWER(data->>'slug') = %s LIMIT 1", (slug_lower, slug_lower))
                     row = cur.fetchone()
-
-                if not row:
+                    if row:
+                        shop_data = row['data']
+                        if isinstance(shop_data, str): shop_data = json.loads(shop_data)
+                        shop_data['id'] = row['id']
+                        real_slug = shop_data.get('shop_slug') or slug
+                        cur.execute("SELECT data FROM products WHERE LOWER(data->>'shop_slug') = LOWER(%s) ORDER BY id DESC LIMIT 100", (real_slug,))
+                        rows = cur.fetchall()
+                        products = []
+                        for r in rows:
+                            d = r['data']
+                            if isinstance(d, str):
+                                try: d = json.loads(d)
+                                except: continue
+                            if isinstance(d, dict):
+                                d.pop('phone', None)
+                                products.append(d)
+                        cur.close(); conn.close()
+                        return jsonify({'success':True,'shop':shop_data,'products':products})
+                except ImportError:
+                    # psycopg3 not installed, use psycopg2
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    cur.execute("SELECT id, data FROM shops WHERE LOWER(data->>'shop_slug') = %s OR LOWER(data->>'slug') = %s LIMIT 1", (slug_lower, slug_lower))
+                    row = cur.fetchone()
+                    if not row:
+                        cur.close(); conn.close()
+                        return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
+                    shop_data = row['data']
+                    if isinstance(shop_data, str): shop_data = json.loads(shop_data)
+                    shop_data['id'] = row['id']
+                    real_slug = shop_data.get('shop_slug') or slug
+                    cur.execute("SELECT data FROM products WHERE LOWER(data->>'shop_slug') = LOWER(%s) ORDER BY id DESC LIMIT 100", (real_slug,))
+                    rows = cur.fetchall()
+                    products = []
+                    for r in rows:
+                        d = r['data']
+                        if isinstance(d, str):
+                            try: d = json.loads(d)
+                            except: continue
+                        if isinstance(d, dict):
+                            d.pop('phone', None)
+                            products.append(d)
                     cur.close(); conn.close()
-                    return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
-
-                shop_data = row['data']
-                if isinstance(shop_data, str):
-                    shop_data = json.loads(shop_data)
-                shop_data['id'] = row['id']
-                real_slug = shop_data.get('shop_slug') or slug_clean
-
-                cur.execute("SELECT data FROM products WHERE data->>'shop_slug' = %s OR data->>'shop_slug' = %s ORDER BY id DESC LIMIT 100", (real_slug, real_slug.lower()))
-                rows = cur.fetchall()
-                products = []
-                for r in rows:
-                    d = r['data']
-                    if isinstance(d, str):
-                        try: d = json.loads(d)
-                        except: continue
-                    if isinstance(d, dict):
-                        d.pop('phone',None)
-                        products.append(d)
+                    return jsonify({'success':True,'shop':shop_data,'products':products})
 
                 cur.close(); conn.close()
-                return jsonify({'success':True,'shop':shop_data,'products':products})
+                return jsonify({'success':False,'message':f'Shop {slug} not found'}),404
             except Exception as e:
                 print("SHOP SLUG ERROR:", e)
                 import traceback; traceback.print_exc()
