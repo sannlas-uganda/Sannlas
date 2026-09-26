@@ -1388,56 +1388,64 @@ window.viewProd=function(id){ if(_vP) _vP(id); setTimeout(buildGlassPopup,50); s
 setInterval(buildGlassPopup,800);
 </script>
 <style>
-/* ===== FIX COLORS AS YOU WANTED ===== */
-#viewPop .pro-modal-right h2,
-#viewPop .pro-modal-right h2:first-of-type{
-  color: #000000 !important;
-  font-weight: 900 !important;
-}
-#viewPop .pro-modal-right .pro-price,
-#viewPop .pro-modal-right h3{
-  color: #FF6A00 !important;
-  font-weight: 900 !important;
-}
-#viewPop .pro-modal-right [class*="Description"],
-#viewPop .pro-modal-right > div > div:nth-child(3){
-  color: #000000 !important;
+/* ===== JELLY BUTTONS LIKE PICTURE ===== */
+#viewPop .pro-modal-right h2{ color:#000 !important; font-weight:900 !important; }
+#viewPop .pro-price, #viewPop .pro-modal-right h3{ color:#FF6A00 !important; font-weight:900 !important; }
+#viewPop .pro-desc, #viewPop .pro-modal-right p{ color:#fff !important; }
+
+/* Base jelly style for ALL buttons */
+#viewPop .pro-btn{
+  height: 58px !important;
+  border-radius: 18px !important;
   font-weight: 800 !important;
+  font-size: 16px !important;
+  border: 2px solid rgba(255,255,255,0.35) !important;
+  box-shadow: 
+    inset 0 2px 0 rgba(255,255,255,0.8),
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    0 6px 18px rgba(0,0,0,0.2) !important;
+  backdrop-filter: blur(8px) !important;
+  position: relative !important;
+  overflow: hidden !important;
 }
-#viewPop .pro-modal-right [class*="Description"] + div,
-#viewPop .pro-modal-right p,
-#viewPop .pro-modal-right .pro-desc{
-  color: #FFFFFF !important;
+#viewPop .pro-btn::before{
+  content:'' !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 50% !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0)) !important;
+  border-radius: 18px 18px 0 0 !important;
+  pointer-events: none !important;
 }
 
-/* Buttons - exact colors you asked */
-#viewPop .pro-actions .pro-btn:nth-child(1),
-#viewPop .pro-modal-right .pro-btn:nth-child(1){
-  background: #00C851 !important;
-  color: #FFFFFF !important;
-  border-color: rgba(255,255,255,0.6) !important;
+/* 1 - WhatsApp - GREEN JELLY */
+#viewPop .pro-btn:nth-child(1){
+  background: linear-gradient(180deg, #2ECC71, #1B8C3E) !important;
+  color: #fff !important;
 }
-#viewPop .pro-actions .pro-btn:nth-child(2),
-#viewPop .pro-modal-right .pro-btn:nth-child(2){
-  background: #0A84FF !important;
-  color: #FFFFFF !important;
-  border-color: rgba(255,255,255,0.6) !important;
+
+/* 2 - Add to Cart - ORANGE JELLY */
+#viewPop .pro-btn:nth-child(2){
+  background: linear-gradient(180deg, #FF9A3D, #FF6A00) !important;
+  color: #fff !important;
 }
-#viewPop .pro-actions .pro-btn:nth-child(3),
-#viewPop .pro-modal-right .pro-btn:nth-child(3){
-  background: #FFCC00 !important;
-  color: #FF6A00 !important;
-  border-color: rgba(255,255,255,0.8) !important;
+
+/* 3 - Visit Shop - BLACK JELLY */
+#viewPop .pro-btn:nth-child(3){
+  background: linear-gradient(180deg, #2B2B2B, #000000) !important;
+  color: #fff !important;
+  border: 2px solid rgba(255,255,255,0.25) !important;
+}
+
+/* 4 - Save / Share - YELLOW JELLY */
+#viewPop .pro-btn:nth-child(4),
+#viewPop .pro-btn:last-child{
+  background: linear-gradient(180deg, #FFDB4D, #FFC800) !important;
+  color: #000 !important;
   font-weight: 900 !important;
 }
-/* Make text inside buttons white/orange */
-#viewPop .pro-btn:nth-child(1) *, 
-#viewPop .pro-btn:nth-child(2) *{
-  color: #FFFFFF !important;
-}
-#viewPop .pro-btn:nth-child(3) *{
-  color: #FF6A00 !important;
-}
+
+#viewPop .pro-btn *{ color: inherit !important; }
 </style>
 </main>
 </body>
