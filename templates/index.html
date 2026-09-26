@@ -236,6 +236,42 @@ div[style*="position:absolute"][style*="top"]{
   background:#FF0000!important;
   color:#fff!important;
 }
+  /* ===== SHARP BORDER FOR PRODUCT & SHOP/CART ===== */
+.card{
+  border:1.5px solid #d1d9e6!important;
+  overflow:hidden!important;
+}
+.card div[style*="padding:10px"], .card > div:nth-child(2){
+  border-top:1.5px solid #e2e8f0!important;
+  background:#E9EFF7!important;
+}
+
+/* Shop button = Dark gray border */
+.view-btn, button[onclick*="viewProduct"], div[style*="Shop"] > button:first-child{
+  border:2px solid #4A5568!important;
+  border-radius:24px!important;
+  background:#E9EFF7!important;
+  color:#2D3748!important;
+  font-weight:800!important;
+  box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff!important;
+}
+
+/* Cart button = Orange border */
+.cart-btn, button[onclick*="addToCart"], div[style*="Shop"] > button:last-child{
+  border:2px solid #FF6A00!important;
+  border-radius:24px!important;
+  background:#E9EFF7!important;
+  color:#FF6A00!important;
+  font-weight:800!important;
+  box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff!important;
+}
+
+/* Red discount badge keep */
+.card div[style*="OFF"]{
+  background:#FF0000!important;
+  color:#fff!important;
+  border:1.5px solid #fff!important;
+}
 </style>
 </head>
 <body>
