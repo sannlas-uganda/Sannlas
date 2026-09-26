@@ -173,13 +173,70 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
   color:#065f46!important;
   font-weight:900!important;
 }
-  /* LIQUID GLASS TOP HEADER EXTRA */
-.navbar{border-radius:0 0 18px 18px!important}
+/* ===== NEUMORPHISM SANNLAS - SOFT UI LIKE YOUR PICTURE ===== */
+body{
+  background:#E6EAF0!important;
+  color:#4a5568!important;
+}
+.navbar{
+  background:#E6EAF0!important;
+  border:none!important;
+  box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff!important;
+  border-radius:0 0 20px 20px!important;
+}
+.search-section, div[style*="position:sticky; top:58px"], div[style*="top:62px"]{
+  background:#E6EAF0!important;
+  border:none!important;
+  box-shadow:none!important;
+}
+.search-wrap, div[style*="max-width:780px"]{
+  background:#E6EAF0!important;
+  border-radius:28px!important;
+  box-shadow: inset 6px 6px 12px #d1d9e6, inset -6px -6px 12px #ffffff!important;
+  border:none!important;
+}
+#searchInput{background:transparent!important}
+
+.card, .products div{
+  background:#E6EAF0!important;
+  border:none!important;
+  border-radius:20px!important;
+  box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff!important;
+  transition:0.2s!important;
+}
+.card:hover{
+  box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff!important;
+  transform:scale(0.99)!important;
+}
+.view-btn, .cart-btn, .btn, button[onclick*="WANTS"], button[onclick*="CART"]{
+  background:#E6EAF0!important;
+  box-shadow: 5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff!important;
+  border:none!important;
+  color:#4a5568!important;
+  border-radius:14px!important;
+}
+.view-btn:active, .cart-btn:active{
+  box-shadow: inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff!important;
+}
+.btn-yellow, button[style*="FF6A00"], #searchBtnFix{
+  background: linear-gradient(145deg, #ffb07a, #ff8a4c)!important;
+  box-shadow: 5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff!important;
+  color:#fff!important;
+}
 .fixed-bottom{
-  background: rgba(255,255,255,0.75)!important;
-  backdrop-filter: blur(20px) saturate(180%)!important;
-  border-top:1px solid rgba(255,255,255,0.6)!important;
-  box-shadow:0 -4px 24px rgba(0,0,0,0.06)!important;
+  background:#E6EAF0!important;
+  box-shadow: 0 -8px 16px #d1d9e6!important;
+  border:none!important;
+  border-radius:20px 20px 0 0!important;
+}
+#sideMenu{
+  background:#E6EAF0!important;
+  box-shadow: 10px 10px 20px #d1d9e6!important;
+  border:none!important;
+}
+.liquid-btn{
+  background:#E6EAF0!important;
+  box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff!important;
 }
 .fixed-bottom span{color:#111!important;font-weight:800!important}
 </style>
