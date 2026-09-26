@@ -1254,6 +1254,10 @@ setInterval(async()=>{
   border: 2px solid rgba(255,255,255,0.7) !important;
   border-radius: 32px !important;
   box-shadow: 0 25px 80px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.85) !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 #viewPop .pro-modal-top{
   background: rgba(255,255,255,0.15) !important;
@@ -1261,29 +1265,41 @@ setInterval(async()=>{
   border-bottom: 1px solid rgba(255,255,255,0.4) !important;
   border-radius: 32px 32px 0 0 !important;
 }
-#viewPop .pro-modal-left, #viewPop .pro-modal-right, #viewPop .pro-modal-body{
+#viewPop .pro-modal-body{
+  background: transparent !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+}
+#viewPop .pro-modal-left, #viewPop .pro-modal-right{
   background: transparent !important;
 }
 #viewPop .pro-modal-main-img{
   background: rgba(255,255,255,0.35) !important;
   border-radius: 24px !important;
   border: 2px solid rgba(255,255,255,0.7) !important;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
+  height: 320px !important;
+  max-height: 38vh !important;
+  object-fit: contain !important;
 }
 #viewPop .pro-thumb{
   border-radius: 14px !important;
   border: 2px solid rgba(255,255,255,0.7) !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 #viewPop .pro-thumb.active{
   border-color: #FF6A00 !important;
-  box-shadow: 0 0 0 3px rgba(255,106,0,0.3) !important;
 }
 #viewPop .pro-btn{
   border-radius: 20px !important;
   border: 1.5px solid rgba(255,255,255,0.6) !important;
   box-shadow: 0 8px 20px rgba(0,0,0,0.12), inset 0 1.5px 0 rgba(255,255,255,0.8) !important;
   backdrop-filter: blur(12px) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+#viewPop .pro-modal-right{
+  padding-bottom: 24px !important;
+  overflow-y: visible !important;
 }
 </style>
 
@@ -1294,20 +1310,18 @@ function applyRealGlass(){
   const modal = overlay.querySelector('.pro-modal');
   if(!modal || overlay.style.display==='none') return;
   overlay.style.setProperty('background','rgba(0,0,0,0.65)','important');
-  overlay.style.setProperty('backdrop-filter','blur(22px) saturate(160%)','important');
   modal.style.setProperty('background','rgba(255,255,255,0.18)','important');
   modal.style.setProperty('backdrop-filter','blur(40px) saturate(180%)','important');
-  modal.style.setProperty('border','2px solid rgba(255,255,255,0.7)','important');
   modal.style.setProperty('border-radius','32px','important');
 }
 const _realViewProd = window.viewProd;
 window.viewProd = function(id){
   if(_realViewProd) _realViewProd(id);
-  setTimeout(applyRealGlass, 60);
-  setTimeout(applyRealGlass, 300);
-  setTimeout(applyRealGlass, 700);
+  setTimeout(applyRealGlass, 80);
+  setTimeout(applyRealGlass, 350);
+  setTimeout(applyRealGlass, 800);
 }
-setInterval(applyRealGlass, 600);
+setInterval(applyRealGlass, 800);
 </script>
 </main>
 </body>
