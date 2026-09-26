@@ -107,7 +107,72 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
 /* SUPER PRO WHITE HEADER - NO TICKER */
 .navbar{background:#fff!important;border-bottom:1px solid #eee!important}
 .search-section{display:none} /* hide old */
-.coin-live-bar{display:none!important} /* hide coin ticker as you requested */  
+.coin-live-bar{display:none!important} /* hide coin ticker as you requested */
+  /* ===== LIQUID GLASS MENU - NO BLACK - SANNLAS PREMIUM ===== */
+#sideOverlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(255,255,255,0.15)!important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  z-index:20;display:none;
+}
+#sideMenu{
+  position:fixed!important;top:0!important;left:-340px!important;
+  width:320px!important;height:100%!important;
+  background: rgba(255,255,255,0.72)!important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  border-right: 1px solid rgba(255,255,255,0.6)!important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.8)!important;
+  z-index:21!important;overflow-y:auto!important;
+  transition:0.45s cubic-bezier(0.32,0.72,0,1)!important;
+  border-radius:0 24px 24px 0!important;
+}
+#sideMenu.open{left:0!important}
+
+.liquid-glass-header{
+  background: rgba(255,255,255,0.55)!important;
+  backdrop-filter: blur(15px)!important;
+  padding:20px 18px!important;
+  border-bottom:1px solid rgba(255,255,255,0.5)!important;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.liquid-btn{
+  width:100%!important;
+  background: rgba(255,255,255,0.85)!important;
+  backdrop-filter: blur(10px)!important;
+  border: 1px solid rgba(255,255,255,0.9)!important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)!important;
+  color:#111!important;
+  padding:15px 16px!important;
+  border-radius:16px!important;
+  font-weight:700!important;
+  text-align:left!important;
+  font-size:14px!important;
+  cursor:pointer!important;
+  transition:0.2s!important;
+  display:flex!important;justify-content:space-between!important;align-items:center!important;
+}
+.liquid-btn:hover{
+  transform: translateY(-2px) scale(1.01)!important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10)!important;
+  background: rgba(255,255,255,0.95)!important;
+}
+.liquid-btn-gold-badge{
+  background: linear-gradient(135deg,#FFD700,#FFCC02)!important;
+  color:#000!important;
+  padding:4px 12px!important;
+  border-radius:20px!important;
+  font-weight:900!important;
+  font-size:12px!important;
+  box-shadow: 0 2px 8px rgba(255,204,2,0.4)!important;
+}
+.liquid-btn-invite{
+  background: rgba(220,255,220,0.9)!important;
+  border:1px solid rgba(0,255,0,0.3)!important;
+  color:#065f46!important;
+  font-weight:900!important;
+}
 </style>
 </head>
 <body>
@@ -189,10 +254,36 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
 </div>
 </div>
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
-<div id="sideMenu"><div style="background:#000;color:#FFCC02;padding:16px;display:flex;justify-content:space-between"><b>🛍️ SANNLAS MENU</b><button class="btn" style="background:white;color:black;padding:4px 10px" onclick="closeSideMenu()">✕</button></div>
-<button style="background:#000;color:#FFCC02;border:1px solid #FFCC02;margin:10px;width:calc(100% - 20px);padding:12px;border-radius:10px;font-weight:bold" onclick="closeSideMenu();showAllShops()">🏪 All Shops</button>
-<button style="background:#111;color:white;margin:10px;width:calc(100% - 20px);padding:12px;border-radius:10px" onclick="closeSideMenu();goToMyShop()">🏪 My Shop</button>
-<button style="background:#FFCC02;color:#000;margin:10px;width:calc(100% - 20px);padding:12px;border-radius:10px;font-weight:bold" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn</button>
+<div id="sideMenu">
+  <div class="liquid-glass-header">
+    <div>
+      <b style="font-size:18px;color:#111;letter-spacing:1px">◆ SANNLAS</b>
+      <small style="display:block;font-size:9px;letter-spacing:2px;color:#666;margin-top:2px">UGANDA • MARKETPLACE</small>
+    </div>
+    <button onclick="closeSideMenu()" style="background:rgba(255,255,255,0.9);border:1px solid #eee;width:36px;height:36px;border-radius:50%;font-weight:900;cursor:pointer">✕</button>
+  </div>
+  
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <button class="liquid-btn" onclick="closeSideMenu();showAllShops()">🏪 All Shops <span>→</span></button>
+    
+    <div style="height:1px;background:rgba(0,0,0,0.06);margin:4px 0"></div>
+    
+    <button class="liquid-btn" onclick="closeSideMenu();openMyAccountInfo()">👤 My Account Information</button>
+    
+    <button class="liquid-btn" onclick="closeSideMenu();openBalancePage()">
+      💰 My Balance <span class="liquid-btn-gold-badge" id="myCoinsNav">0</span>
+    </button>
+    
+    <button class="liquid-btn" onclick="closeSideMenu();openMyShop()">🏪 My Shop</button>
+    <button class="liquid-btn" onclick="closeSideMenu();openMySales()">📦 My Sales Orders</button>
+    <button class="liquid-btn" onclick="closeSideMenu();openSecurity()">🔒 Security</button>
+    
+    <button class="liquid-btn liquid-btn-invite" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn Coins <span>✨</span></button>
+  </div>
+  
+  <div style="padding:16px;text-align:center;color:#999;font-size:10px;margin-top:20px">
+    Liquid Glass • iOS 26 • Sannlas Uganda 2026
+  </div>
 </div>
 <div style="text-align:center; padding:12px 0 4px 0;">
   <h2 style="margin:0; color:#FF6A00; font-weight:800;">SANNLAS UGANDA</h2>
