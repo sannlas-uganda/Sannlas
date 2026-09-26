@@ -1211,60 +1211,76 @@ setInterval(async()=>{
 // Don't auto-poll wants & balance every time - only on load
   
 </script>
-  <style>
+<style>
+/* LIQUID GLASS FOR YOUR POPUP */
 #productModal{
-  backdrop-filter: blur(15px)!important;
-  background: rgba(0,0,0,0.6)!important;
+  background: rgba(0,0,0,0.65) !important;
+  backdrop-filter: blur(18px) !important;
 }
 #productModal > div{
-  background: rgba(255,255,255,0.22) !important;
-  backdrop-filter: blur(35px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(35px) saturate(180%) !important;
-  border: 2px solid rgba(255,255,255,0.65) !important;
-  border-radius: 32px !important;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.8) !important;
-  overflow:hidden !important;
+  background: rgba(255,255,255,0.20) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 2px solid rgba(255,255,255,0.7) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.8) !important;
 }
+#productModal > div > div:first-child{
+  background: transparent !important;
+}
+/* Image */
 #productModal img{
-  border-radius: 22px !important;
-  border: 1.5px solid rgba(255,255,255,0.7) !important;
-}
-#productModal button{
   border-radius: 20px !important;
+}
+/* Thumbnails at bottom */
+#productModal div[style*="display:flex"] img, #productModal img + div img{
+  border-radius: 14px !important;
+  border: 2px solid rgba(255,255,255,0.8) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+/* Jelly Buttons */
+#productModal button{
+  border-radius: 18px !important;
   border: 1.5px solid rgba(255,255,255,0.6) !important;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.7) !important;
-  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.7) !important;
   backdrop-filter: blur(10px) !important;
+  font-weight: 800 !important;
+  transform: translateZ(0);
 }
 </style>
 
 <script>
-function applyGlass(){
-  const m = document.getElementById('productModal');
-  if(!m) return;
-  const inner = m.querySelector('div');
-  if(inner){
-    inner.style.setProperty('background','rgba(255,255,255,0.22)','important');
-    inner.style.setProperty('backdrop-filter','blur(35px) saturate(180%)','important');
-    inner.style.setProperty('border-radius','32px','important');
-    inner.style.setProperty('border','2px solid rgba(255,255,255,0.65)','important');
+// FORCE LIQUID GLASS ON YOUR POPUP
+function makeItGlass(){
+  const overlay = document.getElementById('productModal');
+  if(!overlay) return;
+  overlay.style.background = 'rgba(0,0,0,0.65)';
+  overlay.style.backdropFilter = 'blur(18px)';
+  
+  const card = overlay.firstElementChild;
+  if(!card) return;
+  if(card.style.background.includes('255, 255, 255') || card.style.background === 'rgb(255, 255, 255)' || card.style.background == '#fff' || card.style.background == 'white' || true){
+    card.style.setProperty('background', 'rgba(255,255,255,0.20)', 'important');
+    card.style.setProperty('backdrop-filter', 'blur(40px) saturate(180%)', 'important');
+    card.style.setProperty('-webkit-backdrop-filter', 'blur(40px) saturate(180%)', 'important');
+    card.style.setProperty('border', '2px solid rgba(255,255,255,0.7)', 'important');
+    card.style.setProperty('border-radius', '28px', 'important');
+    card.style.setProperty('box-shadow', '0 25px 80px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.8)', 'important');
   }
-  m.style.setProperty('background','rgba(0,0,0,0.6)','important');
-  m.style.setProperty('backdrop-filter','blur(15px)','important');
 }
-setInterval(()=>{
-  const modal = document.getElementById('productModal');
-  if(modal && modal.style.display !== 'none'){
-    applyGlass();
-  }
-}, 300);
 
-const original = window.viewProduct;
-window.viewProduct = function(p){
-  if(original) original(p);
-  setTimeout(applyGlass, 100);
-  setTimeout(applyGlass, 500);
-}
+// Run when you click product
+const originalFn = window.viewProduct;
+window.viewProduct = function(...args){
+  if(originalFn) originalFn(...args);
+  setTimeout(makeItGlass, 50);
+  setTimeout(makeItGlass, 300);
+  setTimeout(makeItGlass, 800);
+};
+
+// Keep checking
+new MutationObserver(makeItGlass).observe(document.body, {childList:true, subtree:true});
+setInterval(makeItGlass, 500);
 </script>
 </main>
 </body>
