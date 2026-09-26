@@ -323,26 +323,6 @@ div[style*="position:absolute"][style*="top"]{
   box-shadow: 0 0 20px rgba(255,106,0,0.5), 0 4px 12px rgba(0,0,0,0.15)!important;
   transform:scale(1.05)!important;
 }
-
-/* LIQUID GLASS BUTTONS */
-#productModal button{
-  border-radius:16px!important;
-  backdrop-filter: blur(15px)!important;
-  border:1px solid rgba(255,255,255,0.5)!important;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6)!important;
-  font-weight:800!important;
-  transition: all 0.2s!important;
-}
-#productModal button:hover{ transform:translateY(-2px)!important; box-shadow: 0 8px 20px rgba(0,0,0,0.15)!important; }
-
-/* Green WhatsApp */
-button[style*="#25D366"], button:nth-child(1){ background: rgba(37,211,102,0.85)!important; color:#fff!important; }
-/* Orange Cart */
-button[style*="orange"], button:nth-child(2){ background: rgba(255,106,0,0.85)!important; color:#fff!important; }
-/* Black Shop */
-button[style*="#000"], button:nth-child(3){ background: rgba(0,0,0,0.85)!important; color:#fff!important; }
-/* Yellow Save */
-button[style*="yellow"], button:nth-child(4){ background: rgba(255,193,7,0.85)!important; color:#000!important; }
 </style>
 </head>
 <body>
@@ -1229,6 +1209,50 @@ setInterval(async()=>{
 },120000); // 2 mins
   
 // Don't auto-poll wants & balance every time - only on load
+<script>
+// LIQUID GLASS FIX - FORCE OVERRIDE
+function makeLiquidGlass(){
+  const modal = document.querySelector('#productModal > div, div[style*=\"max-width:900px\"], .modal-content');
+  if(!modal) return;
+  
+  // MAIN CONTAINER LIQUID GLASS
+  modal.style.setProperty('background','rgba(255,255,255,0.25)','important');
+  modal.style.setProperty('backdrop-filter','blur(30px) saturate(180%)','important');
+  modal.style.setProperty('-webkit-backdrop-filter','blur(30px) saturate(180%)','important');
+  modal.style.setProperty('border','1.5px solid rgba(255,255,255,0.6)','important');
+  modal.style.setProperty('border-radius','28px','important');
+  modal.style.setProperty('box-shadow','0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.7)','important');
+  
+  // THUMBNAILS AT BOTTOM - LIQUID
+  document.querySelectorAll('.thumbnail-container img, div[style*=\"gap:6px\"] img').forEach(img=>{
+    img.style.setProperty('border-radius','16px','important');
+    img.style.setProperty('border','2px solid rgba(255,255,255,0.7)','important');
+    img.style.setProperty('box-shadow','0 4px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8)','important');
+    img.style.setProperty('backdrop-filter','blur(10px)','important');
+  });
+
+  // BUTTONS LIQUID
+  document.querySelectorAll('#productModal button').forEach(btn=>{
+    btn.style.setProperty('border-radius','16px','important');
+    btn.style.setProperty('backdrop-filter','blur(15px)','important');
+    btn.style.setProperty('border','1px solid rgba(255,255,255,0.5)','important');
+    btn.style.setProperty('box-shadow','0 4px 15px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6)','important');
+  });
+}
+
+// RUN WHEN PRODUCT CLICKED
+const oldView = window.viewProduct;
+window.viewProduct = function(...args){
+  if(oldView) oldView(...args);
+  setTimeout(makeLiquidGlass, 100);
+  setTimeout(makeLiquidGlass, 500);
+}
+
+// ALSO WATCH FOR MODAL OPEN
+setInterval(()=>{
+  const m = document.getElementById('productModal');
+  if(m && m.style.display !== 'none') makeLiquidGlass();
+}, 300);
 </script>
 </main>
 </body>
