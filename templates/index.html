@@ -74,33 +74,62 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 #billboardBanner{display:none;background:#000;text-align:center;position:relative;overflow:hidden}
 #billboardBanner.active{display:block}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
-  /* ===== PRO PRODUCT MODAL - HYBRID DESIGN ===== */
-.pro-modal{max-width:900px!important;width:98%!important;padding:0!important;border-radius:20px!important;overflow:hidden;background:#fff!important;max-height:95vh!important;display:flex;flex-direction:column}
-.pro-modal-top{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:#fff;position:sticky;top:0;z-index:5}
-.pro-modal-body{display:flex;flex:1;overflow-y:auto;flex-direction:row}
-.pro-modal-left{flex:1;background:#f8f9fb;padding:16px;display:flex;flex-direction:column;gap:12px}
-.pro-modal-main-img{width:100%;height:380px;object-fit:contain;background:#fff;border-radius:16px;border:1px solid #eee}
-.pro-thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
-.pro-thumb{width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid transparent;cursor:pointer;flex:0 0 70px;background:#fff}
-.pro-thumb.active{border-color:#FFCC02;box-shadow:0 0 0 2px #000}
-.pro-modal-right{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
-.pro-price{font-size:28px;font-weight:900;color:#000}
-.pro-badge{background:#d1fae5;color:#065f46;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:800;display:inline-block}
-.pro-option-title{font-weight:800;font-size:13px;margin-top:8px}
-.pro-colors{display:flex;gap:10px}
-.pro-color{width:36px;height:36px;border-radius:50%;border:2px solid #ddd;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900}
-.pro-color.active{border-color:#000;box-shadow:0 0 0 2px #FFCC02}
-.pro-sizes{display:flex;gap:8px}
-.pro-size{padding:8px 18px;border-radius:10px;border:1px solid #ddd;background:#fff;font-weight:700;cursor:pointer}
-.pro-size.active{background:#000;color:#FFCC02;border-color:#000}
-.pro-btn{width:100%;padding:14px;border-radius:12px;border:none;font-weight:900;font-size:14px;cursor:pointer}
-.pro-btn-green{background:#25D366;color:#fff}
-.pro-btn-orange{background:#FF6A00;color:#fff}
-.pro-btn-black{background:#000;color:#FFCC02;border:2px solid #FFCC02}
-.pro-btn-yellow{background:#FFCC02;color:#000}
-@media(max-width:768px){
-.pro-modal-body{flex-direction:column}
-.pro-modal-main-img{height:280px}
+/* ===== LIQUID GLASS PRODUCT MODAL - FINAL FIX ===== */
+#viewPop{
+  background: rgba(0,0,0,0.60) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+}
+.pro-modal{
+  max-width:900px!important;
+  width:98%!important;
+  padding:0!important;
+  border-radius:32px!important;
+  overflow:hidden!important;
+  background: rgba(255,255,255,0.18) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 2px solid rgba(255,255,255,0.65) !important;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.8) !important;
+  max-height:95vh!important;
+  display:flex;
+  flex-direction:column;
+}
+.pro-modal-top{
+  background: rgba(255,255,255,0.25) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.4) !important;
+}
+.pro-modal-body{
+  background: transparent !important;
+}
+.pro-modal-left{
+  background: transparent !important;
+}
+.pro-modal-main-img{
+  background: rgba(255,255,255,0.4) !important;
+  border: 1.5px solid rgba(255,255,255,0.7) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+}
+.pro-thumb{
+  border-radius: 14px !important;
+  border: 2px solid rgba(255,255,255,0.7) !important;
+  background: rgba(255,255,255,0.3) !important;
+  backdrop-filter: blur(8px) !important;
+}
+.pro-thumb.active{
+  border-color: #FF6A00 !important;
+  box-shadow: 0 0 0 3px rgba(255,106,0,0.3), 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+.pro-modal-right{
+  background: transparent !important;
+}
+.pro-btn{
+  border-radius: 20px !important;
+  border: 1.5px solid rgba(255,255,255,0.6) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15), inset 0 1.5px 0 rgba(255,255,255,0.7) !important;
+  backdrop-filter: blur(12px) !important;
 }
   /* REDUCE ALL TEXT SIZE */
 html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!important} h2{font-size:16px!important} h4,.price{font-size:11px!important} .seller-box,.view-btn,.cart-btn{font-size:9px!important}
@@ -1212,75 +1241,73 @@ setInterval(async()=>{
   
 </script>
 <style>
-/* LIQUID GLASS FOR YOUR POPUP */
-#productModal{
+/* ===== LIQUID GLASS - FINAL FOR #viewPop ===== */
+#viewPop{
   background: rgba(0,0,0,0.65) !important;
-  backdrop-filter: blur(18px) !important;
+  backdrop-filter: blur(22px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
 }
-#productModal > div{
-  background: rgba(255,255,255,0.20) !important;
+#viewPop .pro-modal{
+  background: rgba(255,255,255,0.18) !important;
   backdrop-filter: blur(40px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
   border: 2px solid rgba(255,255,255,0.7) !important;
-  border-radius: 28px !important;
-  box-shadow: 0 25px 80px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.8) !important;
+  border-radius: 32px !important;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.85) !important;
 }
-#productModal > div > div:first-child{
+#viewPop .pro-modal-top{
+  background: rgba(255,255,255,0.15) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.4) !important;
+  border-radius: 32px 32px 0 0 !important;
+}
+#viewPop .pro-modal-left, #viewPop .pro-modal-right, #viewPop .pro-modal-body{
   background: transparent !important;
 }
-/* Image */
-#productModal img{
-  border-radius: 20px !important;
+#viewPop .pro-modal-main-img{
+  background: rgba(255,255,255,0.35) !important;
+  border-radius: 24px !important;
+  border: 2px solid rgba(255,255,255,0.7) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
 }
-/* Thumbnails at bottom */
-#productModal div[style*="display:flex"] img, #productModal img + div img{
+#viewPop .pro-thumb{
   border-radius: 14px !important;
-  border: 2px solid rgba(255,255,255,0.8) !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  border: 2px solid rgba(255,255,255,0.7) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
-/* Jelly Buttons */
-#productModal button{
-  border-radius: 18px !important;
+#viewPop .pro-thumb.active{
+  border-color: #FF6A00 !important;
+  box-shadow: 0 0 0 3px rgba(255,106,0,0.3) !important;
+}
+#viewPop .pro-btn{
+  border-radius: 20px !important;
   border: 1.5px solid rgba(255,255,255,0.6) !important;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.7) !important;
-  backdrop-filter: blur(10px) !important;
-  font-weight: 800 !important;
-  transform: translateZ(0);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12), inset 0 1.5px 0 rgba(255,255,255,0.8) !important;
+  backdrop-filter: blur(12px) !important;
 }
 </style>
 
 <script>
-// FORCE LIQUID GLASS ON YOUR POPUP
-function makeItGlass(){
-  const overlay = document.getElementById('productModal');
+function applyRealGlass(){
+  const overlay = document.getElementById('viewPop');
   if(!overlay) return;
-  overlay.style.background = 'rgba(0,0,0,0.65)';
-  overlay.style.backdropFilter = 'blur(18px)';
-  
-  const card = overlay.firstElementChild;
-  if(!card) return;
-  if(card.style.background.includes('255, 255, 255') || card.style.background === 'rgb(255, 255, 255)' || card.style.background == '#fff' || card.style.background == 'white' || true){
-    card.style.setProperty('background', 'rgba(255,255,255,0.20)', 'important');
-    card.style.setProperty('backdrop-filter', 'blur(40px) saturate(180%)', 'important');
-    card.style.setProperty('-webkit-backdrop-filter', 'blur(40px) saturate(180%)', 'important');
-    card.style.setProperty('border', '2px solid rgba(255,255,255,0.7)', 'important');
-    card.style.setProperty('border-radius', '28px', 'important');
-    card.style.setProperty('box-shadow', '0 25px 80px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.8)', 'important');
-  }
+  const modal = overlay.querySelector('.pro-modal');
+  if(!modal || overlay.style.display==='none') return;
+  overlay.style.setProperty('background','rgba(0,0,0,0.65)','important');
+  overlay.style.setProperty('backdrop-filter','blur(22px) saturate(160%)','important');
+  modal.style.setProperty('background','rgba(255,255,255,0.18)','important');
+  modal.style.setProperty('backdrop-filter','blur(40px) saturate(180%)','important');
+  modal.style.setProperty('border','2px solid rgba(255,255,255,0.7)','important');
+  modal.style.setProperty('border-radius','32px','important');
 }
-
-// Run when you click product
-const originalFn = window.viewProduct;
-window.viewProduct = function(...args){
-  if(originalFn) originalFn(...args);
-  setTimeout(makeItGlass, 50);
-  setTimeout(makeItGlass, 300);
-  setTimeout(makeItGlass, 800);
-};
-
-// Keep checking
-new MutationObserver(makeItGlass).observe(document.body, {childList:true, subtree:true});
-setInterval(makeItGlass, 500);
+const _realViewProd = window.viewProd;
+window.viewProd = function(id){
+  if(_realViewProd) _realViewProd(id);
+  setTimeout(applyRealGlass, 60);
+  setTimeout(applyRealGlass, 300);
+  setTimeout(applyRealGlass, 700);
+}
+setInterval(applyRealGlass, 600);
 </script>
 </main>
 </body>
