@@ -1438,6 +1438,33 @@ window.viewProd = function(id){
 };
 setInterval(forceJellyButtons, 800);
 </script>
+  <style>
+/* ===== FIX BREADCRUMB TO BE CENTERED INSIDE TOP BAR ===== */
+#viewPop .pro-modal-top{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  height: 52px !important;
+  padding: 0 50px 0 50px !important;
+  margin: 14px 14px 0 14px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+#viewPop .pro-modal-top *{
+  font-size: 12px !important;
+  letter-spacing: 2.5px !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+#viewPop .pro-modal-close{
+  position: absolute !important;
+  left: 18px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 10 !important;
+}
+</style>
 </main>
 </body>
 </html>
