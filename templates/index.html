@@ -1387,6 +1387,17 @@ const _vP=window.viewProd;
 window.viewProd=function(id){ if(_vP) _vP(id); setTimeout(buildGlassPopup,50); setTimeout(buildGlassPopup,300); setTimeout(buildGlassPopup,700); };
 setInterval(buildGlassPopup,800);
 </script>
+  <style>
+#viewPop .pro-modal-right h2{ color:#000 !important; font-weight:900 !important; }
+#viewPop .pro-modal-right .pro-price, #viewPop .pro-modal-right h3{ color:#FF6A00 !important; font-weight:900 !important; }
+#viewPop .pro-modal-right p, #viewPop .pro-desc, #viewPop .pro-modal-right div[style*="Description"] + div{ color:#fff !important; }
+#viewPop .pro-btn:nth-child(1){ background:#00C851 !important; }
+#viewPop .pro-btn:nth-child(2){ background:#0A84FF !important; }
+#viewPop .pro-btn:nth-child(3){ background:#FFCC00 !important; }
+#viewPop .pro-btn:nth-child(1), #viewPop .pro-btn:nth-child(2){ color:#fff !important; }
+#viewPop .pro-btn:nth-child(1) *, #viewPop .pro-btn:nth-child(2) *{ color:#fff !important; }
+#viewPop .pro-btn:nth-child(3), #viewPop .pro-btn:nth-child(3) *{ color:#FF6A00 !important; font-weight:900 !important; }
+</style>
 </main>
 </body>
 </html>
