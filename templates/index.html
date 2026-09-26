@@ -1387,16 +1387,57 @@ const _vP=window.viewProd;
 window.viewProd=function(id){ if(_vP) _vP(id); setTimeout(buildGlassPopup,50); setTimeout(buildGlassPopup,300); setTimeout(buildGlassPopup,700); };
 setInterval(buildGlassPopup,800);
 </script>
-  <style>
-#viewPop .pro-modal-right h2{ color:#000 !important; font-weight:900 !important; }
-#viewPop .pro-modal-right .pro-price, #viewPop .pro-modal-right h3{ color:#FF6A00 !important; font-weight:900 !important; }
-#viewPop .pro-modal-right p, #viewPop .pro-desc, #viewPop .pro-modal-right div[style*="Description"] + div{ color:#fff !important; }
-#viewPop .pro-btn:nth-child(1){ background:#00C851 !important; }
-#viewPop .pro-btn:nth-child(2){ background:#0A84FF !important; }
-#viewPop .pro-btn:nth-child(3){ background:#FFCC00 !important; }
-#viewPop .pro-btn:nth-child(1), #viewPop .pro-btn:nth-child(2){ color:#fff !important; }
-#viewPop .pro-btn:nth-child(1) *, #viewPop .pro-btn:nth-child(2) *{ color:#fff !important; }
-#viewPop .pro-btn:nth-child(3), #viewPop .pro-btn:nth-child(3) *{ color:#FF6A00 !important; font-weight:900 !important; }
+<style>
+/* ===== FIX COLORS AS YOU WANTED ===== */
+#viewPop .pro-modal-right h2,
+#viewPop .pro-modal-right h2:first-of-type{
+  color: #000000 !important;
+  font-weight: 900 !important;
+}
+#viewPop .pro-modal-right .pro-price,
+#viewPop .pro-modal-right h3{
+  color: #FF6A00 !important;
+  font-weight: 900 !important;
+}
+#viewPop .pro-modal-right [class*="Description"],
+#viewPop .pro-modal-right > div > div:nth-child(3){
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+#viewPop .pro-modal-right [class*="Description"] + div,
+#viewPop .pro-modal-right p,
+#viewPop .pro-modal-right .pro-desc{
+  color: #FFFFFF !important;
+}
+
+/* Buttons - exact colors you asked */
+#viewPop .pro-actions .pro-btn:nth-child(1),
+#viewPop .pro-modal-right .pro-btn:nth-child(1){
+  background: #00C851 !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255,255,255,0.6) !important;
+}
+#viewPop .pro-actions .pro-btn:nth-child(2),
+#viewPop .pro-modal-right .pro-btn:nth-child(2){
+  background: #0A84FF !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255,255,255,0.6) !important;
+}
+#viewPop .pro-actions .pro-btn:nth-child(3),
+#viewPop .pro-modal-right .pro-btn:nth-child(3){
+  background: #FFCC00 !important;
+  color: #FF6A00 !important;
+  border-color: rgba(255,255,255,0.8) !important;
+  font-weight: 900 !important;
+}
+/* Make text inside buttons white/orange */
+#viewPop .pro-btn:nth-child(1) *, 
+#viewPop .pro-btn:nth-child(2) *{
+  color: #FFFFFF !important;
+}
+#viewPop .pro-btn:nth-child(3) *{
+  color: #FF6A00 !important;
+}
 </style>
 </main>
 </body>
