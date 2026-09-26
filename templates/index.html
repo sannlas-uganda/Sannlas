@@ -173,38 +173,46 @@ html{font-size:12px} body{font-size:11px!important} *{font-size:inherit!importan
   color:#065f46!important;
   font-weight:900!important;
 }
+  /* LIQUID GLASS TOP HEADER EXTRA */
+.navbar{border-radius:0 0 18px 18px!important}
+.fixed-bottom{
+  background: rgba(255,255,255,0.75)!important;
+  backdrop-filter: blur(20px) saturate(180%)!important;
+  border-top:1px solid rgba(255,255,255,0.6)!important;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.06)!important;
+}
+.fixed-bottom span{color:#111!important;font-weight:800!important}
 </style>
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register FREE</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><select id="gateRegRole" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:14px;text-align:center;font-size:20px;margin:10px 0;border:1px solid #ddd;border-radius:10px"><button class="btn btn-yellow" style="width:100%;padding:12px" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><button class="btn" style="width:100%;background:#000;color:#fff;padding:14px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:12px;margin:10px 0;border:2px solid #000;border-radius:10px"><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:#eee;margin-top:8px;color:#000" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
-<div class="navbar" style="background:#fff!important;padding:12px 14px!important;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:30;border-bottom:1px solid #eee!important;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="btn btn-yellow" onclick="toggleSideMenu()" style="font-size:18px;padding:8px 12px;border-radius:50%;background:#000;color:#FFCC02">☰</button>
+<!-- ===== LIQUID GLASS TOP HEADER - NO BLACK - PREMIUM ===== -->
+<div class="navbar" style="background: rgba(255,255,255,0.75)!important; backdrop-filter: blur(20px) saturate(180%)!important; -webkit-backdrop-filter: blur(20px) saturate(180%)!important; padding:12px 16px!important; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:30; border-bottom:1px solid rgba(255,255,255,0.6)!important; box-shadow:0 4px 24px rgba(0,0,0,0.06)!important;">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button onclick="toggleSideMenu()" style="font-size:18px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 10px rgba(0,0,0,0.06);cursor:pointer">☰</button>
     <div style="display:flex;flex-direction:column;line-height:0.9">
-      <div style="display:flex;align-items:center;gap:6px;font-weight:900;font-size:22px;color:#FF6A00;">◆ SANNLAS</div>
-      <small style="font-size:8px;letter-spacing:2px;color:#666;margin-top:2px">UGANDA • MARKETPLACE</small>
+      <div style="display:flex;align-items:center;gap:6px;font-weight:900;font-size:21px;color:#111;letter-spacing:0.5px">◆ SANNLAS</div>
+      <small style="font-size:8px;letter-spacing:2.5px;color:#666;margin-top:3px;font-weight:700">UGANDA • MARKETPLACE</small>
     </div>
   </div>
-
-  <!-- LOGIN BUTTON TOP RIGHT / SAME LOGO AREA -->
   <div style="display:flex;align-items:center;gap:8px">
-    <button id="topLoginBtn" onclick="handleTopLogin()" style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:8px 16px;border-radius:20px;font-weight:900;font-size:12px;cursor:pointer">👤 LOGIN</button>
-    <span id="userInfo" style="display:none;background:#FFCC02;color:#000;padding:6px 10px;border-radius:15px;font-size:10px;font-weight:800;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button id="topLoginBtn" onclick="handleTopLogin()" style="background:rgba(255,255,255,0.9);color:#111;border:1px solid rgba(0,0,0,0.08);padding:9px 18px;border-radius:20px;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.06)">👤 LOGIN</button>
+    <span id="userInfo" style="display:none;background:linear-gradient(135deg,#FFD700,#FFCC02);color:#000;padding:7px 12px;border-radius:16px;font-size:11px;font-weight:900;box-shadow:0 2px 8px rgba(255,204,2,0.4)"></span>
   </div>
 </div>
 
-<div style="background:#fff;padding:14px 14px 12px;position:sticky;top:58px;z-index:12;border-bottom:1px solid #eee">
-  <div style="max-width:750px;margin:0 auto;display:flex;gap:8px;align-items:center;background:#f1f2f4;border-radius:28px;padding:6px 6px 6px 14px;border:1px solid #ddd;position:relative;">
-    <span style="font-size:18px">🔍</span>
-    <input id="searchInput" type="text" placeholder="Search for electronics, fashion, groceries..." oninput="showSuggestions(this.value); debouncedFilter()" autocomplete="off" style="flex:1;border:none;background:transparent;padding:10px;font-size:13px;outline:none">
-    <button type="button" id="searchBtnFix" onclick="document.getElementById('searchSuggestions').style.display='none'; doFilter();"style="background:#FF6A00!important;color:#fff!important;border:none;padding:10px 18px;border-radius:20px;font-weight:900;cursor:pointer">Search</button>
-    <button class="btn" onclick="startVoiceSearch()" id="micBtn" style="background:#111;color:#FFCC02;border-radius:50%;padding:8px 10px">🎤</button>
-    <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-radius:12px; margin-top:6px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 8px 20px rgba(0,0,0,0.15);"></div>
+<div style="background: rgba(255,255,255,0.65); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); padding:16px 14px 14px; position:sticky; top:62px; z-index:12; border-bottom:1px solid rgba(255,255,255,0.6); box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+  <div style="max-width:780px;margin:0 auto;display:flex;gap:8px;align-items:center;background:rgba(255,255,255,0.92);border-radius:28px;padding:6px 6px 6px 14px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1);position:relative;">
+    <span style="font-size:18px;opacity:0.6">🔍</span>
+    <input id="searchInput" type="text" placeholder="Search for electronics, fashion, groceries..." oninput="showSuggestions(this.value); debouncedFilter()" autocomplete="off" style="flex:1;border:none;background:transparent;padding:10px;font-size:13px;outline:none;color:#111">
+    <button type="button" id="searchBtnFix" onclick="document.getElementById('searchSuggestions').style.display='none'; doFilter();" style="background:#111!important;color:#fff!important;border:none;padding:10px 20px;border-radius:20px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15)">Search</button>
+    <button onclick="startVoiceSearch()" id="micBtn" style="background:rgba(255,255,255,0.9);color:#111;border:1px solid rgba(0,0,0,0.08);border-radius:50%;padding:9px 11px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05)">🎤</button>
+    <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.8); border-radius:16px; margin-top:8px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 12px 32px rgba(0,0,0,0.12);"></div>
   </div>
-  <div style="max-width:750px;margin:12px auto 0;display:flex;gap:10px;justify-content:center">
-    <button onclick="openSellModal()" style="background:#FF6A00;color:#fff;font-weight:900;border:none;cursor:pointer;padding:10px 22px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:6px">🏪 SELL</button>
-   <button onclick="openWantsList()" style="background:#fff;color:#000;font-weight:800;border:1px solid #ddd;cursor:pointer;padding:10px 18px;border-radius:12px;font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:6px;min-width:90px;justify-content:center">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
-<button id="cartNTop" onclick="openCart()" style="background:#fff;color:#000;font-weight:800;border:1px solid #ddd;cursor:pointer;padding:10px 18px;border-radius:12px;font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:6px;min-width:75px;justify-content:center">🛒 CART</button>
+  <div style="max-width:780px;margin:14px auto 0;display:flex;gap:10px;justify-content:center">
+    <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:11px 26px;border-radius:14px;font-size:13px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(255,106,0,0.3)">🏪 SELL</button>
+    <button onclick="openWantsList()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,0.05)">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
+    <button id="cartNTop" onclick="openCart()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,0.05)">🛒 CART</button>
   </div>
 </div>
   
