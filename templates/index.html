@@ -1241,87 +1241,151 @@ setInterval(async()=>{
   
 </script>
 <style>
-/* ===== LIQUID GLASS - FINAL FOR #viewPop ===== */
+/* ===== SANNLAS UGANDA - PURE LIQUID GLASS LIKE PICTURE ===== */
 #viewPop{
-  background: rgba(0,0,0,0.65) !important;
-  backdrop-filter: blur(22px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
+  background: rgba(0,0,0,0.55) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  padding: 16px !important;
 }
 #viewPop .pro-modal{
-  background: rgba(255,255,255,0.18) !important;
-  backdrop-filter: blur(40px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
-  border: 2px solid rgba(255,255,255,0.7) !important;
-  border-radius: 32px !important;
-  box-shadow: 0 25px 80px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.85) !important;
-  max-height: 90vh !important;
+  background: rgba(255,255,255,0.38) !important;
+  backdrop-filter: blur(45px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(45px) saturate(200%) !important;
+  border: 2.5px solid rgba(255,255,255,0.85) !important;
+  border-radius: 36px !important;
+  box-shadow: 0 30px 90px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(255,255,255,0.4) !important;
+  max-width: 920px !important;
+  width: 92% !important;
+  max-height: 92vh !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
 }
 #viewPop .pro-modal-top{
-  background: rgba(255,255,255,0.15) !important;
-  backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.4) !important;
-  border-radius: 32px 32px 0 0 !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.15)) !important;
+  backdrop-filter: blur(15px) !important;
+  border: 1.5px solid rgba(255,255,255,0.6) !important;
+  border-radius: 28px !important;
+  margin: 14px 14px 0 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  font-weight: 900 !important;
+  letter-spacing: 3px !important;
 }
 #viewPop .pro-modal-body{
-  background: transparent !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 18px !important;
+  padding: 16px !important;
   overflow-y: auto !important;
-  flex: 1 !important;
 }
-#viewPop .pro-modal-left, #viewPop .pro-modal-right{
+#viewPop .pro-modal-left{
+  flex: 1.15 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
   background: transparent !important;
 }
 #viewPop .pro-modal-main-img{
-  background: rgba(255,255,255,0.35) !important;
-  border-radius: 24px !important;
-  border: 2px solid rgba(255,255,255,0.7) !important;
-  height: 320px !important;
-  max-height: 38vh !important;
-  object-fit: contain !important;
+  width: 100% !important;
+  height: 340px !important;
+  background: rgba(255,255,255,0.5) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 2px solid rgba(255,255,255,0.8) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12), inset 0 2px 8px rgba(255,255,255,0.9), inset 0 -2px 6px rgba(0,0,0,0.05) !important;
+  object-fit: cover !important;
+  padding: 6px !important;
+}
+#viewPop .pro-thumbs, #viewPop .pro-modal-left > div:last-child{
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: flex-start !important;
 }
 #viewPop .pro-thumb{
-  border-radius: 14px !important;
-  border: 2px solid rgba(255,255,255,0.7) !important;
+  width: 76px !important;
+  height: 76px !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,0.4) !important;
+  border: 2px solid rgba(255,255,255,0.75) !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+  padding: 4px !important;
+  object-fit: cover !important;
 }
 #viewPop .pro-thumb.active{
   border-color: #FF6A00 !important;
-}
-#viewPop .pro-btn{
-  border-radius: 20px !important;
-  border: 1.5px solid rgba(255,255,255,0.6) !important;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12), inset 0 1.5px 0 rgba(255,255,255,0.8) !important;
-  backdrop-filter: blur(12px) !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  box-shadow: 0 0 0 3px rgba(255,106,0,0.35), 0 0 18px rgba(255,106,0,0.6), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+  transform: scale(1.05) !important;
 }
 #viewPop .pro-modal-right{
-  padding-bottom: 24px !important;
-  overflow-y: visible !important;
+  flex: 0.85 !important;
+  background: transparent !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+#viewPop .pro-modal-right > div:first-child{
+  flex: 1 !important;
+}
+#viewPop .pro-modal-right h2{
+  font-size: 32px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+}
+#viewPop .pro-modal-right h3, #viewPop .pro-modal-right .pro-price{
+  font-size: 28px !important;
+  font-weight: 900 !important;
+}
+/* Right glass box for buttons */
+#viewPop .pro-modal-right > div:last-child, #viewPop .pro-actions{
+  background: rgba(255,255,255,0.32) !important;
+  backdrop-filter: blur(18px) !important;
+  border: 1.5px solid rgba(255,255,255,0.65) !important;
+  border-radius: 24px !important;
+  padding: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 8px 24px rgba(0,0,0,0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+}
+#viewPop .pro-btn{
+  height: 52px !important;
+  border-radius: 18px !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  border: 1.5px solid rgba(255,255,255,0.7) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12), inset 0 1.5px 0 rgba(255,255,255,0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  transform: translateZ(0) !important;
+  transition: all 0.2s !important;
+}
+#viewPop .pro-btn:active{ transform: scale(0.96) !important; }
+#viewPop #viewPopBusinessBox, #viewPop div[style*="background: rgb(255, 255, 0)"], #viewPop div[style*="yellow"]{
+  background: rgba(255,255,255,0.25) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,0.5) !important;
+}
+@media(max-width:768px){
+  #viewPop .pro-modal-body{ flex-direction: column !important; }
+  #viewPop .pro-modal-main-img{ height: 280px !important; }
 }
 </style>
 
 <script>
-function applyRealGlass(){
-  const overlay = document.getElementById('viewPop');
-  if(!overlay) return;
-  const modal = overlay.querySelector('.pro-modal');
-  if(!modal || overlay.style.display==='none') return;
-  overlay.style.setProperty('background','rgba(0,0,0,0.65)','important');
-  modal.style.setProperty('background','rgba(255,255,255,0.18)','important');
-  modal.style.setProperty('backdrop-filter','blur(40px) saturate(180%)','important');
-  modal.style.setProperty('border-radius','32px','important');
+function buildGlassPopup(){
+  const o=document.getElementById('viewPop');
+  if(!o||o.style.display==='none') return;
+  const m=o.querySelector('.pro-modal');
+  if(!m) return;
+  m.style.setProperty('background','rgba(255,255,255,0.38)','important');
+  m.style.setProperty('backdrop-filter','blur(45px) saturate(200%)','important');
+  m.style.setProperty('-webkit-backdrop-filter','blur(45px) saturate(200%)','important');
 }
-const _realViewProd = window.viewProd;
-window.viewProd = function(id){
-  if(_realViewProd) _realViewProd(id);
-  setTimeout(applyRealGlass, 80);
-  setTimeout(applyRealGlass, 350);
-  setTimeout(applyRealGlass, 800);
-}
-setInterval(applyRealGlass, 800);
+const _vP=window.viewProd;
+window.viewProd=function(id){ if(_vP) _vP(id); setTimeout(buildGlassPopup,50); setTimeout(buildGlassPopup,300); setTimeout(buildGlassPopup,700); };
+setInterval(buildGlassPopup,800);
 </script>
 </main>
 </body>
