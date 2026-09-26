@@ -218,6 +218,24 @@ div[style*="Shops"], .fixed-bottom{
   background:#E9EFF7!important;
   box-shadow: 0 -8px 20px #d1d9e6!important;
 }
+  /* ===== RED DISCOUNT BADGE - SHARP ===== */
+.card div[style*="OFF"],
+.card span[style*="OFF"],
+div[class*="discount"],
+span[class*="discount"],
+.badge{
+  background:#FF0000!important;
+  color:#fff!important;
+  font-weight:900!important;
+  box-shadow: 0 2px 8px rgba(255,0,0,0.4)!important;
+  border:1px solid rgba(255,255,255,0.8)!important;
+}
+
+/* Force all % OFF badges to red */
+div[style*="position:absolute"][style*="top"]{
+  background:#FF0000!important;
+  color:#fff!important;
+}
 </style>
 </head>
 <body>
