@@ -1,203 +1,195 @@
 <!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Smart Broadcast V4 - DIRECT POST</title>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broadcast - Sannlas</title>
 <style>
-body{background:#E9EFF7;font-family:Inter;padding:14px;padding-bottom:90px}
-.card{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-radius:18px;padding:14px;margin:10px 0;border:1px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.06)}
-.btn{padding:12px;border-radius:12px;font-weight:900;border:none;cursor:pointer;width:100%;margin:6px 0}
-.social-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #eee;border-radius:10px;margin:6px 0;background:#fff}
-.handle-input{padding:10px;border:2px solid #000;border-radius:10px;width:100%;margin:4px 0}
-.type-active{background:#000!important;color:#FFCC02!important}
-</style></head><body>
-<h2>🧠 SMART BROADCAST <small style="background:#000;color:#FFCC02;padding:4px 8px;border-radius:20px;font-size:10px">V4 DIRECT → HANDLES</small></h2>
+body{font-family:system-ui;background:#f8fafc;margin:0;padding-bottom:80px}
+.header{background:#000;color:#FFCC02;padding:14px 16px;display:flex;justify-content:space-between;font-weight:900}
+.header a{color:#FFCC02;text-decoration:none}
+.card{background:white;border-radius:18px;padding:16px;margin:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #eee}
+.input{width:100%;padding:12px;border:1px solid #ddd;border-radius:12px;margin:8px 0;box-sizing:border-box}
+.btn{width:100%;padding:14px;background:#000;color:#FFCC02;border:2px solid #000;border-radius:12px;font-weight:900;cursor:pointer}
+.btn2{padding:10px 14px;background:#FFCC02;color:#000;border:2px solid #000;border-radius:10px;font-weight:800;cursor:pointer}
+.handle{border:2px solid #000;border-radius:14px;padding:12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;background:#fff}
+.handle.connected{border-color:#00C851;background:#f0fff4}
+.badge{font-size:11px;padding:3px 8px;border-radius:20px;font-weight:900}
+.badge.auto{background:#000;color:#FFCC02}
+.badge.click{background:#FFCC02;color:#000}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.product{display:flex;gap:8px;border:1px solid #eee;border-radius:10px;padding:8px;margin:4px 0}
+.product img{width:50px;height:50px;border-radius:8px;object-fit:cover}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#FFCC02;padding:12px 20px;border-radius:30px;font-weight:800;display:none;z-index:9999}
+</style>
+</head>
+<body>
+<div class="header"><a href="/my-shop">← My Shop</a><span>🚀 BROADCAST</span><span>SANNLAS</span></div>
 
-<!-- ACCOUNTS SECTION - FROM YOUR SCREENSHOT -->
-<div class="card" style="border:2px solid #000">
-<h3>🔗 My Social Accounts (Your Screenshot Handles Loaded)</h3>
-<div id="accountsList"></div>
-<div style="background:#fffef0;padding:12px;border-radius:12px;margin-top:10px;border:2px dashed #FFCC02">
-<b>➕ Add Another Handle</b>
-<select id="newPlat" class="handle-input">
-<option value="tiktok">📱 TikTok</option>
-<option value="youtube">▶️ YouTube</option>
-<option value="facebook">📘 Facebook Page</option>
-<option value="instagram">📸 Instagram</option>
-<option value="twitter">🐦 Twitter / X</option>
-<option value="whatsapp">💬 WhatsApp Channel</option>
-<option value="telegram">✈️ Telegram Channel</option>
-<option value="custom">🔗 Custom Link</option>
+<div class="card">
+<h3 style="margin:0">📢 Your Handles (Your Own Channels)</h3>
+<p style="font-size:13px;color:#64748b">Add YOUR OWN YouTube, TikTok, FB, Insta, WhatsApp Channel, Telegram. Each seller connects his OWN!</p>
+<div style="display:flex;gap:8px;margin:10px 0">
+<select id="platform" class="input" style="flex:1">
+<option value="youtube">YouTube (Shorts)</option>
+<option value="tiktok">TikTok</option>
+<option value="facebook">Facebook Page</option>
+<option value="instagram">Instagram</option>
+<option value="whatsapp">WhatsApp Channel</option>
+<option value="telegram">Telegram Channel</option>
+<option value="twitter">X / Twitter</option>
 </select>
-<input id="newHandle" class="handle-input" placeholder="e.g. tiktok.com/@sannlasug or @stephenndyomugisha-b1n">
-<input id="newName" class="handle-input" placeholder="Display name (optional)">
-<button class="btn" style="background:#000;color:#FFCC02" onclick="addHandle()">➕ SAVE MY HANDLE</button>
-<small style="color:#666">✅ Saved in phone + used for DIRECT posting</small>
+<input id="handleInput" class="input" placeholder="@yourhandle or channel link (e.g. 0029VaE...)" style="flex:2">
 </div>
+<div id="extraBox" style="display:none">
+<input id="extraInput" class="input" placeholder="Extra: Phone ID or Bot Token (for WA/Telegram auto)">
+<p style="font-size:11px;color:#888">For WhatsApp AUTO: paste Phone ID+Token JSON like {"phone_id":"123","token":"EAAG..."} else leave empty = 1-click fallback</p>
+</div>
+<button class="btn2" onclick="addHandle()">➕ Add & Connect</button>
+<div id="handlesList" style="margin-top:12px"></div>
 </div>
 
 <div class="card">
-<h3>1️⃣ Pick Products</h3>
-<div id="prodList">Loading...</div>
-<button class="btn" style="background:#000;color:#FFCC02" onclick="generateSmartCaption()">✨ AI CAPTION WITH MY HANDLES</button>
+<h3 style="margin:0">📦 Your Products</h3>
+<div id="myProducts">Loading...</div>
+<button class="btn2" onclick="loadProducts()" style="margin-top:8px">🔄 Refresh Products</button>
 </div>
 
-<!-- ===== FIXED: VIDEO / PHOTO / MESSAGE TABS ===== -->
 <div class="card">
-<h3>2️⃣ What to Post? (Video / Photo / Message)</h3>
-<div style="display:flex;gap:6px;margin-bottom:10px">
-<button id="btnVideo" class="btn type-active" style="flex:1" onclick="setType('video')">🎥 Video</button>
-<button id="btnPhoto" class="btn" style="flex:1;background:#fff;border:1px solid #000" onclick="setType('photo')">🖼️ Photo</button>
-<button id="btnMessage" class="btn" style="flex:1;background:#fff;border:1px solid #000" onclick="setType('message')">💬 Message</button>
+<h3 style="margin:0">🎬 Broadcast Content</h3>
+<input type="file" id="file" accept="video/*,image/*" class="input">
+<textarea id="caption" class="input" rows="4" placeholder="Write caption... or leave empty for AI smart caption"></textarea>
+<button class="btn2" onclick="genSmart()">🤖 AI Smart Caption</button>
+<div style="margin:10px 0">
+<label><input type="radio" name="ftype" value="video" checked> Video (TikTok/YouTube Short)</label>
+<label style="margin-left:10px"><input type="radio" name="ftype" value="image"> Image (FB/Insta)</label>
+<label style="margin-left:10px"><input type="radio" name="ftype" value="message"> Text only</label>
+</div>
+<button class="btn" onclick="broadcastNow()">🚀 BROADCAST TO MY OWN HANDLES</button>
+<p style="font-size:12px;color:#64748b;margin-top:8px">✅ TikTok, YouTube, FB, Insta, Telegram = 100% Auto<br>✅ WhatsApp = Auto if you add API token, else 1-click share link fallback</p>
 </div>
 
-<video id="preview" style="width:100%;border-radius:14px;background:#000;display:none" controls></video>
-<img id="photoPreview" style="width:100%;border-radius:14px;display:none;max-height:300px;object-fit:contain;background:#000" />
-
-<input type="file" id="videoInput" accept="video/*" style="width:100%">
-<input type="file" id="photoInput" accept="image/*" style="width:100%;display:none">
-
-<div style="display:flex;gap:8px" id="recBox">
-<button class="btn" style="background:#111;color:#fff;flex:1" onclick="startRecord()">🔴 REC 40s</button>
-<button class="btn" style="background:#ff0000;color:#fff;flex:1;display:none" id="stopBtn" onclick="stopRecord()">⏹️ STOP</button>
-</div>
-
-<textarea id="caption" style="width:100%;padding:12px;border-radius:12px;border:2px solid #000;background:#fffef0;margin-top:10px" rows="7" placeholder="Type message if you choose Message, or caption for video/photo..."></textarea>
-<div id="bestTimeBox" style="background:#000;color:#00FF00;padding:8px;border-radius:8px;font-size:11px;margin-top:6px">⏰ Best time...</div>
-</div>
-
-<button class="btn" style="background:linear-gradient(135deg,#000,#333);color:#FFCC02;font-size:17px;padding:18px" onclick="doBroadcast()" id="bBtn">🚀 BROADCAST DIRECT TO MY HANDLES</button>
-<div id="status" style="text-align:center;font-weight:900;margin-top:10px"></div>
+<div id="result" class="card" style="display:none"></div>
+<div id="toast"></div>
 
 <script>
-let myProducts=[], recordedFile=null, mediaRecorder, chunks=[], stream, currentType='video';
-let myHandles = JSON.parse(localStorage.getItem('sannlas_handles')||'[]');
+let myHandles = JSON.parse(localStorage.getItem('sannlas_broadcast_handles')||'[]');
+let myProducts = [];
+let selectedProducts = [];
+const userEmail = localStorage.getItem('sannlas_email') || localStorage.getItem('email') || '';
 
-// ===== YOUR SCREENSHOT HANDLES PRE-LOADED =====
-if(myHandles.length==0){
-  myHandles=[
-    {id:'1', platform:'tiktok', handle:'tiktok.com/@sannlasug', name:'TikTok Sannlas', enabled:true, token:''},
-    {id:'2', platform:'youtube', handle:'@stephenndyomugisha-b1n', name:'YouTube', enabled:true, token:''},
-    {id:'3', platform:'facebook', handle:'https://www.facebook.com/share/1WJuWJwWbU/', name:'Facebook', enabled:true, token:''},
-    {id:'4', platform:'whatsapp', handle:'https://whatsapp.com/channel/0029Vb6DkMp7T8bWLEWKNc0U', name:'WhatsApp Channel', enabled:true, token:''},
-    {id:'5', platform:'twitter', handle:'@ndyomugishastph', name:'Twitter', enabled:true, token:''},
-  ];
-}
+document.getElementById('platform').addEventListener('change', e=>{
+  document.getElementById('extraBox').style.display = (e.target.value=='whatsapp'||e.target.value=='telegram')?'block':'none';
+});
+
+function toast(m){ let t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
 
 function renderHandles(){
-  let html = myHandles.map(h=>`
-    <div class="social-row">
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:6px">
-          <input type="checkbox" ${h.enabled?'checked':''} onchange="toggleHandle('${h.id}')">
-          <b>${h.platform.toUpperCase()}</b>
-        </div>
-        <span style="font-size:11px;color:#444;word-break:break-all">${h.handle||'No handle'}</span>
-        <br><small style="color:${h.token?'green':'#ff6600'};font-size:10px">${h.token?'✅ CONNECTED - Direct Post':'⚠️ Tap CONNECT for auto-post'}</small>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <button onclick="connectOAuth('${h.platform}','${h.id}')" style="background:#000;color:#FFCC02;border:none;padding:6px 10px;border-radius:8px;font-size:10px;font-weight:900">🔗 CONNECT</button>
-        <div style="display:flex;gap:4px">
-          <button onclick="editHandle('${h.id}')" style="background:#eee;border:none;padding:4px 8px;border-radius:6px">✏️</button>
-          <button onclick="deleteHandle('${h.id}')" style="background:#ff0000;color:#fff;border:none;padding:4px 8px;border-radius:6px">🗑️</button>
-        </div>
-      </div>
-    </div>
-  `).join('');
-  document.getElementById('accountsList').innerHTML = html || '<p>No handles</p>';
-  localStorage.setItem('sannlas_handles', JSON.stringify(myHandles));
+  let h='';
+  myHandles.forEach((hd,i)=>{
+    let badge = hd.connected?`<span class="badge auto">AUTO CONNECTED</span>`:`<span class="badge click">SAVED</span>`;
+    if(hd.platform=='whatsapp' && !hd.extra) badge = `<span class="badge click">1-CLICK FALLBACK</span>`;
+    if(hd.platform=='whatsapp' && hd.extra) badge = `<span class="badge auto">AUTO API</span>`;
+    h+=`<div class="handle ${hd.connected?'connected':''}"><div><b>${hd.platform.toUpperCase()}</b><br>${hd.handle} ${badge}</div><div><label><input type="checkbox" ${hd.enabled!==false?'checked':''} onchange="toggleHandle(${i},this.checked)"> Use</label> <button onclick="delHandle(${i})" style="margin-left:8px">🗑️</button></div></div>`;
+  });
+  document.getElementById('handlesList').innerHTML = h||'<p style="color:#888;font-size:13px">No handles yet - Add your own YouTube, TikTok etc</p>';
+  localStorage.setItem('sannlas_broadcast_handles', JSON.stringify(myHandles));
 }
 
 function addHandle(){
-  let plat=document.getElementById('newPlat').value;
-  let handle=document.getElementById('newHandle').value.trim();
-  let name=document.getElementById('newName').value.trim()||plat;
-  if(!handle){alert('Enter handle Boss!');return;}
-  myHandles.push({id:Date.now().toString(), platform:plat, handle:handle, name:name, enabled:true, token:''});
-  document.getElementById('newHandle').value=''; document.getElementById('newName').value='';
+  const plat = document.getElementById('platform').value;
+  const handle = document.getElementById('handleInput').value.trim();
+  const extra = document.getElementById('extraInput').value.trim();
+  if(!handle){ toast('Enter handle!'); return; }
+  // Add locally first
+  myHandles.push({platform:plat, handle:handle, extra:extra, enabled:true, connected:false});
   renderHandles();
-}
-function toggleHandle(id){ let h=myHandles.find(x=>x.id==id); if(h) h.enabled=!h.enabled; renderHandles(); updateBestTime(); }
-function deleteHandle(id){ if(!confirm('Delete this handle?')) return; myHandles=myHandles.filter(x=>x.id!=id); renderHandles(); }
-function editHandle(id){ let h=myHandles.find(x=>x.id==id); if(!h) return; let newH=prompt('Edit handle/link:', h.handle); if(newH!==null){ h.handle=newH.trim(); renderHandles(); } }
-function connectOAuth(platform, id){
-  localStorage.setItem('connecting_id', id);
-  window.open('/api/broadcast/connect/'+platform, '_blank', 'width=600,height=700');
-  setTimeout(()=>{ let h=myHandles.find(x=>x.id==id); if(h){ h.token='connected_demo_'+Date.now(); renderHandles(); alert('✅ '+platform+' connected! Now direct posting works.'); } },2000);
-}
-function setType(t){
-  currentType=t;
-  ['Video','Photo','Message'].forEach(x=>{
-    let btn=document.getElementById('btn'+x);
-    if(x.toLowerCase()==t){ btn.classList.add('type-active'); btn.style.background='#000'; btn.style.color='#FFCC02'; }
-    else{ btn.classList.remove('type-active'); btn.style.background='#fff'; btn.style.color='#000'; btn.style.border='1px solid #000'; }
-  });
-  document.getElementById('videoInput').style.display = t=='video'?'block':'none';
-  document.getElementById('photoInput').style.display = t=='photo'?'block':'none';
-  document.getElementById('recBox').style.display = t=='video'?'flex':'none';
-  if(t=='message'){ document.getElementById('preview').style.display='none'; document.getElementById('photoPreview').style.display='none'; }
-}
-function updateBestTime(){
-  let now=new Date(); let ugHour=(now.getUTCHours()+3)%24; let best=19; let mins=best>ugHour?(best-ugHour)*60-now.getMinutes():5;
-  document.getElementById('bestTimeBox').innerText=`⏰ Best time: in ${mins} mins (7PM Uganda) | Handles active: ${myHandles.filter(h=>h.enabled&&h.handle).length} | Type: ${currentType}`;
+  document.getElementById('handleInput').value='';
+  document.getElementById('extraInput').value='';
+  // Now try to connect / save to backend for this user
+  const url = `/api/broadcast/connect/${plat}?email=${encodeURIComponent(userEmail)}&handle=${encodeURIComponent(handle)}&extra=${encodeURIComponent(extra)}`;
+  window.open(url,'_blank','width=500,height=600');
+  toast(`Added ${plat} ${handle} - Check popup to connect!`);
+  // After 5 sec refresh from server
+  setTimeout(loadMyHandlesFromServer, 4000);
 }
 
-async function loadProds(){
- let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
- let r=await fetch('/api/broadcast/my-products?email='+(u.email||''));
- myProducts=await r.json();
- document.getElementById('prodList').innerHTML=myProducts.map(p=>`<label style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid #eee;border-radius:10px;margin:5px 0;background:#fff"><input type="checkbox" value="${p.id}" class="prodChk"><img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover"><span><b>${p.name.slice(0,20)}</b><br><small>UGX ${Number(p.price).toLocaleString()}</small></span></label>`).join('')||'No products';
- updateBestTime();
-}
-async function generateSmartCaption(){
- let checks=document.querySelectorAll('.prodChk:checked');
- let sel=Array.from(checks).map(c=>myProducts.find(x=>x.id==c.value)).filter(Boolean);
- let handlesTxt = myHandles.filter(h=>h.enabled&&h.handle).map(h=>`${h.platform}: ${h.handle}`).join(' | ');
- let r=await fetch('/api/broadcast/smart-caption',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products:sel,text:handlesTxt,handles:myHandles.filter(h=>h.enabled)})});
- let d=await r.json();
- document.getElementById('caption').value=d.caption;
-}
-async function startRecord(){
- try{
-   stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-   let v=document.getElementById('preview'); v.srcObject=stream; v.style.display='block'; v.muted=true; v.play();
-   chunks=[]; mediaRecorder=new MediaRecorder(stream);
-   mediaRecorder.ondataavailable=e=>chunks.push(e.data);
-   mediaRecorder.onstop=()=>{
-     let blob=new Blob(chunks,{type:'video/mp4'});
-     recordedFile=new File([blob],"broadcast.mp4",{type:'video/mp4'});
-     v.srcObject=null; v.src=URL.createObjectURL(blob);
-   };
-   mediaRecorder.start();
-   document.getElementById('stopBtn').style.display='block';
-   setTimeout(()=>{if(mediaRecorder.state=='recording') stopRecord();},40000);
- }catch(e){alert('Camera error: '+e.message);}
-}
-function stopRecord(){ if(mediaRecorder){mediaRecorder.stop();} if(stream){stream.getTracks().forEach(t=>t.stop());} document.getElementById('stopBtn').style.display='none';}
-document.getElementById('videoInput').addEventListener('change',e=>{ recordedFile=e.target.files[0]; let v=document.getElementById('preview'); v.src=URL.createObjectURL(recordedFile); v.style.display='block'; setType('video'); });
-document.getElementById('photoInput').addEventListener('change',e=>{ recordedFile=e.target.files[0]; let img=document.getElementById('photoPreview'); img.src=URL.createObjectURL(recordedFile); img.style.display='block'; document.getElementById('preview').style.display='none'; setType('photo'); });
+function toggleHandle(i, en){ myHandles[i].enabled=en; renderHandles(); }
+function delHandle(i){ myHandles.splice(i,1); renderHandles(); }
 
-async function doBroadcast(){
- if(currentType!='message' && !recordedFile){alert('Upload '+currentType+' first Boss!');return;}
- let checks=document.querySelectorAll('.prodChk:checked');
- let sel=Array.from(checks).map(c=>myProducts.find(x=>x.id==c.value)).filter(Boolean);
- let enabled = myHandles.filter(h=>h.enabled&&h.handle);
- if(enabled.length==0){ alert('Enable at least 1 handle!'); return; }
- if(currentType=='message' && !document.getElementById('caption').value.trim()){ alert('Type message Boss!'); return; }
- document.getElementById('status').innerText='🧠 Broadcasting DIRECT to your handles...';
- document.getElementById('bBtn').disabled=true;
- let fd=new FormData();
- if(recordedFile) fd.append('file', recordedFile);
- fd.append('file_type', currentType);
- fd.append('caption', document.getElementById('caption').value);
- fd.append('products', JSON.stringify(sel));
- fd.append('handles', JSON.stringify(enabled));
- enabled.forEach(h=>fd.append('post_'+h.platform, 'true'));
- let r=await fetch('/api/broadcast/post',{method:'POST',body:fd});
- let d=await r.json();
- document.getElementById('status').innerHTML=`<div style="background:#fff;padding:10px;border-radius:10px;text-align:left;font-size:12px;white-space:pre-wrap;border:2px solid #00ff00">${d.smart_caption||''}</div><br>✅ ${d.message}<br><small>Posted to: ${enabled.map(h=>h.platform+':'+h.handle).join(', ')}</small><br><small>File type: ${currentType} | Zero storage - deleted</small>`;
- document.getElementById('bBtn').disabled=false;
+async function loadMyHandlesFromServer(){
+  if(!userEmail) return;
+  try{
+    const r=await fetch(`/api/broadcast/my-handles?email=${encodeURIComponent(userEmail)}`);
+    const data=await r.json();
+    // Merge server tokens into local list as connected
+    data.forEach(s=>{
+      let found = myHandles.find(h=>h.platform==s.platform);
+      if(found){ found.connected=true; found.handle=s.handle; }
+      else { myHandles.push({platform:s.platform, handle:s.handle, connected:true, enabled:true}); }
+    });
+    renderHandles();
+  }catch(e){console.log(e)}
+}
+
+async function loadProducts(){
+  document.getElementById('myProducts').innerHTML='⏳ Loading...';
+  try{
+    const r=await fetch(`/api/broadcast/my-products?email=${encodeURIComponent(userEmail)}`);
+    const prods=await r.json();
+    myProducts=prods;
+    let h='';
+    prods.forEach(p=>{
+      const sel = selectedProducts.includes(p.id)?'border-color:#000;background:#FFCC02':'';
+      h+=`<div class="product" style="${sel}" onclick="toggleProduct(${p.id})"><img src="${p.image||p.images?.[0]||'https://via.placeholder.com/50'}" onerror="this.src='https://via.placeholder.com/50'"><div style="flex:1"><b>${(p.name||'Product').substring(0,30)}</b><br>UGX ${(p.price||0).toLocaleString()}</div><div>${selectedProducts.includes(p.id)?'✅':''}</div></div>`;
+    });
+    document.getElementById('myProducts').innerHTML=h||'No products - Add products in Sell';
+  }catch(e){document.getElementById('myProducts').innerHTML='Error '+e.message}
+}
+
+function toggleProduct(id){
+  if(selectedProducts.includes(id)) selectedProducts=selectedProducts.filter(x=>x!=id);
+  else selectedProducts.push(id);
+  loadProducts();
+}
+
+async function genSmart(){
+  if(selectedProducts.length==0 && !document.getElementById('caption').value){ toast('Select product first'); return; }
+  const prods = myProducts.filter(p=>selectedProducts.includes(p.id));
+  const r=await fetch('/api/broadcast/smart-caption',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products:prods, text:document.getElementById('caption').value, handles:myHandles.filter(h=>h.enabled)})});
+  const d=await r.json();
+  document.getElementById('caption').value=d.caption;
+}
+
+async function broadcastNow(){
+  const file=document.getElementById('file').files[0];
+  const caption=document.getElementById('caption').value;
+  const ftype=document.querySelector('input[name="ftype"]:checked').value;
+  const handles=myHandles.filter(h=>h.enabled);
+  if(handles.length==0){ toast('Add at least 1 handle!'); return; }
+  const prods=myProducts.filter(p=>selectedProducts.includes(p.id));
+  const fd=new FormData();
+  if(file) fd.append('video',file);
+  fd.append('caption',caption);
+  fd.append('products',JSON.stringify(prods));
+  fd.append('handles',JSON.stringify(handles));
+  fd.append('file_type',ftype);
+  fd.append('email',userEmail);
+  document.getElementById('result').style.display='block';
+  document.getElementById('result').innerHTML='⏳ Broadcasting to your own handles...';
+  try{
+    const r=await fetch('/api/broadcast/post',{method:'POST',body:fd});
+    const d=await r.json();
+    let html=`<h3>✅ ${d.message}</h3><p style="white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:12px">${d.smart_caption||''}</p>`;
+    // Show 1-click links for WhatsApp fallback
+    html+=`<p style="font-size:13px">Check Render logs for auto status. For WhatsApp 1-click, link will be in server logs. Next version will show share buttons here.</p>`;
+    document.getElementById('result').innerHTML=html;
+    toast('Broadcast started! Zero storage - auto delete!');
+  }catch(e){document.getElementById('result').innerHTML='❌ '+e.message}
 }
 
 renderHandles();
-loadProds();
+loadProducts();
+loadMyHandlesFromServer();
 </script>
-</body></html>
+</body>
+</html>
