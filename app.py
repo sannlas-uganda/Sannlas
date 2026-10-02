@@ -3260,6 +3260,14 @@ def get_shop_by_slug(slug):
 @app.route('/tiktok4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt.txt')
 def tiktok_verify():
     return "tiktok-developers-site-verification=4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt", 200, {'Content-Type': 'text/plain'}
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
         
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
