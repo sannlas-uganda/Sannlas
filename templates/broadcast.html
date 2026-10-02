@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Broadcast Hub</title>
+<style>
+body{font-family:Arial;background:#f5f5f5;padding:15px}
+.box{background:#fff;padding:20px;border-radius:18px;max-width:520px;margin:auto;border:2px solid #000}
+input,textarea{width:95%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:10px}
+button{width:100%;padding:16px;background:#000;color:#FFCC02;font-weight:900;border-radius:12px;font-size:16px}
+</style></head><body>
+<div class="box">
+<h2>🚀 Broadcast Hub</h2>
+<p>Upload once → FB + IG + TikTok + YouTube + WhatsApp. Zero storage!</p>
+<form action="/api/broadcast" method="post" enctype="multipart/form-data">
+<input type="file" name="video" accept="video/*" required>
+<textarea name="caption" rows="4" required>Backpack UGX 185k 🔥 https://sannlas.onrender.com/?promo=PROMO179240ZWA&product=1790339735848</textarea>
+<label><input type="checkbox" name="channels" value="facebook" checked> Facebook</label><br>
+<label><input type="checkbox" name="channels" value="instagram" checked> Instagram</label><br>
+<label><input type="checkbox" name="channels" value="youtube" checked> YouTube</label><br>
+<label><input type="checkbox" name="channels" value="tiktok" checked> TikTok</label><br>
+<label><input type="checkbox" name="channels" value="whatsapp" checked> WhatsApp</label><br><br>
+<button type="submit">POST EVERYWHERE 🚀</button>
+</form>
+<p style="font-size:12px;color:#666">File goes to /tmp only then auto-deleted. Render safe!</p>
+</div></body></html>
