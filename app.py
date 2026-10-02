@@ -3257,10 +3257,19 @@ def get_shop_by_slug(slug):
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
 
-@app.route('/tiktok4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt.txt')
-def tiktok_verify():
-    return "tiktok-developers-site-verification=4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt", 200, {'Content-Type': 'text/plain'}
+# ====== TIKTOK VERIFICATION - EXACT FILES ======
 
+# 1. TERMS PAGE VERIFICATION
+@app.route('/terms/tiktoklO7y7vfQrBchVGH5mbFVk1CC13mP2Y44.txt')
+def tiktok_terms():
+    return "tiktok-developers-site-verification=lO7y7vfQrBchVGH5mbFVk1CC13mP2Y44", 200, {'Content-Type': 'text/plain'}
+
+# 2. PRIVACY PAGE VERIFICATION
+@app.route('/privacy/tiktokyvbivoVWbyc0pqGxeQZQkAssUpTQWCXF.txt')
+def tiktok_privacy():
+    return "tiktok-developers-site-verification=yvbivoVWbyc0pqGxeQZQkAssUpTQWCXF", 200, {'Content-Type': 'text/plain'}
+
+# ====== TERMS & PRIVACY PAGES ======
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
