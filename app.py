@@ -15,6 +15,10 @@ import cloudinary_config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+
+from broadcast import broadcast_bp
+app.register_blueprint(broadcast_bp)
+
 # ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
 CATEGORY_MAP = {
     # 1. Fashion
