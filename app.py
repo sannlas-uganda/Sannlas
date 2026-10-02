@@ -3256,6 +3256,10 @@ def get_shop_by_slug(slug):
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
+
+@app.route('/tiktok4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt.txt')
+def tiktok_verify():
+    return "tiktok-developers-site-verification=4mJrZhCTyVDKBKFlJeeHqe6JA95fgOrt", 200, {'Content-Type': 'text/plain'}
         
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
