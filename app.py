@@ -209,6 +209,44 @@ def ensure_tables():
         conn.commit(); cur.close(); conn.close()
     except Exception as e: 
         print("ensure_tables:", e)
+
+def ensure_tables():
+    if not DATABASE_URL: return
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
+        cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        print("ensure_tables:", e)
+
+# ===== ADD HERE - SOCIAL TOKENS FOR ALL USERS - NO SQL TABLE NEEDED =====
+# Works with your kv_store system - stores in social_tokens.json
+def get_social_tokens(email):
+    all_tokens = load_db('social_tokens.json', [])
+    return [t for t in all_tokens if t.get('user_email','').lower() == email.lower()]
+
+def save_social_token(user_email, platform, handle, access_token, refresh_token=None, extra_data=None):
+    all_tokens = load_db('social_tokens.json', [])
+    # Remove old entry for same user+platform
+    all_tokens = [t for t in all_tokens if not (t.get('user_email','').lower()==user_email.lower() and t.get('platform')==platform.lower())]
+    # Add new
+    all_tokens.append({
+        "user_email": user_email.lower(),
+        "platform": platform.lower(),
+        "handle": handle or f"@{user_email.split('@')[0]}",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "extra_data": extra_data or "",
+        "connected_at": time.time()
+    })
+    save_db('social_tokens.json', all_tokens)
+    print(f"✅ SAVED {platform} for {user_email} handle={handle}")
+    return True
+
+def get_all_tokens_for_user(email):
+    return get_social_tokens(email)
+# ===== END SOCIAL TOKENS =====
 def load_db(file, default):
     try:
         if DATABASE_URL:
