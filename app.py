@@ -3259,7 +3259,7 @@ def get_shop_by_slug(slug):
 
 @app.route('/tiktok4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt.txt')
 def tiktok_verify():
-    return "tiktok-developers-site-verification=4mJrZhCTyVDKBKFlJeeHqe6JA95fgOrt", 200, {'Content-Type': 'text/plain'}
+    return "tiktok-developers-site-verification=4mJrZhCTyVDKBKFIJeeHqe6JA95fgOrt", 200, {'Content-Type': 'text/plain'}
         
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
