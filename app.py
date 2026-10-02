@@ -3265,9 +3265,9 @@ def tiktok_terms():
     return "tiktok-developers-site-verification=lO7y7vfQrBchVGH5mbFVk1CC13mP2Y44", 200, {'Content-Type': 'text/plain'}
 
 # 2. PRIVACY PAGE VERIFICATION
-@app.route('/privacy/tiktokyvbivoVWbyc0pqGxeQZQkAssUpTQWCXF.txt')
+@app.route('/privacy/tiktokPX5DQcSOzdKHYhnQy5Uq64Vm4vpnrjjT.txt')
 def tiktok_privacy():
-    return "tiktok-developers-site-verification=yvbivoVWbyc0pqGxeQZQkAssUpTQWCXF", 200, {'Content-Type': 'text/plain'}
+    return "tiktok-developers-site-verification=PX5DQcSOzdKHYhnQy5Uq64Vm4vpnrjjT", 200, {'Content-Type': 'text/plain'}
 
 # ====== TERMS & PRIVACY PAGES ======
 @app.route('/terms')
