@@ -15,6 +15,10 @@ import cloudinary_config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+# ===== TIKTOK LOGIN CONFIG =====
+CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
+CLIENT_SECRET = os.environ.get("TIKTOK_CLIENT_SECRET")
+REDIRECT_URI = "https://sannlas.onrender.com/auth/tiktok/callback"
 from broadcast import broadcast_bp
 app.register_blueprint(broadcast_bp)
 # ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
@@ -3281,6 +3285,32 @@ def privacy():
 @app.route('/tiktoky8Zvp27QzEA3oH431COpUk2CDWWn4vxs.txt')
 def tiktok_verify_root():
     return "tiktok-developers-site-verification=y8Zvp27QzEA3oH431COpUk2CDWWn4vxs", 200, {'Content-Type': 'text/plain'}
+
+# ===== TIKTOK LOGIN ROUTES =====
+@app.route('/auth/tiktok')
+def tiktok_login():
+    state = secrets.token_hex(16)
+    session['oauth_state'] = state
+    auth_url = f"https://www.tiktok.com/v2/auth/authorize/?client_key={CLIENT_KEY}&scope=user.info.basic,user.info.profile,video.list&response_type=code&redirect_uri={REDIRECT_URI}&state={state}"
+    return redirect(auth_url)
+
+@app.route('/auth/tiktok/callback')
+def tiktok_callback():
+    code = request.args.get('code')
+    data = {'client_key': CLIENT_KEY, 'client_secret': CLIENT_SECRET, 'code': code, 'grant_type': 'authorization_code', 'redirect_uri': REDIRECT_URI}
+    r = requests.post('https://open.tiktokapis.com/v2/oauth/token/', data=data)
+    token_data = r.json()
+    access_token = token_data.get('access_token')
+    headers = {'Authorization': f'Bearer {access_token}'}
+    user_r = requests.get('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url', headers=headers)
+    session['tiktok_user'] = user_r.json()
+    return redirect('/profile')
+
+@app.route('/profile')
+def profile():
+    user = session.get('tiktok_user', {})
+    data = user.get('data',{}).get('user',{})
+    return f"<h1>Welcome {data.get('display_name','TikTok User')}!</h1><img src='{data.get('avatar_url','')}' width='100'><p>Your TikTok is linked to Sannlas!</p><a href='/'>Go Home</a>"
         
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
