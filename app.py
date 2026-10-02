@@ -3277,6 +3277,10 @@ def terms():
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+@app.route('/tiktoky8Zvp27QzEA3oH431COpUk2CDWWn4vxs.txt')
+def tiktok_verify_root():
+    return "tiktok-developers-site-verification=y8Zvp27QzEA3oH431COpUk2CDWWn4vxs", 200, {'Content-Type': 'text/plain'}
         
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
