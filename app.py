@@ -19,6 +19,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
 CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
 CLIENT_SECRET = os.environ.get("TIKTOK_CLIENT_SECRET")
 REDIRECT_URI = "https://sannlas.onrender.com/auth/tiktok/callback"
+print(f"DEBUG TIKTOK KEY LOADED: {CLIENT_KEY}")
 from broadcast import broadcast_bp
 app.register_blueprint(broadcast_bp)
 # ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
@@ -3286,32 +3287,66 @@ def privacy():
 def tiktok_verify_root():
     return "tiktok-developers-site-verification=y8Zvp27QzEA3oH431COpUk2CDWWn4vxs", 200, {'Content-Type': 'text/plain'}
 
-# ===== TIKTOK LOGIN ROUTES =====
+# ===== TIKTOK LOGIN ROUTES - FIXED =====
 @app.route('/auth/tiktok')
 def tiktok_login():
-    state = secrets.token_hex(16)
-    session['oauth_state'] = state
-    auth_url = f"https://www.tiktok.com/v2/auth/authorize/?client_key={CLIENT_KEY}&scope=user.info.basic,user.info.profile,video.list&response_type=code&redirect_uri={REDIRECT_URI}&state={state}"
-    return redirect(auth_url)
+    try:
+        if not CLIENT_KEY:
+            return f"<h1>Config Error</h1><p>TIKTOK_CLIENT_KEY is not set in Render Environment! Go to Render > Environment Variables</p><p>Value now: {CLIENT_KEY}</p>", 500
+        
+        state = secrets.token_hex(16)
+        session['oauth_state'] = state
+        # Use ONLY basic scope first - video.list needs approval
+        auth_url = f"https://www.tiktok.com/v2/auth/authorize/?client_key={CLIENT_KEY}&scope=user.info.basic&response_type=code&redirect_uri={REDIRECT_URI}&state={state}"
+        print(f"Going to TikTok: {auth_url}")
+        return redirect(auth_url)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"<h1>TikTok Login Crash</h1><p>{str(e)}</p><p>Did you add at top: import secrets, requests?</p>", 500
 
 @app.route('/auth/tiktok/callback')
 def tiktok_callback():
-    code = request.args.get('code')
-    data = {'client_key': CLIENT_KEY, 'client_secret': CLIENT_SECRET, 'code': code, 'grant_type': 'authorization_code', 'redirect_uri': REDIRECT_URI}
-    r = requests.post('https://open.tiktokapis.com/v2/oauth/token/', data=data)
-    token_data = r.json()
-    access_token = token_data.get('access_token')
-    headers = {'Authorization': f'Bearer {access_token}'}
-    user_r = requests.get('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url', headers=headers)
-    session['tiktok_user'] = user_r.json()
-    return redirect('/profile')
+    try:
+        code = request.args.get('code')
+        if not code:
+            return f"No code: {dict(request.args)}", 400
+        
+        data = {
+            'client_key': CLIENT_KEY,
+            'client_secret': CLIENT_SECRET,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': REDIRECT_URI
+        }
+        r = requests.post('https://open.tiktokapis.com/v2/oauth/token/', data=data, timeout=10)
+        token_data = r.json()
+        print(f"TikTok Token: {token_data}")
+        
+        if 'access_token' not in token_data:
+            return f"<h1>Token Failed</h1><p>{token_data}</p><p>Check CLIENT_SECRET and REDIRECT_URI matches TikTok Dashboard exactly!</p>", 500
+            
+        access_token = token_data.get('access_token')
+        headers = {'Authorization': f'Bearer {access_token}'}
+        user_r = requests.get('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url', headers=headers, timeout=10)
+        user_data = user_r.json()
+        print(f"TikTok User: {user_data}")
+        session['tiktok_user'] = user_data
+        return redirect('/profile')
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"<h1>Callback Crash</h1><p>{str(e)}</p>", 500
 
 @app.route('/profile')
 def profile():
     user = session.get('tiktok_user', {})
-    data = user.get('data',{}).get('user',{})
-    return f"<h1>Welcome {data.get('display_name','TikTok User')}!</h1><img src='{data.get('avatar_url','')}' width='100'><p>Your TikTok is linked to Sannlas!</p><a href='/'>Go Home</a>"
-        
+    # print user structure for debug
+    print(f"Profile user: {user}")
+    data = user.get('data',{}).get('user',{}) if isinstance(user, dict) else {}
+    name = data.get('display_name','TikTok User')
+    avatar = data.get('avatar_url','')
+    return f"<div style='text-align:center;padding:30px;font-family:sans-serif'><h1>Welcome {name}!</h1><img src='{avatar}' width='120' style='border-radius:50%'><p>Your TikTok is linked to Sannlas!</p><a href='/' style='background:#000;color:#fff;padding:12px 20px;border-radius:20px;text-decoration:none;'>Go Home</a><br><br><pre>{user}</pre></div>"        
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
