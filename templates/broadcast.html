@@ -1,68 +1,139 @@
 <!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Smart Broadcast Hub - Sannlas</title>
+<title>Smart Broadcast - Sannlas</title>
 <style>
 body{background:#E9EFF7;font-family:Inter;padding:14px;padding-bottom:90px}
-.card{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-radius:18px;padding:14px;margin:10px 0;border:1px solid rgba(255,255,255,.7);box-shadow:0 8px 24px rgba(0,0,0,.06)}
-.btn{padding:13px;border-radius:14px;font-weight:900;border:none;cursor:pointer;width:100%;margin:6px 0}
-.ai-badge{background:linear-gradient(135deg,#FF6A00,#FFCC02);color:#000;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:900}
+.card{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-radius:18px;padding:14px;margin:10px 0;border:1px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.btn{padding:12px;border-radius:12px;font-weight:900;border:none;cursor:pointer;width:100%;margin:6px 0}
+.social-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #eee;border-radius:10px;margin:6px 0;background:#fff}
+.handle-input{padding:10px;border:2px solid #000;border-radius:10px;width:100%;margin:4px 0}
 </style></head><body>
-<h2>🧠 SMART BROADCAST HUB <span class="ai-badge">AI POWERED</span></h2>
-<p style="font-size:11px">Zero storage • Auto caption • Best time posting</p>
+<h2>🧠 SMART BROADCAST <small style="background:#FFCC02;padding:4px 8px;border-radius:20px;font-size:10px;color:#000">V3 + HANDLES</small></h2>
+
+<!-- ACCOUNTS SECTION -->
+<div class="card" style="border:2px solid #FFCC02">
+<h3>🔗 My Social Accounts (Add Yours)</h3>
+<div id="accountsList"></div>
+
+<div style="background:#f8f9fa;padding:12px;border-radius:12px;margin-top:10px;border:1px dashed #000">
+<b>➕ Add Another Handle</b>
+<select id="newPlat" class="handle-input">
+<option value="tiktok">📱 TikTok</option>
+<option value="youtube">▶️ YouTube</option>
+<option value="facebook">📘 Facebook Page</option>
+<option value="instagram">📸 Instagram</option>
+<option value="twitter">🐦 Twitter / X</option>
+<option value="whatsapp">💬 WhatsApp Channel</option>
+<option value="telegram">✈️ Telegram Channel</option>
+<option value="custom">🔗 Custom Link</option>
+</select>
+<input id="newHandle" class="handle-input" placeholder="@your_handle or link e.g. @mike_ug or https://tiktok.com/@mike">
+<input id="newName" class="handle-input" placeholder="Display name e.g. Mike's Shop (optional)">
+<button class="btn" style="background:#000;color:#FFCC02" onclick="addHandle()">➕ SAVE MY HANDLE</button>
+<small style="color:#666">Your handle will be saved & auto-used in captions: "Follow me @handle"</small>
+</div>
+</div>
 
 <div class="card">
-<h3>1️⃣ Pick Products <small style="color:#FF6A00">AI will write caption</small></h3>
+<h3>1️⃣ Pick Products</h3>
 <div id="prodList">Loading...</div>
-<button class="btn" style="background:#000;color:#FFCC02" onclick="generateSmartCaption()">✨ GENERATE SMART CAPTION</button>
+<button class="btn" style="background:#000;color:#FFCC02" onclick="generateSmartCaption()">✨ AI CAPTION WITH MY HANDLES</button>
 </div>
 
 <div class="card">
 <h3>2️⃣ Video</h3>
 <video id="preview" style="width:100%;border-radius:14px;background:#000;display:none" controls></video>
-<input type="file" id="videoInput" accept="video/*" capture="environment" style="width:100%">
-<div style="display:flex;gap:8px;margin-top:8px">
-<button class="btn" style="background:#111;color:#fff;flex:1" onclick="startRecord()">🔴 REC 30s</button>
+<input type="file" id="videoInput" accept="video/*" style="width:100%">
+<div style="display:flex;gap:8px">
+<button class="btn" style="background:#111;color:#fff;flex:1" onclick="startRecord()">🔴 REC</button>
 <button class="btn" style="background:#ff0000;color:#fff;flex:1;display:none" id="stopBtn" onclick="stopRecord()">⏹️ STOP</button>
 </div>
+<textarea id="caption" style="width:100%;padding:12px;border-radius:12px;border:2px solid #FFCC02;background:#fffef0" rows="7"></textarea>
+<div id="bestTimeBox" style="background:#000;color:#00FF00;padding:8px;border-radius:8px;font-size:11px;margin-top:6px">⏰ Best time...</div>
 </div>
 
-<div class="card">
-<h3>3️⃣ AI Smart Caption <span id="aiStatus"></span></h3>
-<textarea id="caption" style="width:100%;padding:12px;border-radius:12px;border:2px solid #FFCC02;background:#fffef0" rows="6" placeholder="Click GENERATE..."></textarea>
-<div style="background:#000;color:#00FF00;padding:8px;border-radius:8px;font-size:11px;margin-top:6px" id="bestTimeBox">⏰ AI Best Time: Calculating...</div>
-</div>
-
-<div class="card">
-<label><input type="checkbox" id="chk_tiktok" checked> 📱 TikTok</label><br>
-<label><input type="checkbox" id="chk_youtube" checked> ▶️ YouTube Shorts</label><br>
-<label><input type="checkbox" id="chk_facebook" checked> 📘 Facebook Reels</label><br>
-<label><input type="checkbox" id="chk_instagram" checked> 📸 Instagram Reels</label><br>
-<label style="margin-top:8px;display:block"><input type="checkbox" id="chk_smarttime" checked> 🧠 Smart Schedule (post at 7PM best time)</label>
-</div>
-
-<button class="btn" style="background:linear-gradient(135deg,#000,#333);color:#FFCC02;font-size:17px;padding:18px" onclick="doBroadcast()" id="bBtn">🚀 SMART BROADCAST NOW</button>
+<button class="btn" style="background:linear-gradient(135deg,#000,#333);color:#FFCC02;font-size:17px;padding:18px" onclick="doBroadcast()" id="bBtn">🚀 BROADCAST WITH MY HANDLES</button>
 <div id="status" style="text-align:center;font-weight:900;margin-top:10px"></div>
 
 <script>
-let myProducts=[], mediaRecorder, chunks=[], recordedFile=null, stream;
+let myProducts=[], recordedFile=null, mediaRecorder, chunks=[], stream;
+let myHandles = JSON.parse(localStorage.getItem('sannlas_handles')||'[]');
+
+// DEFAULT HANDLES IF NONE
+if(myHandles.length==0){
+  myHandles=[
+    {id:'1', platform:'tiktok', handle:'', name:'TikTok', enabled:true},
+    {id:'2', platform:'youtube', handle:'', name:'YouTube', enabled:true},
+    {id:'3', platform:'facebook', handle:'', name:'Facebook', enabled:true},
+    {id:'4', platform:'instagram', handle:'', name:'Instagram', enabled:true},
+  ];
+}
+
+function renderHandles(){
+  let html = myHandles.map(h=>`
+    <div class="social-row">
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" ${h.enabled?'checked':''} onchange="toggleHandle('${h.id}')">
+        <b>${h.platform.toUpperCase()}</b> <span style="font-size:12px;color:#666">${h.handle||'No handle yet'}</span>
+      </div>
+      <div>
+        <button onclick="editHandle('${h.id}')" style="background:#eee;border:none;padding:6px 10px;border-radius:8px">✏️</button>
+        <button onclick="deleteHandle('${h.id}')" style="background:#ff0000;color:#fff;border:none;padding:6px 10px;border-radius:8px">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('accountsList').innerHTML = html || '<p>No handles - add one below</p>';
+  localStorage.setItem('sannlas_handles', JSON.stringify(myHandles));
+}
+
+function addHandle(){
+  let plat=document.getElementById('newPlat').value;
+  let handle=document.getElementById('newHandle').value.trim();
+  let name=document.getElementById('newName').value.trim()||plat;
+  if(!handle){alert('Enter handle Boss! e.g. @mike_ug');return;}
+  myHandles.push({id:Date.now().toString(), platform:plat, handle:handle, name:name, enabled:true});
+  document.getElementById('newHandle').value=''; document.getElementById('newName').value='';
+  renderHandles();
+  alert('✅ Handle saved! Will be used in caption & posted to '+plat);
+}
+
+function toggleHandle(id){
+  let h=myHandles.find(x=>x.id==id); if(h) h.enabled=!h.enabled;
+  renderHandles();
+}
+function deleteHandle(id){
+  if(!confirm('Delete this handle?')) return;
+  myHandles=myHandles.filter(x=>x.id!=id); renderHandles();
+}
+function editHandle(id){
+  let h=myHandles.find(x=>x.id==id); if(!h) return;
+  let newH=prompt('Edit handle:', h.handle);
+  if(newH!==null){ h.handle=newH.trim(); renderHandles(); }
+}
+
+// PRODUCTS + AI CAPTION WITH HANDLES
 async function loadProds(){
  let u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
  let r=await fetch('/api/broadcast/my-products?email='+(u.email||''));
  myProducts=await r.json();
- document.getElementById('prodList').innerHTML=myProducts.map(p=>`<label style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid #eee;border-radius:10px;margin:5px 0;background:#fff"><input type="checkbox" value="${p.id}" class="prodChk"><img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover"><span><b>${p.name.slice(0,22)}</b><br><small>UGX ${Number(p.price).toLocaleString()}</small></span></label>`).join('')||'Upload products first';
- // best time
+ document.getElementById('prodList').innerHTML=myProducts.map(p=>`<label style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid #eee;border-radius:10px;margin:5px 0;background:#fff"><input type="checkbox" value="${p.id}" class="prodChk"><img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover"><span><b>${p.name.slice(0,20)}</b><br><small>UGX ${Number(p.price).toLocaleString()}</small></span></label>`).join('')||'No products';
  let now=new Date(); let ugHour=(now.getUTCHours()+3)%24; let best=19; let mins=best>ugHour?(best-ugHour)*60-now.getMinutes():5;
- document.getElementById('bestTimeBox').innerText=`⏰ AI Best Time: Post in ${mins} mins (7PM Uganda = max views)`;
+ document.getElementById('bestTimeBox').innerText=`⏰ Best time: in ${mins} mins (7PM Uganda) | Handles: ${myHandles.filter(h=>h.enabled&&h.handle).length} active`;
 }
+
 async function generateSmartCaption(){
  let checks=document.querySelectorAll('.prodChk:checked');
  let sel=Array.from(checks).map(c=>myProducts.find(x=>x.id==c.value)).filter(Boolean);
- document.getElementById('aiStatus').innerText='⏳ AI writing...';
- let r=await fetch('/api/broadcast/smart-caption',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products:sel,text:''})});
+ let handlesTxt = myHandles.filter(h=>h.enabled&&h.handle).map(h=>`${h.platform}: ${h.handle}`).join(' | ');
+ let r=await fetch('/api/broadcast/smart-caption',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products:sel,text:handlesTxt})});
  let d=await r.json();
- document.getElementById('caption').value=d.caption;
- document.getElementById('aiStatus').innerText='✅ AI Done!';
+ let finalCap = d.caption;
+ if(handlesTxt){
+   finalCap += `\n\n👉 Follow me: ${handlesTxt}\n🔗 Shop: sannlas.com`;
+ }
+ document.getElementById('caption').value=finalCap;
 }
+
 async function startRecord(){
  stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
  let v=document.getElementById('preview'); v.srcObject=stream; v.style.display='block'; v.muted=true; v.play();
@@ -70,35 +141,40 @@ async function startRecord(){
  mediaRecorder.ondataavailable=e=>chunks.push(e.data);
  mediaRecorder.onstop=()=>{
    let blob=new Blob(chunks,{type:'video/mp4'});
-   recordedFile=new File([blob],"smart_broadcast.mp4",{type:'video/mp4'});
-   let url=URL.createObjectURL(blob);
-   v.srcObject=null; v.src=url;
+   recordedFile=new File([blob],"broadcast.mp4",{type:'video/mp4'});
+   v.srcObject=null; v.src=URL.createObjectURL(blob);
  };
  mediaRecorder.start();
  document.getElementById('stopBtn').style.display='block';
- setTimeout(()=>{if(mediaRecorder.state=='recording') stopRecord();},30000);
+ setTimeout(()=>{if(mediaRecorder.state=='recording') stopRecord();},40000);
 }
 function stopRecord(){mediaRecorder.stop();stream.getTracks().forEach(t=>t.stop());document.getElementById('stopBtn').style.display='none';}
 document.getElementById('videoInput').addEventListener('change',e=>{recordedFile=e.target.files[0];let v=document.getElementById('preview');v.src=URL.createObjectURL(recordedFile);v.style.display='block';});
+
 async function doBroadcast(){
- if(!recordedFile){alert('Video first Boss!');return;}
+ if(!recordedFile){alert('Video first!');return;}
  let checks=document.querySelectorAll('.prodChk:checked');
  let sel=Array.from(checks).map(c=>myProducts.find(x=>x.id==c.value)).filter(Boolean);
- document.getElementById('status').innerText='🧠 Smart broadcasting & deleting file...';
+ let enabledPlatforms={};
+ myHandles.forEach(h=>{ if(h.enabled&&h.handle) enabledPlatforms[h.platform]=true; });
+ // Fallback to checkboxes if no handles enabled
+ if(Object.keys(enabledPlatforms).length==0){ alert('Enable at least 1 handle Boss!'); return; }
+
+ document.getElementById('status').innerText='🧠 Broadcasting with your handles...';
  document.getElementById('bBtn').disabled=true;
  let fd=new FormData();
  fd.append('video',recordedFile);
  fd.append('caption',document.getElementById('caption').value);
  fd.append('products',JSON.stringify(sel));
- fd.append('post_tiktok',document.getElementById('chk_tiktok').checked);
- fd.append('post_youtube',document.getElementById('chk_youtube').checked);
- fd.append('post_facebook',document.getElementById('chk_facebook').checked);
- fd.append('post_instagram',document.getElementById('chk_instagram').checked);
+ fd.append('handles',JSON.stringify(myHandles));
+ Object.keys(enabledPlatforms).forEach(k=>fd.append('post_'+k,'true'));
  let r=await fetch('/api/broadcast/post',{method:'POST',body:fd});
  let d=await r.json();
- document.getElementById('status').innerHTML=`${d.smart_caption?'<div style="background:#fff;padding:10px;border-radius:10px;text-align:left;font-size:12px;white-space:pre-wrap">'+d.smart_caption+'</div>':''}<br>✅ ${d.message}<br><small>🗑️ File deleted - 0 storage</small>`;
+ document.getElementById('status').innerHTML=`<div style="background:#fff;padding:10px;border-radius:10px;text-align:left;font-size:12px;white-space:pre-wrap">${d.smart_caption||''}</div><br>✅ ${d.message}<br>Handles used: ${myHandles.filter(h=>h.enabled).map(h=>h.handle).join(', ')}`;
  document.getElementById('bBtn').disabled=false;
 }
+
+renderHandles();
 loadProds();
 </script>
 </body></html>
