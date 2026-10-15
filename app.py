@@ -131,10 +131,19 @@ def expand_search_query(q):
         if key in q_lower:
             expanded += " " + vals
     return expanded
-app.config['UPLOAD_FOLDER']='static/uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('data', exist_ok=True)
-os.makedirs('static/billboards', exist_ok=True)
+app.config['UPLOAD_FOLDER']='/tmp/uploads'
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+except:
+    pass
+try:
+    os.makedirs('data', exist_ok=True)
+except:
+    os.makedirs('/tmp/data', exist_ok=True)
+try:
+    os.makedirs('static/billboards', exist_ok=True)
+except:
+    os.makedirs('/tmp/billboards', exist_ok=True)
 
 Talisman(app, content_security_policy=None, force_https=False)
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
