@@ -6,11 +6,11 @@
 Sannlas is a real-time marketplace where Ugandans post what they want (Wants) and sellers send offers instantly. No middleman. Built for Kampala shoppers.
 
 ## Main Pages
-- [Home](https://sannlas.onrender.com/)
-- [Wants - Request Anything](https://sannlas.onrender.com/wants)
-- [Shops](https://sannlas.onrender.com/shop)
-- [Sell Product](https://sannlas.onrender.com/sell)
-- [Products API](https://sannlas.onrender.com/api/products)
+- [Home](https://sannlas.vercel.app/)
+- [Wants - Request Anything](https://sannlas.vercel.app/wants)
+- [Shops](https://sannlas.vercel.app/shop)
+- [Sell Product](https://sannlas.vercel.app/sell)
+- [Products API](https://sannlas.vercel.app/api/products)
 
 ## Categories
 - Watches
@@ -27,7 +27,7 @@ Sannlas is a real-time marketplace where Ugandans post what they want (Wants) an
 
 ## Business Info
 - Name: SANNLAS Uganda
-- URL: https://sannlas.onrender.com/
+- URL: https://sannlas.vercel.app/
 - Location: Kampala, Uganda
 - Currency: UGX - Ugandan Shillings
 - Contact: via website chat
