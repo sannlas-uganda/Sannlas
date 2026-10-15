@@ -18,8 +18,9 @@ app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
 # ===== TIKTOK LOGIN CONFIG =====
 CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
 CLIENT_SECRET = os.environ.get("TIKTOK_CLIENT_SECRET")
-REDIRECT_URI = "https://sannlas.onrender.com/auth/tiktok/callback"
-print(f"DEBUG TIKTOK KEY LOADED: {CLIENT_KEY}")
+# DYNAMIC - Works for both Vercel AND Render!
+REDIRECT_URI = os.environ.get("REDIRECT_URI", "https://sannlas.vercel.app/auth/tiktok/callback")
+print(f"DEBUG TIKTOK KEY LOADED: {CLIENT_KEY} - REDIRECT: {REDIRECT_URI}")
 from broadcast import broadcast_bp
 app.register_blueprint(broadcast_bp)
 # ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
@@ -137,7 +138,7 @@ os.makedirs('static/billboards', exist_ok=True)
 
 Talisman(app, content_security_policy=None, force_https=False)
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
-CORS(app, origins=["https://sannlas.onrender.com"])
+CORS(app, origins=["https://sannlas.vercel.app", "https://sannlas.onrender.com", "http://localhost:5000"], supports_credentials=True)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 
@@ -2293,7 +2294,8 @@ def promote_apply():
     existing = next((p for p in promos if str(p.get('product_id'))==product_id and (p.get('freelancer_phone')==phone or p.get('freelancer_email','').lower()==email)), None)
     if existing:
         code = existing.get('promo_code')
-        link = f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
+       host = request.host_url.rstrip('/')
+link = f"{host}/?promo={code}&product={product_id}"
         return jsonify({"success":True,"message":f"Already applied!","promo":existing,"link":link,"promo_link":link,"code":code})
     import random,string
     code=f"PROMO{product_id[:3]}{phone[-3:]}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
@@ -2313,7 +2315,8 @@ def promote_apply():
     }
     promos.append(new_promo)
     save_db('promotions.json',promos)
-    link = f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
+   host = request.host_url.rstrip('/')
+link = f"{host}/?promo={code}&product={product_id}"
     return jsonify({"success":True,"message":f"Applied! Earn {new_promo['commission_coins']} coins per sale! Link: {link}","promo":new_promo,"link":link,"promo_link":link,"code":code})
 
 @app.route('/api/promote/my', methods=['GET'])
@@ -2471,7 +2474,8 @@ def llms_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.onrender.com/sitemap.xml", mimetype="text/plain")
+    host = request.host_url.rstrip('/')
+    return Response(f"User-agent: *\nAllow: /\n\nSitemap: {host}/sitemap.xml", mimetype="text/plain")
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
         import socket, smtplib
