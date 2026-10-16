@@ -1,5 +1,9 @@
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory, session, redirect, make_response
+app = Flask(__name__)
+app.secret_key = __import__('os').environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+
 import os, json, uuid, time, hashlib, base64, random, smtplib, threading, re, math, secrets, requests
+import datetime
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -11,10 +15,10 @@ from flask_cors import CORS
 from functools import wraps
 import cloudinary
 import cloudinary.uploader
-import cloudinary_config
-
-app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+try:
+    import cloudinary_config
+except:
+    pass
 # ===== TIKTOK LOGIN CONFIG =====
 CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
 CLIENT_SECRET = os.environ.get("TIKTOK_CLIENT_SECRET")
