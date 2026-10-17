@@ -395,10 +395,13 @@ div[style*="position:absolute"][style*="top"]{
     <span style="background:#FFCC02;color:#000;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:900">MIXED FEED</span>
   </div>
   
-  <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;background:#000">
-    <div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;flex-direction:column;gap:10px">
-      <span style="font-size:40px">🎬</span>
-      <p style="color:white">Loading Mixed Feed...</p>
+ <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;background:#000">
+  <!-- INSTANT PLACEHOLDER - Shows immediately, no white screen -->
+  <div class="feed-item" style="background:linear-gradient(45deg,#111,#222)">
+    <img src="https://images.unsplash.com/photo-1611234407653-1d5d3a6d2a4b?w=500" style="width:100%;height:100%;object-fit:cover;opacity:0.8">
+    <div class="feed-overlay">
+      <span class="badge-reel">🔥 REEL</span>
+      <b style="display:block;margin-top:8px;font-size:12px">Loading Your Feed Boss... ⚡</b>
     </div>
   </div>
 </div>
@@ -415,71 +418,94 @@ div[style*="position:absolute"][style*="top"]{
 </style>
 
 <script>
+// CACHE - Instant second load!
+let cachedProducts = JSON.parse(localStorage.getItem('sannlas_products') || '[]');
+
 async function loadMixedFeed(){
   let container = document.getElementById('reelsFeedContainer');
+  
+  // SHOW CACHED IMMEDIATELY IF EXISTS - NO WHITE SCREEN!
+  if(cachedProducts.length > 0){
+    renderMixed([], cachedProducts);
+  }
+
   let reels = [];
   let products = [];
   
   try{
+    // Load fast - 5 sec timeout
+    let controller = new AbortController();
+    setTimeout(()=>controller.abort(), 5000);
+    
     let [reelsRes, prodRes] = await Promise.all([
-      fetch('/api/reels?limit=30').then(r=>r.ok?r.json():[]).catch(()=>[]),
-      fetch('/api/products?limit=30').then(r=>r.ok?r.json():[]).catch(()=>[])
+      fetch('/api/reels?limit=20', {signal: controller.signal}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch('/api/products?limit=30', {signal: controller.signal}).then(r=>r.ok?r.json():[]).catch(()=>[])
     ]);
-    reels = Array.isArray(reelsRes) ? reelsRes : (reelsRes.reels || reelsRes.data || []);
-    products = Array.isArray(prodRes) ? prodRes : (prodRes.products || []);
-    console.log(`Found: ${reels.length} reels + ${products.length} products`);
-  }catch(e){ console.log("Error", e); }
+    
+    reels = Array.isArray(reelsRes) ? reelsRes : (reelsRes.reels || []);
+    products = Array.isArray(prodRes) ? prodRes : (prodRes.products || prodRes || []);
+    
+    // Save cache
+    if(products.length>0){
+      localStorage.setItem('sannlas_products', JSON.stringify(products.slice(0,20)));
+    }
+  }catch(e){ 
+    console.log("Using cache", e);
+    products = cachedProducts;
+  }
 
+  renderMixed(reels, products);
+}
+
+function renderMixed(reels, products){
+  let container = document.getElementById('reelsFeedContainer');
   let mixed = [];
   let r=0, p=0;
-  while(mixed.length < 40 && (r < reels.length || p < products.length)){
+  
+  while(mixed.length < 50 && (r < reels.length || p < products.length)){
     for(let i=0;i<2;i++){ if(r < reels.length) mixed.push({type:'reel', data:reels[r++]}); }
     if(p < products.length) mixed.push({type:'product', data:products[p++]});
     if(r>=reels.length && p>=products.length) break;
   }
   if(mixed.length==0 && products.length>0){
-    mixed = products.slice(0,20).map(prod=>({type:'product', data:prod}));
+    mixed = products.slice(0,25).map(prod=>({type:'product', data:prod}));
   }
-  if(mixed.length==0){
-    container.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white;flex-direction:column;padding:20px;text-align:center"><p>No content yet</p><a href="/products" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:900;margin-top:10px">Browse</a></div>`;
-    return;
-  }
+  if(mixed.length==0) return;
 
   container.innerHTML = mixed.map(item=>{
     if(item.type=='reel'){
       let d = item.data;
       let media = d.video_url || d.media_url || d.image_url || '/icon-192.png';
-      let isVideo = media.includes('.mp4') || d.type=='video';
-      return `<div class="feed-item">
-        ${isVideo ? `<video src="${media}" loop muted playsinline></video>` : `<img src="${media}" onerror="this.src='/icon-192.png'">`}
-        <div class="feed-overlay"><span class="badge-reel">🔥 REEL</span>
-        <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><div style="width:28px;height:28px;border-radius:50%;background:#FFCC02;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px">${(d.username||'S')[0].toUpperCase()}</div><b style="font-size:12px">@${(d.username||'SANNLAS').toString().slice(0,12)}</b></div>
-        <p style="font-size:11px;margin-top:6px;max-width:85%">${(d.caption||'Check this! 🔥').slice(0,80)}</p></div></div>`;
+      let isVideo = media.includes('.mp4');
+      return `<div class="feed-item">${isVideo ? `<video src="${media}" loop muted playsinline></video>` : `<img src="${media}" loading="lazy">`}<div class="feed-overlay"><span class="badge-reel">🔥 REEL</span><b style="display:block;margin-top:8px;font-size:11px">${(d.caption||'').slice(0,60)}</b></div></div>`;
     }else{
       let d = item.data;
       let img = d.image || d.image_url || '/icon-192.png';
-      let name = d.name || 'Product';
-      let price = d.price || 0;
-      return `<div class="feed-item" onclick="location.href='/products'">
-        <img src="${img}" onerror="this.src='/icon-192.png'">
-        <div class="feed-overlay"><span class="badge-product">🛍️ PRODUCT</span>
-        <b style="font-size:13px;display:block;margin-top:8px;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</b>
-        <div style="display:flex;gap:8px;margin-top:4px;align-items:center"><b style="color:#FFCC02;font-size:16px">UGX ${Number(price).toLocaleString()}</b><span style="background:#FF0000;color:white;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:900">OFF</span></div>
-        <div style="display:flex;gap:8px;margin-top:8px"><button style="background:#FFCC02;color:#000;border:none;padding:7px 14px;border-radius:14px;font-size:11px;font-weight:900" onclick="event.stopPropagation(); window.open('https://wa.me/256795712326?text=I want ${encodeURIComponent(name)}','_blank')">💬 Buy</button><button style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);padding:7px 14px;border-radius:14px;font-size:11px;font-weight:900" onclick="event.stopPropagation(); location.href='/products'">View</button></div></div></div>`;
+      return `<div class="feed-item" onclick="location.href='/products'"><img src="${img}" loading="lazy"><div class="feed-overlay"><span class="badge-product">🛍️ PRODUCT</span><b style="display:block;margin-top:8px;font-size:13px;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Product'}</b><b style="color:#FFCC02;font-size:15px">UGX ${Number(d.price||0).toLocaleString()}</b></div></div>`;
     }
   }).join('');
 
+  // Auto-play observer
   const observer = new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
       let vid = entry.target.querySelector('video');
-      if(!vid) return;
-      if(entry.isIntersecting) vid.play().catch(()=>{});
-      else vid.pause();
+      if(vid && entry.isIntersecting) vid.play().catch(()=>{});
+      else if(vid) vid.pause();
     });
   }, {threshold:0.6});
   document.querySelectorAll('.feed-item').forEach(el=>observer.observe(el));
 }
+
+// LOAD INSTANT!
 loadMixedFeed();
+
+// Preload next batch when scroll to bottom
+document.getElementById('reelsFeedContainer').addEventListener('scroll', function(){
+  if(this.scrollTop + this.clientHeight >= this.scrollHeight - 200){
+    // Load more - you can add pagination here Boss
+    console.log("Near bottom - load more");
+  }
+});
 </script>
   
 <main>
