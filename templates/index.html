@@ -380,12 +380,25 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="startVoiceSearch()" id="micBtn" style="background:rgba(255,255,255,0.9);color:#111;border:1px solid rgba(0,0,0,0.08);border-radius:50%;padding:9px 11px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05)">🎤</button>
     <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.8); border-radius:16px; margin-top:8px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 12px 32px rgba(0,0,0,0.12);"></div>
   </div>
-  <div style="max-width:780px;margin:14px auto 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+<div style="max-width:780px;margin:14px auto 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
     <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:11px 26px;border-radius:14px;font-size:13px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(255,106,0,0.3)">🏪 SELL</button>
-    <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">🚀 BROADCAST</button>
-    <button onclick="openWantsList()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,0.05)">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
-    <button id="cartNTop" onclick="openCart()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,0.05)">🛒 CART</button>
+    <button onclick="location.href='/reels'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🎬 REELS</button>
+    <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
+    <button onclick="openWantsList()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
+    <button id="cartNTop" onclick="openCart()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🛒 CART</button>
+</div>
+
+<!-- SANNLAS REELS STRIP - OWN FILE -->
+<div id="reelsStripBox" style="max-width:780px;margin:12px auto 0;background:rgba(255,255,255,0.75);backdrop-filter:blur(15px);border-radius:18px;padding:10px 12px;border:1px solid rgba(255,255,255,0.8);box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <b style="font-size:13px">🔥 Reels</b>
+    <div style="display:flex;gap:6px">
+      <a href="/reels" style="background:black;color:#FFCC02;padding:5px 12px;border-radius:15px;text-decoration:none;font-size:11px;font-weight:900">Watch ▶️</a>
+      <button onclick="openReelModal()" style="background:#FF6600;color:white;border:none;padding:5px 12px;border-radius:15px;font-weight:900;font-size:11px">+ Post</button>
+    </div>
   </div>
+  <div id="reelsStrip" style="display:flex;gap:10px;overflow-x:auto;margin-top:8px;padding-bottom:4px;"></div>
+</div>
 </div>
   
 <main>
@@ -1474,5 +1487,65 @@ setInterval(forceJellyButtons, 800);
 }
 </style>
 </main>
+
+  <!-- REELS UPLOAD MODAL -->
+<div id="reelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;justify-content:center;align-items:center;padding:15px">
+  <div style="background:white;border-radius:18px;padding:18px;max-width:400px;width:100%">
+    <h3>🎬 Post Reel (Any video)</h3>
+    <input type="file" id="reelFile" accept="video/*" style="width:100%;margin:10px 0;padding:10px;border:2px dashed #FF6600;border-radius:12px">
+    <textarea id="reelCaption" placeholder="Caption... #fun #product" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;margin:6px 0"></textarea>
+    <input id="reelProductLink" placeholder="Product link optional e.g. https://sannlas.onrender.com/product/123" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;margin:6px 0">
+    <div id="reelProgress" style="display:none;background:black;color:#FFCC02;padding:10px;border-radius:10px;text-align:center;margin:8px 0">Uploading...</div>
+    <button onclick="uploadReel()" style="width:100%;background:black;color:#FFCC02;padding:12px;border:none;border-radius:12px;font-weight:900;margin-top:8px">🚀 POST REEL</button>
+    <button onclick="document.getElementById('reelModal').style.display='none'" style="width:100%;background:#eee;color:black;padding:10px;border:none;border-radius:10px;margin-top:8px">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ===== SANNLAS REELS JS - OWN FILE =====
+function openReelModal(){
+  let u=null; try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}')}catch(e){}
+  if(!u||!u.email){ alert('Login first Boss!'); showGate(); switchGate('login'); return; }
+  document.getElementById('reelModal').style.display='flex';
+}
+async function loadReelsStrip(){
+  try{
+    let r=await fetch('/api/sannlas/reels/feed');
+    let reels=await r.json();
+    let box=document.getElementById('reelsStrip');
+    if(!reels.length){ box.innerHTML='<small style="color:#999">No reels yet - Be first!</small>'; return; }
+    box.innerHTML=reels.slice(0,10).map(re=>`
+      <div onclick="location.href='/reels'" style="min-width:90px;cursor:pointer">
+        <video src="${re.video_url}" muted style="width:90px;height:130px;object-fit:cover;border-radius:12px;background:black;border:2px solid #FFCC02"></video>
+        <div style="font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:90px">@${(re.user_name||'User').split(' ')[0]} ❤️${re.likes||0}</div>
+      </div>
+    `).join('');
+  }catch(e){}
+}
+async function uploadReel(){
+  let file=document.getElementById('reelFile').files[0];
+  if(!file){ alert('Select video Boss!'); return; }
+  if(file.size > 50*1024*1024){ alert('Max 50MB Boss!'); return; }
+  let u=null; try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}')}catch(e){}
+  let fd=new FormData();
+  fd.append('video', file);
+  fd.append('caption', document.getElementById('reelCaption').value);
+  fd.append('user_email', u.email||'');
+  fd.append('user_name', u.business||u.email||'Sannlas User');
+  fd.append('product_link', document.getElementById('reelProductLink').value);
+  document.getElementById('reelProgress').style.display='block';
+  document.getElementById('reelProgress').innerText='⏳ Uploading to Cloudinary...';
+  try{
+    let res=await fetch('/api/sannlas/reels/upload',{method:'POST',body:fd});
+    let d=await res.json();
+    if(d.success){
+      alert('✅ Reel posted!'); document.getElementById('reelModal').style.display='none';
+      loadReelsStrip();
+    }else alert('Failed: '+(d.error||'Error'));
+  }catch(e){ alert('Error: '+e.message); }
+  document.getElementById('reelProgress').style.display='none';
+}
+loadReelsStrip();
+</script>
 </body>
 </html>
