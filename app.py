@@ -22,6 +22,10 @@ REDIRECT_URI = "https://sannlas.onrender.com/auth/tiktok/callback"
 print(f"DEBUG TIKTOK KEY LOADED: {CLIENT_KEY}")
 from broadcast import broadcast_bp
 app.register_blueprint(broadcast_bp)
+
+# ===== SANNLAS REELS - OWN FILE =====
+from sannlas_reels import reels_bp
+app.register_blueprint(reels_bp)
 # ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
 CATEGORY_MAP = {
     # 1. Fashion
