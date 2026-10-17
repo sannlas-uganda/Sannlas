@@ -11,7 +11,7 @@ TIKTOK_CLIENT_KEY = os.getenv("TIKTOK_CLIENT_KEY","")
 TIKTOK_CLIENT_SECRET = os.getenv("TIKTOK_CLIENT_SECRET","")
 FACEBOOK_APP_ID = os.getenv("FACEBOOK_APP_ID","")
 FACEBOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET","")
-BASE_URL = "https://sannlas.vercel.app"
+BASE_URL = "https://sannlas.onrender.com/"
 
 @broadcast_bp.route('/seller/broadcast')
 def broadcast_page():
