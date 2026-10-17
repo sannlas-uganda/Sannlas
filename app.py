@@ -27,6 +27,26 @@ app.register_blueprint(broadcast_bp)
 # ===== SANNLAS REELS - OWN FILE =====
 from sannlas_reels import reels_bp
 app.register_blueprint(reels_bp)
+
+@app.route('/products')
+def products_page():
+    return render_template('products.html')
+
+@app.route('/api/all-products')
+def api_all_products():
+    # Use your existing product fetching logic
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT * FROM products ORDER BY id DESC")
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description]
+        data = [dict(zip(cols, r)) for r in rows]
+        cur.close(); conn.close()
+        return jsonify(data)
+    except Exception as e:
+        print(e)
+        return jsonify([])
+        
 # ========= SANNLAS MASTER CATEGORY MAP - 50 CATEGORIES =========
 CATEGORY_MAP = {
     # 1. Fashion
