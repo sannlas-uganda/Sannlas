@@ -2760,21 +2760,35 @@ def get_kassag_payments():
 def save_kassag_payments(p):
     save_db(KASSAG_PAYMENTS_FILE, p)
 
-# ===== EXPENDITURE DATABASE =====
-EXPEND_FILE = 'kassag_expenditures.json'
-
+# ===== FIXED EXPENDITURE - NOW ON NEON PERMANENT =====
 def get_kassag_expenditures():
-    if not os.path.exists(EXPEND_FILE):
-        return []
     try:
-        with open(EXPEND_FILE,'r') as f:
-            return json.load(f)
-    except:
+        conn = get_neon_connection()  # use your same Neon function you use for members
+        cur = conn.cursor()
+        cur.execute("SELECT id, amount, reason, spent_by, date FROM kassag_expenditures ORDER BY date DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        # convert to list of dicts like before
+        return [{"id": r[0], "amount": r[1], "reason": r[2], "spent_by": r[3], "date": str(r[4])} for r in rows]
+    except Exception as e:
+        print("Expend Neon error:", e)
         return []
 
-def save_kassag_expenditures(data):
-    with open(EXPEND_FILE,'w') as f:
-        json.dump(data,f,indent=2)
+def save_kassag_expenditure(amount, reason, spent_by="Admin"):
+    # NEW FUNCTION - Add one expenditure
+    try:
+        conn = get_neon_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO kassag_expenditures (amount, reason, spent_by) VALUES (%s, %s, %s)", 
+                    (int(amount), reason, spent_by))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print("Save expend error:", e)
+        return False
 
 @app.route('/api/kassag/join', methods=['POST'])
 def kassag_join():
@@ -3049,22 +3063,49 @@ def kassag_export_payments():
     output.seek(0)
     return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_payments.csv"})
 
-# ===== EXPENDITURE APIS - STEP 2 =====
+# ===== EXPENDITURE APIS - FIXED PERMANENT ON NEON =====
+
+def get_kassag_expenditures():
+    try:
+        # Use your same Neon connection variable - change DATABASE_URL to your NEON_URL name
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL") or os.environ.get("NEON_DATABASE_URL") or DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS kassag_expenditures (
+                id BIGSERIAL PRIMARY KEY,
+                title TEXT,
+                amount NUMERIC,
+                reason TEXT,
+                date TEXT,
+                created TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+        cur.execute("SELECT id, title, amount, reason, date, created FROM kassag_expenditures ORDER BY created DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return [{"id": r[0], "title": r[1], "amount": float(r[2] or 0), "reason": r[3], "date": r[4], "created": str(r[5])} for r in rows]
+    except Exception as e:
+        print("GET EXPEND NEON ERROR:", e)
+        return []
+
 @app.route('/api/kassag/expenditure/add', methods=['POST'])
 @kassag_admin_required
 def add_expenditure():
-    data = request.get_json() or {}
-    exps = get_kassag_expenditures()
-    exps.append({
-        'id': int(time.time()*1000),
-        'title': data.get('title',''),
-        'amount': float(data.get('amount',0)),
-        'date': data.get('date',''),
-        'reason': data.get('reason',''),
-        'created': datetime.utcnow().isoformat()
-    })
-    save_kassag_expenditures(exps)
-    return jsonify({'success':True})
+    try:
+        data = request.get_json() or {}
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL") or os.environ.get("NEON_DATABASE_URL") or DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("INSERT INTO kassag_expenditures (title, amount, reason, date, created) VALUES (%s,%s,%s,%s,%s)",
+                    (data.get('title',''), float(data.get('amount',0)), data.get('reason',''), data.get('date',''), datetime.utcnow()))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success':True, 'message':'Saved to Neon permanently ✅'})
+    except Exception as e:
+        print("ADD EXPEND ERROR:", e)
+        return jsonify({'success':False, 'message': str(e)}), 500
 
 @app.route('/api/kassag/expenditure/list')
 @kassag_admin_required
@@ -3074,12 +3115,18 @@ def list_expenditure():
 @app.route('/api/kassag/expenditure/delete/<int:exp_id>', methods=['DELETE'])
 @kassag_admin_required
 def delete_expenditure(exp_id):
-    exps = get_kassag_expenditures()
-    exps = [e for e in exps if e['id'] != exp_id]
-    save_kassag_expenditures(exps)
-    return jsonify({'success':True})
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL") or os.environ.get("NEON_DATABASE_URL") or DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM kassag_expenditures WHERE id=%s", (exp_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success':True})
+    except Exception as e:
+        return jsonify({'success':False, 'message': str(e)}), 500
 
-# ===== END EXPENDITURE APIS =====
+# ===== END EXPENDITURE APIS - NOW PERMANENT =====
 
 @app.route('/api/kassag/stats')
 def kassag_stats():
