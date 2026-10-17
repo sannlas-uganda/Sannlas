@@ -368,7 +368,6 @@ div[style*="position:absolute"][style*="top"]{
   <div style="display:flex;align-items:center;gap:8px">
     <button id="topLoginBtn" onclick="handleTopLogin()" style="background:rgba(255,255,255,0.9);color:#111;border:1px solid rgba(0,0,0,0.08);padding:9px 18px;border-radius:20px;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.06)">👤 LOGIN</button>
     <a href="/auth/tiktok" style="background:#000;color:#fff;padding:11px 18px;border-radius:14px;text-decoration:none;font-weight:900;font-size:12px;border:2px solid #fff;">🎵 TikTok</a>
-    <span id="userInfo" style="display:none;background:linear-gradient(135deg,#FFD700,#FFCC02);color:#000;padding:7px 12px;border-radius:16px;font-size:11px;font-weight:900;box-shadow:0 2px 8px rgba(255,204,2,0.4)"></span>
   </div>
 </div>
 
@@ -1023,8 +1022,6 @@ async function frontUploadAllProceed(){
     status.style.background='#ff0000';
   }
 }
-async function updateLoginUI(){if(currentUser){document.getElementById('userInfo').style.display='inline-block';document.getElementById('userInfo').innerText=currentUser.email;document.getElementById('myProfileInfo').innerHTML=`<b>${currentUser.email}</b><br>Phone: ${currentUser.phone||''}<br>Business: ${currentUser.business||''}`;try{const res=await fetch(`/api/coins/balance?email=${currentUser.email||''}&phone=${currentUser.phone||''}`,{signal:AbortSignal.timeout(5000)});const d=await res.json();let coins=d.total||0;document.getElementById('myCoinsNav').innerText=coins;document.getElementById('myCoinsPlan').innerText=coins;currentUser.coins=coins;localStorage.setItem('sannlas_user',JSON.stringify(currentUser));}catch(e){}}}
-
 function doLogout(){localStorage.clear();location.reload();}
 
 function showLogoutConfirm(){
