@@ -8,12 +8,15 @@ body{background:black;overflow:hidden;font-family:system-ui}
 .reel{height:100vh;scroll-snap-align:start;position:relative;background:black}
 .reel video{width:100%;height:100%;object-fit:cover}
 .overlay{position:absolute;bottom:0;left:0;right:0;padding:15px;background:linear-gradient(transparent,rgba(0,0,0,.8));color:white}
-.right-actions{position:absolute;right:10px;bottom:120px;display:flex;flex-direction:column;gap:20px}
-.action-btn{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;color:white}
+.right-actions{position:absolute;right:10px;bottom:120px;display:flex;flex-direction:column;gap:20px; z-index:20;}
+.action-btn{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;color:white; flex-direction:column;}
 .header{position:fixed;top:0;left:0;right:0;z-index:99;padding:12px;display:flex;justify-content:space-between}
 .header a{background:rgba(0,0,0,.5);color:#FFCC02;padding:8px 14px;border-radius:20px;text-decoration:none;font-weight:900}
 .caption{font-size:14px;margin-top:8px}
 .shop-btn{background:#FF6600;color:white;padding:10px 18px;border-radius:20px;font-weight:900;border:none;margin-top:10px;display:inline-block;text-decoration:none}
+.volume-btn{position:absolute; top:60px; right:15px; width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:white; font-size:22px; cursor:pointer; z-index:30;}
+.unmute-hint{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.75); color:white; padding:10px 16px; border-radius:25px; font-size:14px; z-index:25; pointer-events:none; animation:fadeOut 3s forwards; animation-delay:2s;}
+@keyframes fadeOut{to{opacity:0}}
 </style></head><body>
 <div class="header"><a href="/">← Home</a><a href="/">SANNLAS</a></div>
 <div id="reels-container"></div>
@@ -24,30 +27,85 @@ async function loadReels(){
  const c=document.getElementById('reels-container');
  c.innerHTML=reels.map((reel,i)=>`
  <div class="reel" data-id="${reel.id}">
-  <video src="${reel.video_url}" loop playsinline ${i==0?'autoplay':''} onclick="this.paused?this.play():this.pause()"></video>
+  <video src="${reel.video_url}" loop playsinline muted ${i==0?'autoplay':''}></video>
+  <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
+  <div class="unmute-hint">Tap 🔊 for sound</div>
   <div class="right-actions">
-    <button class="action-btn" onclick="like(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes}</span></button>
+    <button class="action-btn" onclick="like(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes||0}</span></button>
     <button class="action-btn">💬</button>
     <button class="action-btn">↗️</button>
   </div>
   <div class="overlay">
-    <b>@${(reel.user_name||reel.user_email).split('@')[0]}</b>
-    <div class="caption">${reel.caption}</div>
+    <b>@${(reel.user_name||reel.user_email||'user').split('@')[0]}</b>
+    <div class="caption">${reel.caption||''}</div>
     ${reel.product_link?`<a class="shop-btn" href="${reel.product_link}">🛒 Shop Now</a>`:''}
   </div>
  </div>`).join('');
  observeVideos();
+ addVideoClickHandlers();
 }
+
+function toggleVolume(btn){
+  const reel = btn.closest('.reel');
+  const video = reel.querySelector('video');
+  const hint = reel.querySelector('.unmute-hint');
+  
+  video.muted = !video.muted;
+  
+  if(video.muted){
+    btn.innerHTML = '🔇';
+  } else {
+    btn.innerHTML = '🔊';
+    video.volume = 1;
+    video.play().catch(()=>{});
+    if(hint) hint.style.display = 'none';
+  }
+}
+
+function addVideoClickHandlers(){
+  document.querySelectorAll('.reel video').forEach(video => {
+    video.addEventListener('click', () => {
+      const reel = video.closest('.reel');
+      const btn = reel.querySelector('.volume-btn');
+      const hint = reel.querySelector('.unmute-hint');
+      
+      // If muted, unmute. If not muted, pause/play
+      if(video.muted){
+        video.muted = false;
+        video.volume = 1;
+        btn.innerHTML = '🔊';
+        video.play().catch(()=>{});
+        if(hint) hint.style.display = 'none';
+      } else {
+        video.paused ? video.play() : video.pause();
+      }
+    });
+  });
+}
+
 function observeVideos(){
  const vids=document.querySelectorAll('video');
  const io=new IntersectionObserver(es=>{
    es.forEach(e=>{
-     if(e.isIntersecting){ e.target.play().catch(()=>{}); }
-     else e.target.pause();
+     if(e.isIntersecting){ 
+       e.target.play().catch(()=>{});
+     } else {
+       e.target.pause();
+       // Reset to muted when scrolling away for better UX
+       // e.target.muted = true;
+       // const btn = e.target.closest('.reel').querySelector('.volume-btn');
+       // if(btn) btn.innerHTML = '🔇';
+     }
    });
  },{threshold:0.7});
  vids.forEach(v=>io.observe(v));
 }
-async function like(id, btn){ await fetch('/api/sannlas/reels/like/'+id,{method:'POST'}); btn.innerHTML='❤️<br><span style="font-size:10px">+1</span>'; }
+
+async function like(id, btn){ 
+  try{
+    await fetch('/api/sannlas/reels/like/'+id,{method:'POST'}); 
+    btn.innerHTML='❤️<br><span style="font-size:10px">+1</span>'; 
+  } catch(e){}
+}
 loadReels();
 </script></body></html>
