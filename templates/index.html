@@ -534,120 +534,17 @@ document.getElementById('reelsFeedContainer').addEventListener('scroll', functio
 <input id="searchInput" placeholder="Search electric bike, tools, shoes..." oninput="showSuggestions(this.value); debouncedFilter()" autocomplete="off">
 <button class="search-btn" onclick="doFilter()">Search</button>
 <button class="btn" onclick="startVoiceSearch()" id="micBtn" style="background:#111;color:#FFCC02;border-radius:50%;padding:8px 10px">🎤</button>
-<!-- SUGGESTION BOX - Keep it where it is -->
+<!-- SUGGESTION BOX -->
 <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-radius:12px; margin-top:6px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 8px 20px rgba(0,0,0,0.15);"></div>
-</div> <!-- closes search wrapper -->
-
-<!-- ===== LEFT SIDE COLUMN - VERTICAL BUTTONS ===== -->
-<div id="leftActionColumn">
-  <button onclick="openSellModal()" class="left-btn sell-btn">
-    <span class="btn-icon">🎁</span>
-    <span class="btn-text">SELL</span>
-  </button>
-  
-  <button onclick="openWantsList()" class="left-btn wants-btn">
-    <span class="btn-icon">🎯</span>
-    <span class="btn-text">WANTS (<span id="wantsCountTop">0</span>)</span>
-  </button>
-  
-  <button id="cartNTop" onclick="openCart()" class="left-btn cart-btn">
-    <span class="btn-icon">🛒</span>
-    <span class="btn-text" id="cartText">0</span>
-  </button>
-
-  <!-- ADD YOUR OTHER BUTTONS HERE TOO -->
-  <button onclick="location.href='/reels'" class="left-btn reels-btn">
-    <span class="btn-icon">🎬</span>
-    <span class="btn-text">REELS</span>
-  </button>
-
-  <button onclick="location.href='/products'" class="left-btn products-btn">
-    <span class="btn-icon">🛍️</span>
-    <span class="btn-text">PRODUCTS</span>
-  </button>
-
-  <button onclick="location.href='/broadcast'" class="left-btn broadcast-btn">
-    <span class="btn-icon">🚀</span>
-    <span class="btn-text">BROADCAST</span>
-  </button>
 </div>
-
-<style>
-#leftActionColumn{
-  position:fixed;
-  left:14px;
-  top:50%;
-  transform:translateY(-50%);
-  z-index:95;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-
-.left-btn{
-  width:76px;
-  height:76px;
-  border-radius:20px;
-  border:none;
-  font-weight:900;
-  font-size:9px;
-  cursor:pointer;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.18);
-  transition:all 0.2s ease;
-}
-.left-btn:hover{ transform:scale(1.1) translateX(5px); box-shadow:0 10px 25px rgba(0,0,0,0.25) }
-.left-btn:active{ transform:scale(0.92) }
-
-.btn-icon{ font-size:22px; line-height:1 }
-.btn-text{ font-size:9px; line-height:1.1; text-align:center }
-
-.sell-btn{ background:#FFA76C; color:#fff; }
-.wants-btn{ background:#00FF00; color:#000; border:2px solid #000; animation:pulse 1.5s infinite }
-.cart-btn{ background:#000; color:#fff; border:2px solid #000 }
-.reels-btn{ background:#000; color:#FFCC02; border:2px solid #FFCC02 }
-.products-btn{ background:#FFCC02; color:#000; border:2px solid #000 }
-.broadcast-btn{ background:#000; color:#FFCC02; border:2px solid #FFCC02 }
-
-@keyframes pulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-
-/* Push main feed to right */
-#homeReelsFeed, #billboardBanner, #liveWantsBoard{
-  margin-left:95px;
-}
-
-/* Mobile - bottom bar */
-@media(max-width:768px){
-  #leftActionColumn{
-    left:0; right:0; top:auto; bottom:8px;
-    transform:none;
-    flex-direction:row;
-    justify-content:space-around;
-    gap:4px;
-    padding:6px 8px;
-    background:rgba(255,255,255,0.95);
-    backdrop-filter:blur(10px);
-    border-top:1px solid #eee;
-    border-radius:20px 20px 0 0;
-    overflow-x:auto;
-  }
-  .left-btn{
-    width:58px; height:58px; border-radius:16px;
-    flex-shrink:0;
-  }
-  .btn-icon{ font-size:18px }
-  .btn-text{ font-size:7.5px }
-  #homeReelsFeed, #billboardBanner{ margin-left:auto !important; margin-bottom:85px }
-}
-</style>
-
+<div class="trust-badges">
+<button onclick="openSellModal()" style="background:#FF6A00;color:#fff;font-weight:900;border:none;cursor:pointer;padding:8px 18px;border-radius:20px;font-size:12px;">SELL</button>
+<button onclick="openWantsList()" style="background:#00FF00;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:8px 16px;border-radius:20px;font-size:11px;animation:pulse 1.5s infinite">🎯 WANTS (<span id="wantsCountTop">0</span>)</button>
+<button id="cartNTop" onclick="openCart()" style="background:#000;color:#fff;font-weight:900;border:2px solid #000;cursor:pointer;padding:8px 16px;border-radius:20px;font-size:11px">🛒 0</button>
+</div>
+</div>
 <div id="billboardBanner"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="liveWantsBoard" style="display:none"></div>
-
 <div class="popup" id="wantsPop" onclick="closePop('wantsPop')">
 <div class="popup-content" style="max-width:600px;background:#000;border:2px solid #00FF00" onclick="event.stopPropagation()">
 <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="color:#00FF00;margin:0">🔥 LIVE WANTS (<span id="wantsCount2">0</span>)</h2><button onclick="closePop('wantsPop')" style="background:white;color:black;padding:4px 10px;border:none;border-radius:8px;font-weight:bold">✕</button></div>
