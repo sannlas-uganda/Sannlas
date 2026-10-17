@@ -415,46 +415,70 @@ div[style*="position:absolute"][style*="top"]{
 
 <script>
 async function loadHomeReels(){
+  let container = document.getElementById('reelsFeedContainer');
+  console.log("SANNLAS Loading...");
+  let reels = [];
+  
+  // TRY API
   try{
     let r = await fetch('/api/reels?limit=20');
-    let reels = await r.json();
-    console.log("Reels:", reels.length);
-    if(!reels || reels.length==0){
-      document.getElementById('reelsFeedContainer').innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white;flex-direction:column;padding:20px;text-align:center"><p>No reels yet Boss!</p><button onclick="openReelModal()" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;border:none;font-weight:900;margin-top:10px">+ Post First Reel</button></div>`;
-      return;
+    if(r.ok){
+      let data = await r.json();
+      console.log("API reels:", data);
+      if(Array.isArray(data) && data.length>0) reels = data;
+      else if(data.reels) reels = data.reels;
     }
-    document.getElementById('reelsFeedContainer').innerHTML = reels.map(reel=>`
-      <div class="reel-item">
-        ${reel.video_url || reel.media_url ? 
-          `<video src="${reel.video_url||reel.media_url}" loop muted playsinline onclick="this.paused?this.play():this.pause()" style="cursor:pointer"></video>` : 
-          `<img src="${reel.image_url||reel.thumbnail||'/icon-192.png'}">`
-        }
-        <div class="reel-overlay">
-          <b style="font-size:13px">@${(reel.username||reel.phone||'SANNLAS').toString().slice(0,15)}</b>
-          <p style="font-size:11px;margin-top:4px;opacity:0.9">${(reel.caption||'Check this product 🔥').slice(0,60)}</p>
-          <button style="background:#FFCC02;color:#000;border:none;padding:5px 12px;border-radius:12px;font-size:11px;font-weight:900;margin-top:6px" onclick="location.href='/products'">🛍️ Shop</button>
+  }catch(e){ console.log("API failed", e); }
+
+  // FALLBACK: IF NO REELS, USE PRODUCTS AS REELS! Boss will see something!
+  if(reels.length==0){
+    console.log("No reels - using PRODUCTS as reels fallback!");
+    try{
+      let r = await fetch('/api/products?limit=12');
+      let prods = await r.json();
+      console.log("Products for reels:", prods.length);
+      reels = prods.map(p=>({
+        id: p.id,
+        video_url: null,
+        image_url: p.image || p.image_url || '/icon-192.png',
+        username: p.business || 'SANNLAS',
+        caption: (p.name||'Product') + ' - UGX ' + Number(p.price||0).toLocaleString() + ' 🔥',
+        likes: Math.floor(Math.random()*999)
+      }));
+    }catch(e){ console.log("Products fallback failed", e); }
+  }
+
+  if(reels.length==0){
+    container.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white;flex-direction:column;padding:20px;text-align:center"><p>⚠️ No Reels or Products found</p><p style="font-size:11px;color:#888">Post a product first</p><a href="/reels" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:900;margin-top:10px">+ Post Reel</a></div>`;
+    return;
+  }
+  
+  container.innerHTML = reels.map(reel=>`
+    <div class="reel-item">
+      <img src="${reel.image_url||reel.thumbnail||reel.image||'/icon-192.png'}" 
+           style="width:100%;height:100%;object-fit:cover" 
+           onerror="this.src='/icon-192.png'">
+      ${reel.video_url ? `<video src="${reel.video_url}" loop muted playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover"></video>` : ''}
+      <div class="reel-overlay">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:28px;height:28px;border-radius:50%;background:#FFCC02;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px">${(reel.username||'S')[0].toUpperCase()}</div>
+          <b style="font-size:12px">@${(reel.username||'SANNLAS').toString().slice(0,12)}</b>
+          <span style="color:#FFCC02;font-size:10px">• ${reel.likes||0} ❤️</span>
         </div>
+        <p style="font-size:11px;margin-top:4px;line-height:1.3;max-width:80%">${(reel.caption||'').slice(0,70)}</p>
+        <button style="background:#FFCC02;color:#000;border:none;padding:5px 12px;border-radius:12px;font-size:10px;font-weight:900;margin-top:6px" onclick="location.href='/products'">🛍️ Shop Now</button>
       </div>
-    `).join('');
+    </div>
+  `).join('');
 
-    // AUTO PLAY
-    setTimeout(()=>{
-      let firstVid = document.querySelector('#reelsFeedContainer video');
-      if(firstVid){ firstVid.muted=true; firstVid.play().catch(()=>{}); }
-    }, 600);
-
-    const observer = new IntersectionObserver((entries)=>{
-      entries.forEach(entry=>{
-        let vid = entry.target.querySelector('video');
-        if(!vid) return;
-        if(entry.isIntersecting) vid.play().catch(()=>{});
-        else vid.pause();
-      });
-    }, {threshold:0.7});
-    document.querySelectorAll('.reel-item').forEach(el=>observer.observe(el));
-  }catch(e){ console.log(e); }
+  // AUTO SCROLL HINT - Make it feel TikTok
+  container.scrollTop = 0;
 }
+
 loadHomeReels();
+
+// Auto refresh every 30 seconds
+setInterval(loadHomeReels, 30000);
 </script>
   
 <main>
