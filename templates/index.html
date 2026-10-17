@@ -388,97 +388,98 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
 </div>
 
-<!-- ===== SANNLAS REELS - TIKTOK FEED ON HOME - AUTO PLAY ===== -->
-<div id="homeReelsFeed" style="max-width:500px;margin:12px auto 0;background:#000;border-radius:20px;overflow:hidden;position:relative;height:75vh;max-height:700px;box-shadow:0 8px 30px rgba(0,0,0,0.15)">
-  <!-- Header -->
-  <div style="position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+<!-- ===== SANNLAS MIXED FEED - REELS + PRODUCTS TOGETHER ===== -->
+<div id="homeReelsFeed" style="max-width:500px;margin:12px auto 0;background:#000;border-radius:20px;overflow:hidden;position:relative;height:78vh;max-height:750px;box-shadow:0 8px 30px rgba(0,0,0,0.2)">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(180deg,rgba(0,0,0,0.8),transparent);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
     <b style="color:white;font-size:14px">🔥 For You</b>
-    <a href="/reels" style="background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);color:white;padding:6px 12px;border-radius:15px;text-decoration:none;font-size:11px;font-weight:900;border:1px solid rgba(255,255,255,0.3)">Full ▶️</a>
+    <span style="background:#FFCC02;color:#000;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:900">MIXED FEED</span>
   </div>
   
-  <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;">
-    <div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;flex-direction:column;gap:10px">
+  <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;background:#000">
+    <div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;flex-direction:column;gap:10px">
       <span style="font-size:40px">🎬</span>
-      <p>Loading Reels...</p>
+      <p style="color:white">Loading Mixed Feed...</p>
     </div>
   </div>
 </div>
 
-</div> <!-- THIS CLOSES YOUR SEARCH WRAPPER - DON'T DELETE! -->
+</div>
 
 <style>
 #reelsFeedContainer::-webkit-scrollbar{display:none}
-.reel-item{height:100%;width:100%;scroll-snap-align:start;position:relative;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.reel-item video, .reel-item img{width:100%;height:100%;object-fit:cover}
-.reel-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.8),transparent);padding:20px 16px 16px;color:white}
+.feed-item{height:100%;width:100%;scroll-snap-align:start;position:relative;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.feed-item img, .feed-item video{width:100%;height:100%;object-fit:cover}
+.feed-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:24px 14px 16px;color:white}
+.badge-reel{background:#FF0000;color:white;padding:3px 8px;border-radius:8px;font-size:9px;font-weight:900}
+.badge-product{background:#FFCC02;color:#000;padding:3px 8px;border-radius:8px;font-size:9px;font-weight:900}
 </style>
 
 <script>
-async function loadHomeReels(){
+async function loadMixedFeed(){
   let container = document.getElementById('reelsFeedContainer');
-  console.log("SANNLAS Loading...");
   let reels = [];
+  let products = [];
   
-  // TRY API
   try{
-    let r = await fetch('/api/reels?limit=20');
-    if(r.ok){
-      let data = await r.json();
-      console.log("API reels:", data);
-      if(Array.isArray(data) && data.length>0) reels = data;
-      else if(data.reels) reels = data.reels;
-    }
-  }catch(e){ console.log("API failed", e); }
+    let [reelsRes, prodRes] = await Promise.all([
+      fetch('/api/reels?limit=30').then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch('/api/products?limit=30').then(r=>r.ok?r.json():[]).catch(()=>[])
+    ]);
+    reels = Array.isArray(reelsRes) ? reelsRes : (reelsRes.reels || reelsRes.data || []);
+    products = Array.isArray(prodRes) ? prodRes : (prodRes.products || []);
+    console.log(`Found: ${reels.length} reels + ${products.length} products`);
+  }catch(e){ console.log("Error", e); }
 
-  // FALLBACK: IF NO REELS, USE PRODUCTS AS REELS! Boss will see something!
-  if(reels.length==0){
-    console.log("No reels - using PRODUCTS as reels fallback!");
-    try{
-      let r = await fetch('/api/products?limit=12');
-      let prods = await r.json();
-      console.log("Products for reels:", prods.length);
-      reels = prods.map(p=>({
-        id: p.id,
-        video_url: null,
-        image_url: p.image || p.image_url || '/icon-192.png',
-        username: p.business || 'SANNLAS',
-        caption: (p.name||'Product') + ' - UGX ' + Number(p.price||0).toLocaleString() + ' 🔥',
-        likes: Math.floor(Math.random()*999)
-      }));
-    }catch(e){ console.log("Products fallback failed", e); }
+  let mixed = [];
+  let r=0, p=0;
+  while(mixed.length < 40 && (r < reels.length || p < products.length)){
+    for(let i=0;i<2;i++){ if(r < reels.length) mixed.push({type:'reel', data:reels[r++]}); }
+    if(p < products.length) mixed.push({type:'product', data:products[p++]});
+    if(r>=reels.length && p>=products.length) break;
   }
-
-  if(reels.length==0){
-    container.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white;flex-direction:column;padding:20px;text-align:center"><p>⚠️ No Reels or Products found</p><p style="font-size:11px;color:#888">Post a product first</p><a href="/reels" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:900;margin-top:10px">+ Post Reel</a></div>`;
+  if(mixed.length==0 && products.length>0){
+    mixed = products.slice(0,20).map(prod=>({type:'product', data:prod}));
+  }
+  if(mixed.length==0){
+    container.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white;flex-direction:column;padding:20px;text-align:center"><p>No content yet</p><a href="/products" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:900;margin-top:10px">Browse</a></div>`;
     return;
   }
-  
-  container.innerHTML = reels.map(reel=>`
-    <div class="reel-item">
-      <img src="${reel.image_url||reel.thumbnail||reel.image||'/icon-192.png'}" 
-           style="width:100%;height:100%;object-fit:cover" 
-           onerror="this.src='/icon-192.png'">
-      ${reel.video_url ? `<video src="${reel.video_url}" loop muted playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover"></video>` : ''}
-      <div class="reel-overlay">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:28px;height:28px;border-radius:50%;background:#FFCC02;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px">${(reel.username||'S')[0].toUpperCase()}</div>
-          <b style="font-size:12px">@${(reel.username||'SANNLAS').toString().slice(0,12)}</b>
-          <span style="color:#FFCC02;font-size:10px">• ${reel.likes||0} ❤️</span>
-        </div>
-        <p style="font-size:11px;margin-top:4px;line-height:1.3;max-width:80%">${(reel.caption||'').slice(0,70)}</p>
-        <button style="background:#FFCC02;color:#000;border:none;padding:5px 12px;border-radius:12px;font-size:10px;font-weight:900;margin-top:6px" onclick="location.href='/products'">🛍️ Shop Now</button>
-      </div>
-    </div>
-  `).join('');
 
-  // AUTO SCROLL HINT - Make it feel TikTok
-  container.scrollTop = 0;
+  container.innerHTML = mixed.map(item=>{
+    if(item.type=='reel'){
+      let d = item.data;
+      let media = d.video_url || d.media_url || d.image_url || '/icon-192.png';
+      let isVideo = media.includes('.mp4') || d.type=='video';
+      return `<div class="feed-item">
+        ${isVideo ? `<video src="${media}" loop muted playsinline></video>` : `<img src="${media}" onerror="this.src='/icon-192.png'">`}
+        <div class="feed-overlay"><span class="badge-reel">🔥 REEL</span>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><div style="width:28px;height:28px;border-radius:50%;background:#FFCC02;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px">${(d.username||'S')[0].toUpperCase()}</div><b style="font-size:12px">@${(d.username||'SANNLAS').toString().slice(0,12)}</b></div>
+        <p style="font-size:11px;margin-top:6px;max-width:85%">${(d.caption||'Check this! 🔥').slice(0,80)}</p></div></div>`;
+    }else{
+      let d = item.data;
+      let img = d.image || d.image_url || '/icon-192.png';
+      let name = d.name || 'Product';
+      let price = d.price || 0;
+      return `<div class="feed-item" onclick="location.href='/products'">
+        <img src="${img}" onerror="this.src='/icon-192.png'">
+        <div class="feed-overlay"><span class="badge-product">🛍️ PRODUCT</span>
+        <b style="font-size:13px;display:block;margin-top:8px;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</b>
+        <div style="display:flex;gap:8px;margin-top:4px;align-items:center"><b style="color:#FFCC02;font-size:16px">UGX ${Number(price).toLocaleString()}</b><span style="background:#FF0000;color:white;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:900">OFF</span></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><button style="background:#FFCC02;color:#000;border:none;padding:7px 14px;border-radius:14px;font-size:11px;font-weight:900" onclick="event.stopPropagation(); window.open('https://wa.me/256795712326?text=I want ${encodeURIComponent(name)}','_blank')">💬 Buy</button><button style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);padding:7px 14px;border-radius:14px;font-size:11px;font-weight:900" onclick="event.stopPropagation(); location.href='/products'">View</button></div></div></div>`;
+    }
+  }).join('');
+
+  const observer = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      let vid = entry.target.querySelector('video');
+      if(!vid) return;
+      if(entry.isIntersecting) vid.play().catch(()=>{});
+      else vid.pause();
+    });
+  }, {threshold:0.6});
+  document.querySelectorAll('.feed-item').forEach(el=>observer.observe(el));
 }
-
-loadHomeReels();
-
-// Auto refresh every 30 seconds
-setInterval(loadHomeReels, 30000);
+loadMixedFeed();
 </script>
   
 <main>
