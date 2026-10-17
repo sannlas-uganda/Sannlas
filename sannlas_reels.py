@@ -22,12 +22,30 @@ def reels_page():
 def upload_reel():
     try:
         video = request.files.get('video')
-        if not video: return jsonify({'success':False, 'error':'No video'}),400
+        if not video: 
+            return jsonify({'success':False, 'error':'No video'}),400
+        
+        # Check size
+        video.seek(0, 2)
+        size = video.tell()
+        video.seek(0)
+        if size > 90*1024*1024:
+            return jsonify({'success':False, 'error':f'Video too big: {size/1024/1024:.1f}MB. Max 90MB. Compress first Boss!'}),400
+        
         caption = request.form.get('caption','')
         user_email = request.form.get('user_email','anonymous')
         user_name = request.form.get('user_name','User')
         product_link = request.form.get('product_link','')
-        result = cloudinary.uploader.upload(video, resource_type="video", folder="sannlas_reels", chunk_size=6000000)
+        
+        # Chunked upload to Cloudinary for large files
+        result = cloudinary.uploader.upload(
+            video, 
+            resource_type="video", 
+            folder="sannlas_reels", 
+            chunk_size=6000000,
+            timeout=120
+        )
+        
         conn = get_conn(); cur = conn.cursor()
         cur.execute("""CREATE TABLE IF NOT EXISTS sannlas_reels (
           id BIGSERIAL PRIMARY KEY, user_email TEXT, user_name TEXT, caption TEXT,
@@ -38,8 +56,10 @@ def upload_reel():
         conn.commit(); cur.close(); conn.close()
         return jsonify({'success':True, 'url': result['secure_url']})
     except Exception as e:
+        print("REELS UPLOAD ERROR:", e)
+        if "413" in str(e) or "too large" in str(e).lower():
+            return jsonify({'success':False, 'error':'Video too large! Use <20MB'}),413
         return jsonify({'success':False, 'error': str(e)}),500
-
 @reels_bp.route('/api/sannlas/reels/feed')
 def feed_reels():
     try:
@@ -75,28 +95,6 @@ def get_conn():
 @reels_bp.route('/reels')
 def reels_page():
     return render_template('reels.html')
-
-@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
-def upload_reel():
-    try:
-        video = request.files.get('video')
-        if not video: return jsonify({'success':False, 'error':'No video'}),400
-        caption = request.form.get('caption','')
-        user_email = request.form.get('user_email','anonymous')
-        user_name = request.form.get('user_name','User')
-        product_link = request.form.get('product_link','')
-        result = cloudinary.uploader.upload(video, resource_type="video", folder="sannlas_reels", chunk_size=6000000)
-        conn = get_conn(); cur = conn.cursor()
-        cur.execute("""CREATE TABLE IF NOT EXISTS sannlas_reels (
-          id BIGSERIAL PRIMARY KEY, user_email TEXT, user_name TEXT, caption TEXT,
-          video_url TEXT NOT NULL, product_link TEXT, likes INT DEFAULT 0, created TIMESTAMP DEFAULT NOW())""")
-        conn.commit()
-        cur.execute("INSERT INTO sannlas_reels (user_email, user_name, caption, video_url, product_link) VALUES (%s,%s,%s,%s,%s)",
-                    (user_email, user_name, caption, result['secure_url'], product_link))
-        conn.commit(); cur.close(); conn.close()
-        return jsonify({'success':True, 'url': result['secure_url']})
-    except Exception as e:
-        return jsonify({'success':False, 'error': str(e)}),500
 
 @reels_bp.route('/api/sannlas/reels/feed')
 def feed_reels():
