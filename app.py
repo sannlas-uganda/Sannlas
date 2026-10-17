@@ -14,6 +14,8 @@ import cloudinary.uploader
 import cloudinary_config
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Allow 100MB videos
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
 # ===== TIKTOK LOGIN CONFIG =====
 CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
