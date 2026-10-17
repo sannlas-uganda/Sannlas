@@ -1,9 +1,9 @@
 Flask
+psycopg2-binary
 Flask-Talisman
 Flask-Limiter
 Flask-Cors
-cloudinary
-psycopg2-binary
+gunicorn
+Pillow==10.4.0
 requests
-Pillow
-Werkzeug
+cloudinary
