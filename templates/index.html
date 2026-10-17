@@ -381,11 +381,10 @@ div[style*="position:absolute"][style*="top"]{
     <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.8); border-radius:16px; margin-top:8px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 12px 32px rgba(0,0,0,0.12);"></div>
   </div>
 <div style="max-width:780px;margin:14px auto 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-    <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:11px 26px;border-radius:14px;font-size:13px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(255,106,0,0.3)">🏪 SELL</button>
+       <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:11px 26px;border-radius:14px;font-size:13px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(255,106,0,0.3)">🏪 SELL</button>
     <button onclick="location.href='/reels'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🎬 REELS</button>
+    <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🛍️ PRODUCTS</button>
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
-    <button onclick="openWantsList()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
-    <button id="cartNTop" onclick="openCart()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🛒 CART</button>
 </div>
 
 <!-- SANNLAS REELS STRIP - OWN FILE -->
@@ -509,7 +508,18 @@ div[style*="position:absolute"][style*="top"]{
 </div>
 </div>
 
-<div class="products" id="products"></div>
+<!-- PRODUCTS BUTTON - HOME PAGE CLEAN -->
+<div style="text-align:center; padding:30px 20px; background:white; margin:15px; border-radius:20px; box-shadow:0 4px 15px rgba(0,0,0,.07)">
+  <h2 style="font-weight:900; font-size:22px; margin-bottom:8px;">🛍️ Discover Products</h2>
+  <p style="color:#888; font-size:13px; margin-bottom:18px;">Thousands of items from trusted sellers in Uganda</p>
+  <a href="/products" style="background:black; color:#FFCC02; padding:15px 30px; border-radius:30px; font-weight:900; font-size:16px; text-decoration:none; display:inline-block; border:2px solid #FFCC02;">
+    BROWSE ALL PRODUCTS →
+  </a>
+  <div style="margin-top:15px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap">
+    <span style="background:#f0f0f0; padding:5px 10px; border-radius:15px; font-size:11px;">📱 500+ Electronics</span>
+    <span style="background:#f0f0f0; padding:5px 10px; border-radius:15px; font-size:11px;">👗 1000+ Fashion</span>
+  </div>
+</div>
 
 <div class="popup" id="viewPop" onclick="closePop('viewPop')">
   <div class="popup-content pro-modal" id="viewContent" onclick="event.stopPropagation()">
