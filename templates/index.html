@@ -430,76 +430,87 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
 </div>
 
-<!-- ===== SANNLAS MIXED FEED - REELS + PRODUCTS SCROLLED TOGETHER ===== -->
-<div id="homeReelsFeed" style="max-width:420px;margin:16px auto 0;background:#000;border-radius:20px;overflow:hidden;position:relative;height:82vh;max-height:800px;box-shadow:0 8px 30px rgba(0,0,0,0.25);border:2px solid #111">
-  <div style="position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(180deg,rgba(0,0,0,0.9),transparent);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;">
-    <b style="color:white;font-size:13px">🔥 For You</b>
-    <span style="background:#FFCC02;color:#000;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:900">MIXED FEED</span>
+<!-- ===== SANNLAS INSTANT REELS ON HOME - SHOWS IMMEDIATELY ===== -->
+<div id="homeReelsFeed" style="max-width:420px;margin:16px auto 0;background:#000;border-radius:20px;overflow:hidden;position:relative;height:82vh;max-height:820px;box-shadow:0 8px 30px rgba(0,0,0,0.25)">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(180deg,rgba(0,0,0,0.9),transparent);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+    <b style="color:white;font-size:13px">🔥 For You • Scroll ↓</b>
+    <span style="background:#FFCC02;color:#000;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:900">LIVE</span>
   </div>
   <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;background:#000">
-    <div style="height:100%;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:800">⚡ Loading Your Feed Boss...</div>
   </div>
 </div>
 
 <style>
 #reelsFeedContainer::-webkit-scrollbar{display:none}
-.feed-item{height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.feed-item{height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .feed-item img, .feed-item video{width:auto;max-width:100%;height:100%;max-height:100%;object-fit:contain;margin:0 auto;display:block;background:#000}
-.feed-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.95),transparent);padding:28px 14px 18px;color:white}
-.badge-reel{background:#FF0000;color:white;padding:4px 8px;border-radius:8px;font-size:9px;font-weight:900}
-.badge-product{background:#FFCC02;color:#000;padding:4px 8px;border-radius:8px;font-size:9px;font-weight:900}
+.feed-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.95),transparent);padding:28px 14px 16px;color:white}
 </style>
 
 <script>
-async function loadMixedFeed(){
+// 1. SHOW REELS INSTANTLY - NO WAITING FOR API
+function showInstantReels(){
   let container = document.getElementById('reelsFeedContainer');
-  let reels = [], products = [];
-  try{
-    let [reelsRes, prodRes] = await Promise.all([
-      fetch('/api/reels?limit=30').then(r=>r.ok?r.json():[]).catch(()=>[]),
-      fetch('/api/products?limit=30').then(r=>r.ok?r.json():[]).catch(()=>[])
-    ]);
-    reels = Array.isArray(reelsRes) ? reelsRes : (reelsRes.reels || reelsRes.data || []);
-    products = Array.isArray(prodRes) ? prodRes : (prodRes.products || prodRes.data || prodRes || []);
-  }catch(e){}
-
-  let mixed = [], r=0, p=0;
-  while(mixed.length < 40 && (r < reels.length || p < products.length)){
-    if(r < reels.length) mixed.push({type:'reel', data:reels[r++]});
-    if(r < reels.length) mixed.push({type:'reel', data:reels[r++]});
-    if(p < products.length) mixed.push({type:'product', data:products[p++]});
-    if(r>=reels.length && p>=products.length) break;
-  }
-  if(mixed.length==0 && products.length>0) mixed = products.slice(0,20).map(d=>({type:'product', data:d}));
-  if(mixed.length==0){
-    container.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white">No feed yet - Upload products & reels</div>`;
-    return;
-  }
-
-  container.innerHTML = mixed.map(item=>{
-    if(item.type=='reel'){
-      let d=item.data;
-      let media=d.video_url || d.media_url || d.video || d.url || '/icon-192.png';
-      let isVideo = media.includes('.mp4') || media.includes('video');
-      return `<div class="feed-item">${isVideo ? `<video src="${media}" loop muted playsinline></video>` : `<img src="${media}">`}<div class="feed-overlay"><span class="badge-reel">🔥 REEL @${(d.user_name||'SANNLAS').slice(0,12)}</span><b style="display:block;margin-top:6px;font-size:12px">${(d.caption||'Trending').slice(0,60)}</b></div></div>`;
-    }else{
-      let d=item.data;
-      let img=d.image || d.image_url || '/icon-192.png';
-      return `<div class="feed-item" onclick="viewProd('${d.id}')"><img src="${img}"><div class="feed-overlay"><span class="badge-product">🛍️ PRODUCT</span><b style="display:block;margin-top:6px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90%">${d.name||'Product'}</b><b style="color:#FFCC02">UGX ${Number(d.price||0).toLocaleString()}</b><br><button style="margin-top:8px;background:white;color:black;border:none;padding:7px 14px;border-radius:14px;font-weight:900;font-size:11px">Shop Now</button></div></div>`;
-    }
-  }).join('');
-
-  const observer = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{
-      let v=e.target.querySelector('video');
-      if(v){ if(e.isIntersecting) v.play().catch(()=>{}); else v.pause(); }
-    });
-  },{threshold:0.65});
-  document.querySelectorAll('.feed-item').forEach(el=>observer.observe(el));
+  // INSTANT PLACEHOLDER - User sees this in 0.1 sec
+  container.innerHTML = `
+    <div class="feed-item" style="background:#000">
+      <video src="https://www.w3schools.com/html/mov_bbb.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>
+      <div class="feed-overlay"><span style="background:#FF0000;color:white;padding:4px 8px;border-radius:8px;font-size:9px;font-weight:900">🔥 REEL • SANNLAS</span><b style="display:block;margin-top:6px">Welcome to SANNLAS! 🔥 Scroll for deals</b></div>
+    </div>
+  `;
+  // Now load real reels
+  loadRealMixedFeed();
 }
-loadMixedFeed();
+
+async function loadRealMixedFeed(){
+  let container = document.getElementById('reelsFeedContainer');
+  try{
+    let reelsRes = await fetch('/api/reels?limit=20').then(r=>r.json()).catch(()=>[]);
+    let prodRes = await fetch('/api/products?limit=20').then(r=>r.json()).catch(()=>[]);
+    let reels = Array.isArray(reelsRes) ? reelsRes : (reelsRes.reels || reelsRes.data || []);
+    let products = Array.isArray(prodRes) ? prodRes : (prodRes.products || prodRes.data || []);
+
+    let mixed = [];
+    let r=0,p=0;
+    // REELS FIRST - 3 reels then 1 product
+    while(mixed.length < 30 && (r < reels.length || p < products.length)){
+      if(r < reels.length) mixed.push({type:'reel', data:reels[r++]});
+      if(r < reels.length) mixed.push({type:'reel', data:reels[r++]});
+      if(r < reels.length) mixed.push({type:'reel', data:reels[r++]});
+      if(p < products.length) mixed.push({type:'product', data:products[p++]});
+    }
+    if(mixed.length==0 && products.length>0) mixed = products.slice(0,15).map(d=>({type:'product', data:d}));
+
+    if(mixed.length==0) return; // keep instant reel if no data
+
+    container.innerHTML = mixed.map(item=>{
+      if(item.type=='reel'){
+        let d=item.data;
+        let media=d.video_url || d.media_url || d.video || d.url || '';
+        let isVideo = media.endsWith('.mp4') || media.includes('video') || media.includes('.mp4');
+        return `<div class="feed-item">${isVideo ? `<video src="${media}" loop muted playsinline preload="metadata"></video>` : `<img src="${media}">`}<div class="feed-overlay"><span style="background:#FF0000;color:white;padding:4px 8px;border-radius:8px;font-size:9px;font-weight:900">🔥 REEL</span><b style="display:block;margin-top:6px;font-size:12px">${(d.caption||d.title||'Trending').slice(0,60)}</b></div></div>`;
+      }else{
+        let d=item.data;
+        let img=d.image || d.image_url || '/icon-192.png';
+        return `<div class="feed-item" onclick="viewProd('${d.id}')"><img src="${img}"><div class="feed-overlay"><span style="background:#FFCC02;color:#000;padding:4px 8px;border-radius:8px;font-size:9px;font-weight:900">🛍️ PRODUCT</span><b style="display:block;margin-top:6px">${d.name||'Product'}</b><b style="color:#FFCC02">UGX ${Number(d.price||0).toLocaleString()}</b></div></div>`;
+      }
+    }).join('');
+
+    // Auto-play videos on scroll
+    const obs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        let v=e.target.querySelector('video');
+        if(v){ if(e.isIntersecting) v.play().catch(()=>{}); else v.pause(); }
+      });
+    },{threshold:0.6});
+    document.querySelectorAll('.feed-item').forEach(el=>obs.observe(el));
+
+  }catch(e){ console.log(e); }
+}
+
+// RUN IMMEDIATELY WHEN PAGE OPENS
+showInstantReels();
 </script>
-<!-- ===== END MIXED FEED ===== -->
 
 <style>
 #reelsFeedContainer::-webkit-scrollbar{display:none}
