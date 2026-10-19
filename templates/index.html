@@ -378,6 +378,59 @@ div[style*="max-width:780px"]{
   box-shadow: none !important;
   border: none !important;
 }
+/* ===== PHONE VIDEO BACKGROUND + TOP ROW - PASTE HERE Boss! ===== */
+.phone-top-row-overlay{
+  display:none;
+  position:absolute;
+  top:10px; left:10px; right:10px;
+  z-index:20;
+  flex-direction:row;
+  gap:7px;
+  align-items:center;
+}
+.phone-top-row-overlay a, .phone-top-row-overlay button{
+  background:rgba(0,0,0,0.65);
+  backdrop-filter:blur(12px);
+  color:#FFCC02;
+  border:1px solid rgba(255,204,2,0.4);
+  padding:8px 12px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:900;
+  cursor:pointer;
+  text-decoration:none;
+  white-space:nowrap;
+}
+@media(max-width:768px){
+  #tiktokLayout{ 
+    position:relative !important;
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 !important;
+    padding:0 !important;
+    background:#000 !important;
+  }
+  #homeReelsFeed{
+    max-width:100% !important;
+    width:100% !important;
+    height:100vh !important;
+    border-radius:0 !important;
+    margin-top:-14px !important;
+  }
+  #reelsFeedContainer{
+    border-radius:0 !important;
+  }
+  .reel-item{
+    height:100vh !important;
+  }
+  .phone-top-row-overlay{
+    display:flex !important;
+  }
+  /* Hide right column on phone - because video is full bg */
+  div[style*="width:200px"]{
+    display:none !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -398,8 +451,17 @@ div[style*="max-width:780px"]{
       <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:16px; margin-top:8px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 12px 32px rgba(0,0,0,0.12);"></div>
     </div>
 
-   <div id="tiktokLayout" style="background:transparent;min-height:88vh;display:flex;justify-content:center;box-shadow:none;border:none;">
+    <div id="tiktokLayout" style="background:transparent;min-height:88vh;display:flex;justify-content:center;box-shadow:none;border:none;position:relative;">
   <div id="homeReelsFeed" style="width:100%;max-width:380px;background:#000;border-radius:22px;overflow:hidden;height:85vh;position:relative;box-shadow:none;border:none;">
+        
+        <!-- ===== TOP ROW ON VIDEO - WANTS, PRODUCTS, SHOPS, CART - ON PHONE ONLY ===== -->
+        <div class="phone-top-row-overlay">
+          <a href="#" onclick="openWantsList(); return false;">WANTS</a>
+          <a href="/products">PRODUCTS</a>
+          <a href="#" onclick="showAllShops(); return false;">SHOPS</a>
+          <button onclick="openCart()">🛒 CART (<span id="cartCountTop2">0</span>)</button>
+        </div>
+
         <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;background:#000;"></div>
       </div>
     </div>
