@@ -717,20 +717,31 @@ function openMyShop(){
 async function uploadReel(file){
   if(!file) return;
   let u = localStorage.getItem('sannlas_user');
-  if(!u){ alert('Login first to upload reel Boss!'); showGate(); return; }
-  if(file.size > 100*1024*1024){ alert('Video too big! Max 100MB'); return; }
+  if(!u){ alert('Login first Boss!'); showGate(); return; }
+  
+  let userObj;
+  try{ userObj = JSON.parse(u); } catch(e){ userObj = { email: u }; }
   
   let form = new FormData();
-  form.append('reel', file);
-  form.append('user', u);
+  form.append('video', file);  // your backend expects 'video' not 'reel'
+  form.append('caption', 'New reel from ' + (userObj.name || userObj.email || 'user'));
+  form.append('user_email', userObj.email || userObj);
   
-  alert('Uploading reel... please wait ⏳');
+  alert('Uploading reel... ⏳');
   try{
-    let r = await fetch('/api/reels/upload', { method:'POST', body: form });
+    let r = await fetch('/api/sannlas/reels/upload', { method:'POST', body: form });
     let j = await r.json();
-    if(j.success){ alert('✅ Reel uploaded Boss!'); location.reload(); }
-    else alert('Failed: ' + (j.error||'try again'));
-  }catch(e){ alert('Upload error, try again'); }
+    console.log(j);
+    if(j.success || j.id || r.ok){
+      alert('✅ Reel uploaded Boss! Going to reels...');
+      location.href = '/reels';
+    } else {
+      alert('Failed: ' + (j.error || JSON.stringify(j)));
+    }
+  }catch(e){ 
+    console.error(e);
+    alert('Upload error: ' + e.message); 
+  }
 }
 function openMySales(){
   let u = localStorage.getItem('sannlas_user');
