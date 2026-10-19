@@ -352,49 +352,6 @@ div[style*="position:absolute"][style*="top"]{
   box-shadow: 0 0 20px rgba(255,106,0,0.5), 0 4px 12px rgba(0,0,0,0.15)!important;
   transform:scale(1.05)!important;
 }
-  /* ===== TIKTOK DESKTOP CENTER FIX - KEEP YOUR GRAY BG ===== */
-#homeReelsFeed{
-  max-width: 420px !important;
-  margin: 12px auto !important;
-  background: #000 !important;
-  border-radius: 20px !important;
-  overflow: hidden !important;
-  height: 78vh !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-#reelsFeedContainer{
-  width: 100% !important;
-  max-width: 380px !important;
-  height: 100% !important;
-  margin: 0 auto !important;
-  background: #000 !important;
-  display: block !important;
-}
-
-.feed-item{
-  height: 100% !important;
-  width: 100% !important;
-  scroll-snap-align: center !important;
-  background: #000 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: relative !important;
-}
-
-.feed-item img, .feed-item video{
-  width: auto !important;
-  max-width: 100% !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  object-fit: contain !important;
-  margin: 0 auto !important;
-  display: block !important;
-}
 </style>
 </head>
 <body>
@@ -464,34 +421,60 @@ async function loadHomeReels(){
   let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
   if(cached.length>0) renderReels(cached); 
   else c.innerHTML='<div style="height:85vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
+  
   fetch('/api/sannlas/reels/feed').then(r=>r.json()).then(reels=>{
     if(reels?.length>0){ localStorage.setItem('sannlas_reels_cache',JSON.stringify(reels)); renderReels(reels); }
   }).catch(()=>{});
+
   function renderReels(reels){
     let feed=reels.length<4?[...reels,...reels,...reels].slice(0,15):reels;
     c.innerHTML=feed.map((reel,i)=>{
       let media=reel.video_url||reel.image_url||reel.media_url||'';
-      let isVideo=media.includes('.mp4');
-      let tag=isVideo?`<video src="${media}" ${i==0?'autoplay':''} loop muted playsinline></video>`:`<img src="${media}">`;
-      return `<div class="reel-item">${tag}
-        <div class="reel-actions">
-          <button class="reel-act">❤️</button>
-          <button class="reel-act">💬</button>
-          <button class="reel-act">↗️</button>
-          <button class="reel-act" style="background:#FFCC02;color:#000;font-weight:900;font-size:12px">BUY</button>
+      let isVideo=media.includes('.mp4') || media.includes('video');
+      let tag=isVideo?`<video src="${media}" loop playsinline muted onclick="toggleHomeVol(this)" style="width:100%;height:100%;object-fit:cover;cursor:pointer"></video>`:`<img src="${media}" style="width:100%;height:100%;object-fit:cover">`;
+      return `<div class="reel-item" style="position:relative;height:85vh;scroll-snap-align:start;background:#000;overflow:hidden">
+        ${tag}
+        <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔇</button>
+        <div class="reel-actions" style="position:absolute;right:10px;bottom:110px;display:flex;flex-direction:column;gap:14px;z-index:10">
+          <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:22px;cursor:pointer">❤️<div style="font-size:9px;margin-top:2px">${reel.likes||0}</div></button>
+          <button class="reel-act" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">💬</button>
+          <button class="reel-act" onclick="shareHomeReel('${media}')" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">↗️</button>
         </div>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:18px;color:white">
-          <b>@${(reel.user_name||'SANNLAS').replace('@','')}</b><br><span style="font-size:12px">${(reel.caption||'SANNLAS UGANDA').slice(0,70)}</span>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:18px;color:white;z-index:5">
+          <b>@${(reel.user_name||reel.user_email||'SANNLAS').split('@')[0].replace('@','')}</b><br>
+          <span style="font-size:12px">${(reel.caption||'SANNLAS UGANDA').slice(0,70)}</span>
+          ${reel.product_link?`<br><a href="${reel.product_link}" style="background:#FF6600;color:white;padding:8px 14px;border-radius:20px;font-weight:900;display:inline-block;margin-top:8px;text-decoration:none;font-size:12px">🛒 Shop Now</a>`:''}
         </div>
       </div>`;
     }).join('');
+    
     let obs=new IntersectionObserver(es=>{es.forEach(e=>{let v=e.target.querySelector('video'); if(e.isIntersecting&&v){c.querySelectorAll('video').forEach(x=>{if(x!==v)x.pause()}); v.muted=true; v.play().catch(()=>{})}else if(v)v.pause()})},{threshold:0.6,root:c});
     c.querySelectorAll('.reel-item').forEach(el=>obs.observe(el));
   }
 }
+
+function toggleHomeVol(video){
+  let btn = video.parentElement.querySelector('button');
+  if(video.muted){ video.muted=false; video.volume=1; btn.innerHTML='🔊'; video.play(); }
+  else { if(video.paused) video.play(); else video.pause(); }
+}
+function toggleHomeVolBtn(btn){
+  let video = btn.parentElement.querySelector('video');
+  if(!video) return;
+  video.muted=!video.muted;
+  btn.innerHTML = video.muted?'🔇':'🔊';
+  if(!video.muted){ video.volume=1; video.play(); }
+}
+async function likeHomeReel(id, btn){
+  try{ await fetch('/api/sannlas/reels/like/'+id,{method:'POST'}); btn.innerHTML='❤️<div style="font-size:9px">+1</div>'; }catch(e){}
+}
+function shareHomeReel(url){
+  if(navigator.share) navigator.share({title:'Sannlas Reel', url});
+  else window.open('https://wa.me/?text='+encodeURIComponent(url),'_blank');
+}
+
 loadHomeReels();
 </script>
-
 <main>
 
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
