@@ -399,35 +399,9 @@ div[style*="position:absolute"][style*="top"]{
 </head>
 <body>
 <div id="authGate"><div class="gate-box"><h2>🛍️ SANNLAS UGANDA</h2><div id="gateRegister" class="gate-step active"><h3>Register FREE</h3><input id="gateRegEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPhone" placeholder="Phone" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateRegBiz" placeholder="Business" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><select id="gateRegRole" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><option value="seller">Seller</option><option value="buyer">Buyer</option></select><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateDoRegister()">Register FREE</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('login');return false">Already have account? Login</a> | <a href="#" onclick="hideGate();return false" style="color:green;font-weight:bold">Skip - Browse</a></p></div><div id="gateOTP" class="gate-step"><h3>OTP</h3><input id="gateOtpCode" placeholder="Enter OTP" style="width:100%;padding:14px;text-align:center;font-size:20px;margin:10px 0;border:1px solid #ddd;border-radius:10px"><button class="btn btn-yellow" style="width:100%;padding:12px" onclick="gateVerifyOTP()">Verify OTP</button></div><div id="gateLogin" class="gate-step"><h3>Login</h3><input id="gateLogEmail" placeholder="Email" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px"><button class="btn" style="width:100%;background:#000;color:#fff;padding:14px" onclick="gateDoLogin()">Login</button><p style="text-align:center;margin-top:10px"><a href="#" onclick="switchGate('register');return false">Need account? Register</a></p></div><div id="gateNIN" class="gate-step"><h3>Verify NIN</h3><input id="gateNinNumber" placeholder="Enter NIN" style="width:100%;padding:12px;margin:10px 0;border:2px solid #000;border-radius:10px"><button class="btn" style="width:100%;padding:14px;background:#000;color:#FFCC02" onclick="gateUploadNIN()">Submit NIN</button><button class="btn" style="width:100%;background:#eee;margin-top:8px;color:#000" onclick="hideGate()">Skip</button></div><div id="gateLoading" class="gate-step"><h3 style="text-align:center">⏳ Please wait...</h3></div></div></div>
-<!-- ===== LIQUID GLASS TOP HEADER - WITH BUTTONS INSIDE ===== -->
-<div class="navbar" style="background: rgba(255,255,255,0.75)!important; backdrop-filter: blur(20px) saturate(180%)!important; -webkit-backdrop-filter: blur(20px) saturate(180%)!important; padding:12px 16px!important; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:30; border-bottom:1px solid rgba(255,255,255,0.6)!important; box-shadow:0 4px 24px rgba(0,0,0,0.06)!important; flex-wrap:wrap; gap:10px">
-
-  <!-- LEFT: LOGO -->
-  <div style="display:flex;align-items:center;gap:12px">
-    <button onclick="toggleSideMenu()" style="font-size:18px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.08);box-shadow:0 2px 10px rgba(0,0,0,0.06);cursor:pointer">☰</button>
-    <div style="display:flex;flex-direction:column;line-height:0.9">
-      <div style="display:flex;align-items:center;gap:6px;font-weight:900;font-size:21px;color:#111;letter-spacing:0.5px">◆ SANNLAS</div>
-      <small style="font-size:8px;letter-spacing:2.5px;color:#666;margin-top:3px;font-weight:700">UGANDA • MARKETPLACE</small>
-    </div>
-  </div>
-
-  <!-- CENTER: BUTTONS MOVED HERE FROM BELOW SEARCH -->
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
-    <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:9px 18px;border-radius:14px;font-size:12px">🏪 SELL</button>
-    <button onclick="location.href='/reels'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:9px 14px;border-radius:14px;font-size:11px">🎬 REELS</button>
-    <button onclick="openWantsList()" style="background:rgba(255,255,255,0.9);color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.08);cursor:pointer;padding:9px 14px;border-radius:14px;font-size:11px">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
-    <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:9px 14px;border-radius:14px;font-size:11px">🛍️ PRODUCTS</button>
-    <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:9px 14px;border-radius:14px;font-size:11px">🚀 BROADCAST</button>
-  </div>
-
-  <!-- RIGHT: LOGIN -->
-  <div style="display:flex;align-items:center;gap:8px">
-    <button id="topLoginBtn" onclick="handleTopLogin()" style="background:rgba(255,255,255,0.9);color:#111;border:1px solid rgba(0,0,0,0.08);padding:9px 18px;border-radius:20px;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.06)">👤 LOGIN</button>
-    <a href="/auth/tiktok" style="background:#000;color:#fff;padding:11px 18px;border-radius:14px;text-decoration:none;font-weight:900;font-size:12px;border:2px solid #fff;">🎵 TikTok</a>
-  </div>
-
-</div>
-
+<!-- NEW LAYOUT WITH RIGHT COLUMN -->
+<div style="display:flex;gap:14px;max-width:1300px;margin:0 auto;padding:14px;align-items:flex-start">
+  <div style="flex:1;min-width:0">
 <div style="background: rgba(255,255,255,0.65); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); padding:16px 14px 14px; position:sticky; top:62px; z-index:12; border-bottom:1px solid rgba(255,255,255,0.6); box-shadow:0 4px 20px rgba(0,0,0,0.04)">
   <div style="max-width:780px;margin:0 auto;display:flex;gap:8px;align-items:center;background:rgba(255,255,255,0.92);border-radius:28px;padding:6px 6px 6px 14px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1);position:relative;">
     <span style="font-size:18px;opacity:0.6">🔍</span>
@@ -491,7 +465,27 @@ async function loadHomeReels(){
 }
 loadHomeReels();
 </script>
-  
+  </div>
+
+  <div style="width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;position:sticky;top:14px;background:rgba(255,255,255,0.75);backdrop-filter:blur(18px);border-radius:20px;padding:16px;border:1px solid rgba(255,255,255,0.7);box-shadow:0 8px 24px rgba(0,0,0,0.08)">
+
+    <div style="padding:8px 4px 12px;border-bottom:1px solid rgba(0,0,0,0.08);margin-bottom:6px">
+      <div style="font-weight:900;font-size:16px;color:#111">◆ SANNLAS</div>
+      <small style="font-size:8px;letter-spacing:2.5px;color:#666;font-weight:700">UGANDA • MARKETPLACE</small>
+    </div>
+
+    <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:12px;border-radius:14px;font-size:12px;text-align:left">🏪 SELL</button>
+    <button onclick="location.href='/reels'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:12px;border-radius:14px;font-size:12px;text-align:left">🎬 REELS</button>
+    <button onclick="openWantsList()" style="background:#fff;color:#111;font-weight:800;border:1px solid rgba(0,0,0,0.1);cursor:pointer;padding:12px;border-radius:14px;font-size:12px;text-align:left">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
+    <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:12px;border-radius:14px;font-size:12px;text-align:left">🛍️ PRODUCTS</button>
+    <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:12px;border-radius:14px;font-size:12px;text-align:left">🚀 BROADCAST</button>
+    <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0"></div>
+    <button onclick="handleTopLogin()" style="background:#fff;color:#111;border:1px solid rgba(0,0,0,0.1);padding:12px;border-radius:14px;font-weight:800;font-size:12px;cursor:pointer;text-align:left">👤 LOGIN</button>
+    <a href="/auth/tiktok" style="background:#000;color:#fff;padding:12px;border-radius:14px;text-decoration:none;font-weight:900;font-size:12px;text-align:center;border:2px solid #fff;">🎵 TikTok</a>
+
+  </div>
+
+</div>  
 <main>
 
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
