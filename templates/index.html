@@ -352,6 +352,32 @@ div[style*="position:absolute"][style*="top"]{
   box-shadow: 0 0 20px rgba(255,106,0,0.5), 0 4px 12px rgba(0,0,0,0.15)!important;
   transform:scale(1.05)!important;
 }
+/* ===== REMOVE BOUNDARY AROUND REELS ===== */
+#tiktokLayout{
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+#homeReelsFeed{
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+}
+#reelsFeedContainer{
+  background: #000 !important;
+  border-radius: 22px !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+/* Remove any gray card behind */
+div[style*="max-width:780px"]{
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
 </style>
 </head>
 <body>
@@ -372,8 +398,8 @@ div[style*="position:absolute"][style*="top"]{
       <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:16px; margin-top:8px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 12px 32px rgba(0,0,0,0.12);"></div>
     </div>
 
-    <div id="tiktokLayout" style="background:transparent;min-height:88vh;display:flex;justify-content:center;">
-      <div id="homeReelsFeed" style="width:100%;max-width:420px;background:#000;border-radius:20px;overflow:hidden;height:85vh;position:relative;">
+   <div id="tiktokLayout" style="background:transparent;min-height:88vh;display:flex;justify-content:center;box-shadow:none;border:none;">
+  <div id="homeReelsFeed" style="width:100%;max-width:380px;background:#000;border-radius:22px;overflow:hidden;height:85vh;position:relative;box-shadow:none;border:none;">
         <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;background:#000;"></div>
       </div>
     </div>
