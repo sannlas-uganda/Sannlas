@@ -378,58 +378,92 @@ div[style*="max-width:780px"]{
   box-shadow: none !important;
   border: none !important;
 }
-/* ===== PHONE VIDEO BACKGROUND + TOP ROW - PASTE HERE Boss! ===== */
+/* ===== FIXED SCREEN - ONLY REEL MOVES ===== */
 .phone-top-row-overlay{
   display:none;
-  position:absolute;
-  top:10px; left:10px; right:10px;
-  z-index:20;
-  flex-direction:row;
-  gap:7px;
-  align-items:center;
-}
-.phone-top-row-overlay a, .phone-top-row-overlay button{
-  background:rgba(0,0,0,0.65);
-  backdrop-filter:blur(12px);
-  color:#FFCC02;
-  border:1px solid rgba(255,204,2,0.4);
-  padding:8px 12px;
-  border-radius:20px;
-  font-size:11px;
-  font-weight:900;
-  cursor:pointer;
-  text-decoration:none;
-  white-space:nowrap;
 }
 @media(max-width:768px){
+  /* LOCK THE WHOLE SCREEN */
+  html, body{
+    overflow:hidden !important;
+    height:100vh !important;
+    height:100dvh !important;
+    width:100% !important;
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+    overscroll-behavior:none !important;
+    touch-action:none !important;
+  }
+  body{
+    padding-bottom:0 !important;
+  }
+  /* Make TikTok layout FIXED full screen */
   #tiktokLayout{ 
-    position:relative !important;
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
     width:100% !important;
     max-width:100% !important;
+    height:100dvh !important;
     margin:0 !important;
     padding:0 !important;
     background:#000 !important;
+    z-index:1;
   }
   #homeReelsFeed{
-    max-width:100% !important;
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
     width:100% !important;
-    height:100vh !important;
+    max-width:100% !important;
+    height:100dvh !important;
     border-radius:0 !important;
-    margin-top:-14px !important;
   }
+  /* ONLY THIS SCROLLS */
   #reelsFeedContainer{
-    border-radius:0 !important;
+    height:100dvh !important;
+    overflow-y:scroll !important;
+    overflow-x:hidden !important;
+    -webkit-overflow-scrolling:touch !important;
+    overscroll-behavior:contain !important;
+    touch-action:pan-y !important;
+    scroll-snap-type:y mandatory !important;
   }
   .reel-item{
-    height:100vh !important;
+    height:100dvh !important;
+    width:100% !important;
   }
+  /* TOP ROW FIXED ON TOP OF VIDEO */
   .phone-top-row-overlay{
     display:flex !important;
+    position:fixed !important;
+    top:max(10px, env(safe-area-inset-top)) !important;
+    left:10px !important;
+    z-index:100 !important;
+    flex-direction:row !important;
+    gap:7px !important;
+    align-items:center !important;
+    touch-action:none !important;
   }
-  /* Hide right column on phone - because video is full bg */
-  div[style*="width:200px"]{
-    display:none !important;
+  .phone-top-row-overlay a, .phone-top-row-overlay button{
+    background:rgba(0,0,0,0.7) !important;
+    backdrop-filter:blur(12px) !important;
+    color:#FFCC02 !important;
+    border:1px solid rgba(255,204,2,0.4) !important;
+    padding:9px 13px !important;
+    border-radius:20px !important;
+    font-size:11px !important;
+    font-weight:900 !important;
+    text-decoration:none !important;
   }
+  /* Hide right column & everything else on phone */
+  div[style*="width:200px"]{ display:none !important; }
+  .navbar, .trust-badges, #billboardBanner, div[style*="@ SANNLAS"]{ display:none !important; }
 }
 </style>
 </head>
