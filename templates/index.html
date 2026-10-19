@@ -429,44 +429,129 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🛍️ PRODUCTS</button>
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
 </div>
-  <!-- HOME REELS - FINAL CLEAN - ONLY VIDEOS -->
-<div id="homeReelsFeed" style="max-width:420px;margin:16px auto;background:#000;border-radius:20px;overflow:hidden;height:82vh;position:relative">
-  <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;background:#000"></div>
+<!-- TIKTOK STYLE HOME REELS - FULL SCREEN SWIPE -->
+<div id="homeReelsFeed" style="max-width:420px;margin:0 auto;background:#000;height:92vh;position:relative;overflow:hidden;border-radius:0">
+  <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-behavior:smooth;background:#000"></div>
 </div>
-
-<div id="products" class="products" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px; padding:14px; max-width:1400px; margin:0 auto;"></div>
 
 <style>
 #reelsFeedContainer::-webkit-scrollbar{display:none}
+#reelsFeedContainer{-ms-overflow-style:none;scrollbar-width:none}
+.reel-item{
+  height:92vh;
+  width:100%;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  position:relative;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  overflow:hidden;
+}
+.reel-item video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#000;
+}
+.reel-right-btns{
+  position:absolute;
+  right:10px;
+  bottom:120px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  z-index:5;
+}
+.reel-btn{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,0.3);
+  color:white;
+  font-size:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.reel-bottom{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:60px;
+  background:linear-gradient(0deg,rgba(0,0,0,0.9) 0%, transparent 100%);
+  padding:20px 14px 25px;
+  color:white;
+}
 </style>
 
 <script>
 async function loadHomeReels(){
   let c=document.getElementById('reelsFeedContainer');
-  if(!c) return;
-  c.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">⚡ Loading Reels...</div>';
+  c.innerHTML='<div style="height:92vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">⚡ Loading Reels...</div>';
   try{
     let r=await fetch('/api/sannlas/reels/feed');
     let all=await r.json();
-    let reels = all.filter(x=> x.video_url && x.video_url.length>10);
+    let reels = all.filter(x=> x.video_url);
     if(!reels.length){
-      c.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white;text-align:center;padding:20px">No video reels yet<br>Upload MP4 in SELL → Reel</div>';
+      c.innerHTML='<div style="height:92vh;display:flex;align-items:center;justify-content:center;color:white">No reels yet - Upload in SELL</div>';
       return;
     }
-    c.innerHTML=reels.slice(0,20).map((reel,i)=>`
-      <div style="height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <video src="${reel.video_url}" ${i==0?'autoplay':''} loop muted playsinline preload="auto" style="width:100%;height:100%;object-fit:contain;background:#000"></video>
-        <button onclick="let v=this.parentElement.querySelector('video'); v.muted=!v.muted; this.textContent=v.muted?'🔇':'🔊'" style="position:absolute;top:60px;right:15px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:20px;z-index:10">🔇</button>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:20px 14px;color:white">
-          <b>@${(reel.user_name||'SANNLAS').split('@')[0]}</b><br>
-          <small>${(reel.caption||'').slice(0,60)}</small>
+    c.innerHTML=reels.slice(0,30).map((reel,i)=>`
+      <div class="reel-item">
+        <video src="${reel.video_url}" ${i==0?'autoplay':''} loop muted playsinline preload="auto" onclick="this.paused?this.play():this.pause()"></video>
+        
+        <div class="reel-right-btns">
+          <button class="reel-btn" onclick="let v=this.closest('.reel-item').querySelector('video'); v.muted=!v.muted; this.textContent=v.muted?'🔇':'🔊'">🔇</button>
+          <button class="reel-btn" onclick="likeReel('${reel.id||''}')">❤️<span style="position:absolute;bottom:-18px;font-size:10px;font-weight:800">${reel.likes||0}</span></button>
+          <button class="reel-btn" onclick="location.href='/reels'">💬</button>
+          <button class="reel-btn" onclick="navigator.share?navigator.share({url:location.href}):alert('Link copied!')">↗️</button>
+          <img src="${reel.user_avatar||'/icon-192.png'}" style="width:48px;height:48px;border-radius:50%;border:2px solid #fff;margin-top:10px">
+        </div>
+
+        <div class="reel-bottom">
+          <b style="font-size:14px">@${(reel.user_name||'SANNLAS').split('@')[0]} ${reel.verified?'✅':''}</b><br>
+          <span style="font-size:12px;line-height:1.3">${(reel.caption||'Shop on SANNLAS UGANDA 🇺🇬').slice(0,80)}</span><br>
+          <span style="font-size:11px;color:#FFCC02">🎵 Original Sound • SANNLAS</span>
         </div>
       </div>
     `).join('');
-    setTimeout(()=>{let v=c.querySelector('video'); if(v){v.muted=true; v.play().catch(()=>{});}},400);
-    let obs=new IntersectionObserver(es=>{ es.forEach(e=>{ let v=e.target.querySelector('video'); if(v){ if(e.isIntersecting) v.play().catch(()=>{}); else v.pause(); } }); },{threshold:0.6});
-    c.querySelectorAll('div[style*="scroll-snap-align"]').forEach(el=>obs.observe(el));
-  }catch(e){ c.innerHTML='<div style="color:white;padding:20px">Error</div>'; }
+
+    // AUTOPLAY FIRST + SNAP SCROLL LOGIC
+    setTimeout(()=>{
+      let first=c.querySelector('video');
+      if(first){ first.muted=true; first.play().catch(()=>{}); }
+    },300);
+
+    let observer=new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        let v=entry.target.querySelector('video');
+        if(!v) return;
+        if(entry.isIntersecting){
+          // Pause all others, play this one
+          c.querySelectorAll('video').forEach(vid=>{ if(vid!==v) vid.pause(); });
+          v.muted=true;
+          v.play().catch(()=>{});
+        }else{
+          v.pause();
+        }
+      });
+    },{threshold:0.7, root:c});
+    
+    c.querySelectorAll('.reel-item').forEach(el=>observer.observe(el));
+
+  }catch(e){
+    c.innerHTML='<div style="height:92vh;display:flex;align-items:center;justify-content:center;color:white">Error loading reels</div>';
+  }
+}
+function likeReel(id){
+  // Optional like API
+  fetch(`/api/sannlas/reels/like`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reel_id:id})}).catch(()=>{});
 }
 loadHomeReels();
 </script>
