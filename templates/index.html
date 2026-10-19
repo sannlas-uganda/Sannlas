@@ -430,58 +430,53 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
 </div>
 
-<!-- REELS AUTOPLAY ON HOME - WORKS EVEN IF API FAILS -->
-<div id="homeReelsFeed" style="max-width:420px;margin:16px auto;background:#000;border-radius:20px;overflow:hidden;height:80vh;position:relative">
+<!-- HOME REELS - FIXED API - AUTOPLAY ON OPEN -->
+<div id="homeReelsFeed" style="max-width:420px;margin:16px auto;background:#000;border-radius:20px;overflow:hidden;height:82vh;position:relative">
   <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;background:#000"></div>
 </div>
 
+<style>
+#reelsFeedContainer::-webkit-scrollbar{display:none}
+</style>
+
 <script>
-function loadHomeReels(){
-  let c = document.getElementById('reelsFeedContainer');
-  
-  // 1. SHOW REEL IMMEDIATELY - NO WAITING, NO API
-  c.innerHTML = `
-    <div style="height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;flex-shrink:0">
-      <video src="https://www.w3schools.com/html/mov_bbb.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>
-      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#000,transparent);padding:20px;color:white">
-        <b>🔥 SANNLAS Reel</b><br><small>Scroll for more - Tap to unmute</small>
-      </div>
-    </div>
-    <div style="height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;flex-shrink:0">
-      <video src="https://www.w3schools.com/html/movie.mp4" loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>
-      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#000,transparent);padding:20px;color:white">
-        <b>🔥 Trending</b>
-      </div>
-    </div>
-  `;
-
-  // Force play first video immediately
-  setTimeout(()=>{
-    let v = c.querySelector('video');
-    if(v){ v.muted=true; v.play().catch(()=>{}); }
-  },100);
-
-  // Scroll play
-  let obs = new IntersectionObserver(es=>{
-    es.forEach(e=>{
-      let v=e.target.querySelector('video');
-      if(v){ if(e.isIntersecting) v.play().catch(()=>{}); else v.pause(); }
-    });
-  },{threshold:0.6});
-  c.querySelectorAll('div').forEach(el=>obs.observe(el));
-
-  // 2. NOW TRY LOAD YOUR REAL REELS FROM API AND REPLACE
-  fetch('/api/reels?limit=20').then(r=>r.json()).then(d=>{
-    let reels = Array.isArray(d)?d:(d.reels||d.data||[]);
-    if(reels.length==0) return;
-    c.innerHTML = reels.map((x,i)=>`
-      <div style="height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;flex-shrink:0">
-        <video src="${x.video_url||x.media_url||x.url||''}" ${i==0?'autoplay':''} loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#000,transparent);padding:20px;color:white"><b>@SANNLAS</b></div>
+async function loadHomeReels(){
+  let c=document.getElementById('reelsFeedContainer');
+  c.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">⚡ Loading Reels...</div>';
+  try{
+    let r=await fetch('/api/sannlas/reels/feed');
+    let reels=await r.json();
+    if(!reels || reels.length==0){
+      c.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white">No reels yet - Upload in SELL</div>';
+      return;
+    }
+    c.innerHTML=reels.slice(0,20).map((reel,i)=>`
+      <div style="height:100%;width:100%;scroll-snap-align:center;position:relative;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <video src="${reel.video_url}" ${i==0?'autoplay':''} loop muted playsinline preload="auto" style="width:100%;height:100%;object-fit:contain;background:#000"></video>
+        <button onclick="let v=this.parentElement.querySelector('video'); v.muted=!v.muted; this.textContent=v.muted?'🔇':'🔊'" style="position:absolute;top:60px;right:15px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:20px;z-index:10">🔇</button>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:20px 14px;color:white">
+          <b>@${(reel.user_name||'SANNLAS').split('@')[0]}</b><br>
+          <small>${(reel.caption||'').slice(0,60)}</small>
+        </div>
       </div>
     `).join('');
-    setTimeout(()=>{let v=c.querySelector('video'); if(v){v.muted=true;v.play();}},200);
-  }).catch(()=>{});
+
+    // AUTOPLAY FIRST REEL IMMEDIATELY WHEN HOME OPENS
+    setTimeout(()=>{let v=c.querySelector('video'); if(v){v.muted=true; v.play().catch(()=>{});}},300);
+
+    // Auto-play on scroll
+    let obs=new IntersectionObserver(es=>{
+      es.forEach(e=>{
+        let v=e.target.querySelector('video');
+        if(v){ if(e.isIntersecting) v.play().catch(()=>{}); else v.pause(); }
+      });
+    },{threshold:0.7});
+    c.querySelectorAll('div[style*="scroll-snap-align"]').forEach(el=>obs.observe(el));
+
+  }catch(e){
+    console.log(e);
+    c.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:white">Error loading reels</div>';
+  }
 }
 loadHomeReels();
 </script>
