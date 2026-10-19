@@ -478,6 +478,57 @@ div[style*="max-width:780px"]{
   div[style*="width:200px"]{ display:none !important; }
   .navbar, .trust-badges, #billboardBanner, div[style*="@ SANNLAS"]{ display:none !important; }
 }
+/* VIDEO DETAILS - JUST ABOVE BOTTOM ROW - ACTIVE LINKS */
+.reel-info-overlay{
+  position:absolute !important;
+  bottom:72px !important; /* right above bottom row */
+  left:12px !important;
+  right:12px !important;
+  z-index:50 !important;
+  background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%) !important;
+  padding:14px 12px 8px 12px !important;
+  border-radius:16px !important;
+  pointer-events:auto !important;
+}
+.reel-info-overlay a, .reel-info-overlay button{
+  pointer-events:auto !important;
+  display:block !important;
+  text-align:left !important;
+  text-decoration:none !important;
+  cursor:pointer !important;
+}
+.reel-info-overlay .shop-link{
+  color:#FFCC02 !important;
+  font-weight:900 !important;
+  font-size:13px !important;
+  margin-bottom:3px !important;
+}
+.reel-info-overlay .product-link{
+  color:#fff !important;
+  font-weight:800 !important;
+  font-size:14px !important;
+  margin-bottom:3px !important;
+}
+.reel-info-overlay .desc-link{
+  color:#ddd !important;
+  font-size:11px !important;
+  line-height:1.3 !important;
+  margin-bottom:6px !important;
+  display:-webkit-box !important;
+  -webkit-line-clamp:2 !important;
+  -webkit-box-orient:vertical !important;
+  overflow:hidden !important;
+}
+.reel-info-overlay .price-link{
+  color:#00FF00 !important;
+  font-weight:900 !important;
+  font-size:15px !important;
+  background:rgba(0,0,0,0.6) !important;
+  padding:5px 12px !important;
+  border-radius:20px !important;
+  display:inline-block !important;
+  border:1px solid #00FF00 !important;
+}
 </style>
 </head>
 <body>
@@ -579,25 +630,39 @@ async function loadHomeReels(){
     if(reels?.length>0){ localStorage.setItem('sannlas_reels_cache',JSON.stringify(reels)); renderReels(reels); }
   }).catch(()=>{});
 
-  function renderReels(reels){
+ function renderReels(reels){
     let feed=reels.length<4?[...reels,...reels,...reels].slice(0,15):reels;
     c.innerHTML=feed.map((reel,i)=>{
       let media=reel.video_url||reel.image_url||reel.media_url||'';
       let isVideo=media.includes('.mp4') || media.includes('video');
       let tag=isVideo?`<video src="${media}" loop playsinline muted onclick="toggleHomeVol(this)" style="width:100%;height:100%;object-fit:cover;cursor:pointer"></video>`:`<img src="${media}" style="width:100%;height:100%;object-fit:cover">`;
-      return `<div class="reel-item" style="position:relative;height:85vh;scroll-snap-align:start;background:#000;overflow:hidden">
+      
+      // DATA FOR DETAILS - ACTIVE LINKS
+      let shopName = reel.shop_name || reel.user_name || 'SANNLAS SHOP';
+      let shopLink = reel.shop_link || `/shop/${reel.shop_id||reel.user_id||''}`;
+      let productName = reel.product_name || reel.title || reel.caption || 'Product';
+      let productLink = reel.product_link || `/product/${reel.product_id||reel.id||''}`;
+      let desc = reel.description || reel.caption || 'Amazing product from Uganda';
+      let price = reel.price ? `UGX ${Number(reel.price).toLocaleString()}` : (reel.product_price ? `UGX ${Number(reel.product_price).toLocaleString()}` : 'UGX 0');
+
+      return `<div class="reel-item" style="position:relative;height:100dvh;scroll-snap-align:start;background:#000;overflow:hidden">
         ${tag}
         <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔇</button>
-        <div class="reel-actions" style="position:absolute;right:10px;bottom:110px;display:flex;flex-direction:column;gap:14px;z-index:10">
+        
+        <div class="reel-actions" style="position:absolute;right:10px;bottom:160px;display:flex;flex-direction:column;gap:14px;z-index:40">
           <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:22px;cursor:pointer">❤️<div style="font-size:9px;margin-top:2px">${reel.likes||0}</div></button>
           <button class="reel-act" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">💬</button>
           <button class="reel-act" onclick="shareHomeReel('${media}')" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">↗️</button>
         </div>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:18px;color:white;z-index:5">
-          <b>@${(reel.user_name||reel.user_email||'SANNLAS').split('@')[0].replace('@','')}</b><br>
-          <span style="font-size:12px">${(reel.caption||'SANNLAS UGANDA').slice(0,70)}</span>
-          ${reel.product_link?`<br><a href="${reel.product_link}" style="background:#FF6600;color:white;padding:8px 14px;border-radius:20px;font-weight:900;display:inline-block;margin-top:8px;text-decoration:none;font-size:12px">🛒 Shop Now</a>`:''}
+
+        <!-- DETAILS OVERLAY - RIGHT ABOVE BOTTOM ROW - ACTIVE LINKS -->
+        <div style="position:absolute;bottom:75px;left:12px;right:70px;background:linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.4));padding:12px 14px;border-radius:16px;z-index:35;pointer-events:auto;">
+          <a href="${shopLink}" onclick="event.stopPropagation()" style="color:#FFCC02;font-weight:900;font-size:13px;text-decoration:none;display:block;margin-bottom:4px;pointer-events:auto;">🏪 ${shopName}</a>
+          <a href="${productLink}" onclick="event.stopPropagation()" style="color:#fff;font-weight:800;font-size:14px;text-decoration:none;display:block;margin-bottom:4px;pointer-events:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🛍️ ${productName}</a>
+          <a href="${productLink}" onclick="event.stopPropagation()" style="color:#ddd;font-size:11px;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;margin-bottom:8px;pointer-events:auto;">${desc.slice(0,90)}</a>
+          <a href="${productLink}" onclick="event.stopPropagation()" style="color:#00FF00;font-weight:900;font-size:14px;text-decoration:none;background:rgba(0,0,0,0.6);padding:6px 14px;border-radius:20px;display:inline-block;border:1px solid #00FF00;pointer-events:auto;">${price} - BUY NOW</a>
         </div>
+
       </div>`;
     }).join('');
     
@@ -605,7 +670,6 @@ async function loadHomeReels(){
     c.querySelectorAll('.reel-item').forEach(el=>obs.observe(el));
   }
 }
-
 function toggleHomeVol(video){
   let btn = video.parentElement.querySelector('button');
   if(video.muted){ video.muted=false; video.volume=1; btn.innerHTML='🔊'; video.play(); }
