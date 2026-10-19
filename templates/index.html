@@ -429,26 +429,25 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🛍️ PRODUCTS</button>
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
 </div>
-<!-- SANNLAS TIKTOK - GLASSY NO BLACK SIDEBAR -->
-<div id="tiktokLayout" style="background:rgba(241,245,249,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);min-height:88vh;display:flex;justify-content:center;padding:10px 0">
+<!-- SANNLAS - REELS ON SAME BACKGROUND AS SEARCH -->
+<div id="tiktokLayout" style="background:transparent;min-height:88vh;display:flex;justify-content:center;padding:10px 0">
 
-  <!-- CENTER VIDEO ONLY - NO SIDEBAR -->
-  <div id="homeReelsFeed" style="width:420px;max-width:95vw;background:transparent;height:88vh;position:relative;overflow:hidden;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,0.15)">
-    <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-behavior:smooth;background:transparent;border-radius:24px"></div>
+  <!-- NO BACKGROUND - TRANSPARENT -->
+  <div id="homeReelsFeed" style="width:420px;max-width:95vw;background:transparent;height:88vh;position:relative;overflow:hidden;">
+    <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-behavior:smooth;background:transparent;"></div>
   </div>
 
 </div>
 
 <style>
 #reelsFeedContainer::-webkit-scrollbar{display:none}
-.reel-item{height:88vh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;background:#000;display:flex;align-items:center;justify-content:center;border-radius:24px;overflow:hidden;margin-bottom:12px}
-.reel-item img,.reel-item video{width:100%;height:100%;object-fit:cover;border-radius:24px}
+.reel-item{height:88vh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;background:transparent;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.reel-item img,.reel-item video{width:100%;height:100%;object-fit:contain;max-width:400px;border-radius:20px;background:#000}
 .reel-actions{position:absolute;right:14px;bottom:110px;display:flex;flex-direction:column;gap:14px;z-index:3}
 .reel-act{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.35);color:white;font-size:20px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
 @media(max-width:768px){
-  #homeReelsFeed{width:100vw !important;max-width:100vw !important;height:92vh !important;border-radius:0 !important;box-shadow:none !important}
-  .reel-item{border-radius:0 !important;margin-bottom:0 !important}
-  .reel-item img,.reel-item video{border-radius:0 !important}
+  #homeReelsFeed{width:100vw !important;max-width:100vw !important;height:92vh !important}
+  .reel-item{margin-bottom:0 !important}
 }
 </style>
 
@@ -456,7 +455,8 @@ div[style*="position:absolute"][style*="top"]{
 async function loadHomeReels(){
   let c=document.getElementById('reelsFeedContainer');
   let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
-  if(cached.length>0) renderReels(cached); else c.innerHTML='<div style="height:88vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900;background:#111;border-radius:24px">◆ SANNLAS</div>';
+  if(cached.length>0) renderReels(cached); 
+  else c.innerHTML='<div style="height:88vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
   fetch('/api/sannlas/reels/feed').then(r=>r.json()).then(reels=>{
     if(reels?.length>0){ localStorage.setItem('sannlas_reels_cache',JSON.stringify(reels)); renderReels(reels); }
   }).catch(()=>{});
@@ -473,7 +473,7 @@ async function loadHomeReels(){
           <button class="reel-act">↗️</button>
           <button class="reel-act" style="background:#FFCC02;color:#000;font-weight:900;font-size:12px">BUY</button>
         </div>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.85),transparent);padding:18px;color:white">
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:400px;max-width:90%;background:linear-gradient(0deg,rgba(0,0,0,0.85),transparent);padding:18px;color:white;border-radius:0 0 20px 20px">
           <b>@${(reel.user_name||'SANNLAS').replace('@','')}</b><br><span style="font-size:12px">${(reel.caption||'SANNLAS UGANDA 🇺🇬').slice(0,70)}</span>
         </div>
       </div>`;
