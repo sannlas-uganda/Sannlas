@@ -407,7 +407,8 @@ div[style*="position:absolute"][style*="top"]{
   <div style="flex:1;min-width:0;max-width:780px">
     
     <div style="background: rgba(255,255,255,0.85); backdrop-filter: blur(18px); padding:12px; border-radius:20px; border:1px solid #eee; margin-bottom:12px; display:flex; gap:8px; align-items:center;">
-      <span style="font-size:18px;opacity:0.6">🔍</span>
+  <button onclick="toggleSideMenu()" style="background:#000;color:#FFCC02;border:none;padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;font-size:20px;line-height:1">☰</button>
+  <span style="font-size:18px;opacity:0.6">🔍</span>
       <input id="searchInput" type="text" placeholder="Search for electronics, fashion, groceries..." oninput="showSuggestions(this.value); debouncedFilter()" autocomplete="off" style="flex:1;border:none;background:transparent;padding:10px;font-size:13px;outline:none;color:#111">
       <button type="button" id="searchBtnFix" onclick="document.getElementById('searchSuggestions').style.display='none'; doFilter();" style="background:#111!important;color:#fff!important;border:none;padding:10px 20px;border-radius:20px;font-weight:900;cursor:pointer">Search</button>
       <button onclick="startVoiceSearch()" id="micBtn" style="background:#fff;color:#111;border:1px solid #eee;border-radius:50%;padding:9px 11px;cursor:pointer">🎤</button>
