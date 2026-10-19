@@ -429,114 +429,81 @@ div[style*="position:absolute"][style*="top"]{
     <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🛍️ PRODUCTS</button>
     <button onclick="location.href='/seller/broadcast'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:11px 18px;border-radius:14px;font-size:12px;display:flex;align-items:center;gap:6px;">🚀 BROADCAST</button>
 </div>
-<!-- TIKTOK HOME REELS - 0.1 SEC INSTANT -->
-<div id="homeReelsFeed" style="max-width:420px;margin:0 auto;background:#000;height:88vh;position:relative;overflow:hidden;border-radius:22px;border:2px solid #222">
-  <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;background:#000;scroll-behavior:smooth"></div>
-  <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#FFCC02;padding:4px 12px;border-radius:20px;font-size:10px;font-weight:900;z-index:10;pointer-events:none"></div>
+<!-- SANNLAS TIKTOK RESPONSIVE - DESKTOP + MOBILE -->
+<div id="tiktokLayout" style="background:#000;min-height:88vh;display:flex;justify-content:center">
+
+  <!-- LEFT SIDEBAR - DESKTOP ONLY (like TikTok video 0:00) -->
+  <div id="desktopSidebar" style="width:240px;background:#000;border-right:1px solid #222;padding:20px 12px;display:flex;flex-direction:column;gap:8px;position:sticky;top:0;height:88vh">
+    <div style="color:#FFCC02;font-weight:900;font-size:22px;padding:8px">◆ SANNLAS</div>
+    <input placeholder="Search" style="background:#1a1a1a;border:none;color:white;padding:10px 14px;border-radius:20px;width:100%">
+    <button style="background:#1a1a1a;color:white;border:none;padding:12px;border-radius:8px;text-align:left;font-weight:700">◉ For You</button>
+    <button onclick="location.href='/reels'" style="background:transparent;color:#aaa;border:none;padding:12px;border-radius:8px;text-align:left">◎ Explore Reels</button>
+    <button onclick="location.href='/wants'" style="background:transparent;color:#aaa;border:none;padding:12px;border-radius:8px;text-align:left">♡ Wants</button>
+    <button onclick="location.href='/products'" style="background:transparent;color:#aaa;border:none;padding:12px;border-radius:8px;text-align:left">◧ Products</button>
+    <button onclick="location.href='/seller/broadcast'" style="background:#FFCC02;color:#000;border:none;padding:12px;border-radius:8px;text-align:left;font-weight:900">＋ Sell</button>
+    <div style="margin-top:auto;color:#555;font-size:11px">SANNLAS UGANDA 🇺🇬</div>
+  </div>
+
+  <!-- CENTER VIDEO - BOTH DESKTOP & MOBILE -->
+  <div id="homeReelsFeed" style="width:420px;max-width:100vw;background:#000;height:88vh;position:relative;overflow:hidden;flex-shrink:0">
+    <div id="reelsFeedContainer" style="height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-behavior:smooth;background:#000"></div>
+    
+    <!-- UP/DOWN ARROWS - DESKTOP like your video far right -->
+    <div id="desktopArrows" style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px">
+      <button onclick="document.getElementById('reelsFeedContainer').scrollBy({top:-window.innerHeight*0.88,behavior:'smooth'})" style="width:44px;height:44px;border-radius:50%;background:#222;color:white;border:1px solid #333;font-size:20px">∧</button>
+      <button onclick="document.getElementById('reelsFeedContainer').scrollBy({top:window.innerHeight*0.88,behavior:'smooth'})" style="width:44px;height:44px;border-radius:50%;background:#222;color:white;border:1px solid #333;font-size:20px">∨</button>
+    </div>
+  </div>
+
+  <!-- RIGHT SPACE - DESKTOP -->
+  <div style="width:60px;display:block"></div>
 </div>
 
 <style>
 #reelsFeedContainer::-webkit-scrollbar{display:none}
-#reelsFeedContainer{-ms-overflow-style:none;scrollbar-width:none}
-.reel-item{
-  height:88vh;
-  min-height:88vh;
-  scroll-snap-align:start;
-  scroll-snap-stop:always;
-  position:relative;
-  background:#000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-shrink:0;
-}
-.reel-item video, .reel-item img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  background:#000;
-}
-.reel-overlay{
-  position:absolute;
-  bottom:0;left:0;right:0;
-  background:linear-gradient(0deg,rgba(0,0,0,0.85),transparent);
-  padding:18px 14px;
-  color:#fff;
-  z-index:2;
-}
-.reel-actions{
-  position:absolute;
-  right:12px;
-  bottom:110px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  z-index:3;
-}
-.reel-act{
-  width:48px;height:48px;
-  border-radius:50%;
-  background:rgba(255,255,255,0.18);
-  border:1.5px solid rgba(255,255,255,0.3);
-  color:white;
-  font-size:22px;
-  display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(10px);
-  cursor:pointer;
+.reel-item{height:88vh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;background:#000;display:flex;align-items:center;justify-content:center}
+.reel-item img,.reel-item video{width:100%;height:100%;object-fit:cover}
+.reel-actions{position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;gap:14px;z-index:3}
+.reel-act{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.3);color:white;font-size:22px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
+
+/* MOBILE: Hide sidebar & arrows, full screen like TikTok app */
+@media(max-width:768px){
+  #desktopSidebar{display:none !important}
+  #desktopArrows{display:none !important}
+  #homeReelsFeed{width:100vw !important;max-width:100vw !important;height:92vh !important;border-radius:0 !important}
+  #tiktokLayout{min-height:92vh !important}
+  .reel-item{height:92vh !important}
 }
 </style>
 
 <script>
 async function loadHomeReels(){
   let c=document.getElementById('reelsFeedContainer');
-  // 0.1 SEC INSTANT - Show cached first!
   let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
-  if(cached.length>0){
-    renderReels(cached);
-  } else {
-    c.innerHTML='<div style="height:88vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900;background:#000">◆ SANNLAS</div>';
-  }
-
-  try{
-    let r=await fetch('/api/sannlas/reels/feed',{cache:'no-cache'});
-    let reels=await r.json();
-    if(reels && reels.length>0){
-      localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,20)));
-      if(cached.length===0) renderReels(reels);
-    }
-  }catch(e){ console.log('Using cache'); }
-
+  if(cached.length>0) renderReels(cached); else c.innerHTML='<div style="height:88vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
+  fetch('/api/sannlas/reels/feed').then(r=>r.json()).then(reels=>{
+    if(reels?.length>0){ localStorage.setItem('sannlas_reels_cache',JSON.stringify(reels)); renderReels(reels); }
+  }).catch(()=>{});
   function renderReels(reels){
-    let feed=reels.length<4 ? [...reels,...reels,...reels,...reels].slice(0,15) : reels;
+    let feed=reels.length<4?[...reels,...reels,...reels].slice(0,15):reels;
     c.innerHTML=feed.map((reel,i)=>{
-      let media=reel.video_url || reel.image_url || reel.media_url || '';
-      let isVideo=media.includes('.mp4') || media.includes('video');
-      let mediaTag=isVideo ? `<video src="${media}" ${i==0?'autoplay':''} loop muted playsinline preload="auto" style="width:100%;height:100%;object-fit:cover"></video>` : `<img src="${media}" style="width:100%;height:100%;object-fit:cover">`;
-      return `<div class="reel-item">${mediaTag}
+      let media=reel.video_url||reel.image_url||reel.media_url||'';
+      let isVideo=media.includes('.mp4');
+      let tag=isVideo?`<video src="${media}" ${i==0?'autoplay':''} loop muted playsinline></video>`:`<img src="${media}">`;
+      return `<div class="reel-item">${tag}
         <div class="reel-actions">
-          <button class="reel-act" onclick="let v=this.closest('.reel-item').querySelector('video'); if(v){v.muted=!v.muted; this.textContent=v.muted?'🔇':'🔊'}">🔇</button>
-          <button class="reel-act">❤️</button>
-          <button class="reel-act" onclick="location.href='/reels'">💬</button>
+          <button class="reel-act" style="flex-direction:column"><span>❤️</span><small style="font-size:9px">12k</small></button>
+          <button class="reel-act" style="flex-direction:column">💬<small style="font-size:9px">340</small></button>
           <button class="reel-act">↗️</button>
+          <button class="reel-act" style="background:#FFCC02;color:#000;font-size:12px;font-weight:900">BUY</button>
         </div>
-        <div class="reel-overlay">
-          <b>@${(reel.user_name||'SANNLAS').replace('@','')}</b><br>
-          <span style="font-size:12px">${(reel.caption||'SALE • SANNLAS UGANDA 🇺🇬').slice(0,70)}</span>
+        <div style="position:absolute;bottom:0;left:0;right:60px;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);padding:18px;color:white">
+          <b>@${(reel.user_name||'SANNLAS').replace('@','')}</b><br><span style="font-size:13px">${(reel.caption||'SANNLAS UGANDA 🇺🇬').slice(0,80)}</span>
         </div>
       </div>`;
     }).join('');
-
-    let obs=new IntersectionObserver(entries=>{
-      entries.forEach(ent=>{
-        let vid=ent.target.querySelector('video');
-        if(ent.isIntersecting && vid){
-          c.querySelectorAll('video').forEach(v=>{ if(v!==vid) v.pause(); });
-          vid.muted=true; vid.play().catch(()=>{});
-        } else if(vid){ vid.pause(); }
-      });
-    },{threshold:0.6, root:c});
+    let obs=new IntersectionObserver(es=>{es.forEach(e=>{let v=e.target.querySelector('video'); if(e.isIntersecting&&v){c.querySelectorAll('video').forEach(x=>{if(x!==v)x.pause()}); v.muted=true; v.play().catch(()=>{})}else if(v)v.pause()})},{threshold:0.6,root:c});
     c.querySelectorAll('.reel-item').forEach(el=>obs.observe(el));
-    setTimeout(()=>{ let v=c.querySelector('video'); if(v){v.muted=true; v.play().catch(()=>{});} },150);
   }
 }
 loadHomeReels();
