@@ -3431,6 +3431,10 @@ def manufacturers():
 @app.route('/delivery')
 def delivery():
     return render_template('delivery.html')
+
+@app.route('/live')
+def live():
+    return render_template('live.html')
     
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
