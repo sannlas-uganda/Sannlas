@@ -649,7 +649,7 @@ div[style*="max-width:780px"]{
     <button onclick="showAllShops()" style="background:#fff;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">🏪 SHOPS</button>
     <button onclick="location.href='/invite'" style="background:#00FF00;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">👥 INVITE & EARN</button>
     <button onclick="openCart()" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">🛒 CART (<span id="cartCountTop">0</span>)</button>
-    <button onclick="document.getElementById('reelUploadInput').click()" style="background:linear-gradient(135deg,#FFCC02,#FF6B02);color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">🎬 UPLOAD REELS</button>
+    <a href="/upload" style="background:linear-gradient(135deg,#FFCC02,#FF6B02);color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left;display:block;text-decoration:none">🎬 UPLOAD REELS</a>
   </div>
 
   <!-- CENTER: SEARCH + REELS - SAME AS YOURS - PHONE NOT TOUCHED -->
@@ -674,7 +674,7 @@ div[style*="max-width:780px"]{
         <div class="phone-bottom-row">
           <button onclick="location.href='/seller/broadcast'">🚀 BROADCAST</button>
           <button onclick="openSellModal()">🏪 SELL</button>
-          <button class="plus-btn" onclick="document.getElementById('reelUploadInput').click()">+</button>
+          <button class="plus-btn" onclick="location.href='/upload'">+</button>
           <button class="ham-btn" onclick="toggleSideMenu()">☰</button>
         </div>
       </div>
