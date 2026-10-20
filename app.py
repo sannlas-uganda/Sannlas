@@ -3439,6 +3439,10 @@ def live():
 @app.route('/calls')
 def calls():
     return render_template('calls.html')
+
+@app.route('/upload')
+def upload_page():
+    return render_template('upload.html')
     
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
