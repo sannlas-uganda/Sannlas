@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calls - Sannlas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>.tab-active{border-bottom:3px solid #00FF00;color:#00FF00}.call-btn:active{transform:scale(0.95)}</style>
+</head>
+<body class="bg-black text-white min-h-screen flex flex-col">
+
+<div class="sticky top-0 z-10 bg-black/90 p-4 flex items-center gap-3 border-b border-white/10">
+  <a href="/" class="text-xl"><i class="fas fa-arrow-left"></i></a>
+  <h1 class="font-black text-lg">📞 Sannlas <span class="text-[#00FF00]">CALLS</span></h1>
+  <span class="ml-auto bg-[#00FF00] text-black px-3 py-1 rounded-full text-xs font-black">FREE CALLS</span>
+</div>
+
+<div class="flex bg-zinc-900 sticky top-[57px] z-10">
+  <button id="btn-dial" onclick="switchTab('dial')" class="flex-1 py-4 font-bold text-sm tab-active"><i class="fas fa-phone mr-2"></i>DIAL</button>
+  <button id="btn-history" onclick="switchTab('history')" class="flex-1 py-4 font-bold text-sm text-zinc-400"><i class="fas fa-clock mr-2"></i>RECENT</button>
+  <button id="btn-contacts" onclick="switchTab('contacts')" class="flex-1 py-4 font-bold text-sm text-zinc-400"><i class="fas fa-users mr-2"></i>SELLERS</button>
+</div>
+
+<!-- DIAL PAD -->
+<div id="dial-view" class="p-4 flex-1 flex flex-col">
+  <div class="bg-zinc-900 rounded-2xl p-4 mb-4">
+    <input id="phone-display" class="w-full bg-black p-4 rounded-xl text-2xl font-bold tracking-widest text-center outline-none border border-[#00FF00]" placeholder="0755 123 456">
+    <p class="text-[10px] text-zinc-500 text-center mt-2">Enter seller / buyer number to call free via Sannlas</p>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 max-w-[280px] mx-auto w-full mb-6">
+    <button onclick="addDigit('1')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">1</button>
+    <button onclick="addDigit('2')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">2<span class="block text-[10px] text-zinc-400">ABC</span></button>
+    <button onclick="addDigit('3')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">3<span class="block text-[10px] text-zinc-400">DEF</span></button>
+    <button onclick="addDigit('4')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">4<span class="block text-[10px] text-zinc-400">GHI</span></button>
+    <button onclick="addDigit('5')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">5<span class="block text-[10px] text-zinc-400">JKL</span></button>
+    <button onclick="addDigit('6')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">6<span class="block text-[10px] text-zinc-400">MNO</span></button>
+    <button onclick="addDigit('7')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">7<span class="block text-[10px] text-zinc-400">PQRS</span></button>
+    <button onclick="addDigit('8')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">8<span class="block text-[10px] text-zinc-400">TUV</span></button>
+    <button onclick="addDigit('9')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">9<span class="block text-[10px] text-zinc-400">WXYZ</span></button>
+    <button onclick="addDigit('*')" class="call-btn bg-zinc-900 h-16 rounded-full text-xl">*</button>
+    <button onclick="addDigit('0')" class="call-btn bg-zinc-900 h-16 rounded-full text-2xl font-bold">0</button>
+    <button onclick="addDigit('#')" class="call-btn bg-zinc-900 h-16 rounded-full text-xl">#</button>
+  </div>
+
+  <div class="flex justify-center gap-6 mt-auto pb-4">
+    <button onclick="clearPhone()" class="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center"><i class="fas fa-backspace"></i></button>
+    <button onclick="makeCall()" class="w-20 h-20 bg-[#00FF00] rounded-full flex items-center justify-center text-black text-2xl shadow-lg shadow-green-500/30"><i class="fas fa-phone"></i></button>
+    <button onclick="window.open('https://wa.me/'+document.getElementById('phone-display').value)" class="w-14 h-14 bg-[#FFCC02] rounded-full flex items-center justify-center text-black"><i class="fab fa-whatsapp text-xl"></i></button>
+  </div>
+</div>
+
+<!-- RECENT CALLS -->
+<div id="history-view" class="p-4 hidden">
+  <div id="call-history" class="space-y-2">
+    <p class="text-center text-zinc-500 text-sm py-10">No recent calls</p>
+  </div>
+</div>
+
+<!-- CONTACTS / SELLERS -->
+<div id="contacts-view" class="p-4 hidden">
+  <input class="w-full bg-zinc-900 p-3 rounded-xl text-sm mb-4" placeholder="🔍 Search sellers, buyers, riders...">
+  <div class="space-y-3">
+    <div class="bg-zinc-900 rounded-2xl p-3 flex justify-between items-center"><div class="flex gap-3 items-center"><div class="w-10 h-10 bg-[#FFCC02] rounded-full flex items-center justify-center font-bold text-black">A</div><div><p class="text-sm font-bold">Anita Bags Seller</p><p class="text-xs text-[#00FF00]">● Online • Katwe</p></div></div><button onclick="callContact('0755123456')" class="w-10 h-10 bg-[#00FF00] rounded-full text-black"><i class="fas fa-phone"></i></button></div>
+    <div class="bg-zinc-900 rounded-2xl p-3 flex justify-between items-center"><div class="flex gap-3 items-center"><div class="w-10 h-10 bg-white rounded-full flex items-center justify-center font-bold text-black">R</div><div><p class="text-sm font-bold">Rider - Boda UBA 123A</p><p class="text-xs text-zinc-400">Last delivery 10 min ago</p></div></div><button onclick="callContact('0700123456')" class="w-10 h-10 bg-[#00FF00] rounded-full text-black"><i class="fas fa-phone"></i></button></div>
+  </div>
+</div>
+
+<script>
+function switchTab(t){
+  document.getElementById('dial-view').classList.toggle('hidden',t!=='dial');
+  document.getElementById('history-view').classList.toggle('hidden',t!=='history');
+  document.getElementById('contacts-view').classList.toggle('hidden',t!=='contacts');
+  document.getElementById('btn-dial').className=t==='dial'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+  document.getElementById('btn-history').className=t==='history'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+  document.getElementById('btn-contacts').className=t==='contacts'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+}
+function addDigit(d){document.getElementById('phone-display').value+=d}
+function clearPhone(){let el=document.getElementById('phone-display');el.value=el.value.slice(0,-1)}
+function makeCall(){
+  let num=document.getElementById('phone-display').value;
+  if(!num) return alert('Enter number Boss!');
+  let hist=document.getElementById('call-history');
+  if(hist.innerHTML.includes('No recent')) hist.innerHTML='';
+  hist.innerHTML=`<div class="bg-zinc-900 rounded-2xl p-3 flex justify-between"><div><p class="text-sm font-bold">${num}</p><p class="text-xs text-zinc-400">Just now • Outgoing</p></div><i class="fas fa-phone text-[#00FF00]"></i></div>`+hist.innerHTML;
+  alert('📞 Calling '+num+' via Sannlas Free Call!\nConnecting...');
+  if(confirm('Open phone dialer?')) window.open('tel:'+num);
+}
+function callContact(n){document.getElementById('phone-display').value=n;switchTab('dial')}
+</script>
+</body>
+</html>
