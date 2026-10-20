@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Tracking - Sannlas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>.tab-active{border-bottom:3px solid #FFCC02;color:#FFCC02}.no-scrollbar::-webkit-scrollbar{display:none}</style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+<div class="sticky top-0 z-10 bg-black/80 backdrop-blur p-4 flex items-center gap-3 border-b border-white/10">
+  <a href="/" class="text-xl"><i class="fas fa-arrow-left"></i></a>
+  <h1 class="font-bold text-lg">📦 Delivery Tracking</h1>
+  <span class="ml-auto text-xs bg-[#00FF88] text-black px-2 py-1 rounded-full font-black">LIVE TRACK</span>
+</div>
+
+<div class="flex bg-zinc-900 sticky top-[57px] z-10">
+  <button id="btn-track" onclick="switchTab('track')" class="flex-1 py-4 font-bold text-sm tab-active"><i class="fas fa-search-location mr-2"></i>TRACK ORDER</button>
+  <button id="btn-rider" onclick="switchTab('rider')" class="flex-1 py-4 font-bold text-sm text-zinc-400"><i class="fas fa-motorcycle mr-2"></i>MY DELIVERIES</button>
+</div>
+
+<!-- TRACK ORDER VIEW -->
+<div id="track-view" class="p-4">
+  <div class="bg-zinc-900 rounded-2xl p-5">
+    <div class="text-center mb-5">
+      <div class="w-16 h-16 bg-[#FFCC02] rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-box text-black text-2xl"></i></div>
+      <h2 class="font-black text-lg">TRACK YOUR PACKAGE</h2>
+      <p class="text-xs text-zinc-400">Enter code sent to your phone</p>
+    </div>
+    <div><label class="text-xs text-zinc-400">TRACKING CODE / ORDER ID</label><input id="t-code" class="w-full bg-black p-4 rounded-xl text-sm mt-1 outline-none border border-[#FFCC02] font-bold tracking-widest" placeholder="e.g. SANN-78421"></div>
+    <div class="mt-3"><label class="text-xs text-zinc-400">PHONE NUMBER</label><input id="t-phone" class="w-full bg-black p-3 rounded-xl text-sm mt-1" placeholder="0755..."></div>
+    <button onclick="doTrack()" class="w-full bg-[#FFCC02] text-black font-black py-4 rounded-xl mt-4">TRACK NOW 🔍</button>
+  </div>
+
+  <div id="track-result" class="mt-5 hidden">
+    <div class="bg-zinc-900 rounded-2xl p-4">
+      <div class="flex justify-between items-center mb-4">
+        <p class="font-bold text-sm">SANN-78421 • Shoes Order</p>
+        <span class="bg-[#00FF88] text-black text-xs px-3 py-1 rounded-full font-black">ON THE WAY</span>
+      </div>
+      <div class="space-y-3 relative">
+        <div class="flex gap-3"><div class="w-3 h-3 bg-[#00FF88] rounded-full mt-1"></div><div><p class="text-xs font-bold">Package Received - Kampala Hub</p><p class="text-[10px] text-zinc-400">Today 10:30 AM</p></div></div>
+        <div class="flex gap-3"><div class="w-3 h-3 bg-[#FFCC02] rounded-full mt-1 animate-pulse"></div><div><p class="text-xs font-bold">Rider Assigned - Boda Boda UBA 123A</p><p class="text-[10px] text-zinc-400">Today 11:00 AM • Call: 0755...</p></div></div>
+        <div class="flex gap-3 opacity-40"><div class="w-3 h-3 bg-zinc-600 rounded-full mt-1"></div><div><p class="text-xs">Delivered to Customer</p><p class="text-[10px] text-zinc-400">Pending</p></div></div>
+      </div>
+      <button onclick="window.open('https://wa.me/256700000000')" class="w-full bg-white text-black font-bold py-3 rounded-xl mt-4 text-sm">📞 CALL RIDER</button>
+    </div>
+  </div>
+</div>
+
+<!-- RIDER / COURIER VIEW -->
+<div id="rider-view" class="p-4 hidden">
+  <div class="bg-zinc-900 rounded-2xl p-4">
+    <h3 class="font-bold mb-4">Register as Delivery Rider / Driver</h3>
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <select id="r-type" class="bg-black p-3 rounded-xl text-sm"><option>Boda Boda</option><option>Tuk Tuk</option><option>Car</option><option>Van</option><option>Bicycle</option></select>
+      <input id="r-plate" class="bg-black p-3 rounded-xl text-sm" placeholder="Number Plate e.g. UBA 123A">
+    </div>
+    <input id="r-name" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Your Name">
+    <input id="r-phone" class="w-full bg-black p-3 rounded-xl text-sm mb-3 border border-[#FFCC02]" placeholder="Phone (WhatsApp) 0755...">
+    <input id="r-area" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Areas Covered e.g. Kampala, Wakiso">
+    <button onclick="addRider()" class="w-full bg-white text-black font-bold py-3 rounded-xl">REGISTER AS RIDER +</button>
+  </div>
+  <div class="mt-5"><h3 class="font-bold text-sm mb-3">ACTIVE DELIVERIES <span id="r-count" class="bg-[#00FF88] text-black px-2 py-1 rounded-full text-xs">0</span></h3><div id="rider-list" class="space-y-3"><p class="text-center text-zinc-500 text-sm py-10">No deliveries yet. Go online to receive orders.</p></div></div>
+</div>
+
+<script>
+function switchTab(t){
+  document.getElementById('track-view').classList.toggle('hidden',t!=='track');
+  document.getElementById('rider-view').classList.toggle('hidden',t!=='rider');
+  document.getElementById('btn-track').className=t==='track'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+  document.getElementById('btn-rider').className=t==='rider'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+}
+function doTrack(){
+  if(!document.getElementById('t-code').value) return alert('Enter tracking code');
+  document.getElementById('track-result').classList.remove('hidden');
+  document.getElementById('track-result').scrollIntoView({behavior:'smooth'});
+}
+let riders=[];
+function addRider(){
+  let v={type:document.getElementById('r-type').value, plate:document.getElementById('r-plate').value||'UBA 123A', name:document.getElementById('r-name').value||'John Rider'};
+  riders.push(v);
+  document.getElementById('r-count').innerText=riders.length;
+  document.getElementById('rider-list').innerHTML=riders.map(x=>`
+    <div class="bg-zinc-900 rounded-2xl p-4 flex justify-between items-center"><div><p class="font-bold text-sm">${x.name} • ${x.type}</p><p class="text-xs text-zinc-400">${x.plate} • Online ●</p></div><span class="bg-[#00FF88] text-black text-xs px-3 py-1 rounded-full font-bold">READY</span></div>`).join('');
+}
+</script>
+</body>
+</html>
