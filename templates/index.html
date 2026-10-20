@@ -784,16 +784,17 @@ function shareHomeReel(url){
   else window.open('https://wa.me/?text='+encodeURIComponent(url),'_blank');
 }
 
-// OPEN USER SHOP DIRECTLY - NO ALERT, NO ALL SHOPS LIST
+// OPEN USER SHOP DIRECTLY - STYLE 1 - ANY SHOP
 function openUserShop(userId, shopName){
   console.log('Opening shop for:', userId, shopName);
-  let id = (userId || shopName || '').toString().trim();
-  if(!id){
+  // Your shop.html uses shopName as slug - STEPH, JOHN, etc
+  let slug = (shopName || userId || '').toString().trim();
+  if(!slug){
     alert('Shop not found');
     return;
   }
-  // Go directly to shop page like /shop/STEPH
-  window.location.href = '/shop/' + encodeURIComponent(id);
+  // Direct to your shop.html page
+  window.location.href = '/shop/' + encodeURIComponent(slug);
 }
 function openReelProduct(productId){
   if(!productId) return;
