@@ -784,21 +784,16 @@ function shareHomeReel(url){
   else window.open('https://wa.me/?text='+encodeURIComponent(url),'_blank');
 }
 
-// OPEN USER SHOP WHO UPLOADED REEL - ADD HERE Boss!
-async function openUserShop(userId, shopName){
-  if(!userId){ alert('Shop: ' + shopName); return; }
-  alert('Opening shop: ' + shopName + ' (ID: ' + userId + ')');
-  try{
-    let r = await fetch('/api/shops/' + userId);
-    let data = await r.json();
-    showAllShops();
-    setTimeout(()=>{
-      let search = document.getElementById('shopSearch');
-      if(search) { search.value = shopName; if(window.filterShops) filterShops(); }
-    }, 500);
-  } catch(e){
-    showAllShops();
+// OPEN USER SHOP DIRECTLY - NO ALERT, NO ALL SHOPS LIST
+function openUserShop(userId, shopName){
+  console.log('Opening shop for:', userId, shopName);
+  let id = (userId || shopName || '').toString().trim();
+  if(!id){
+    alert('Shop not found');
+    return;
   }
+  // Go directly to shop page like /shop/STEPH
+  window.location.href = '/shop/' + encodeURIComponent(id);
 }
 function openReelProduct(productId){
   if(!productId) return;
