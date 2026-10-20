@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transport - Sannlas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .tab-active { border-bottom: 3px solid #00FF88; color: #00FF88; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+<!-- Header -->
+<div class="sticky top-0 z-10 bg-black/80 backdrop-blur p-4 flex items-center gap-3 border-b border-white/10">
+  <a href="/" class="text-xl"><i class="fas fa-arrow-left"></i></a>
+  <h1 class="font-bold text-lg">Transport</h1>
+  <span class="ml-auto text-xs bg-[#00FF88] text-black px-2 py-1 rounded-full">UGANDA</span>
+</div>
+
+<!-- Tabs -->
+<div class="flex bg-zinc-900 sticky top-[57px] z-10">
+  <button id="btn-passenger" onclick="switchTab('passenger')" class="flex-1 py-4 font-bold text-sm tab-active">
+    <i class="fas fa-user mr-2"></i> I NEED A RIDE
+  </button>
+  <button id="btn-owner" onclick="switchTab('owner')" class="flex-1 py-4 font-bold text-sm text-zinc-400">
+    <i class="fas fa-bus mr-2"></i> MY TRANSPORT
+  </button>
+</div>
+
+<!-- PASSENGER INTERFACE -->
+<div id="passenger-view" class="p-4">
+  <!-- Vehicle Type -->
+  <div class="flex gap-2 mb-5 overflow-x-auto no-scrollbar pb-2">
+    <button onclick="selectType(this,'bus')" class="type-btn bg-white text-black px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2"><i class="fas fa-bus"></i> Bus</button>
+    <button onclick="selectType(this,'taxi')" class="type-btn bg-zinc-800 px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2"><i class="fas fa-taxi"></i> Taxi</button>
+    <button onclick="selectType(this,'boda')" class="type-btn bg-zinc-800 px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2"><i class="fas fa-motorcycle"></i> Boda</button>
+  </div>
+
+  <div class="bg-zinc-900 rounded-2xl p-4 space-y-4">
+    <div class="space-y-2">
+      <label class="text-xs text-zinc-400">FROM</label>
+      <div class="flex items-center bg-black rounded-xl px-3">
+        <i class="fas fa-circle-dot text-[#00FF88] text-xs"></i>
+        <input id="from" class="w-full bg-black p-3 outline-none text-sm" placeholder="Enter pickup location">
+      </div>
+    </div>
+    <div class="space-y-2">
+      <label class="text-xs text-zinc-400">TO</label>
+      <div class="flex items-center bg-black rounded-xl px-3">
+        <i class="fas fa-location-dot text-red-500 text-xs"></i>
+        <input id="to" class="w-full bg-black p-3 outline-none text-sm" placeholder="Enter destination">
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <input type="date" class="bg-black p-3 rounded-xl text-sm w-full">
+      <input type="time" class="bg-black p-3 rounded-xl text-sm w-full">
+    </div>
+    <button onclick="findRide()" class="w-full bg-[#00FF88] text-black font-black py-4 rounded-xl">FIND RIDE NOW</button>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="mt-5 space-y-3"></div>
+</div>
+
+<!-- OWNER INTERFACE -->
+<div id="owner-view" class="p-4 hidden">
+  <div class="bg-zinc-900 rounded-2xl p-4">
+    <h3 class="font-bold mb-4">Register Your Vehicle</h3>
+    <div class="grid grid-cols-3 gap-2 mb-4">
+      <select id="o-type" class="bg-black p-3 rounded-xl text-sm"><option>Bus</option><option>Taxi</option><option>Boda Boda</option></select>
+      <input id="o-plate" class="bg-black p-3 rounded-xl text-sm col-span-2" placeholder="Number Plate">
+    </div>
+    <input id="o-route" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Route (e.g. Kampala - Jinja)">
+    <input id="o-price" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Price per seat (UGX)">
+    <input id="o-phone" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Driver Phone (WhatsApp)">
+    <button onclick="addVehicle()" class="w-full bg-white text-black font-bold py-3 rounded-xl">ADD VEHICLE +</button>
+  </div>
+
+  <div class="mt-5">
+    <h3 class="font-bold text-sm mb-3">MY VEHICLES <span id="count" class="bg-zinc-800 px-2 py-1 rounded-full text-xs">0</span></h3>
+    <div id="owner-list" class="space-y-3">
+      <p class="text-center text-zinc-500 text-sm py-10">No vehicles yet. Add one above.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedType = 'bus';
+function switchTab(tab){
+  document.getElementById('passenger-view').classList.toggle('hidden', tab!=='passenger');
+  document.getElementById('owner-view').classList.toggle('hidden', tab!=='owner');
+  document.getElementById('btn-passenger').className = tab==='passenger' ? 'flex-1 py-4 font-bold text-sm tab-active' : 'flex-1 py-4 font-bold text-sm text-zinc-400';
+  document.getElementById('btn-owner').className = tab==='owner' ? 'flex-1 py-4 font-bold text-sm tab-active' : 'flex-1 py-4 font-bold text-sm text-zinc-400';
+}
+function selectType(el,type){
+  selectedType=type;
+  document.querySelectorAll('.type-btn').forEach(b=>b.className='type-btn bg-zinc-800 px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2');
+  el.className='type-btn bg-white text-black px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2';
+}
+function findRide(){
+  const from=document.getElementById('from').value||'Kampala';
+  const to=document.getElementById('to').value||'Jinja';
+  document.getElementById('results').innerHTML=`
+    <div class="bg-zinc-900 rounded-2xl p-4 flex justify-between items-center">
+      <div><p class="font-bold text-sm">${from} -> ${to}</p><p class="text-xs text-zinc-400">${selectedType.toUpperCase()} • 2 seats left • UGX 30k</p></div>
+      <button onclick="window.open('https://wa.me/256700000000?text=Hi, I need ${selectedType} from ${from} to ${to}')" class="bg-[#00FF88] text-black px-4 py-2 rounded-full font-bold text-xs">BOOK</button>
+    </div>`;
+}
+let vehicles=[];
+function addVehicle(){
+  const v={type:document.getElementById('o-type').value, plate:document.getElementById('o-plate').value, route:document.getElementById('o-route').value, price:document.getElementById('o-price').value};
+  if(!v.plate) return alert('Add plate number');
+  vehicles.push(v);
+  document.getElementById('count').innerText=vehicles.length;
+  document.getElementById('owner-list').innerHTML=vehicles.map(x=>`
+    <div class="bg-zinc-900 rounded-2xl p-4 flex justify-between">
+      <div><p class="font-bold text-sm">${x.type} - ${x.plate}</p><p class="text-xs text-zinc-400">${x.route} • ${x.price} UGX</p></div>
+      <span class="text-[#00FF88] text-xs font-bold">ONLINE ●</span>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
