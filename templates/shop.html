@@ -13,6 +13,12 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 #buyerChatModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;flex-direction:column}
 </style></head><body>
 
+<!-- ✅ FIXED: BACK TO HOME - NOT BACK TO SHOPS -->
+<div id="topNav" style="background:#000;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999">
+  <a href="/" style="color:#FFCC02;text-decoration:none;font-weight:900;font-size:14px">← Back to Home</a>
+  <span style="color:#FFCC02;font-weight:900;letter-spacing:1px">SANNLAS</span>
+</div>
+
 <div class="header" id="h">
   <img id="shopLogoTop" class="shop-logo" src="https://via.placeholder.com/150?text=SHOP" style="display:none">
   <div id="headerText">Loading...</div>
@@ -20,7 +26,6 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 
 <div class="products" id="p"></div>
 
-<!-- KEEP CHAT MODAL - FOR SELLERS WITHOUT WHATSAPP -->
 <div id="buyerChatModal">
   <div style="background:#075E54;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center">
     <span>💬 Chat with <span id="buyerChatShopName">Seller</span> <small style="font-size:11px">(1 coin unlock)</small></span>
@@ -45,6 +50,12 @@ let currentShop=null;
 let buyerUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
 let buyerEmail = (buyerUser.email||'').toLowerCase();
 
+// ✅ FORCE BROWSER BACK BUTTON TO GO HOME, NOT ALL SHOPS
+history.pushState(null, '', location.href);
+window.addEventListener('popstate', function(){
+  location.href = '/';
+});
+
 async function load(){
  try{
   let r = await fetch('/api/shop/'+slug); let d = await r.json();
@@ -56,37 +67,25 @@ async function load(){
   if(!shop){ document.getElementById('headerText').innerHTML=`<h1>Shop Not Found</h1>`; return; }
   currentShop=shop;
   document.getElementById('shopLogoTop').src=shop.logo||`https://via.placeholder.com/150?text=SHOP`; document.getElementById('shopLogoTop').style.display='inline-block';
-  let count = products.length || 0;
 
-   // ✅ SHOP OPEN IS FREE - ONLY CONTACT COSTS 1 COIN
   document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button><button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button></div><p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
-function shareShop(){ navigator.clipboard.writeText(location.href); alert('🔗 Copied!'); }
 
-// ============ 1 COIN UNLOCK SYSTEM - SHARED FOR BOTH ============
-async function checkAndUnlock(){
-  if(!buyerEmail){ alert('Login first Boss!'); location.href='/?open=login'; return false; }
-  try{
-    let check = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}`);
-    let chk = await check.json();
-    if(chk.unlocked) return true;
-  }catch(e){}
-  if(!confirm(`🔓 Unlock chat with ${currentShop.business_name} for 1 coin (599 UGX)?\nPay ONCE - Use WhatsApp + In-App Chat FOREVER!`)) return false;
-  let r = await fetch('/api/chat/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug})});
-  let d = await r.json();
-  if(!d.success){ alert(d.error||'Need coins!'); location.href='/balance'; return false; }
-  alert(`✅ Unlocked! Balance: ${d.new_balance} coins`);
-  return true;
+  // RENDER PRODUCTS (if you had it)
+  let pEl = document.getElementById('p');
+  if(products.length){
+    pEl.innerHTML = products.map(prod=>`
+      <div class="card"><div style="position:relative"><img src="${prod.image||''}"><div class="discount-badge">${prod.discount||''}</div></div><div style="padding:8px"><b>${prod.title||prod.name||'Product'}</b><br><small>UGX ${prod.price||''}</small><br><button style="background:#000;color:#FFCC02;width:100%;margin-top:6px" onclick="location.href='/product/${prod.id||prod._id}'">View Product</button></div></div>
+    `).join('');
+  }
+
+ }catch(e){ document.getElementById('headerText').innerHTML='<h1>Error loading shop</h1>'; }
 }
-
-// ============ EACH CONTACT = 1 COIN SEPARATE ============
-
+function shareShop(){ navigator.clipboard.writeText(location.href); alert('🔗 Copied!'); }
 async function openBuyerWhatsApp(){
   if(!buyerEmail){ alert('Login first Boss!'); location.href='/?open=login'; return; }
   let phone = (currentShop.phone||'').toString().replace(/[^0-9]/g,'');
   if(phone.startsWith('0')) phone='256'+phone.slice(1);
   if(!phone.startsWith('256')) phone='256'+phone;
-
-  // Check if already paid for WhatsApp
   try{
     let chk = await fetch(`/api/chat/check-unlock?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}&type=whatsapp`);
     let d = await chk.json();
@@ -97,10 +96,8 @@ async function openBuyerWhatsApp(){
       if(!res.success){ alert(res.error); location.href='/balance'; return; }
     }
   }catch(e){}
-
   window.open(`https://wa.me/${phone}?text=Hi, I saw ${currentShop.business_name} on Sannlas`, '_blank');
 }
-
 async function openBuyerChat(){
   if(!buyerEmail){ alert('Login first!'); return; }
   try{
@@ -113,12 +110,10 @@ async function openBuyerChat(){
       if(!res.success){ alert(res.error); location.href='/balance'; return; }
     }
   }catch(e){}
-  
   document.getElementById('buyerChatShopName').innerText = currentShop.business_name;
   document.getElementById('buyerChatModal').style.display='flex';
   loadBuyerMessages();
 }
-
 async function openBuyerCall(){
   if(!buyerEmail){ alert('Login first!'); return; }
   try{
@@ -131,7 +126,6 @@ async function openBuyerCall(){
       if(!res.success){ alert(res.error); location.href='/balance'; return; }
     }
   }catch(e){}
-  
   window.location.href='tel:'+currentShop.phone;
 }
 function closeBuyerChat(){ document.getElementById('buyerChatModal').style.display='none'; }
