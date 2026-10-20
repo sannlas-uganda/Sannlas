@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Shopping - Sannlas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>.tab-active{border-bottom:3px solid #ff0000;color:#ff0000}.live-dot{animation:blink 1s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}</style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+<div class="sticky top-0 z-10 bg-black/90 backdrop-blur p-4 flex items-center gap-3 border-b border-white/10">
+  <a href="/" class="text-xl"><i class="fas fa-arrow-left"></i></a>
+  <h1 class="font-black text-lg">🔴 LIVE <span class="text-[#ff0000]">SHOPPING</span></h1>
+  <span class="ml-auto bg-[#ff0000] text-white px-3 py-1 rounded-full text-xs font-black flex items-center gap-1"><span class="w-2 h-2 bg-white rounded-full live-dot"></span> 12 LIVE</span>
+</div>
+
+<div class="flex bg-zinc-900 sticky top-[57px] z-10">
+  <button id="btn-watch" onclick="switchTab('watch')" class="flex-1 py-4 font-bold text-sm tab-active"><i class="fas fa-eye mr-2"></i>WATCH LIVE</button>
+  <button id="btn-go" onclick="switchTab('go')" class="flex-1 py-4 font-bold text-sm text-zinc-400"><i class="fas fa-video mr-2"></i>GO LIVE</button>
+</div>
+
+<!-- WATCH LIVE -->
+<div id="watch-view" class="p-3">
+  <div class="grid grid-cols-2 gap-3">
+    <div class="bg-zinc-900 rounded-2xl overflow-hidden">
+      <div class="relative h-48 bg-zinc-800"><span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-1 rounded-full font-black">LIVE • 1.2k</span><span class="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded-full">👕 Shoes Sale</span></div>
+      <div class="p-2"><p class="text-xs font-bold">Mama Anita - Shoes</p><p class="text-[10px] text-zinc-400">Selling bags 50% OFF</p></div>
+    </div>
+    <div class="bg-zinc-900 rounded-2xl overflow-hidden">
+      <div class="relative h-48 bg-zinc-800"><span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-1 rounded-full font-black">LIVE • 890</span><span class="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded-full">📱 Phones</span></div>
+      <div class="p-2"><p class="text-xs font-bold">Tech Hub Uganda</p><p class="text-[10px] text-zinc-400">iPhone 15 new stock</p></div>
+    </div>
+  </div>
+  <button onclick="alert('Joining live...')" class="w-full bg-zinc-900 py-3 rounded-xl mt-4 text-sm font-bold">🔄 Refresh Lives</button>
+</div>
+
+<!-- GO LIVE -->
+<div id="go-view" class="p-4 hidden">
+  <div class="bg-zinc-900 rounded-2xl p-5 text-center">
+    <div class="w-20 h-20 bg-[#ff0000] rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-video text-white text-2xl"></i></div>
+    <h2 class="font-black text-lg">START LIVE SELLING</h2>
+    <p class="text-xs text-zinc-400 mb-5">Sell directly to viewers, earn instantly</p>
+    
+    <input id="l-title" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Live Title e.g. Shoes 50% OFF Live">
+    <select id="l-cat" class="w-full bg-black p-3 rounded-xl text-sm mb-3"><option>Shoes</option><option>Bags</option><option>Electronics</option><option>Fashion</option><option>All Products</option></select>
+    <input id="l-phone" class="w-full bg-black p-3 rounded-xl text-sm mb-4 border border-[#ff0000]" placeholder="Your WhatsApp 0755...">
+    
+    <button onclick="startLive()" class="w-full bg-[#ff0000] text-white font-black py-4 rounded-xl">🔴 GO LIVE NOW</button>
+    <p class="text-[10px] text-zinc-500 mt-3">By going live you agree to Sannlas terms. No adult content.</p>
+  </div>
+  
+  <div class="mt-5 bg-zinc-900 rounded-2xl p-4">
+    <h3 class="font-bold text-sm mb-2">MY PREVIOUS LIVES</h3>
+    <p class="text-xs text-zinc-500 text-center py-6">No lives yet. Go live to start selling!</p>
+  </div>
+</div>
+
+<script>
+function switchTab(t){
+  document.getElementById('watch-view').classList.toggle('hidden',t!=='watch');
+  document.getElementById('go-view').classList.toggle('hidden',t!=='go');
+  document.getElementById('btn-watch').className=t==='watch'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+  document.getElementById('btn-go').className=t==='go'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+}
+function startLive(){
+  let title=document.getElementById('l-title').value||'Live Selling';
+  alert('🔴 LIVE STARTED Boss!\nTitle: '+title+'\nViewers will join now! Share link to WhatsApp!');
+}
+</script>
+</body>
+</html>
