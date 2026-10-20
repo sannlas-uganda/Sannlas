@@ -3435,6 +3435,10 @@ def delivery():
 @app.route('/live')
 def live():
     return render_template('live.html')
+
+@app.route('/calls')
+def calls():
+    return render_template('calls.html')
     
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
