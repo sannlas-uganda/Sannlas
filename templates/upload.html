@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Upload Reel - Sannlas</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Arial}
+body{background:#000;color:#fff;min-height:100vh;padding-bottom:90px}
+.header{background:#111;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:99}
+.header a{color:#FFCC02;text-decoration:none;font-weight:900;font-size:14px}
+.header b{color:#FFCC02;letter-spacing:1px}
+.container{max-width:500px;margin:0 auto;padding:15px}
+.card{background:#111;border-radius:16px;padding:15px;margin-bottom:15px;border:1px solid #222}
+label{display:block;font-size:12px;color:#FFCC02;font-weight:900;margin:14px 0 6px 2px;letter-spacing:0.5px}
+label:first-child{margin-top:0}
+input,textarea,select{width:100%;background:#000;color:#fff;border:1.5px solid #333;border-radius:12px;padding:13px 14px;font-size:14px;outline:none}
+input:focus,textarea:focus{border-color:#FFCC02}
+textarea{resize:none}
+.hint{font-size:11px;color:#888;margin-top:4px}
+.video-box{border:2px dashed #333;border-radius:16px;padding:20px;text-align:center;background:#000;cursor:pointer;position:relative;overflow:hidden}
+.video-box.has-video{border-color:#FFCC02;padding:0}
+.video-box video{width:100%;max-height:350px;display:block;border-radius:16px}
+.upload-icon{font-size:40px;margin-bottom:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-post{width:100%;background:#FFCC02;color:#000;padding:16px;border:none;border-radius:30px;font-weight:900;font-size:16px;margin-top:20px;cursor:pointer}
+.btn-post:disabled{background:#333;color:#777}
+.badge{background:#222;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:10px;margin-left:6px}
+.preview-caption{background:#000;border:1px solid #222;border-radius:12px;padding:10px;margin-top:10px;font-size:13px;line-height:1.4}
+</style></head><body>
+
+<div class="header">
+  <a href="/">← Back to Home</a>
+  <b>SANNLAS UPLOAD</b>
+  <a href="/reels">Reels</a>
+</div>
+
+<div class="container">
+  <div class="card">
+    <label>📹 UPLOAD VIDEO * <span class="badge">Required</span></label>
+    <div class="video-box" id="videoBox" onclick="document.getElementById('videoInput').click()">
+      <div id="videoPlaceholder">
+        <div class="upload-icon">🎥</div>
+        <b>Tap to select video</b><br>
+        <span class="hint">MP4, MOV - Max 100MB - 15s to 60s recommended</span>
+      </div>
+      <video id="videoPreview" style="display:none" controls playsinline muted></video>
+    </div>
+    <input type="file" id="videoInput" accept="video/*" style="display:none">
+    <div class="hint" id="videoInfo"></div>
+  </div>
+
+  <div class="card">
+    <label>🏪 SHOP NAME *</label>
+    <input type="text" id="shopName" placeholder="e.g. STEPH">
+    <div class="hint">Auto-filled from your shop. This will show as 🏪 button on reel (STYLE 1)</div>
+
+    <label>📝 PRODUCT DESCRIPTION *</label>
+    <textarea id="description" rows="3" placeholder="Describe your product... e.g. Quality ankara dresses, new stock, sizes M-XXL"></textarea>
+
+    <label>💬 CAPTION</label>
+    <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! 🔥 DM for orders"></textarea>
+
+    <div class="row">
+      <div>
+        <label>📍 LOCATION</label>
+        <input type="text" id="location" placeholder="e.g. Kampala, Uganda">
+      </div>
+      <div>
+        <label>💰 PRICE (UGX)</label>
+        <input type="number" id="price" placeholder="e.g. 50000">
+      </div>
+    </div>
+
+    <label>#️⃣ HASHTAGS</label>
+    <input type="text" id="hashtags" placeholder="e.g. #fashion #uganda #dresses">
+    <div class="hint">Separate with space. Will help buyers find your reel</div>
+
+    <label>🔗 PROMOTION LINK FOR PROMOTERS</label>
+    <input type="url" id="promoLink" placeholder="e.g. https://sannlas.com/promo/STEPH or your WhatsApp link">
+    <div class="hint">Promoters will share this link. You can track sales from promoters. Leave empty if not using promoters.</div>
+
+    <div class="preview-caption" id="livePreview" style="display:none">
+      <b style="color:#FFCC02">Live Preview on Reel:</b><br>
+      <span id="previewText"></span>
+    </div>
+
+    <button class="btn-post" id="postBtn" onclick="uploadReel()">🚀 POST REEL</button>
+    <div class="hint" style="text-align:center;margin-top:10px">Reel will show shop button 🏪 <span id="previewShop">SHOP</span> that opens /shop/<span id="previewShop2">SHOP</span> directly</div>
+  </div>
+</div>
+
+<script>
+let videoFile = null;
+let user = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+
+// AUTO-FILL SHOP NAME
+document.getElementById('shopName').value = user.business_name || user.shop_name || user.name || '';
+document.getElementById('location').value = user.location || 'Uganda';
+updatePreview();
+
+// VIDEO SELECT
+document.getElementById('videoInput').addEventListener('change', function(e){
+  let file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 100*1024*1024){ alert('Video too big! Max 100MB'); return; }
+  videoFile = file;
+  let url = URL.createObjectURL(file);
+  let v = document.getElementById('videoPreview');
+  let box = document.getElementById('videoBox');
+  v.src = url; v.style.display='block';
+  document.getElementById('videoPlaceholder').style.display='none';
+  box.classList.add('has-video');
+  document.getElementById('videoInfo').innerText = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+  v.onloadedmetadata = ()=>{ if(v.duration>90){ alert('Video too long! Keep under 90s for better views'); } };
+});
+
+function updatePreview(){
+  let shop = document.getElementById('shopName').value || 'SHOP';
+  let cap = document.getElementById('caption').value || '';
+  let desc = document.getElementById('description').value || '';
+  let loc = document.getElementById('location').value || '';
+  let hash = document.getElementById('hashtags').value || '';
+  let price = document.getElementById('price').value || '';
+  document.getElementById('previewShop').innerText = shop;
+  document.getElementById('previewShop2').innerText = shop;
+  let txt = `${desc ? desc+'<br>' : ''}${cap ? cap+'<br>' : ''}${loc ? '📍 '+loc+'<br>' : ''}${price ? '💰 UGX '+price+'<br>' : ''}${hash ? hash : ''}`;
+  if(txt.trim()){ document.getElementById('livePreview').style.display='block'; document.getElementById('previewText').innerHTML = txt; }
+}
+
+['shopName','description','caption','location','hashtags','price'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+
+async function uploadReel(){
+  let shopName = document.getElementById('shopName').value.trim();
+  let description = document.getElementById('description').value.trim();
+  let caption = document.getElementById('caption').value.trim();
+  let location = document.getElementById('location').value.trim();
+  let hashtags = document.getElementById('hashtags').value.trim();
+  let price = document.getElementById('price').value.trim();
+  let promoLink = document.getElementById('promoLink').value.trim();
+
+  if(!videoFile){ alert('Select video first Boss!'); return; }
+  if(!shopName){ alert('Enter shop name'); return; }
+  if(!description){ alert('Enter product description'); return; }
+
+  let btn = document.getElementById('postBtn');
+  btn.disabled = true; btn.innerText = '⏳ Uploading...';
+
+  try{
+    let fd = new FormData();
+    fd.append('video', videoFile);
+    fd.append('shop_name', shopName);
+    fd.append('business_name', shopName);
+    fd.append('shop_slug', shopName);
+    fd.append('description', description);
+    fd.append('caption', `${description}\n${caption}\n📍${location}\n${hashtags}\n💰${price}`.trim());
+    fd.append('location', location);
+    fd.append('hashtags', hashtags);
+    fd.append('price', price);
+    fd.append('promo_link', promoLink);
+    fd.append('product_link', promoLink || `/shop/${encodeURIComponent(shopName)}`);
+    fd.append('user_email', user.email||'');
+    fd.append('user_name', shopName);
+    fd.append('user_id', user.email||shopName);
+
+    // CHANGE THIS URL TO YOUR REAL UPLOAD API
+    let r = await fetch('/api/sannlas/reels/upload', {method:'POST', body:fd});
+    let d = await r.json();
+    if(!r.ok) throw new Error(d.error||'Upload failed');
+
+    alert('✅ Reel posted Boss! Shop button will be 🏪 '+shopName);
+    location.href = '/reels';
+  }catch(e){
+    alert('❌ Failed: '+e.message);
+    btn.disabled = false; btn.innerText = '🚀 POST REEL';
+  }
+}
+</script></body></html>
