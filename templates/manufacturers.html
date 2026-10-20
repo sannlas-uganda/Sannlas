@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manufacturers - Sannlas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>.tab-active{border-bottom:3px solid #FFCC02;color:#FFCC02}.no-scrollbar::-webkit-scrollbar{display:none}</style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+<div class="sticky top-0 z-10 bg-black/80 backdrop-blur p-4 flex items-center gap-3 border-b border-white/10">
+  <a href="/" class="text-xl"><i class="fas fa-arrow-left"></i></a>
+  <h1 class="font-bold text-lg">🏭 Manufacturers</h1>
+  <span class="ml-auto text-xs bg-[#FFCC02] text-black px-2 py-1 rounded-full font-black">UGANDA</span>
+</div>
+
+<div class="flex bg-zinc-900 sticky top-[57px] z-10">
+  <button id="btn-buyer" onclick="switchTab('buyer')" class="flex-1 py-4 font-bold text-sm tab-active"><i class="fas fa-shopping-cart mr-2"></i>I NEED FACTORY</button>
+  <button id="btn-factory" onclick="switchTab('factory')" class="flex-1 py-4 font-bold text-sm text-zinc-400"><i class="fas fa-industry mr-2"></i>MY FACTORY</button>
+</div>
+
+<!-- BUYER INTERFACE -->
+<div id="buyer-view" class="p-4">
+  <div class="flex gap-2 mb-5 overflow-x-auto no-scrollbar pb-2">
+    <button onclick="selType(this)" class="type-btn bg-white text-black px-4 py-2 rounded-full font-bold text-xs">Shoes</button>
+    <button onclick="selType(this)" class="type-btn bg-zinc-800 px-4 py-2 rounded-full font-bold text-xs">Bags</button>
+    <button onclick="selType(this)" class="type-btn bg-zinc-800 px-4 py-2 rounded-full font-bold text-xs">Clothes</button>
+    <button onclick="selType(this)" class="type-btn bg-zinc-800 px-4 py-2 rounded-full font-bold text-xs">Furniture</button>
+    <button onclick="selType(this)" class="type-btn bg-zinc-800 px-4 py-2 rounded-full font-bold text-xs">Custom</button>
+  </div>
+
+  <div class="bg-zinc-900 rounded-2xl p-4 space-y-3">
+    <div><label class="text-xs text-zinc-400">WHAT PRODUCT TO MANUFACTURE?</label><input id="need" class="w-full bg-black p-3 rounded-xl text-sm mt-1 outline-none" placeholder="e.g. 500x School Bags, Leather"></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="text-xs text-zinc-400">QUANTITY</label><input id="qty" class="w-full bg-black p-3 rounded-xl text-sm mt-1" placeholder="e.g. 1000 pcs"></div>
+      <div><label class="text-xs text-zinc-400">BUDGET (UGX)</label><input id="budget" class="w-full bg-black p-3 rounded-xl text-sm mt-1" placeholder="e.g. 5M"></div>
+    </div>
+    <div><label class="text-xs text-zinc-400">DELIVERY DISTRICT</label><input id="district" class="w-full bg-black p-3 rounded-xl text-sm mt-1" placeholder="Kampala, Jinja..."></div>
+    <div><label class="text-xs text-zinc-400">PHONE</label><input id="phone" class="w-full bg-black p-3 rounded-xl text-sm mt-1 border border-[#FFCC02]" placeholder="0755..."></div>
+    <button onclick="findFactory()" class="w-full bg-[#FFCC02] text-black font-black py-4 rounded-xl mt-2">FIND MANUFACTURER NOW</button>
+  </div>
+  <div id="buyer-results" class="mt-5 space-y-3"></div>
+</div>
+
+<!-- FACTORY OWNER INTERFACE -->
+<div id="factory-view" class="p-4 hidden">
+  <div class="bg-zinc-900 rounded-2xl p-4">
+    <h3 class="font-bold mb-4">Register Your Factory / Workshop</h3>
+    <input id="f-name" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Factory Name e.g. Sannlas Shoes Ltd">
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <select id="f-cat" class="bg-black p-3 rounded-xl text-sm"><option>Shoes</option><option>Bags</option><option>Clothes</option><option>Furniture</option><option>Metal Work</option><option>Custom</option></select>
+      <input id="f-loc" class="w-full bg-black p-3 rounded-xl text-sm" placeholder="Location e.g. Namanve">
+    </div>
+    <input id="f-cap" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Capacity / Day e.g. 200 bags per day">
+    <input id="f-min" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Min Order e.g. 50 pcs">
+    <input id="f-price" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Price per pc (UGX) e.g. 15000">
+    <input id="f-phone" class="w-full bg-black p-3 rounded-xl text-sm mb-3 border border-[#FFCC02]" placeholder="Factory Phone (WhatsApp)">
+    <button onclick="addFactory()" class="w-full bg-white text-black font-bold py-3 rounded-xl">ADD FACTORY +</button>
+  </div>
+  <div class="mt-5"><h3 class="font-bold text-sm mb-3">MY FACTORIES <span id="f-count" class="bg-zinc-800 px-2 py-1 rounded-full text-xs">0</span></h3><div id="factory-list" class="space-y-3"><p class="text-center text-zinc-500 text-sm py-10">No factory yet.</p></div></div>
+</div>
+
+<script>
+function switchTab(t){
+  document.getElementById('buyer-view').classList.toggle('hidden',t!=='buyer');
+  document.getElementById('factory-view').classList.toggle('hidden',t!=='factory');
+  document.getElementById('btn-buyer').className=t==='buyer'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+  document.getElementById('btn-factory').className=t==='factory'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
+}
+function selType(el){document.querySelectorAll('.type-btn').forEach(b=>b.className='type-btn bg-zinc-800 px-4 py-2 rounded-full font-bold text-xs');el.className='type-btn bg-white text-black px-4 py-2 rounded-full font-bold text-xs';}
+function findFactory(){
+  let n=document.getElementById('need').value||'School Bags';
+  let q=document.getElementById('qty').value||'1000';
+  document.getElementById('buyer-results').innerHTML=`
+    <div class="bg-zinc-900 rounded-2xl p-4 flex justify-between items-center">
+      <div><p class="font-bold text-sm">🏭 KATWE BAG MAKERS</p><p class="text-xs text-zinc-400">${n} • Can make ${q}pcs in 7 days • 15k/pc</p><p class="text-xs text-[#00FF88]">● ONLINE • Namanve</p></div>
+      <button onclick="window.open('https://wa.me/256700000000?text=Hi, I need ${n} qty ${q}')" class="bg-[#FFCC02] text-black px-4 py-2 rounded-full font-bold text-xs">CHAT</button>
+    </div>`;
+}
+let factories=[];
+function addFactory(){
+  let v={name:document.getElementById('f-name').value,cat:document.getElementById('f-cat').value,loc:document.getElementById('f-loc').value,price:document.getElementById('f-price').value};
+  if(!v.name) return alert('Add factory name');
+  factories.push(v);
+  document.getElementById('f-count').innerText=factories.length;
+  document.getElementById('factory-list').innerHTML=factories.map(x=>`
+    <div class="bg-zinc-900 rounded-2xl p-4 flex justify-between"><div><p class="font-bold text-sm">${x.name}</p><p class="text-xs text-zinc-400">${x.cat} • ${x.loc} • ${x.price} UGX/pc</p></div><span class="text-[#FFCC02] text-xs font-bold">VERIFIED ●</span></div>`).join('');
+}
+</script>
+</body>
+</html>
