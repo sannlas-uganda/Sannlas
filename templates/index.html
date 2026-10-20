@@ -583,6 +583,15 @@ div[style*="max-width:780px"]{
     </div>
 
     <button onclick="openSellModal()" style="background:linear-gradient(135deg,#FF6A00,#FF8C00);color:#fff;font-weight:900;border:none;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">🏪 SELL</button>
+  <a href="/transport" style="background:#E6EAF0;box-shadow:6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;border:none;padding:14px;border-radius:14px;font-weight:800;font-size:13px;text-align:left;text-decoration:none;color:#111;display:block">🚚 Transport - Bus/Taxi/Boda</a>
+
+<a href="/manufacturers" style="background:#E6EAF0;box-shadow:6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;padding:14px;border-radius:14px;font-weight:800;font-size:13px;text-align:left;text-decoration:none;color:#111;display:block">🏭 Manufacturers</a>
+
+<a href="/delivery" style="background:#E6EAF0;box-shadow:6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;padding:14px;border-radius:14px;font-weight:800;font-size:13px;text-align:left;text-decoration:none;color:#111;display:block">📦 Delivery Tracking</a>
+
+<a href="/live" style="background:#000;color:#FF0000;font-weight:900;border:2px solid #FF0000;padding:14px;border-radius:14px;font-size:13px;text-align:left;text-decoration:none;display:block">🔴 Live Streaming</a>
+
+<a href="/calls" style="background:#000;color:#00FF00;font-weight:900;border:2px solid #00FF00;padding:14px;border-radius:14px;font-size:13px;text-align:left;text-decoration:none;display:block">📞 Phone Calls System</a>
     <button onclick="location.href='/reels'" style="background:#000;color:#FFCC02;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">🎬 REELS</button>
     <button onclick="openWantsList()" style="background:#fff;color:#111;font-weight:800;border:2px solid #111;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">♡ WANTS (<span id="wantsCountTop">0</span>)</button>
     <button onclick="location.href='/products'" style="background:#FFCC02;color:#000;font-weight:900;border:2px solid #000;cursor:pointer;padding:14px;border-radius:14px;font-size:13px;text-align:left">🛍️ PRODUCTS</button>
@@ -648,11 +657,25 @@ async function loadHomeReels(){
         ${tag}
         <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔇</button>
         
-        <div class="reel-actions" style="position:absolute;right:10px;bottom:160px;display:flex;flex-direction:column;gap:14px;z-index:40">
-          <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:22px;cursor:pointer">❤️<div style="font-size:9px;margin-top:2px">${reel.likes||0}</div></button>
-          <button class="reel-act" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">💬</button>
-          <button class="reel-act" onclick="shareHomeReel('${media}')" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">↗️</button>
-        </div>
+     <div class="reel-actions" style="position:absolute;right:10px;bottom:90px;display:flex;flex-direction:column;gap:10px;z-index:40;align-items:center">
+  
+  <!-- SIDE BUTTONS -->
+  <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:22px;cursor:pointer">❤️<div style="font-size:9px;margin-top:2px">${reel.likes||0}</div></button>
+  <button class="reel-act" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">💬</button>
+  <button class="reel-act" onclick="shareHomeReel('${media}')" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px">↗️</button>
+
+  <!-- NEW 5 - YOUR BUTTONS IN COLUMN -->
+  <a href="/transport" style="width:48px;height:48px;border-radius:50%;background:#00FF88;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:900">🚚</a>
+  
+  <a href="/manufacturers" style="width:48px;height:48px;border-radius:50%;background:#FFCC02;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none">🏭</a>
+  
+  <a href="/delivery" style="width:48px;height:48px;border-radius:50%;background:#fff;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none">📦</a>
+  
+  <a href="/live" style="width:48px;height:48px;border-radius:50%;background:#000;border:2px solid #ff0000;color:#ff0000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;text-decoration:none;animation:blink 1.2s infinite">LIVE</a>
+  
+  <a href="/calls" style="width:48px;height:48px;border-radius:50%;background:#00FF00;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none">📞</a>
+
+</div>
 
         <!-- NO BACKGROUND - WORDS DIRECTLY ON VIDEO -->
         <div style="position:absolute;bottom:80px;left:14px;right:70px;background:transparent !important;padding:0;z-index:35;pointer-events:auto;border:none;box-shadow:none;">
