@@ -724,10 +724,6 @@ loadHomeReels();
 <!-- SUGGESTION BOX -->
 <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-radius:12px; margin-top:6px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 8px 20px rgba(0,0,0,0.15);"></div>
 </div>
-<div class="trust-badges" style="justify-content:center">
-<button id="cartNTop" onclick="openCart()" style="background:#000;color:#fff;font-weight:900;border:2px solid #FFCC02;cursor:pointer;padding:10px 22px;border-radius:20px;font-size:12px">🛒 CART (<span id="cartCount">0</span>)</button>
-</div>
-</div>
 <div id="billboardBanner"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="liveWantsBoard" style="display:none"></div>
 <div class="popup" id="wantsPop" onclick="closePop('wantsPop')">
@@ -886,7 +882,6 @@ loadHomeReels();
 <button onclick="closeWantModal()" style="width:100%;padding:10px;background:#333;color:white;border:none;border-radius:8px;margin-top:8px">Cancel</button>
 </div>
 </div>
-<div style="background:#000;border-top:3px solid #FFCC02;padding:24px;text-align:center;color:#FFCC02;font-weight:700;margin-top:30px"><div>@ SANNLAS UGANDA 2026 - Premium Marketplace</div><div style="font-size:11px;color:#666;margin-top:6px">SANNLAS UGANDA - Buy & Sell Everything | MoMo 0795712326 | Min Withdraw 50 coins = UGX 29,950 | Upload FREE | Swipe rows ↔️</div></div>
 <script>
 let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentUser=null,searchTimer=null;let _oldUrls=[];let isLoadingWants=false,isLoadingCoins=false;
 async function loadCoinLive(){if(isLoadingCoins)return;isLoadingCoins=true;try{let r=await fetch('/api/coins/config',{signal:AbortSignal.timeout(5000)});let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();let fill=document.getElementById('coinProgressFill');if(fill)fill.style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}isLoadingCoins=false;}
