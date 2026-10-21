@@ -198,28 +198,37 @@ loadTrack(); setInterval(loadTrack, 5000);
 def my_orders_page():
     return """
 <!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><title>My Orders - Sannlas</title>
-<style>body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px} .order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06)} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;color:white} .PENDING{background:#F59E0B} .CONFIRMED{background:#3B82F6} .PACKED{background:#8B5CF6} .SHIPPED{background:#FF6A00} .DELIVERED{background:#10B981}</style>
+<style>body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px} .order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06)} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;color:white} .PENDING{background:#F59E0B} .CONFIRMED{background:#3B82F6} .PACKED{background:#8B5CF6} .SHIPPED{background:#FF6A00} .DELIVERED{background:#10B981} .btn{padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900;width:100%;margin-top:10px;cursor:pointer}</style>
 </head><body>
 <h2 style="font-weight:900">📦 My Orders</h2>
+<div id="emailShow" style="font-size:12px;color:#666;margin-bottom:8px"></div>
 <div id="list">Loading...</div>
 <script>
 async function load(){
-  let user = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
-  let email = user.email||'';
-  if(!email){ document.getElementById('list').innerHTML='Login first!'; return; }
-  let r = await fetch('/api/orders/my?email='+encodeURIComponent(email));
-  let res = await r.json();
-  let html='';
-  if(res.orders.length==0) html='<p>No orders yet. Go buy!</p>';
-  res.orders.forEach(o=>{
-    html+=`<div class="order">
-      <div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">${o.tracking_id}</b><span class="badge ${o.status}">${o.status}</span></div>
-      <div style="margin-top:6px;font-size:13px">🛍️ ${o.shop_name}<br>💰 UGX ${Number(o.total).toLocaleString()} - ${o.items.length} items<br>📍 ${o.full_address}<br><small>${new Date(o.created_at).toLocaleString()}</small></div>
-      <button onclick="location.href='/track/${o.tracking_id}'" style="margin-top:10px;width:100%;padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900">🔍 Track Order</button>
-    </div>`;
-  });
-  document.getElementById('list').innerHTML=html;
+  try{
+    let raw = localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}';
+    let user = JSON.parse(raw);
+    let email = (user.email||'').toLowerCase().trim();
+    document.getElementById('emailShow').innerText = 'Email: ' + (email||'NOT FOUND');
+    if(!email){ document.getElementById('list').innerHTML='<p style=background:white;padding:15px;border-radius:12px>⚠️ Login first!<br><br><button onclick="location.href=\\'/\\'" class=btn>Go Home & Login</button></p>'; return; }
+    let r = await fetch('/api/orders/my?email='+encodeURIComponent(email));
+    let txt = await r.text();
+    let res = JSON.parse(txt);
+    let html='';
+    if(!res.orders || res.orders.length==0) html='<p style=background:white;padding:15px;border-radius:12px>No orders yet. Email: '+email+'</p>';
+    else {
+      res.orders.forEach(o=>{
+        let tid = o.tracking_id;
+        html+= '<div class="order"><div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">'+tid+'</b><span class="badge '+o.status+'">'+o.status+'</span></div><div style="margin-top:6px;font-size:13px">🛍️ '+(o.shop_name||'')+'<br>💰 UGX '+Number(o.total).toLocaleString()+' - '+(o.items?o.items.length:0)+' items<br>📍 '+(o.full_address||'')+'<br><small>'+new Date(o.created_at).toLocaleString()+'</small></div><button onclick="goTrack(\\''+tid+'\\')" class="btn">🔍 Track Order</button></div>';
+      });
+    }
+    document.getElementById('list').innerHTML=html;
+  }catch(e){
+    document.getElementById('list').innerHTML='<div style=background:#ffcccc;padding:12px;border-radius:10px>Error: '+e.message+'</div>';
+    console.error(e);
+  }
 }
+function goTrack(id){ location.href='/track/'+id; }
 load();
 </script></body></html>
     """
@@ -232,7 +241,7 @@ def delivery_dashboard():
 </head><body>
 <h2 style="font-weight:900">🛵 Delivery Dashboard</h2>
 <div class="card">
-<input id="riderPhone" placeholder="Enter your phone number (rider phone)" style="font-size:16px">
+<input id="riderPhone" placeholder="Enter your phone (rider phone)">
 <button onclick="loadDelivery()" style="background:#000;color:#FFCC02" class="btn">🔍 My Assigned Orders</button>
 <input id="trackInput" placeholder="Or enter Tracking ID like SN-123456">
 <button onclick="trackSingle()" style="background:#fff;border:2px solid #000" class="btn">📦 Track Single Order</button>
@@ -256,13 +265,12 @@ async function trackSingle(){
   render([res.order]);
 }
 function render(orders){
-  if(orders.length==0){ document.getElementById('list').innerHTML='<p>No orders assigned to you yet</p>'; return; }
+  if(orders.length==0){ document.getElementById('list').innerHTML='<p>No orders assigned yet</p>'; return; }
   let html='';
   orders.forEach(o=>{
-    html+=`<div class="card">
-      <div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">${o.tracking_id}</b><span style="background:#FF6A00;color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800">${o.status}</span></div>
-      <div style="margin-top:8px;font-size:14px;line-height:1.6">👤 Buyer: <b>${o.buyer_name}</b><br>📞 <a href="tel:${o.buyer_phone}" style="color:#00AA00;font-weight:800">${o.buyer_phone}</a><br>📍 <b>${o.full_address}</b><br>🏪 Shop: ${o.shop_name}<br>💰 UGX ${Number(o.total).toLocaleString()}<br><small>${new Date(o.created_at).toLocaleString()}</small></div>
-      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="updateStatus('${o.tracking_id}','SHIPPED')" style="background:#FEF3C7;padding:8px 12px;border-radius:10px;border:none;font-weight:700">🚚 Picked Up</button><button onclick="updateStatus('${o.tracking_id}','DELIVERED')" style="background:#D1FAE5;padding:8px 12px;border-radius:10px;border:none;font-weight:700">✅ Delivered</button><a href="https://wa.me/${o.buyer_phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hello! I am your delivery rider for order '+o.tracking_id+'. I am on my way to '+o.full_address)}" target="_blank" style="background:#25D366;color:white;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700">💬 WhatsApp Buyer</a><a href="tel:${o.buyer_phone}" style="background:#000;color:#FFCC02;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700">📞 Call Buyer</a></div><button onclick="location.href='/track/${o.tracking_id}'" style="margin-top:8px;background:#fff;border:2px solid #000;width:100%" class="btn">🔍 View Tracking Page</button></div>`;
+    let tid = o.tracking_id;
+    let buyerPhone = (o.buyer_phone||'').replace(/[^0-9]/g,'');
+    html+='<div class="card"><div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">'+tid+'</b><span style="background:#FF6A00;color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800">'+o.status+'</span></div><div style="margin-top:8px;font-size:14px;line-height:1.6">👤 Buyer: <b>'+o.buyer_name+'</b><br>📞 <a href="tel:'+o.buyer_phone+'" style="color:#00AA00;font-weight:800">'+o.buyer_phone+'</a><br>📍 <b>'+o.full_address+'</b><br>🏪 Shop: '+(o.shop_name||'')+'<br>💰 UGX '+Number(o.total).toLocaleString()+'<br><small>'+new Date(o.created_at).toLocaleString()+'</small></div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="updateStatus(\\''+tid+'\\',\\'SHIPPED\\')" style="background:#FEF3C7;padding:8px 12px;border-radius:10px;border:none;font-weight:700">🚚 Picked Up</button><button onclick="updateStatus(\\''+tid+'\\',\\'DELIVERED\\')" style="background:#D1FAE5;padding:8px 12px;border-radius:10px;border:none;font-weight:700">✅ Delivered</button><a href="https://wa.me/'+buyerPhone+'" target="_blank" style="background:#25D366;color:white;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700">💬 WhatsApp</a><a href="tel:'+o.buyer_phone+'" style="background:#000;color:#FFCC02;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700">📞 Call</a></div><button onclick="goTrack(\\''+tid+'\\')" style="margin-top:8px;background:#fff;border:2px solid #000;width:100%" class="btn">🔍 View Tracking</button></div>';
   });
   document.getElementById('list').innerHTML=html;
 }
@@ -272,6 +280,7 @@ async function updateStatus(id,status){
   let phone = localStorage.getItem('rider_phone');
   if(phone) loadDelivery(); else trackSingle();
 }
+function goTrack(id){ location.href='/track/'+id; }
 let saved = localStorage.getItem('rider_phone');
 if(saved) document.getElementById('riderPhone').value=saved;
 </script></body></html>
