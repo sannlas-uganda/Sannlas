@@ -98,7 +98,7 @@ async function loadCart(){
       <div class="total-box">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Items (${data.count})</span><b>UGX ${Number(data.total).toLocaleString()}</b></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:18px"><b>Total</b><b style="color:#FF6600">UGX ${Number(data.total).toLocaleString()}</b></div>
-        <button class="btn btn-orange" onclick="checkout()">💬 Order All via WhatsApp</button>
+        <button class="btn btn-orange" onclick="openCheckoutForm()">🛒 Checkout Now</button>
         <button class="btn btn-outline" onclick="clearCart()">🗑️ Clear Cart</button>
         <button class="btn btn-outline" onclick="window.location.href='/products'">← Continue Shopping</button>
       </div>
@@ -197,6 +197,63 @@ function checkout(){
 }
 
 loadCart();
+</script>
+<!-- CHECKOUT FORM MODAL -->
+<div id="checkoutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:white;border-radius:20px;padding:20px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto">
+    <h3 style="font-weight:900;margin-bottom:12px">📦 Delivery Details</h3>
+    <input id="c_name" placeholder="Full Name" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid #ddd;margin-bottom:10px">
+    <input id="c_phone" placeholder="Phone (e.g. 2567...)" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid #ddd;margin-bottom:10px">
+    <input id="c_district" placeholder="District (e.g. Kampala)" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid #ddd;margin-bottom:10px">
+    <textarea id="c_address" placeholder="Full Address (Village, Road...)" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid #ddd;margin-bottom:12px;min-height:70px"></textarea>
+    
+    <div id="checkoutSummary" style="background:#FFF7ED;padding:10px;border-radius:12px;font-size:13px;margin-bottom:12px"></div>
+    
+    <button id="placeOrderBtn" onclick="placeOrder()" style="width:100%;padding:14px;background:#FF6600;color:white;border:none;border-radius:20px;font-weight:900;font-size:15px">✅ Place Order - SN Tracking</button>
+    <button onclick="closeCheckoutForm()" style="width:100%;padding:12px;background:#f0f0f0;border:none;border-radius:20px;margin-top:8px;font-weight:700">Cancel</button>
+  </div>
+</div>
+
+<script>
+function openCheckoutForm(){
+  let user = getUser();
+  document.getElementById('c_name').value = user.name || '';
+  document.getElementById('c_phone').value = user.phone || '';
+  // summary
+  let totalText = document.getElementById('totalBox')?.innerText || '';
+  document.getElementById('checkoutSummary').innerText = totalText.substring(0,200);
+  document.getElementById('checkoutModal').style.display='flex';
+}
+function closeCheckoutForm(){ document.getElementById('checkoutModal').style.display='none'; }
+
+async function placeOrder(){
+  let user = getUser();
+  let name = document.getElementById('c_name').value.trim();
+  let phone = document.getElementById('c_phone').value.trim();
+  let district = document.getElementById('c_district').value.trim();
+  let address = document.getElementById('c_address').value.trim();
+  let btn = document.getElementById('placeOrderBtn');
+  
+  if(!name || !phone || !district || !address){ alert('Fill all fields Boss!'); return; }
+  btn.innerText='Placing...'; btn.disabled=true;
+  
+  try{
+    let r = await fetch('/api/orders/create', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email: user.email, phone: phone, buyer_name: name, buyer_phone: phone, district: district, address: address})
+    });
+    let res = await r.json();
+    if(res.success){
+      alert('Order Placed Boss! Tracking: ' + res.orders[0].tracking_id);
+      closeCheckoutForm();
+      window.location.href='/my-orders?email='+encodeURIComponent(user.email);
+    } else {
+      alert(res.message);
+      btn.innerText='✅ Place Order'; btn.disabled=false;
+    }
+  }catch(e){ alert(e.message); btn.innerText='✅ Place Order'; btn.disabled=false; }
+}
 </script>
 </body>
 </html>
