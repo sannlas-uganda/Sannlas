@@ -33,7 +33,7 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
  <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900">🏠 Home</button>
  
  <!-- STEP 2 BELL -->
- <button class="bell-btn" onclick="showTab('orders');document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'})">
+ <button class="bell-btn" onclick="showTab('orders'); loadSellerOrders(); fetch('/api/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myEmail})}); document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'})">
    🔔
    <span id="orderCount" class="bell-count">0</span>
  </button>
@@ -260,29 +260,61 @@ async function saveRider(id){
  loadSellerOrders();
 }
 
-// Bell polling
+// ===== FIXED: FAST NOTIFICATIONS + SOUND =====
 async function checkNewOrders(){
  try{
+   // Check NEW notification system first (from my fixed sannlas_orders.py)
+   let r2 = await fetch(`/api/notifications/seller/count?email=${encodeURIComponent(myEmail)}`);
+   let n2 = await r2.json();
+   let notifUnread = n2.unread || 0;
+
+   // Also check pending orders
    let r = await fetch(`/api/orders/seller?shop_email=${encodeURIComponent(myEmail)}&shop_name=${encodeURIComponent(myShopName)}`);
    let res = await r.json();
    let pending = (res.orders||[]).filter(o=>o.status=='PENDING').length;
+   
+   let totalBadge = Math.max(pending, notifUnread);
    let badge = document.getElementById('orderCount');
    let tabBadge = document.getElementById('tabOrderCount');
-   if(pending>0){
-     badge.style.display='block'; badge.innerText=pending;
-     tabBadge.style.display='inline-block'; tabBadge.innerText=pending;
+   
+   if(totalBadge>0){
+     badge.style.display='block'; 
+     badge.innerText=totalBadge;
+     tabBadge.style.display='inline-block'; 
+     tabBadge.innerText=totalBadge;
+     
      let last = parseInt(localStorage.getItem('last_pending')||'0');
-     if(pending>last && last!=0){
-       if(navigator.vibrate) navigator.vibrate([200,100,200]);
-       // Optional sound
-       // new Audio('https://cdn.pixabay.com/audio/2022/03/24/audio_...mp3').play().catch(()=>{});
+     if(totalBadge > last){
+       // VIBRATE
+       if(navigator.vibrate) navigator.vibrate([300,100,300]);
+       // SOUND
+       try {
+         let audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c8d5f6.mp3?filename=notification-101340.mp3');
+         audio.play().catch(()=>{});
+       } catch(e){}
+       // POPUP
+       if(confirm(`🔥 NEW ORDER! You have ${totalBadge} new order(s)! View now?`)){
+         showTab('orders');
+         loadSellerOrders();
+         // Mark notifications as read
+         fetch('/api/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myEmail})});
+         document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'});
+       }
+       // Reload orders automatically
+       loadSellerOrders();
      }
    } else {
-     badge.style.display='none'; tabBadge.style.display='none';
+     badge.style.display='none'; 
+     tabBadge.style.display='none';
    }
-   localStorage.setItem('last_pending', pending);
- }catch(e){}
+   localStorage.setItem('last_pending', totalBadge);
+ }catch(e){ console.log(e) }
 }
+
+// Make it check every 10 seconds (faster) - not 30!
+setInterval(checkNewOrders, 10000);
+// Check immediately on load
+setTimeout(checkNewOrders, 2000);
 
 // Other functions
 function openEditPrice(id,price){ document.getElementById('editPriceId').value=id; document.getElementById('editPriceVal').value=price; document.getElementById('editPriceModal').style.display='flex'; }
