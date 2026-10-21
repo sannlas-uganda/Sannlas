@@ -9,14 +9,15 @@
 body{background:#E9EFF7;font-family:system-ui;padding-bottom:90px}
 .header{padding:14px 16px;background:white;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.08)}
 .cart-wrap{max-width:800px;margin:12px auto;padding:0 12px}
-.cart-item{background:white;border-radius:16px;padding:12px;margin-bottom:12px;display:flex;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1.5px solid #e2e8f0}
+.cart-item{background:white;border-radius:16px;padding:12px;margin-bottom:12px;display:flex;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1.5px solid #e2e8f0;transition:0.15s}
 .cart-item img{width:90px;height:90px;object-fit:cover;border-radius:12px;background:#f6f7f8}
 .c-info{flex:1}
 .c-name{font-weight:800;font-size:14px;margin-bottom:4px}
 .c-shop{font-size:11px;color:#666;margin-bottom:6px}
 .c-price{color:#FF6600;font-weight:900;font-size:14px;margin-bottom:8px}
 .c-qty-row{display:flex;align-items:center;gap:10px;margin-top:8px}
-.qty-btn{background:#111;color:#FFCC02;border:none;width:34px;height:34px;border-radius:50%;font-weight:900;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-btn{border:none;width:36px;height:36px;border-radius:50%;font-weight:900;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-btn:active{transform:scale(0.85)}
 .qty-btn.minus{background:#FFE5E5;color:#FF0000;border:1.5px solid #FF0000}
 .qty-btn.plus{background:#000;color:#FFCC02;border:1.5px solid #FFCC02}
 .qty-num{background:#FFCC02;color:#000;padding:5px 14px;border-radius:12px;font-weight:900;font-size:13px;min-width:40px;text-align:center}
@@ -65,6 +66,7 @@ async function loadCart(){
   try {
     let r = await fetch(`/api/cart?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
     let data = await r.json();
+    window._lastCartItems = data.items;
     
     if(!data.items || data.items.length==0){
       document.getElementById('cartList').innerHTML = `<div class="empty"><div style="font-size:50px">🛒</div><h3>Cart is Empty</h3><p style="color:#666;margin:10px 0">Add some products first Boss!</p><button class="btn btn-orange" onclick="window.location.href='/products'">Browse Products</button></div>`;
@@ -73,18 +75,17 @@ async function loadCart(){
     }
 
     let html = data.items.map(item=>`
-      <div class="cart-item">
+      <div class="cart-item" data-price-val="${item.price}" id="item-${item.product_id}">
         <img src="${item.image || '/icon-192.png'}" onerror="this.src='/icon-192.png'">
         <div class="c-info">
           <div class="c-name">${item.name||'Product'}</div>
-          <div class="c-shop">🏪 ${item.shop_name||'Sannlas'} • Qty: ${item.qty||1}</div>
-          <div class="c-price">UGX ${Number(item.price).toLocaleString()} x ${item.qty||1} = UGX ${Number(item.price * (item.qty||1)).toLocaleString()}</div>
-          
+          <div class="c-shop">🏪 ${item.shop_name||'Sannlas'}</div>
+          <div class="c-price" data-price="${item.product_id}">UGX ${Number(item.price).toLocaleString()} x ${item.qty||1} = UGX ${Number(item.price * (item.qty||1)).toLocaleString()}</div>
           <div class="c-qty-row">
             <button class="qty-btn minus" onclick="updateQty('${item.product_id}', -1)">−</button>
-            <span class="qty-num">${item.qty||1}</span>
+            <span class="qty-num" data-qty="${item.product_id}">${item.qty||1}</span>
             <button class="qty-btn plus" onclick="updateQty('${item.product_id}', 1)">+</button>
-            <button class="btn-small btn-red" onclick="removeItem('${item.product_id}')">🗑️ Remove</button>
+            <button class="btn-small btn-red" onclick="removeItem('${item.product_id}')">🗑️</button>
           </div>
         </div>
       </div>
@@ -95,62 +96,90 @@ async function loadCart(){
     document.getElementById('totalBox').style.display='block';
     document.getElementById('totalBox').innerHTML = `
       <div class="total-box">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-          <span>Items (${data.count})</span>
-          <b>UGX ${Number(data.total).toLocaleString()}</b>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:18px">
-          <b>Total</b>
-          <b style="color:#FF6600">UGX ${Number(data.total).toLocaleString()}</b>
-        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Items (${data.count})</span><b>UGX ${Number(data.total).toLocaleString()}</b></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:18px"><b>Total</b><b style="color:#FF6600">UGX ${Number(data.total).toLocaleString()}</b></div>
         <button class="btn btn-orange" onclick="checkout()">💬 Order All via WhatsApp</button>
         <button class="btn btn-outline" onclick="clearCart()">🗑️ Clear Cart</button>
         <button class="btn btn-outline" onclick="window.location.href='/products'">← Continue Shopping</button>
       </div>
     `;
   } catch(e){
-    document.getElementById('cartList').innerHTML = `<div class="empty"><h3>Error loading cart</h3><p>${e.message}</p></div>`;
+    document.getElementById('cartList').innerHTML = `<div class="empty"><h3>Error</h3><p>${e.message}</p></div>`;
   }
 }
 
+// ===== FAST INSTANT VERSION - EDITED =====
 async function updateQty(product_id, change){
+  let qtySpan = document.querySelector(`[data-qty="${product_id}"]`);
+  if(!qtySpan) return;
+  let currentQty = parseInt(qtySpan.innerText)||1;
+  let newQty = currentQty + change;
+
+  if(newQty <= 0){
+    let el = document.getElementById(`item-${product_id}`);
+    if(el){ el.style.opacity='0.3'; el.style.transform='scale(0.96)'; setTimeout(()=>{ el.style.display='none'; updateTotalInstant(); },120); }
+  } else {
+    qtySpan.innerText = newQty;
+    let item = window._lastCartItems?.find(i=>String(i.product_id)==String(product_id));
+    if(item){
+      let priceEl = document.querySelector(`[data-price="${product_id}"]`);
+      if(priceEl) priceEl.innerText = `UGX ${Number(item.price).toLocaleString()} x ${newQty} = UGX ${Number(item.price*newQty).toLocaleString()}`;
+      item.qty = newQty;
+    }
+    updateTotalInstant();
+  }
+
+  // background sync - no await
   let user = getUser();
-  // Use new endpoint
-  let r = await fetch('/api/cart/update', {
+  fetch('/api/cart/update', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({email: user.email, phone: user.phone, product_id: product_id, change: change})
+  }).catch(()=>{});
+}
+
+function updateTotalInstant(){
+  let total=0, qtyCount=0, visible=0;
+  document.querySelectorAll('.cart-item').forEach(el=>{
+    if(el.style.display==='none') return;
+    let qtyEl = el.querySelector('[data-qty]');
+    let price = parseFloat(el.getAttribute('data-price-val'))||0;
+    let qty = parseInt(qtyEl?.innerText)||0;
+    if(qty>0){ total+=qty*price; qtyCount+=qty; visible++; }
   });
-  let res = await r.json();
-  if(res.success){
-    loadCart();
-    // also update top counter in opener if any
-    if(window.opener && window.opener.updateCartCount) window.opener.updateCartCount();
-  } else {
-    alert(res.message||'Failed');
+  if(visible==0){
+    document.getElementById('cartList').innerHTML = `<div class="empty"><div style="font-size:50px">🛒</div><h3>Cart Empty</h3><button class="btn btn-orange" onclick="location.href='/products'">Browse</button></div>`;
+    document.getElementById('totalBox').style.display='none';
+    return;
+  }
+  let box = document.getElementById('totalBox');
+  if(box){
+    box.innerHTML = `<div class="total-box"><div style="display:flex;justify-content:space-between"><span>Items (${visible}) Qty ${qtyCount}</span><b>UGX ${total.toLocaleString()}</b></div><div style="display:flex;justify-content:space-between;font-size:18px;margin-top:6px"><b>Total</b><b style="color:#FF6600">UGX ${total.toLocaleString()}</b></div><button class="btn btn-orange" style="margin-top:12px" onclick="checkout()">💬 Order All via WhatsApp</button><button class="btn btn-outline" onclick="clearCart()">🗑️ Clear Cart</button><button class="btn btn-outline" onclick="window.location.href='/products'">← Continue Shopping</button></div>`;
   }
 }
 
 async function removeItem(product_id){
-  if(!confirm('Remove this item Boss?')) return;
+  if(!confirm('Remove Boss?')) return;
+  let el = document.getElementById(`item-${product_id}`);
+  if(el){ el.style.display='none'; updateTotalInstant(); }
   let user = getUser();
-  await fetch('/api/cart/remove', {
+  fetch('/api/cart/remove', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({email: user.email, phone: user.phone, product_id: product_id})
   });
-  loadCart();
 }
 
 async function clearCart(){
-  if(!confirm('Clear all cart Boss?')) return;
+  if(!confirm('Clear all?')) return;
+  document.getElementById('cartList').innerHTML = `<div class="empty"><h3>Cleared</h3></div>`;
+  document.getElementById('totalBox').style.display='none';
   let user = getUser();
-  await fetch('/api/cart/clear', {
+  fetch('/api/cart/clear', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({email: user.email, phone: user.phone})
   });
-  loadCart();
 }
 
 function checkout(){
@@ -158,11 +187,11 @@ function checkout(){
   fetch(`/api/cart?email=${encodeURIComponent(user.email)}&phone=${encodeURIComponent(user.phone)}`)
   .then(r=>r.json()).then(data=>{
     if(!data.items.length) return;
-    let msg = `Hi Boss! I want to order from SANNLAS CART:\n\n`;
+    let msg = `Hi Boss! Order from SANNLAS:\n\n`;
     data.items.forEach((item,i)=>{
-      msg += `${i+1}. ${item.name} - UGX ${Number(item.price).toLocaleString()} x ${item.qty} = UGX ${Number(item.price*item.qty).toLocaleString()}\n`;
+      msg += `${i+1}. ${item.name} x ${item.qty} = UGX ${Number(item.price*item.qty).toLocaleString()}\n`;
     });
-    msg += `\nTOTAL: UGX ${Number(data.total).toLocaleString()}\n\nMy email: ${user.email}\nPlease confirm Boss!`;
+    msg += `\nTOTAL: UGX ${Number(data.total).toLocaleString()}\nEmail: ${user.email}`;
     window.open(`https://wa.me/256795712326?text=${encodeURIComponent(msg)}`,'_blank');
   });
 }
