@@ -130,3 +130,96 @@ def update_status(tracking_id):
             save_orders(orders)
             return jsonify({"success": True, "order": o})
     return jsonify({"success": False, "message": "Not found"}), 404
+
+@orders_bp.route('/track/<tracking_id>')
+def track_page(tracking_id):
+    return f"""
+<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><title>Track {tracking_id} - Sannlas</title>
+<style>
+body{{font-family:system-ui;background:#FFF7ED;margin:0;padding:15px}}
+.card{{background:white;border-radius:20px;padding:18px;max-width:500px;margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,0.08)}}
+.step{{display:flex;gap:12px;padding:12px 0;border-left:3px solid #eee;margin-left:12px;padding-left:20px;position:relative}}
+.step.active{{border-left-color:#FF6A00}} .step.done{{border-left-color:#00AA00}}
+.dot{{width:28px;height:28px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;position:absolute;left:-15px;top:10px;font-size:14px}}
+.dot.done{{background:#00AA00;color:white}} .dot.active{{background:#FF6A00;color:white}}
+.badge{{padding:6px 14px;border-radius:20px;font-weight:900;font-size:12px}}
+</style></head><body>
+<div class="card">
+<h2 style="margin:0">📦 Tracking <span style="color:#FF6A00">{tracking_id}</span></h2>
+<div id="info">Loading...</div>
+<div id="timeline" style="margin-top:20px"></div>
+<div id="rider" style="margin-top:16px;display:none;background:#FFF7ED;padding:12px;border-radius:12px"></div>
+<div style="margin-top:20px;display:flex;gap:8px">
+<button onclick="location.href='/'" style="flex:1;padding:14px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900">🏠 Home</button>
+<button onclick="location.href='/my-orders.html'" style="flex:1;padding:14px;border-radius:12px;border:none;background:#fff;border:2px solid #000;font-weight:900">📦 My Orders</button>
+</div>
+</div>
+<script>
+let TID = "{tracking_id}";
+async function loadTrack(){{
+  let r = await fetch('/api/orders/track/'+TID);
+  let res = await r.json();
+  if(!res.success){{ document.getElementById('info').innerHTML='<p>Order not found! Check ID</p>'; return; }}
+  let o = res.order;
+  document.getElementById('info').innerHTML = `
+    <div style="margin-top:12px;line-height:1.6;font-size:14px">
+      <span class="badge" style="background:${{getColor(o.status)}};color:white">${{o.status}}</span><br><br>
+      <b>Buyer:</b> ${{o.buyer_name}} - ${{o.buyer_phone}}<br>
+      <b>Shop:</b> ${{o.shop_name}}<br>
+      <b>Address:</b> ${{o.full_address}}<br>
+      <b>Total:</b> UGX ${{Number(o.total).toLocaleString()}}<br>
+      <small style="color:#666">${{new Date(o.created_at).toLocaleString()}}</small>
+      <details style="margin-top:8px"><summary>View Items (${{o.items.length}})</summary>${{o.items.map(i=>`• ${{i.name||i.title}} x${{i.qty||1}}`).join('<br>')}}</details>
+    </div>`;
+  
+  let steps = ['PENDING','CONFIRMED','PACKED','SHIPPED','DELIVERED'];
+  let icons = {{'PENDING':'📝','CONFIRMED':'✅','PACKED':'📦','SHIPPED':'🚚','DELIVERED':'🎉'}};
+  let currentIdx = steps.indexOf(o.status);
+  let html='';
+  steps.forEach((s,i)=>{{
+    let cls = i < currentIdx ? 'done' : (i==currentIdx ? 'active' : '');
+    let done = i <= currentIdx;
+    html+=`<div class="step ${{cls}}"><div class="dot ${{done?'done':''}} ${{i==currentIdx?'active':''}}">${{done?'✓':i+1}}</div><div><b>${{icons[s]}} ${{s}}</b><br><small style="color:#666">${{getDesc(s)}}</small></div></div>`;
+  }});
+  document.getElementById('timeline').innerHTML=html;
+  
+  if(o.delivery_man_name){{
+    document.getElementById('rider').style.display='block';
+    document.getElementById('rider').innerHTML=`<b>🛵 Rider Assigned</b><br>👤 ${{o.delivery_man_name}}<br>📞 <a href="tel:${{o.delivery_man_phone}}" style="color:#00AA00;font-weight:900;font-size:16px">${{o.delivery_man_phone}}</a><br><a href="tel:${{o.delivery_man_phone}}" style="display:block;margin-top:8px;background:#25D366;color:white;padding:10px;border-radius:10px;text-align:center;text-decoration:none;font-weight:900">📞 Call Rider</a>`;
+  }}
+}}
+function getColor(s){{ return {{'PENDING':'#F59E0B','CONFIRMED':'#3B82F6','PACKED':'#8B5CF6','SHIPPED':'#FF6A00','DELIVERED':'#10B981'}}[s]||'#999'; }}
+function getDesc(s){{ return {{'PENDING':'Order received, shop will confirm','CONFIRMED':'Shop confirmed your order','PACKED':'Packed ready for pickup','SHIPPED':'On the way with rider','DELIVERED':'Delivered! Enjoy!'}}[s]||s; }}
+loadTrack(); setInterval(loadTrack, 5000);
+</script></body></html>
+    """
+
+@orders_bp.route('/my-orders')
+def my_orders_page():
+    return """
+<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><title>My Orders - Sannlas</title>
+<style>body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px} .order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06)} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;color:white} .PENDING{background:#F59E0B} .CONFIRMED{background:#3B82F6} .PACKED{background:#8B5CF6} .SHIPPED{background:#FF6A00} .DELIVERED{background:#10B981}</style>
+</head><body>
+<h2 style="font-weight:900">📦 My Orders</h2>
+<div id="list">Loading...</div>
+<script>
+async function load(){
+  let user = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+  let email = user.email||'';
+  if(!email){ document.getElementById('list').innerHTML='Login first!'; return; }
+  let r = await fetch('/api/orders/my?email='+encodeURIComponent(email));
+  let res = await r.json();
+  let html='';
+  if(res.orders.length==0) html='<p>No orders yet. Go buy!</p>';
+  res.orders.forEach(o=>{
+    html+=`<div class="order">
+      <div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">${o.tracking_id}</b><span class="badge ${o.status}">${o.status}</span></div>
+      <div style="margin-top:6px;font-size:13px">🛍️ ${o.shop_name}<br>💰 UGX ${Number(o.total).toLocaleString()} - ${o.items.length} items<br>📍 ${o.full_address}<br><small>${new Date(o.created_at).toLocaleString()}</small></div>
+      <button onclick="location.href='/track/${o.tracking_id}'" style="margin-top:10px;width:100%;padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900">🔍 Track Order</button>
+    </div>`;
+  });
+  document.getElementById('list').innerHTML=html;
+}
+load();
+</script></body></html>
+    """
