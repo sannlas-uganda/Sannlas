@@ -96,3 +96,37 @@ def track_order(tracking_id):
     if not order:
         return jsonify({"success": False, "message": "Order not found"}), 404
     return jsonify({"success": True, "order": order})
+
+# ===== STEP 2: SELLER INBOX + ASSIGN RIDER =====
+@orders_bp.route('/api/orders/seller', methods=['GET'])
+def seller_orders():
+    shop_email = request.args.get('shop_email','').lower()
+    shop_name = request.args.get('shop_name','')
+    orders = get_orders()
+    filtered = []
+    for o in orders:
+        if shop_email and (o.get('shop_email','').lower()==shop_email or o.get('shop_key','').lower()==shop_email):
+            filtered.append(o)
+        elif shop_name and o.get('shop_name','')==shop_name:
+            filtered.append(o)
+        elif not shop_email and not shop_name:
+            filtered.append(o)
+    filtered.sort(key=lambda x: x.get('timestamp',0), reverse=True)
+    return jsonify({"orders": filtered})
+
+@orders_bp.route('/api/orders/seller/<tracking_id>/status', methods=['POST'])
+def update_status(tracking_id):
+    data = request.get_json()
+    new_status = data.get('status','')
+    rider_name = data.get('delivery_man_name','')
+    rider_phone = data.get('delivery_man_phone','')
+    
+    orders = get_orders()
+    for o in orders:
+        if o.get('tracking_id')==tracking_id:
+            if new_status: o['status']=new_status
+            if rider_name: o['delivery_man_name']=rider_name
+            if rider_phone: o['delivery_man_phone']=rider_phone
+            save_orders(orders)
+            return jsonify({"success": True, "order": o})
+    return jsonify({"success": False, "message": "Not found"}), 404
