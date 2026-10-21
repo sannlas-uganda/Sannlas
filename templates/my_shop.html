@@ -21,7 +21,6 @@ body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px;color:#00
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:15px}
 .modal-box{background:#fff;border-radius:15px;padding:15px;max-width:400px;width:100%;color:#000}
 input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:10px}
-/* STEP 2 STYLES */
 .bell-btn{position:absolute;top:12px;right:12px;background:#FFCC02;color:#000;border:none;padding:10px 12px;border-radius:50%;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
 .bell-count{position:absolute;top:-5px;right:-5px;background:red;color:white;font-size:11px;font-weight:900;padding:3px 7px;border-radius:20px;min-width:10px;display:none;text-align:center;border:2px solid #000}
 .order-card{background:#fff;border:2px solid #FFCC02;border-radius:14px;padding:12px;margin-bottom:10px}
@@ -31,13 +30,10 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
 
 <div class="header" id="shopHeader">
  <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900">🏠 Home</button>
- 
- <!-- STEP 2 BELL -->
- <button class="bell-btn" onclick="showTab('orders'); loadSellerOrders(); fetch('/api/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myEmail})}); document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'})">
+ <button class="bell-btn" onclick="document.getElementById('ordersSection').scrollIntoView({behavior:'smooth'}); loadSellerOrders();">
    🔔
    <span id="orderCount" class="bell-count">0</span>
  </button>
-
  <img id="sLogo" class="shop-logo" src="https://via.placeholder.com/150" onclick="document.getElementById('logoInput').click()">
  <input type="file" id="logoInput" accept="image/*" hidden onchange="uploadLogo()">
  <div id="sName" style="color:#fff;margin-top:8px">Loading...</div>
@@ -63,32 +59,13 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
  <button id="loadMoreBtn" onclick="loadMoreProducts()" style="display:none;background:#fff;border:2px solid #FF6A00;color:#FF6A00;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:12px">⬇️ Load 10 More</button>
 </div>
 
-<div class="card">
- <h3 style="margin:0 0 10px 0">🔥 Orders / Wants For Me</h3>
- <div style="display:flex;gap:8px;margin-bottom:10px">
-  <button id="tabOrders" onclick="showTab('orders')" class="btn" style="flex:1;background:#000;color:#FFCC02">📦 New Orders <span id="tabOrderCount" style="background:red;color:#fff;padding:2px 6px;border-radius:10px;display:none">0</span></button>
-  <button id="tabWants" onclick="showTab('wants')" class="btn" style="flex:1;background:#eee">Matching Wants</button>
- </div>
-<div style="display:flex;gap:8px;margin-bottom:10px;margin-top:10px">
-  <button onclick="showChatTab('orders')" id="btnOrders" class="btn" style="flex:1;background:#000;color:#FFCC02">My Sales Orders</button>
-  <button onclick="showChatTab('chats')" id="btnChats" class="btn" style="flex:1;background:#25D366;color:#000">💬 Chats <span id="chatCount" style="background:#000;color:#fff;padding:2px 6px;border-radius:10px">0</span></button>
-  <button onclick="showChatTab('wants')" id="btnWants" class="btn" style="flex:1;background:#eee">Wants</button>
-</div>
-<div id="ordersBox">Loading orders...</div>
-<div id="chatsBox" style="display:none"></div>
-<div id="wantsBox" style="display:none"></div>
-
-<div id="chatModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:99999;flex-direction:column">
-  <div style="background:#075E54;color:#fff;padding:15px;display:flex;justify-content:space-between">
-    <span id="chatWithName">Chat</span>
-    <button onclick="closeChat()" style="background:red;color:#fff;border:none;padding:8px 12px;border-radius:8px">✕</button>
-  </div>
-  <div id="chatMessages" style="flex:1;overflow-y:auto;padding:15px;background:#e5ddd5;display:flex;flex-direction:column;gap:8px"></div>
-  <div style="background:#f0f0f0;padding:10px;display:flex;gap:8px">
-    <input id="sellerChatInput" placeholder="Type message..." style="flex:1;padding:12px;border-radius:20px;border:1px solid #ccc">
-    <button onclick="sendSellerMessage()" style="background:#25D366;color:#fff;border:none;padding:12px 18px;border-radius:20px;font-weight:bold">Send</button>
-  </div>
-</div>
+<!-- ✅ SINGLE ORDERS BUTTON ONLY - SELLER INTERFACE -->
+<div class="card" id="ordersSection">
+ <h3 style="margin:0 0 12px 0">📦 My Shop Orders</h3>
+ <button onclick="toggleOrders()" id="singleOrdersBtn" style="width:100%;padding:16px;background:#000;color:#FFCC02;border:3px solid #FFCC02;border-radius:14px;font-weight:900;font-size:16px;display:flex;justify-content:center;align-items:center;gap:10px">
+   📦 Orders <span id="myOrdersBadge" style="background:red;color:#fff;padding:4px 10px;border-radius:20px;font-size:13px;display:none">0</span>
+ </button>
+ <div id="ordersBox" style="margin-top:12px">Loading orders...</div>
 </div>
 
 <div class="card">
@@ -140,6 +117,7 @@ let myShopSlug = '';
 let myShopName = '';
 let currentPage = 1;
 let hasMore = false;
+let ordersVisible = true;
 document.getElementById('todayDate').innerText = new Date().toLocaleDateString();
 
 async function loadMyShop(page=1){
@@ -187,22 +165,14 @@ async function loadMyShop(page=1){
  hasMore = d.has_more;
  currentPage = d.page;
  document.getElementById('loadMoreBtn').style.display = hasMore? 'block' : 'none';
- loadSellerOrders(); // Load orders after shop loaded
+ loadSellerOrders();
 }
 
 function loadMoreProducts(){ loadMyShop(currentPage+1); }
-
-// ===== STEP 2: SELLER ORDERS LOGIC =====
-function showTab(t){
- document.getElementById('ordersBox').style.display = t=='orders'? 'block':'none';
- document.getElementById('wantsBox').style.display = t=='wants'? 'block':'none';
- if(t=='orders') loadSellerOrders();
-}
-function showChatTab(t){
- document.getElementById('ordersBox').style.display = t=='orders'? 'block':'none';
- document.getElementById('chatsBox').style.display = t=='chats'? 'block':'none';
- document.getElementById('wantsBox').style.display = t=='wants'? 'block':'none';
- if(t=='orders') loadSellerOrders();
+function toggleOrders(){
+  ordersVisible = !ordersVisible;
+  document.getElementById('ordersBox').style.display = ordersVisible ? 'block' : 'none';
+  if(ordersVisible) loadSellerOrders();
 }
 
 async function loadSellerOrders(){
@@ -211,7 +181,17 @@ async function loadSellerOrders(){
    let r = await fetch(`/api/orders/seller?shop_email=${encodeURIComponent(myEmail)}&shop_name=${encodeURIComponent(myShopName)}`);
    let res = await r.json();
    let orders = res.orders||[];
-   if(orders.length==0){ box.innerHTML='<p style="padding:10px;background:#FFF7ED;border-radius:10px">No orders yet Boss! When buyer clicks Checkout, it will show here with SN- tracking ID.</p>'; return; }
+   let badge = document.getElementById('myOrdersBadge');
+   let bell = document.getElementById('orderCount');
+   let pending = orders.filter(o=>o.status=='PENDING').length;
+   let total = orders.length;
+   if(total>0){
+     badge.style.display='inline-block'; badge.innerText=total;
+     bell.style.display='block'; bell.innerText=pending>0?pending:total;
+   } else {
+     badge.style.display='none'; bell.style.display='none';
+   }
+   if(orders.length==0){ box.innerHTML='<p style="padding:12px;background:#FFF7ED;border-radius:10px;text-align:center;color:#666">No orders yet Boss! When buyer clicks Checkout, it will show here with SN- tracking ID.</p>'; return; }
    let html='';
    orders.forEach(o=>{
      html+=`<div class="order-card">
@@ -219,7 +199,7 @@ async function loadSellerOrders(){
          <b style="color:#FF6A00">${o.tracking_id}</b>
          <span class="order-badge ${o.status}">${o.status}</span>
        </div>
-       <div style="margin-top:8px;font-size:13px;line-height:1.5">
+       <div style="margin-top:8px;font-size:13px;line-height:1.6">
          👤 <b>${o.buyer_name}</b><br>
          📞 <a href="tel:${o.buyer_phone}" style="color:#00AA00;font-weight:800">${o.buyer_phone}</a> | ✉️ ${o.buyer_email}<br>
          📍 ${o.district}, ${o.address}<br>
@@ -260,63 +240,35 @@ async function saveRider(id){
  loadSellerOrders();
 }
 
-// ===== FIXED: FAST NOTIFICATIONS + SOUND =====
 async function checkNewOrders(){
  try{
-   // Check NEW notification system first (from my fixed sannlas_orders.py)
-   let r2 = await fetch(`/api/notifications/seller/count?email=${encodeURIComponent(myEmail)}`);
-   let n2 = await r2.json();
-   let notifUnread = n2.unread || 0;
-
-   // Also check pending orders
    let r = await fetch(`/api/orders/seller?shop_email=${encodeURIComponent(myEmail)}&shop_name=${encodeURIComponent(myShopName)}`);
    let res = await r.json();
    let pending = (res.orders||[]).filter(o=>o.status=='PENDING').length;
-   
-   let totalBadge = Math.max(pending, notifUnread);
    let badge = document.getElementById('orderCount');
-   let tabBadge = document.getElementById('tabOrderCount');
-   
-   if(totalBadge>0){
-     badge.style.display='block'; 
-     badge.innerText=totalBadge;
-     tabBadge.style.display='inline-block'; 
-     tabBadge.innerText=totalBadge;
-     
+   let myBadge = document.getElementById('myOrdersBadge');
+   if(pending>0){
+     badge.style.display='block'; badge.innerText=pending;
+     myBadge.style.display='inline-block'; myBadge.innerText=pending;
      let last = parseInt(localStorage.getItem('last_pending')||'0');
-     if(totalBadge > last){
-       // VIBRATE
+     if(pending > last){
        if(navigator.vibrate) navigator.vibrate([300,100,300]);
-       // SOUND
-       try {
-         let audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c8d5f6.mp3?filename=notification-101340.mp3');
-         audio.play().catch(()=>{});
-       } catch(e){}
-       // POPUP
-       if(confirm(`🔥 NEW ORDER! You have ${totalBadge} new order(s)! View now?`)){
-         showTab('orders');
+       try { let audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c8d5f6.mp3?filename=notification-101340.mp3'); audio.play().catch(()=>{}); } catch(e){}
+       if(confirm(`🔥 NEW ORDER! You have ${pending} new order(s)! View now?`)){
+         document.getElementById('ordersSection').scrollIntoView({behavior:'smooth'});
          loadSellerOrders();
-         // Mark notifications as read
-         fetch('/api/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myEmail})});
-         document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'});
        }
-       // Reload orders automatically
-       loadSellerOrders();
      }
    } else {
-     badge.style.display='none'; 
-     tabBadge.style.display='none';
+     badge.style.display='none';
+     if(myBadge) { myBadge.style.display = (res.orders||[]).length>0 ? 'inline-block' : 'none'; myBadge.innerText = (res.orders||[]).length; }
    }
-   localStorage.setItem('last_pending', totalBadge);
- }catch(e){ console.log(e) }
+   localStorage.setItem('last_pending', pending);
+ }catch(e){}
 }
-
-// Make it check every 10 seconds (faster) - not 30!
 setInterval(checkNewOrders, 10000);
-// Check immediately on load
 setTimeout(checkNewOrders, 2000);
 
-// Other functions
 function openEditPrice(id,price){ document.getElementById('editPriceId').value=id; document.getElementById('editPriceVal').value=price; document.getElementById('editPriceModal').style.display='flex'; }
 function openEditStock(id,stock){ document.getElementById('editStockId').value=id; document.getElementById('editStockVal').value=stock; document.getElementById('editStockModal').style.display='flex'; }
 function openSettings(){ document.getElementById('settingsModal').style.display='flex'; }
@@ -346,10 +298,7 @@ function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
 function shareTracking(id){
   let url = location.origin + '/track/' + id;
   navigator.clipboard.writeText(url);
-  alert('Tracking link copied: ' + url + '\nSend to buyer on WhatsApp!');
+  alert('Tracking link copied: ' + url);
 }
- 
 loadMyShop(1);
-// FAST: Check every 30 seconds, not 5! (Website loads faster)
-setInterval(checkNewOrders, 30000);
 </script></body></html>
