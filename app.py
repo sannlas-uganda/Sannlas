@@ -53,6 +53,9 @@ app.register_blueprint(orders_bp)
 from sannlas_products import products_bp
 app.register_blueprint(products_bp)
 
+from my_shop import my_shop_bp
+app.register_blueprint(my_shop_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
