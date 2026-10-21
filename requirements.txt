@@ -7,3 +7,4 @@ gunicorn
 Pillow==10.4.0
 requests
 cloudinary
+Flask-Compress
