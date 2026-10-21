@@ -223,3 +223,71 @@ async function load(){
 load();
 </script></body></html>
     """
+
+@orders_bp.route('/delivery')
+def delivery_dashboard():
+    return """
+<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><title>Delivery Dashboard - Sannlas</title>
+<style>body{font-family:Arial;background:#f0fdf4;margin:0;padding:12px} .card{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.08)} input{width:100%;padding:14px;border-radius:12px;border:2px solid #ddd;margin:6px 0} .btn{padding:12px;border:none;border-radius:12px;font-weight:900;width:100%;margin-top:8px;cursor:pointer}</style>
+</head><body>
+<h2 style="font-weight:900">🛵 Delivery Dashboard</h2>
+<div class="card">
+<input id="riderPhone" placeholder="Enter your phone number (rider phone)" style="font-size:16px">
+<button onclick="loadDelivery()" style="background:#000;color:#FFCC02" class="btn">🔍 My Assigned Orders</button>
+<input id="trackInput" placeholder="Or enter Tracking ID like SN-123456">
+<button onclick="trackSingle()" style="background:#fff;border:2px solid #000" class="btn">📦 Track Single Order</button>
+</div>
+<div id="list">Enter phone to see your deliveries</div>
+<script>
+async function loadDelivery(){
+  let phone = document.getElementById('riderPhone').value.trim();
+  if(!phone){ alert('Enter phone'); return; }
+  localStorage.setItem('rider_phone', phone);
+  let r = await fetch('/api/orders/delivery?phone='+encodeURIComponent(phone));
+  let res = await r.json();
+  render(res.orders);
+}
+async function trackSingle(){
+  let tid = document.getElementById('trackInput').value.trim().toUpperCase();
+  if(!tid){ alert('Enter Tracking ID'); return; }
+  let r = await fetch('/api/orders/track/'+tid);
+  let res = await r.json();
+  if(!res.success){ document.getElementById('list').innerHTML='<p>Not found</p>'; return; }
+  render([res.order]);
+}
+function render(orders){
+  if(orders.length==0){ document.getElementById('list').innerHTML='<p>No orders assigned to you yet</p>'; return; }
+  let html='';
+  orders.forEach(o=>{
+    html+=`<div class="card">
+      <div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">${o.tracking_id}</b><span style="background:#FF6A00;color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800">${o.status}</span></div>
+      <div style="margin-top:8px;font-size:14px;line-height:1.6">👤 Buyer: <b>${o.buyer_name}</b><br>📞 <a href="tel:${o.buyer_phone}" style="color:#00AA00;font-weight:800">${o.buyer_phone}</a><br>📍 <b>${o.full_address}</b><br>🏪 Shop: ${o.shop_name}<br>💰 UGX ${Number(o.total).toLocaleString()}<br><small>${new Date(o.created_at).toLocaleString()}</small></div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="updateStatus('${o.tracking_id}','SHIPPED')" style="background:#FEF3C7;padding:8px 12px;border-radius:10px;border:none;font-weight:700">🚚 Picked Up</button><button onclick="updateStatus('${o.tracking_id}','DELIVERED')" style="background:#D1FAE5;padding:8px 12px;border-radius:10px;border:none;font-weight:700">✅ Delivered</button><a href="https://wa.me/${o.buyer_phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hello! I am your delivery rider for order '+o.tracking_id+'. I am on my way to '+o.full_address)}" target="_blank" style="background:#25D366;color:white;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700">💬 WhatsApp Buyer</a><a href="tel:${o.buyer_phone}" style="background:#000;color:#FFCC02;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700">📞 Call Buyer</a></div><button onclick="location.href='/track/${o.tracking_id}'" style="margin-top:8px;background:#fff;border:2px solid #000;width:100%" class="btn">🔍 View Tracking Page</button></div>`;
+  });
+  document.getElementById('list').innerHTML=html;
+}
+async function updateStatus(id,status){
+  if(!confirm('Mark as '+status+'?')) return;
+  await fetch('/api/orders/seller/'+id+'/status', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:status})});
+  let phone = localStorage.getItem('rider_phone');
+  if(phone) loadDelivery(); else trackSingle();
+}
+let saved = localStorage.getItem('rider_phone');
+if(saved) document.getElementById('riderPhone').value=saved;
+</script></body></html>
+    """
+
+@orders_bp.route('/api/orders/delivery')
+def delivery_orders():
+    phone = request.args.get('phone','').strip()
+    if not phone:
+        return jsonify({"orders": []})
+    orders = get_orders()
+    filtered = []
+    for o in orders:
+        rp = o.get('delivery_man_phone','').replace(' ','').replace('+','')
+        p = phone.replace(' ','').replace('+','')
+        if rp and (rp==p or rp.endswith(p[-9:]) or p.endswith(rp[-9:])):
+            filtered.append(o)
+    filtered.sort(key=lambda x: x.get('timestamp',0), reverse=True)
+    return jsonify({"orders": filtered})
