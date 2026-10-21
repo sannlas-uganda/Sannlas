@@ -187,3 +187,33 @@ def api_clear():
             break
     save_carts(carts)
     return jsonify({"success": True})
+
+@cart_bp.route('/api/cart/update', methods=['POST'])
+def api_update_qty():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').lower().strip()
+    phone = (data.get('phone') or '').strip()
+    product_id = str(data.get('product_id') or '')
+    change = int(data.get('change', 0))  # +1 or -1
+
+    if not email and not phone:
+        return jsonify({"success": False, "message": "Login required"}), 401
+
+    carts = get_carts()
+    for uc in carts:
+        c_email = (uc.get('email') or '').lower().strip()
+        c_phone = (uc.get('phone') or '').strip()
+        if (email and c_email == email) or (phone and c_phone == phone and phone != ''):
+            # find item
+            for item in uc['items']:
+                if str(item.get('product_id')) == product_id:
+                    new_qty = int(item.get('qty',1)) + change
+                    if new_qty <= 0:
+                        uc['items'] = [i for i in uc['items'] if str(i.get('product_id')) != product_id]
+                    else:
+                        item['qty'] = new_qty
+                    break
+            break
+
+    save_carts(carts)
+    return jsonify({"success": True, "message": f"Updated to {new_qty if new_qty>0 else 'removed'}"})
