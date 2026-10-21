@@ -37,64 +37,119 @@ def get_product_owner(product_id):
     return "", ""
 
 @orders_bp.route('/api/orders/create', methods=['POST'])
+@orders_bp.route('/api/orders/place', methods=['POST'])  # <-- ADDED ALIAS for your frontend!
 def create_orders():
-    data = request.get_json()
-    email = data.get('email','').lower().strip()
-    buyer_name = data.get('buyer_name','').strip()
-    buyer_phone = data.get('buyer_phone','').strip()
-    district = data.get('district','').strip()
-    address = data.get('address','').strip()
-    if not email or not buyer_name or not buyer_phone:
-        return jsonify({"success": False, "message": "Name & Phone required"}), 400
-    carts = get_carts()
-    user_carts = [c for c in carts if (c.get('email','').lower()==email) or (c.get('phone','')==buyer_phone)]
-    if not user_carts:
-        return jsonify({"success": False, "message": "Cart empty"}), 400
-    from collections import defaultdict
-    shops = defaultdict(list)
-    for item in user_carts:
-        product_id = item.get('product_id') or item.get('id') or item.get('_id')
-        owner_email, shop_from_product = get_product_owner(product_id)
-        final_seller = owner_email or item.get('shop_email') or item.get('seller_email') or ''
-        final_shop = shop_from_product or item.get('shop_name') or 'Sannlas'
-        item['real_seller_email'] = final_seller
-        item['real_shop_name'] = final_shop
-        item['real_product_id'] = product_id
-        shops[final_seller or final_shop].append(item)
-        print(f"PRODUCT {product_id} -> SELLER {final_seller}")
-    orders = get_orders()
-    created = []
-    for shop_key, items in shops.items():
-        tid = gen_tracking_id()
-        total = sum([float(i.get('price',0)) * int(i.get('qty',1)) for i in items])
-        order = {
-            "order_id": tid,
-            "tracking_id": tid,
-            "buyer_email": email,
-            "buyer_name": buyer_name,
-            "buyer_phone": buyer_phone,
-            "district": district,
-            "address": address,
-            "full_address": f"{district}, {address}",
-            "shop_key": shop_key,
-            "shop_name": items[0].get('real_shop_name','Sannlas'),
-            "shop_email": items[0].get('real_seller_email',''),
-            "seller_email": items[0].get('real_seller_email',''),
-            "shop_owner_email": items[0].get('real_seller_email',''),
-            "items": items,
-            "total": total,
-            "status": "PENDING",
-            "delivery_man_name": "",
-            "delivery_man_phone": "",
-            "created_at": datetime.now().isoformat(),
-            "timestamp": int(time.time())
-        }
-        orders.append(order)
-        created.append(order)
-    save_orders(orders)
-    remaining = [c for c in carts if not ((c.get('email','').lower()==email) or (c.get('phone','')==buyer_phone))]
-    save_carts(remaining)
-    return jsonify({"success": True, "orders": created})
+    try:
+        data = request.get_json() or {}
+        email = (data.get('email') or data.get('buyer_email') or '').lower().strip()
+        buyer_name = data.get('buyer_name','').strip()
+        buyer_phone = data.get('buyer_phone','').strip()
+        district = data.get('district','').strip()
+        address = data.get('address','').strip()
+        full_address = data.get('full_address') or f"{district}, {address}"
+        
+        if not email or not buyer_name or not buyer_phone:
+            return jsonify({"success": False, "message": "Name & Phone required"}), 400
+        
+        # Get carts - SAFE
+        try:
+            carts = get_carts()
+        except:
+            carts = []
+            
+        # Support both: cart system OR direct items from frontend
+        direct_items = data.get('items', [])
+        
+        if direct_items:
+            # Frontend sends items directly (your screenshot does this)
+            user_carts = direct_items
+        else:
+            # Old cart system
+            user_carts = [c for c in carts if (c.get('email','').lower()==email) or (c.get('phone','')==buyer_phone) or (c.get('email','').lower()==email.lower())]
+        
+        if not user_carts:
+            return jsonify({"success": False, "message": "Cart empty"}), 400
+            
+        from collections import defaultdict
+        shops = defaultdict(list)
+        
+        for item in user_carts:
+            try:
+                product_id = item.get('product_id') or item.get('id') or item.get('_id') or item.get('productId')
+                owner_email, shop_from_product = get_product_owner(product_id) if product_id else ("","")
+                
+                final_seller = (owner_email or item.get('shop_email') or item.get('seller_email') or item.get('shop_owner_email') or '').lower().strip()
+                final_shop = shop_from_product or item.get('shop_name') or item.get('real_shop_name') or 'Sannlas'
+                
+                # If still empty, use fallback so order never fails
+                if not final_seller:
+                    final_seller = "admin@sannlas.com"
+                
+                item['real_seller_email'] = final_seller
+                item['real_shop_name'] = final_shop
+                item['real_product_id'] = product_id
+                
+                shops[final_seller].append(item)
+                print(f"PRODUCT {product_id} -> SELLER {final_seller}")
+            except Exception as e:
+                print(f"Item error: {e}, item: {item}")
+                # Put in admin shop so order still created
+                item['real_seller_email'] = "admin@sannlas.com"
+                item['real_shop_name'] = "Sannlas"
+                shops["admin@sannlas.com"].append(item)
+
+        orders = get_orders()
+        created = []
+        for shop_key, items in shops.items():
+            tid = gen_tracking_id()
+            # Ensure unique
+            while any(o.get('tracking_id')==tid for o in orders):
+                tid = gen_tracking_id()
+                
+            total = sum([float(i.get('price',0)) * int(i.get('qty',1) or 1) for i in items])
+            order = {
+                "order_id": tid,
+                "tracking_id": tid,
+                "buyer_email": email,
+                "buyer_name": buyer_name,
+                "buyer_phone": buyer_phone,
+                "district": district,
+                "address": address,
+                "full_address": full_address,
+                "shop_key": shop_key,
+                "shop_name": items[0].get('real_shop_name','Sannlas'),
+                "shop_email": items[0].get('real_seller_email',''),
+                "seller_email": items[0].get('real_seller_email',''),
+                "shop_owner_email": items[0].get('real_seller_email',''),
+                "items": items,
+                "total": total,
+                "status": "PENDING",
+                "delivery_man_name": "",
+                "delivery_man_phone": "",
+                "created_at": datetime.now().isoformat(),
+                "timestamp": int(time.time())
+            }
+            orders.append(order)
+            created.append(order)
+            
+        save_orders(orders)
+        
+        # Clear cart only if using cart system
+        if not direct_items:
+            try:
+                remaining = [c for c in carts if not ((c.get('email','').lower()==email) or (c.get('phone','')==buyer_phone))]
+                save_carts(remaining)
+            except:
+                pass
+                
+        return jsonify({"success": True, "orders": created, "tracking_ids": [o['tracking_id'] for o in created]})
+        
+    except Exception as e:
+        import traceback
+        print(f"CREATE ORDER CRASH: {e}")
+        traceback.print_exc()
+        # ALWAYS return JSON, never HTML!
+        return jsonify({"success": False, "message": str(e), "error": str(e)}), 500
 
 @orders_bp.route('/api/orders/my', methods=['GET'])
 def my_orders():
