@@ -184,8 +184,12 @@ def track_page(tracking_id):
 
 @orders_bp.route('/my-orders')
 def my_orders_page():
-    return render_template_string(MY_ORDERS_HTML)
-
+    try:
+        from flask import render_template
+        return render_template('my-orders.html')
+    except:
+        return render_template_string(MY_ORDERS_HTML)
+        
 @orders_bp.route('/delivery')
 def delivery_dashboard():
     return render_template_string(DELIVERY_HTML)
