@@ -133,7 +133,7 @@ def upload_reel():
         conn = get_conn(); cur = conn.cursor()
         ensure_reels_table()
         
-               cur.execute("""
+        cur.execute("""
             INSERT INTO sannlas_reels 
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id) 
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
