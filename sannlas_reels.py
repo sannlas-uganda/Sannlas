@@ -136,7 +136,7 @@ def upload_reel():
         cur.execute("""
             INSERT INTO sannlas_reels 
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id) 
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id))
         conn.commit(); cur.close(); conn.close()
