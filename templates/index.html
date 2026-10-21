@@ -1612,10 +1612,87 @@ async function unlockChatAndOpenWhatsApp(shopSlug, sellerPhone, productName) {
         alert('Server error: '+err.message);
     }
 }
-function addCart(id){let p=allProducts.find(x=>x.id==id);if(!p)return;let exist=cart.find(x=>x.id==id);if(exist){exist.qty=(exist.qty||1)+1;}else{cart.push({...p,qty:1});}let c=cart.reduce((s,i)=>s+(i.qty||1),0);let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 ${c}`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 ${c}`;}function openCart(){if(cart.length==0){alert('Cart empty Boss!');return;}let total=cart.reduce((s,i)=>s+Number(i.price)*(i.qty||1),0);let totalQty=cart.reduce((s,i)=>s+(i.qty||1),0);let html=`<h3 style="font-weight:800">🛒 My Cart - ${totalQty} items</h3>`;cart.forEach(it=>{let sub=Number(it.price)*(it.qty||1);html+=`<div style="display:flex;gap:8px;border-bottom:1px solid #eee;padding:10px 0;align-items:center"><img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:10px"><div style="flex:1"><b style="font-size:12px">${it.name}</b><br><small>UGX ${Number(it.price).toLocaleString()} x ${it.qty||1}</small><br><b>UGX ${sub.toLocaleString()}</b><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button onclick="changeQty('${it.id}',-1)" style="background:#000;color:#FFCC02;border:none;width:30px;height:30px;border-radius:50%;font-weight:900">-</button><span style="background:#FFCC02;color:#000;padding:4px 12px;border-radius:10px;font-weight:900">${it.qty||1}</span><button onclick="changeQty('${it.id}',1)" style="background:#000;color:#FFCC02;border:none;width:30px;height:30px;border-radius:50%;font-weight:900">+</button></div></div><button onclick="removeCart('${it.id}')" style="background:#ff0000;color:white;border:none;padding:6px 10px;border-radius:8px">🗑️</button></div>`;});html+=`<div style="background:#000;color:#FFCC02;padding:12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:900">TOTAL: UGX ${total.toLocaleString()} (${totalQty} items)</div><div style="background:#f8f9fb;padding:10px;border-radius:10px;border:1px solid #eee"><input id="buyerName" placeholder="Your Name" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ddd"><input id="buyerPhone" placeholder="Phone 07..." style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:2px solid #00FF00"><input id="buyerDistrict" placeholder="District" style="width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ddd"></div><button style="width:100%;padding:14px;background:#000;color:#FFCC02;border:none;border-radius:12px;font-weight:900" onclick="doCheckout()">✅ Checkout - Seller Will Call</button><button onclick="closePop('cartPop')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:8px">Continue Shopping</button>`;document.getElementById('cartContent').innerHTML=html;document.getElementById('cartPop').style.display='flex';}
-function changeQty(id,delta){let item=cart.find(x=>x.id==id);if(!item)return;item.qty=(item.qty||1)+delta;if(item.qty<1){cart=cart.filter(x=>x.id!=id);}let c=cart.reduce((s,i)=>s+(i.qty||1),0);let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 ${c}`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 ${c}`;if(cart.length==0){closePop('cartPop');}else{openCart();}}
-function removeCart(id){cart=cart.filter(x=>x.id!=id);let c=cart.reduce((s,i)=>s+(i.qty||1),0);let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 ${c}`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 ${c}`;if(cart.length==0){closePop('cartPop');}else{openCart();}}
-async function doCheckout(){let buyerName=document.getElementById('buyerName')?.value.trim();let buyerPhone=document.getElementById('buyerPhone')?.value.trim();let buyerDistrict=document.getElementById('buyerDistrict')?.value.trim()||'Kampala';if(!buyerName||!buyerPhone){alert('Enter Name & Phone Boss!');return;}let payload={buyer:{name:buyerName,phone:buyerPhone,district:buyerDistrict,email:currentUser?.email||''},items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty||1,image:i.image}))};let r=await fetch('/api/orders/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});let d=await r.json();if(d.success){cart=[];let b=document.getElementById('cartN'); if(b) b.innerText=`🛒 0`;let t=document.getElementById('cartNTop'); if(t) t.innerText=`🛒 0`;closePop('cartPop');alert('🎉 Order Sent! Seller will call you on '+buyerPhone);}else{alert(d.message);}}
+// ===== FIXED CART SYSTEM - SERVER CART =====
+function getUserForCart(){
+  try{
+    let u = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+    if(u.email) return u;
+    let email = localStorage.getItem('sannlas_email')||localStorage.getItem('email')||'';
+    let phone = localStorage.getItem('sannlas_phone')||localStorage.getItem('phone')||'';
+    return {email: email, phone: phone};
+  }catch(e){ return {email:'', phone:''}; }
+}
+
+async function updateCartCount(){
+  let user = getUserForCart();
+  let email = (user.email||'').toLowerCase().trim();
+  let phone = (user.phone||'').trim();
+  let count = 0;
+  if(email || phone){
+    try{
+      let r = await fetch(`/api/cart?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
+      let data = await r.json();
+      count = data.count || 0;
+    }catch(e){}
+  }
+  let elTop = document.getElementById('cartCountTop');
+  if(elTop) elTop.innerText = count;
+  let elTop2 = document.getElementById('cartCountTop2');
+  if(elTop2) elTop2.innerText = count;
+}
+
+async function addCart(id){
+  let p = allProducts.find(x=>x.id==id) || products.find(x=>x.id==id);
+  if(!p){ alert('Product not found'); return; }
+  let user = getUserForCart();
+  let email = (user.email||'').toLowerCase().trim();
+  let phone = (user.phone||'').trim();
+  if(!email && !phone){
+    alert('⚠️ Please login first Boss!');
+    showGate(); switchGate('login');
+    return;
+  }
+  try{
+    let r = await fetch('/api/cart/add',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email: email,
+        phone: phone,
+        product_id: String(p.id),
+        name: p.name,
+        price: Number(p.price||0),
+        image: p.image,
+        shop_name: p.business||'SANNLAS',
+        shop_slug: p.shop_slug||'',
+        qty: 1
+      })
+    });
+    let res = await r.json();
+    if(res.success){
+      alert('✅ '+res.message);
+      updateCartCount();
+    }else{
+      alert('❌ '+res.message);
+    }
+  }catch(e){
+    alert('Network error: '+e.message);
+  }
+}
+
+function openCart(){
+  let user = getUserForCart();
+  if(!user.email && !user.phone){
+    alert('Please login first Boss!');
+    showGate(); switchGate('login');
+    return;
+  }
+  window.location.href = '/cart';
+}
+
+function changeQty(id,delta){}
+function removeCart(id){}
+async function doCheckout(){ window.location.href='/cart'; }
 function applyPromote(pid,comm){let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}if(!u||!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{let link=d.link||d.promo_link||`https://sannlas.onrender.com/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;document.getElementById('promoLinkInput').value=link;document.getElementById('promoModal').style.display='flex';}).catch(e=>alert('Error: '+e.message));}
 function copyPromoLink(){let v=document.getElementById('promoLinkInput').value;navigator.clipboard.writeText(v).then(()=>{let m=document.getElementById('promoCopyMsg');m.style.display='block';m.innerText='✅ Copied! Now go sell Boss! 💰';setTimeout(()=>m.style.display='none',3000);});}
 function closePromoModal(){document.getElementById('promoModal').style.display='none';}
@@ -1661,6 +1738,8 @@ loadCoinLive();
 setInterval(async()=>{
   try{
     await loadCoinLive();
+    updateCartCount();
+setInterval(()=>{ updateCartCount(); }, 5000);
   }catch(e){}
 },120000); // 2 mins
   
