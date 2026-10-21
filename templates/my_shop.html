@@ -318,5 +318,6 @@ function shareTracking(id){
 }
  
 loadMyShop(1);
-setInterval(checkNewOrders, 5000);
+// FAST: Check every 30 seconds, not 5! (Website loads faster)
+setInterval(checkNewOrders, 30000);
 </script></body></html>
