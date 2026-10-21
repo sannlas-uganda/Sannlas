@@ -1758,55 +1758,6 @@ def list_shops():
         except:
             return jsonify([])
         
-@app.route('/api/shop/upload-logo', methods=['POST'])
-def upload_shop_logo():
-    try:
-        email = request.form.get('email','').lower().strip()
-        phone = request.form.get('phone','').strip()
-        shop_slug = request.form.get('shop_slug','').strip()
-        f = request.files.get('logo')
-        if not f:
-            return jsonify({"success":False,"message":"No file Boss!"}),400
-        result = cloudinary.uploader.upload(f, folder="sannlas/shops", transformation=[{'width':400,'height':400,'crop':'fill','quality':'auto'}])
-        logo_url = result['secure_url']
-        shops = load_db('shops.json', [])
-        found=False
-        for s in shops:
-            if (shop_slug and s.get('shop_slug')==shop_slug) or (email and s.get('owner_email','').lower()==email) or (phone and s.get('owner_phone')==phone):
-                s['logo'] = logo_url
-                s['logo_updated'] = time.time()
-                found=True
-                break
-        if not found:
-            return jsonify({"success":False,"message":"Shop not found"}),404
-        save_db('shops.json', shops)
-        return jsonify({"success":True,"logo":logo_url})
-    except Exception as e:
-        print("upload logo error:", e)
-        return jsonify({"success":False,"message":str(e)}),500
-
-# ============================================================
-# 🏪 MY SHOP - 6 FEATURES - AUTO CONNECTED - NEW SYSTEM
-# ============================================================
-@app.route('/my-shop')
-def my_shop_page():
-    return render_template('my_shop.html')
-
-@app.route('/api/my-shop')
-def api_my_shop():
-    email = request.args.get('email','').lower().strip()
-    page = int(request.args.get('page','1'))
-    limit = 10
-    offset = (page-1)*limit
-
-    if not email:
-        return jsonify({'success':False,'message':'Email required'}),400
-
-    users = load_db('users.json', [])
-    user = next((u for u in users if str(u.get('email','')).lower()==email), None)
-    if not user:
-        return jsonify({'success':False,'message':'User not found'}),404
-
     shops = load_db('shops.json', [])
     shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
     if not shop:
@@ -1874,71 +1825,6 @@ def api_my_shop():
         'has_more': has_more,
         'page': page
     })
-    
-@app.route('/api/my-shop/update-price', methods=['POST'])
-def my_shop_update_price():
-    data=request.json or {}
-    pid=str(data.get('id','')); price=int(data.get('price',0)); email=data.get('email','').lower()
-    products=load_db('products.json',[])
-    for p in products:
-        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
-            p['price']=price
-            save_db('products.json',products)
-            return jsonify({'success':True})
-    return jsonify({'success':False,'message':'Not your product'}),403
-
-@app.route('/api/my-shop/update-stock', methods=['POST'])
-def my_shop_update_stock():
-    data=request.json or {}
-    pid=str(data.get('id','')); stock=int(data.get('stock',0)); email=data.get('email','').lower()
-    products=load_db('products.json',[])
-    for p in products:
-        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
-            p['stock']=stock
-            save_db('products.json',products)
-            return jsonify({'success':True})
-    return jsonify({'success':False,'message':'Not your product'}),403
-
-@app.route('/api/my-shop/toggle-hide', methods=['POST'])
-def my_shop_toggle_hide():
-    data=request.json or {}
-    pid=str(data.get('id','')); hidden=bool(data.get('hidden',False)); email=data.get('email','').lower()
-    products=load_db('products.json',[])
-    for p in products:
-        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
-            p['is_hidden']=hidden
-            save_db('products.json',products)
-            return jsonify({'success':True})
-    return jsonify({'success':False}),403
-
-@app.route('/api/my-shop/delete', methods=['POST'])
-def my_shop_delete():
-    data=request.json or {}
-    pid=str(data.get('id','')); email=data.get('email','').lower()
-    products=load_db('products.json',[])
-    new_products=[p for p in products if not (str(p['id'])==pid and str(p.get('seller_email','')).lower()==email)]
-    if len(new_products)!=len(products):
-        save_db('products.json',new_products)
-        return jsonify({'success':True})
-    return jsonify({'success':False,'message':'Not found'}),404
-
-@app.route('/api/my-shop/update-settings', methods=['POST'])
-def my_shop_update_settings():
-    data=request.json or {}
-    email=data.get('email','').lower()
-    shops=load_db('shops.json',[])
-    for s in shops:
-        if str(s.get('owner_email','')).lower()==email:
-            s['business_name']=data.get('business_name',s.get('business_name'))
-            s['location']=data.get('location',s.get('location'))
-            s['phone']=data.get('phone',s.get('phone'))
-            s['delivery_info']=data.get('delivery_info',s.get('delivery_info'))
-            s['working_hours']=data.get('working_hours',s.get('working_hours'))
-            s['payment']=data.get('payment',s.get('payment'))
-            s['description']=data.get('description',s.get('description'))
-            save_db('shops.json',shops)
-            return jsonify({'success':True})
-    return jsonify({'success':False,'message':'Shop not found'}),404
     
     # ============ CHAT UNLOCK 1 COIN SYSTEM - OPTION A ============
 def get_chat_unlocks():
