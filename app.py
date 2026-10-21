@@ -47,6 +47,9 @@ app.register_blueprint(reels_bp)
 from sannlas_cart import cart_bp
 app.register_blueprint(cart_bp)
 
+from sannlas_orders import orders_bp
+app.register_blueprint(orders_bp)
+
 @app.route('/products')
 def products_page():
     return render_template('products.html')
