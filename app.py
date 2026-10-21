@@ -56,6 +56,9 @@ app.register_blueprint(products_bp)
 from my_shop import my_shop_bp
 app.register_blueprint(my_shop_bp)
 
+from admin import admin_bp
+app.register_blueprint(admin_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
