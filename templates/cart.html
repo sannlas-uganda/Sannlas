@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Cart - SANNLAS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#E9EFF7;font-family:system-ui;padding-bottom:90px}
+.header{padding:14px 16px;background:white;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.cart-wrap{max-width:800px;margin:12px auto;padding:0 12px}
+.cart-item{background:white;border-radius:16px;padding:12px;margin-bottom:12px;display:flex;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1.5px solid #e2e8f0}
+.cart-item img{width:90px;height:90px;object-fit:cover;border-radius:12px;background:#f6f7f8}
+.c-info{flex:1}
+.c-name{font-weight:800;font-size:14px;margin-bottom:4px}
+.c-shop{font-size:11px;color:#666;margin-bottom:6px}
+.c-price{color:#FF6600;font-weight:900;font-size:15px}
+.c-actions{display:flex;gap:8px;margin-top:8px}
+.btn-small{border:none;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer}
+.btn-red{background:#FFE5E5;color:#FF0000}
+.btn-black{background:#000;color:#FFCC02}
+.empty{background:white;border-radius:20px;padding:40px 20px;text-align:center;margin-top:20px}
+.total-box{background:white;border-radius:20px;padding:16px;margin-top:16px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.btn{border:none;padding:14px 18px;border-radius:20px;font-weight:900;cursor:pointer;width:100%;font-size:15px}
+.btn-orange{background:#FF6600;color:white}
+.btn-outline{background:#f0f0f0;color:#333;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/products" style="text-decoration:none;color:black;font-weight:900;">← Products</a>
+  <b>🛒 YOUR CART</b>
+  <a href="/" style="text-decoration:none">🏠</a>
+</div>
+
+<div class="cart-wrap">
+  <div id="cartList">Loading your cart Boss...</div>
+  <div id="totalBox" style="display:none"></div>
+</div>
+
+<script>
+function getUser(){
+  try {
+    let u = JSON.parse(localStorage.getItem('sannlas_user')|| localStorage.getItem('user') || '{}');
+    if(u.email) return u;
+    let email = localStorage.getItem('sannlas_email') || localStorage.getItem('email') || '';
+    let phone = localStorage.getItem('sannlas_phone') || localStorage.getItem('phone') || '';
+    return {email: email, phone: phone};
+  } catch(e){ return {email:'', phone:''}; }
+}
+
+async function loadCart(){
+  let user = getUser();
+  let email = (user.email||'').toLowerCase().trim();
+  let phone = (user.phone||'').trim();
+  
+  if(!email && !phone){
+    document.getElementById('cartList').innerHTML = `
+      <div class="empty">
+        <div style="font-size:50px">🔒</div>
+        <h3>Please Login Boss!</h3>
+        <p style="color:#666;margin:10px 0">You need to login to see your cart</p>
+        <button class="btn btn-black" onclick="window.location.href='/'">Go Login</button>
+      </div>`;
+    return;
+  }
+
+  try {
+    let r = await fetch(`/api/cart?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
+    let data = await r.json();
+    console.log('Cart data:', data);
+    
+    if(!data.items || data.items.length==0){
+      document.getElementById('cartList').innerHTML = `
+        <div class="empty">
+          <div style="font-size:50px">🛒</div>
+          <h3>Cart is Empty</h3>
+          <p style="color:#666;margin:10px 0">Add some products first Boss!</p>
+          <button class="btn btn-black" onclick="window.location.href='/products'">Browse Products</button>
+        </div>`;
+      document.getElementById('totalBox').style.display='none';
+      return;
+    }
+
+    let html = data.items.map(item=>`
+      <div class="cart-item">
+        <img src="${item.image || '/icon-192.png'}" onerror="this.src='/icon-192.png'">
+        <div class="c-info">
+          <div class="c-name">${item.name||'Product'}</div>
+          <div class="c-shop">🏪 ${item.shop_name||'SANNLAS'} • Qty: ${item.qty||1}</div>
+          <div class="c-price">UGX ${Number(item.price).toLocaleString()} x ${item.qty||1} = UGX ${Number(item.price * (item.qty||1)).toLocaleString()}</div>
+          <div class="c-actions">
+            <button class="btn-small btn-red" onclick="removeItem('${item.product_id}')">🗑️ Remove</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('cartList').innerHTML = html;
+    
+    document.getElementById('totalBox').style.display='block';
+    document.getElementById('totalBox').innerHTML = `
+      <div class="total-box">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span>Items (${data.count})</span>
+          <b>UGX ${Number(data.total).toLocaleString()}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:18px">
+          <b>Total</b>
+          <b style="color:#FF6600">UGX ${Number(data.total).toLocaleString()}</b>
+        </div>
+        <button class="btn btn-orange" onclick="checkout()">💬 Order All via WhatsApp</button>
+        <button class="btn btn-outline" onclick="clearCart()">🗑️ Clear Cart</button>
+        <button class="btn btn-outline" onclick="window.location.href='/products'">← Continue Shopping</button>
+      </div>
+    `;
+
+  } catch(e){
+    console.log(e);
+    document.getElementById('cartList').innerHTML = `<div class="empty"><h3>Error loading cart</h3><p>${e.message}</p></div>`;
+  }
+}
+
+async function removeItem(product_id){
+  if(!confirm('Remove this item Boss?')) return;
+  let user = getUser();
+  let r = await fetch('/api/cart/remove', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email: user.email, phone: user.phone, product_id: product_id})
+  });
+  loadCart();
+}
+
+async function clearCart(){
+  if(!confirm('Clear all cart Boss?')) return;
+  let user = getUser();
+  let r = await fetch('/api/cart/clear', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email: user.email, phone: user.phone})
+  });
+  loadCart();
+}
+
+function checkout(){
+  let user = getUser();
+  fetch(`/api/cart?email=${encodeURIComponent(user.email)}&phone=${encodeURIComponent(user.phone)}`)
+  .then(r=>r.json()).then(data=>{
+    if(!data.items.length) return;
+    let msg = `Hi Boss! I want to order from SANNLAS CART:\n\n`;
+    data.items.forEach((item,i)=>{
+      msg += `${i+1}. ${item.name} - UGX ${Number(item.price).toLocaleString()} x ${item.qty} = UGX ${Number(item.price*item.qty).toLocaleString()}\n`;
+    });
+    msg += `\nTOTAL: UGX ${Number(data.total).toLocaleString()}\n\nMy email: ${user.email}\nPlease confirm Boss!`;
+    window.open(`https://wa.me/256795712326?text=${encodeURIComponent(msg)}`,'_blank');
+  });
+}
+
+loadCart();
+</script>
+</body>
+</html>
