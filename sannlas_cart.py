@@ -81,9 +81,31 @@ def save_db(file, data):
     os.makedirs('data', exist_ok=True)
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
-def get_carts(): return load_db('carts.json', [])
-def save_carts(c): save_db('carts.json', c)
+# === SPEED CACHE - ADDED FOR FAST CART ===
+_cache = {}
+_cache_time = {}
 
+def cached_load(key, default, ttl=15):
+    import time as _time
+    now = _time.time()
+    if key in _cache and (now - _cache_time.get(key,0) < ttl):
+        return _cache[key]
+    data = load_db(key, default)
+    _cache[key] = data
+    _cache_time[key] = now
+    return data
+
+def cached_save(key, data):
+    import time as _time
+    _cache[key] = data
+    _cache_time[key] = _time.time()
+    save_db(key, data)
+
+def get_carts(): 
+    return cached_load('carts.json', [], ttl=10)
+
+def save_carts(c): 
+    cached_save('carts.json', c)
 @cart_bp.route('/cart')
 def cart_page():
     return render_template('cart.html')
