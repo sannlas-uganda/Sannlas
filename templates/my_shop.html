@@ -239,6 +239,9 @@ async function loadSellerOrders(){
          <input id="rn-${o.tracking_id}" placeholder="Rider Name" style="padding:8px;border-radius:8px;border:1px solid #ddd;width:48%"><input id="rp-${o.tracking_id}" placeholder="Rider Phone" style="padding:8px;border-radius:8px;border:1px solid #ddd;width:48%;margin-left:2%">
          <button onclick="saveRider('${o.tracking_id}')" style="margin-top:6px;width:100%;padding:10px;background:#000;color:#FFCC02;border:none;border-radius:10px;font-weight:800">Save Rider & Ship</button>
        </div>
+       <button onclick="shareTracking('${o.tracking_id}')" class="btn" style="background:#000;color:#FFCC02;width:100%;margin-top:8px">🔗 Copy Tracking Link</button>
+       <button onclick="window.open('https://wa.me/'+'${o.buyer_phone}'.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent('Hello ${o.buyer_name}! Your order ${o.tracking_id} is ${o.status}! Track: '+location.origin+'/track/${o.tracking_id}'), '_blank')" class="btn" style="background:#25D366;color:#fff;width:100%;margin-top:6px">💬 WhatsApp Buyer</button>
+       <button onclick="location.href='/track/${o.tracking_id}'" class="btn" style="background:#fff;border:2px solid #000;width:100%;margin-top:6px">👁️ View Tracking Page</button>
      </div>`;
    });
    box.innerHTML=html;
@@ -308,7 +311,12 @@ async function saveSettings(){
 }
 function shareShop(){ let url=location.origin+'/shop/'+myShopSlug; navigator.clipboard.writeText(url); alert('Link copied: '+url); }
 function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
-
+function shareTracking(id){
+  let url = location.origin + '/track/' + id;
+  navigator.clipboard.writeText(url);
+  alert('Tracking link copied: ' + url + '\nSend to buyer on WhatsApp!');
+}
+ 
 loadMyShop(1);
 setInterval(checkNewOrders, 5000);
 </script></body></html>
