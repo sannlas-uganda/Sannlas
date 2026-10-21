@@ -6,19 +6,30 @@
 <style>
 body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px;padding-bottom:80px}
 .order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:4px solid #FF6600}
-.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;color:white}
+.badge{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:900;color:white}
 .PENDING{background:#F59E0B} .CONFIRMED{background:#3B82F6} .PACKED{background:#8B5CF6} .SHIPPED{background:#FF6A00} .DELIVERED{background:#10B981}
-.btn{padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900;width:100%;margin-top:8px;cursor:pointer}
+.btn{padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900;width:100%;margin-top:8px;cursor:pointer;font-size:13px}
 .btn-outline{background:#fff;border:2px solid #000;color:#000}
+.btn-green{background:#25D366;color:#fff}
 .header{position:sticky;top:0;background:#f5f5f5;padding:10px 0;z-index:10;display:flex;justify-content:space-between;align-items:center}
+.timeline{display:flex;gap:0;margin:12px 0;overflow-x:auto;padding:5px}
+.step{flex:1;text-align:center;font-size:10px;position:relative;padding-top:25px;min-width:50px}
+.step::before{content:'';position:absolute;top:8px;left:50%;width:12px;height:12px;background:#ddd;border-radius:50%;transform:translateX(-50%)}
+.step.active::before{background:#FF6A00} .step.done::before{background:#10B981}
+.step::after{content:'';position:absolute;top:13px;left:0;width:100%;height:2px;background:#ddd;z-index:-1}
+.step:first-child::after{left:50%} .step:last-child::after{right:50%;left:auto;width:50%}
 </style>
 </head>
 <body>
 <div class="header">
   <h2 style="font-weight:900;margin:0">📦 My Orders</h2>
-  <button onclick="location.href='/products'" style="padding:8px 12px;border-radius:20px;border:none;background:#000;color:#FFCC02;font-weight:800">🛒 Shop</button>
+  <div style="display:flex;gap:6px">
+    <button onclick="location.href='/my-shop'" style="padding:8px 12px;border-radius:20px;border:none;background:#FFCC02;color:#000;font-weight:800">🏪 My Shop</button>
+    <button onclick="location.href='/'" style="padding:8px 12px;border-radius:20px;border:none;background:#000;color:#FFCC02;font-weight:800">🏠 Home</button>
+  </div>
 </div>
-<div id="emailShow" style="font-size:12px;color:#666;margin-bottom:8px"></div>
+<div id="emailShow" style="font-size:11px;color:#888;margin-bottom:10px;background:#fff;padding:6px 10px;border-radius:20px;display:inline-block"></div>
+<div id="statsBar" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px"></div>
 <div id="list">Loading...</div>
 
 <script>
@@ -27,45 +38,69 @@ async function load(){
     let raw = localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}';
     let user = JSON.parse(raw);
     let email = (user.email||'').toLowerCase().trim();
-    document.getElementById('emailShow').innerText = 'Email: ' + (email||'NOT FOUND - Login!');
+    document.getElementById('emailShow').innerText = email ? `👤 ${email}` : 'NOT LOGGED IN';
     if(!email){
-      document.getElementById('list').innerHTML='<p style=background:white;padding:15px;border-radius:12px>⚠️ Login first!<br><br><button onclick="location.href=\' / \'" class="btn">Go Home</button></p>';
+      document.getElementById('list').innerHTML=`<div style="background:white;padding:30px;border-radius:20px;text-align:center"><div style="font-size:50px">🔒</div><p>Login to see your orders</p><button onclick="location.href='/'" class="btn">Go Home & Login</button></div>`;
       return;
     }
     let r = await fetch('/api/orders/my?email='+encodeURIComponent(email));
     let res = await r.json();
-    let html='';
-    if(!res.orders || res.orders.length==0){
-      html='<div style=background:white;padding:30px;border-radius:20px;text-align:center><div style=font-size:50px>📭</div><p>No orders yet<br><small>Email: '+email+'</small></p><button onclick="location.href=\'/products\'" class="btn">Browse Products</button></div>';
-    } else {
-      res.orders.forEach(o=>{
-        let tid = o.tracking_id;
-        let itemsList = o.items ? o.items.map(i=>`• ${i.name||i.title||'Item'} x${i.qty||1}`).join('<br>') : '';
-        html+= `<div class="order">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <b style="color:#FF6A00;font-size:15px">${tid}</b>
-            <span class="badge ${o.status}">${o.status}</span>
-          </div>
-          <div style="margin-top:8px;font-size:13px;line-height:1.6">
-            🏪 <b>${o.shop_name||'Sannlas Shop'}</b><br>
-            💰 <b>UGX ${Number(o.total).toLocaleString()}</b> - ${o.items?o.items.length:0} items<br>
-            📍 ${o.full_address||''}<br>
-            🕒 ${new Date(o.created_at).toLocaleString()}<br>
-            ${o.delivery_man_name ? `<div style="background:#FFF7ED;padding:8px;border-radius:10px;margin-top:8px">🛵 <b>Rider:</b> ${o.delivery_man_name}<br>📞 <a href="tel:${o.delivery_man_phone}" style="color:#00AA00;font-weight:900">${o.delivery_man_phone}</a></div>` : ''}
-          </div>
-          <details style="margin-top:8px;background:#f9f9f9;padding:8px;border-radius:10px"><summary style="font-size:12px;font-weight:700;cursor:pointer">📦 View Items (${o.items?o.items.length:0})</summary><div style="font-size:12px;margin-top:6px;line-height:1.6">${itemsList}<br><br><small>Total: UGX ${Number(o.total).toLocaleString()}</small></div></details>
-          <button onclick="location.href='/track/${tid}'" class="btn">🔍 Track Order Live</button>
-          <button onclick="navigator.clipboard.writeText('${tid}'); alert('Tracking ID ${tid} copied!')" class="btn btn-outline">📋 Copy Tracking ID</button>
-        </div>`;
-      });
+    let orders = res.orders || [];
+    
+    // Stats
+    let pending = orders.filter(o=>o.status=='PENDING').length;
+    let shipped = orders.filter(o=>o.status=='SHIPPED').length;
+    let delivered = orders.filter(o=>o.status=='DELIVERED').length;
+    document.getElementById('statsBar').innerHTML = `
+      <div style="background:#FEF3C7;padding:10px;border-radius:12px;text-align:center"><b style="font-size:18px">${pending}</b><br><small>Pending</small></div>
+      <div style="background:#DBEAFE;padding:10px;border-radius:12px;text-align:center"><b style="font-size:18px">${shipped}</b><br><small>Shipped</small></div>
+      <div style="background:#D1FAE5;padding:10px;border-radius:12px;text-align:center"><b style="font-size:18px">${delivered}</b><br><small>Delivered</small></div>
+    `;
+    
+    if(orders.length==0){
+      document.getElementById('list').innerHTML=`<div style="background:white;padding:30px;border-radius:20px;text-align:center"><div style="font-size:50px">📭</div><p>No orders yet</p><small style="color:#888">${email}</small><br><br><button onclick="location.href='/'" class="btn">🛒 Start Shopping</button></div>`;
+      return;
     }
+    
+    let html='';
+    orders.forEach(o=>{
+      let tid = o.tracking_id;
+      let steps = ['PENDING','CONFIRMED','PACKED','SHIPPED','DELIVERED'];
+      let cur = steps.indexOf(o.status);
+      let timeline = steps.map((s,i)=>`<div class="step ${i<=cur?'done':''} ${i==cur?'active':''}">${s.substring(0,3)}</div>`).join('');
+      let itemsList = o.items ? o.items.map(i=>`• ${i.name||i.title||'Item'} x${i.qty||1} - UGX ${Number(i.price||0).toLocaleString()}`).join('<br>') : '';
+      
+      html+= `<div class="order">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <b style="color:#FF6A00;font-size:15px">${tid}</b>
+          <span class="badge ${o.status}">${o.status}</span>
+        </div>
+        <div class="timeline">${timeline}</div>
+        <div style="font-size:13px;line-height:1.7">
+          🏪 <b>${o.shop_name||'Sannlas Shop'}</b><br>
+          💰 <b>UGX ${Number(o.total).toLocaleString()}</b> - ${o.items?o.items.length:0} items<br>
+          📍 ${o.full_address||''}<br>
+          🕒 ${new Date(o.created_at).toLocaleString()}<br>
+          ${o.delivery_man_name ? `<div style="background:#f0fdf4;padding:10px;border-radius:10px;margin-top:8px;border:1px solid #10B981">🛵 <b>Rider:</b> ${o.delivery_man_name}<br>📞 <a href="tel:${o.delivery_man_phone}" style="color:#00AA00;font-weight:900">${o.delivery_man_phone}</a> <a href="https://wa.me/${o.delivery_man_phone.replace(/[^0-9]/g,'')}" style="background:#25D366;color:#fff;padding:4px 8px;border-radius:10px;text-decoration:none;font-size:11px;margin-left:8px">WhatsApp</a></div>` : '<div style="background:#FFF7ED;padding:6px;border-radius:8px;margin-top:6px;font-size:11px">⏳ Rider not assigned yet</div>'}
+        </div>
+        <details style="margin-top:10px;background:#f9f9f9;padding:10px;border-radius:10px"><summary style="font-size:12px;font-weight:800;cursor:pointer">📦 Items (${o.items?o.items.length:0}) - Click to view</summary><div style="font-size:12px;margin-top:8px;line-height:1.8">${itemsList}<br><br><b>Total: UGX ${Number(o.total).toLocaleString()}</b></div></details>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <button onclick="location.href='/track/${tid}'" class="btn">🔍 Track Live</button>
+          <button onclick="shareOrder('${tid}')" class="btn btn-outline">🔗 Share</button>
+        </div>
+        <button onclick="window.open('https://wa.me/?text='+encodeURIComponent('Track my order ${tid}: '+location.origin+'/track/${tid}'),'_blank')" class="btn btn-green" style="margin-top:8px">💬 Share on WhatsApp</button>
+      </div>`;
+    });
     document.getElementById('list').innerHTML=html;
   }catch(e){
-    document.getElementById('list').innerHTML='Error: '+e.message;
+    document.getElementById('list').innerHTML='Error: '+e.message+'<br><button onclick="load()" class="btn">Retry</button>';
   }
 }
+function shareOrder(tid){
+  let url = location.origin + '/track/' + tid;
+  navigator.clipboard.writeText(url).then(()=>alert('✅ Tracking link copied!\n'+url));
+}
 load();
-// Auto refresh every 15 sec
 setInterval(load, 15000);
 </script>
 </body>
