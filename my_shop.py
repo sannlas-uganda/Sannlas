@@ -100,7 +100,7 @@ def save_db(file, data):
                 else:
                     cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, js.dumps(data)))
             conn.commit(); cur.close(); conn.close(); return
-        except Exception as e: print(e)
+        except Exception as e: print("SAVE ERROR:", e)
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
 def make_shop_slug(business):
@@ -128,7 +128,7 @@ def api_my_shop():
         if biz:
             shop = next((s for s in shops if s.get('business_name','').lower()==biz.lower()), None)
     if not shop:
-        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome!", "logo":"", "verified":False}
+        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "owner_email": email, "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome to my shop!", "logo":"", "verified":False, "created": time.time()}
     products = load_db('products.json', [])
     my_products = [p for p in products if str(p.get('seller_email','')).lower()==email]
     my_products = sorted(my_products, key=lambda x: x.get('created',0), reverse=True)
@@ -185,13 +185,87 @@ def my_shop_delete():
 
 @my_shop_bp.route('/api/my-shop/update-settings', methods=['POST'])
 def my_shop_update_settings():
-    data=request.json or {}; email=data.get('email','').lower()
-    shops=load_db('shops.json',[])
-    for s in shops:
-        if str(s.get('owner_email','')).lower()==email:
-            s['business_name']=data.get('business_name',s.get('business_name'))
-            s['location']=data.get('location',s.get('location'))
-            s['phone']=data.get('phone',s.get('phone'))
-            s['description']=data.get('description',s.get('description'))
-            save_db('shops.json',shops); return jsonify({'success':True})
-    return jsonify({'success':False}),404
+    data=request.json or {}
+    email=data.get('email','').lower().strip()
+    if not email:
+        return jsonify({'success':False,'message':'Email required'}),400
+    
+    print(f"MY-SHOP UPDATE: {email} -> {data}")
+    
+    shops=load_db('shops.json',[]) or []
+    users=load_db('users.json',[]) or []
+    products=load_db('products.json',[]) or []
+    
+    # FIND OR CREATE SHOP - FIXED!
+    shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
+    
+    if not shop:
+        # CREATE NEW SHOP if not exists - THIS WAS MISSING!
+        biz_name = data.get('business_name','My Shop').strip() or 'My Shop'
+        new_slug = make_shop_slug(biz_name)
+        # Ensure slug unique
+        existing_slugs = [str(s.get('shop_slug','')).lower() for s in shops]
+        base_slug = new_slug
+        counter=1
+        while new_slug in existing_slugs:
+            new_slug = f"{base_slug}-{counter}"
+            counter+=1
+        
+        shop = {
+            "business_name": biz_name,
+            "shop_slug": new_slug,
+            "owner_email": email,
+            "location": data.get('location','Kampala'),
+            "phone": data.get('phone',''),
+            "description": data.get('description','Welcome!'),
+            "logo": data.get('logo',''),
+            "verified": False,
+            "created": time.time(),
+            "updated": time.time()
+        }
+        shops.append(shop)
+        print(f"CREATED NEW SHOP: {new_slug}")
+    else:
+        # UPDATE EXISTING - KEEP SAME SLUG (don't break links)
+        old_name = shop.get('business_name','')
+        new_name = data.get('business_name','').strip()
+        if new_name and new_name != old_name:
+            shop['business_name'] = new_name
+            # OPTIONAL: Keep old slug for SEO, or uncomment to update slug:
+            # shop['shop_slug'] = make_shop_slug(new_name)
+        
+        shop['location'] = data.get('location', shop.get('location','Kampala'))
+        shop['phone'] = data.get('phone', shop.get('phone',''))
+        shop['description'] = data.get('description', shop.get('description',''))
+        if data.get('logo'):
+            shop['logo'] = data.get('logo')
+        shop['updated'] = time.time()
+        print(f"UPDATED SHOP: {shop['shop_slug']}")
+
+    # ALSO UPDATE USER BUSINESS NAME
+    for u in users:
+        if str(u.get('email','')).lower()==email:
+            if data.get('business_name'):
+                u['business'] = data.get('business_name')
+            if data.get('phone'):
+                u['phone'] = data.get('phone')
+            break
+
+    # ALSO UPDATE ALL PRODUCTS BUSINESS FIELD (so shop page shows new name)
+    updated_products = 0
+    for p in products:
+        if str(p.get('seller_email','')).lower()==email:
+            if data.get('business_name'):
+                p['business'] = data.get('business_name')
+            # Keep product shop_slug synced to shop
+            p['shop_slug'] = shop['shop_slug']
+            updated_products+=1
+
+    save_db('shops.json', shops)
+    save_db('users.json', users)
+    if updated_products>0:
+        save_db('products.json', products)
+
+    print(f"SHOP SAVE OK: {shop['shop_slug']} + {updated_products} products updated")
+    
+    return jsonify({'success':True, 'shop': shop, 'updated_products': updated_products, 'message': f"Shop saved! {updated_products} products updated"})
