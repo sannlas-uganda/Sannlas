@@ -4,15 +4,20 @@
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <title>My Orders - Sannlas</title>
 <style>
-body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px}
-.order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
+body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px;padding-bottom:80px}
+.order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:4px solid #FF6600}
 .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;color:white}
 .PENDING{background:#F59E0B} .CONFIRMED{background:#3B82F6} .PACKED{background:#8B5CF6} .SHIPPED{background:#FF6A00} .DELIVERED{background:#10B981}
-.btn{padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900;width:100%;margin-top:10px;cursor:pointer}
+.btn{padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900;width:100%;margin-top:8px;cursor:pointer}
+.btn-outline{background:#fff;border:2px solid #000;color:#000}
+.header{position:sticky;top:0;background:#f5f5f5;padding:10px 0;z-index:10;display:flex;justify-content:space-between;align-items:center}
 </style>
 </head>
 <body>
-<h2 style="font-weight:900">📦 My Orders</h2>
+<div class="header">
+  <h2 style="font-weight:900;margin:0">📦 My Orders</h2>
+  <button onclick="location.href='/products'" style="padding:8px 12px;border-radius:20px;border:none;background:#000;color:#FFCC02;font-weight:800">🛒 Shop</button>
+</div>
 <div id="emailShow" style="font-size:12px;color:#666;margin-bottom:8px"></div>
 <div id="list">Loading...</div>
 
@@ -31,22 +36,26 @@ async function load(){
     let res = await r.json();
     let html='';
     if(!res.orders || res.orders.length==0){
-      html='<p style=background:white;padding:15px;border-radius:12px>No orders yet. Email: '+email+'</p>';
+      html='<div style=background:white;padding:30px;border-radius:20px;text-align:center><div style=font-size:50px>📭</div><p>No orders yet<br><small>Email: '+email+'</small></p><button onclick="location.href=\'/products\'" class="btn">Browse Products</button></div>';
     } else {
       res.orders.forEach(o=>{
         let tid = o.tracking_id;
+        let itemsList = o.items ? o.items.map(i=>`• ${i.name||i.title||'Item'} x${i.qty||1}`).join('<br>') : '';
         html+= `<div class="order">
-          <div style="display:flex;justify-content:space-between">
-            <b style="color:#FF6A00">${tid}</b>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="color:#FF6A00;font-size:15px">${tid}</b>
             <span class="badge ${o.status}">${o.status}</span>
           </div>
-          <div style="margin-top:6px;font-size:13px">
-            🛍️ ${o.shop_name||''}<br>
-            💰 UGX ${Number(o.total).toLocaleString()} - ${o.items?o.items.length:0} items<br>
+          <div style="margin-top:8px;font-size:13px;line-height:1.6">
+            🏪 <b>${o.shop_name||'Sannlas Shop'}</b><br>
+            💰 <b>UGX ${Number(o.total).toLocaleString()}</b> - ${o.items?o.items.length:0} items<br>
             📍 ${o.full_address||''}<br>
-            <small>${new Date(o.created_at).toLocaleString()}</small>
+            🕒 ${new Date(o.created_at).toLocaleString()}<br>
+            ${o.delivery_man_name ? `<div style="background:#FFF7ED;padding:8px;border-radius:10px;margin-top:8px">🛵 <b>Rider:</b> ${o.delivery_man_name}<br>📞 <a href="tel:${o.delivery_man_phone}" style="color:#00AA00;font-weight:900">${o.delivery_man_phone}</a></div>` : ''}
           </div>
-          <button onclick="location.href='/track/${tid}'" class="btn">🔍 Track Order</button>
+          <details style="margin-top:8px;background:#f9f9f9;padding:8px;border-radius:10px"><summary style="font-size:12px;font-weight:700;cursor:pointer">📦 View Items (${o.items?o.items.length:0})</summary><div style="font-size:12px;margin-top:6px;line-height:1.6">${itemsList}<br><br><small>Total: UGX ${Number(o.total).toLocaleString()}</small></div></details>
+          <button onclick="location.href='/track/${tid}'" class="btn">🔍 Track Order Live</button>
+          <button onclick="navigator.clipboard.writeText('${tid}'); alert('Tracking ID ${tid} copied!')" class="btn btn-outline">📋 Copy Tracking ID</button>
         </div>`;
       });
     }
@@ -56,6 +65,8 @@ async function load(){
   }
 }
 load();
+// Auto refresh every 15 sec
+setInterval(load, 15000);
 </script>
 </body>
 </html>
