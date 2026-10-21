@@ -303,16 +303,6 @@ def save_db(file, data):
 
 def hash_pwd(p): return hashlib.sha256(p.encode()).hexdigest()
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if session.get('is_admin'):
-            return f(*args, **kwargs)
-        if request.path.startswith('/api/admin'):
-            return jsonify({'success': False, 'message': 'Admin login required'}), 401
-        return redirect('/admin/login')
-    return decorated
-
 # ================= KASSAG SEPARATE ADMIN - NEW! =================
 KASSAG_ADMIN_PASSWORD = "KASSAG2024"  # CHANGE THIS! Give to treasurer
 
@@ -859,196 +849,16 @@ def invite_page(): return render_template('invite.html')
 def sell_page():
     return render_template('index.html')
 
-@app.route('/admin/login', methods=['GET','POST'])
-def admin_login():
-    if request.method == 'GET':
-        if session.get('is_admin'):
-            return redirect('/admin')
-        return render_template('admin_login.html')
-    data = request.get_json() if request.is_json else request.form
-    pwd = data.get('password','') if data else ''
-    if pwd == ADMIN_PASSWORD:
-        session['is_admin'] = True
-        return jsonify({'success': True}) if request.is_json else redirect('/admin')
-    return jsonify({'success': False, 'message': 'Wrong admin password'}), 401 if request.is_json else render_template('admin_login.html', error='Wrong password')
-
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('is_admin', None)
-    return redirect('/admin/login')
-
-@app.route('/admin')
-def admin_page():
-    if not session.get('is_admin'):
-        return redirect('/admin/login')
-    return render_template('admin.html')
 
 @app.route('/api/billboard')
 def get_billboard(): return jsonify(get_billboard_config())
-
-@app.route('/api/admin/billboard', methods=['GET'])
-@admin_required
-def admin_get_billboard(): return jsonify(get_billboard_config())
-
-@app.route('/api/admin/billboard', methods=['POST'])
-@admin_required
-def admin_save_billboard():
-    try:
-        data = request.json or {}
-        cfg = get_billboard_config()
-        cfg['active'] = bool(data.get('active', cfg.get('active', False)))
-        cfg['text'] = data.get('text', cfg.get('text',''))[:200]
-        cfg['link'] = data.get('link', cfg.get('link',''))[:300]
-        new_media = data.get('media_url','')
-        if new_media.startswith('data:') and len(new_media) > 300000:
-            return jsonify({"success": False, "message": "Image too big! Max 300KB"}), 400
-        if 'media_url' in data:
-            cfg['media_url'] = data.get('media_url', cfg.get('media_url', ''))
-        cfg['type'] = data.get('type', cfg.get('type', 'image'))
-        if 'duration' in data:
-            dur = str(data.get('duration', ''))
-            if dur == "0": cfg['expires_at'] = None
-            else:
-                try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
-                except: pass
-        if 'expires_at' in data:
-            cfg['expires_at'] = data['expires_at']
-        cfg['updated'] = time.time()
-        save_db('billboard.json', cfg)
-        return jsonify({'success': True, 'config': cfg})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/upload/billboard', methods=['POST'])
-@admin_required
-def upload_billboard():
-    try:
-        file = request.files.get('file')
-        text = request.form.get('text','')[:200]
-        link = request.form.get('link','')[:300]
-        duration = request.form.get('duration','24')
-        if not file: return jsonify({"error": "No file selected"}), 400
-        data = file.read()
-        if len(data) > 2*1024*1024:
-            return jsonify({"error": "File too big! Max 2MB"}), 400
-        filename = f"{int(time.time())}_{secure_filename(file.filename)}"
-        filepath = os.path.join('static/billboards', filename)
-        os.makedirs('static/billboards', exist_ok=True)
-        open(filepath, 'wb').write(data)
-        media_url = f"/static/billboards/{filename}"
-        filetype = 'video' if 'video' in (file.mimetype or '') else 'image'
-        expires_at = None if str(duration)=="0" else (datetime.now() + timedelta(hours=int(duration))).isoformat()
-        cfg = {"active": True,"type": filetype,"media_url": media_url,"text": text or "Welcome","link": link or "","created": time.time(),"updated": time.time(),"expires_at": expires_at}
-        save_db('billboard.json', cfg)
-        return jsonify({"url": media_url, "type": filetype, "success": True, "config": cfg})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/hero-stories')
 def api_hero_stories():
     stories = get_hero_stories()
     stories = sorted(stories, key=lambda x: x.get('order', 0))
     return jsonify(stories)
-
-@app.route('/api/admin/hero-stories', methods=['GET'])
-@admin_required
-def admin_get_hero_stories():
-    return jsonify(get_hero_stories())
-
-@app.route('/api/admin/hero-stories', methods=['POST'])
-@admin_required
-def admin_add_hero_story():
-    file = request.files.get('image')
-    if not file:
-        return jsonify({'success': False, 'message': 'No image'}), 400
-    filename = f"{int(time.time())}_{secure_filename(file.filename)}"
-    filepath = os.path.join('static/uploads/hero', filename)
-    file.save(filepath)
-    stories = get_hero_stories()
-    new_story = {
-        'id': int(time.time()*1000),
-        'image': f"/static/uploads/hero/{filename}",
-        'title_en': request.form.get('title_en','')[:100],
-        'title_lg': request.form.get('title_lg','')[:100],
-        'subtitle_en': request.form.get('subtitle_en','')[:100],
-        'subtitle_lg': request.form.get('subtitle_lg','')[:100],
-        'order': int(request.form.get('order', len(stories))),
-        'created': time.time()
-    }
-    stories.append(new_story)
-    save_hero_stories(stories)
-    return jsonify({'success': True, 'story': new_story})
-
-@app.route('/api/admin/hero-stories/<int:sid>', methods=['DELETE'])
-@admin_required
-def admin_delete_hero_story(sid):
-    stories = get_hero_stories()
-    stories = [s for s in stories if s['id']!= sid]
-    save_hero_stories(stories)
-    return jsonify({'success': True})
-
-@app.route('/api/admin/billboard/animated', methods=['POST'])
-@admin_required
-def admin_set_billboard_animated():
-    data = request.json or {}
-    cfg = get_billboard_config()
-    cfg['active'] = True
-    cfg['type'] = 'animated'
-    cfg['text'] = data.get('text', 'Welcome')
-    cfg['link'] = data.get('link', '')
-    cfg['updated'] = time.time()
-    if data.get('duration'):
-        dur = str(data.get('duration'))
-        if dur == "0": cfg['expires_at'] = None
-        else:
-            try: cfg['expires_at'] = (datetime.now() + timedelta(hours=int(dur))).isoformat()
-            except: pass
-    save_db('billboard.json', cfg)
-    return jsonify({'success': True, 'config': cfg})
-
-@app.route('/api/admin/shop/verify', methods=['POST'])
-def admin_verify_shop():
-    import json, os
-    data = request.get_json() or {}
-    slug = (data.get('shop_slug') or data.get('slug') or '').strip().lower()
-    action = (data.get('action') or 'verify').lower()
-    if not slug:
-        return jsonify(success=False, message="No slug"), 400
-    try:
-        shops_path = 'shops.json'
-        if not os.path.exists(shops_path) and os.path.exists('data/shops.json'):
-            shops_path = 'data/shops.json'
-        
-        shops = []
-        if os.path.exists(shops_path):
-            with open(shops_path, 'r', encoding='utf-8') as f:
-                shops = json.load(f)
-        
-        found = False
-        is_verify = True if action == 'verify' else False
-        
-        for s in shops:
-            s_slug = (s.get('shop_slug') or s.get('slug') or '').lower()
-            s_phone = (s.get('phone') or '').replace(' ','')
-            # CHECK BOTH SLUG AND PHONE
-            if s_slug == slug or s_phone == slug:
-                s['verified'] = is_verify
-                s['is_verified'] = is_verify
-                s['status'] = 'verified' if is_verify else 'pending'
-                found = True
-                slug = s_slug # use real slug for message
-                break
-        
-        with open(shops_path, 'w', encoding='utf-8') as f:
-            json.dump(shops, f, indent=2)
-        
-        if not found:
-            return jsonify(success=False, message=f"Shop {slug} not found"), 404
-            
-        return jsonify(success=True, message=f"Shop {slug} {action}d ✅")
-    except Exception as e:
-        return jsonify(success=False, message=f"Failed: {str(e)}"), 500
-
+    
 @app.route('/api/coins/config')
 def coins_config():
     try:
@@ -1122,42 +932,6 @@ def coins_buy():
     txs.append(new_tx); save_db('coin_transactions.json', txs)
     cfg['remaining'] -= pack['coins']; cfg['sold'] += pack['coins']; save_coin_config(cfg)
     return jsonify({'success':True,'message':'✅ Pending verification by owner! Admin will check MoMo SMS - 0795712326','coins': 0, 'config': cfg, 'pending': True})
-
-@app.route('/api/coins/verify', methods=['POST'])
-@admin_required
-def coins_verify():
-    data=request.json; trans_id=data.get('momo_code','').strip().upper(); action=data.get('action','verify')
-    txs=load_db('coin_transactions.json',[]); users=load_db('users.json',[]); cfg=get_coin_config()
-    target_tx = None
-    for t in txs:
-        if t.get('momo_code','').upper()==trans_id:
-            target_tx = t; break
-    if not target_tx: return jsonify({'success':False,'message':'Transaction not found'}),404
-    if action=='block_fake':
-        if target_tx.get('status')!= 'blocked_fake':
-            cfg['remaining'] += target_tx.get('coins',0)
-            cfg['sold'] = max(0, cfg.get('sold',0) - target_tx.get('coins',0))
-            for u in users:
-                if str(u.get('email','')).lower()==str(target_tx.get('email','')).lower() or str(u.get('phone',''))==str(target_tx.get('phone','')):
-                    u['bought'] = max(0, int(u.get('bought',0)) - int(target_tx.get('coins',0)))
-                    u['bought_coins'] = u['bought']
-                    u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
-            target_tx['status']='blocked_fake'
-    else:
-        if target_tx.get('status')!= 'verified_by_owner':
-            target_tx['status']='verified_by_owner'
-            for u in users:
-                if str(u.get('email','')).lower()==str(target_tx.get('email','')).lower() or str(u.get('phone',''))==str(target_tx.get('phone','')):
-                    u['bought'] = int(u.get('bought',0)) + int(target_tx.get('coins',0))
-                    u['bought_coins'] = u['bought']
-                    u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
-
-            # === AUTO DEDUCT FROM MAJOR 1B - PASTE HERE Boss!!! ===
-            coins_bought = int(target_tx.get('coins',0))
-            cfg['remaining'] = max(0, cfg.get('remaining',1000000000) - coins_bought)
-            cfg['sold'] = cfg.get('sold',0) + coins_bought
-            # === END AUTO DEDUCT ===
-
     save_db('coin_transactions.json', txs); save_db('users.json', users); save_coin_config(cfg)
     return jsonify({'success':True, 'action': action})
 # ============================================================
@@ -1307,65 +1081,6 @@ def set_coin_pin():
             return jsonify({'success':True,'message':f'✅ PIN set to {new_pin}!'})
     return jsonify({'success':False,'message':'User not found'}),404
 
-@app.route('/api/admin/coins/add', methods=['POST'])
-@admin_required
-def admin_add_coins():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    phone = data.get('phone','').strip()
-    coins = int(data.get('coins',0))
-    reason = data.get('reason','Admin refill')
-    if coins <=0: return jsonify({'success': False, 'message': 'Coins must be >0'}),400
-    users = load_db('users.json', [])
-    found = None
-    for u in users:
-        if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone):
-            u['earned'] = int(u.get('earned',0)) + coins
-            u['earned_coins'] = u['earned']
-            u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
-            found = u; break
-    if not found: return jsonify({'success': False, 'message': 'User not found'}),404
-    save_db('users.json', users)
-    txs = load_db('coin_transactions.json', [])
-    txs.append({'id': int(time.time()*1000), 'email': found.get('email'), 'phone': found.get('phone'), 'coins': coins, 'price': 0, 'momo_code': f'ADMIN-{uuid.uuid4().hex[:6].upper()}', 'reason': reason, 'time': time.time(), 'status': 'admin_gift'})
-    save_db('coin_transactions.json', txs)
-    return jsonify({'success': True, 'message': f'Added {coins} coins to {found.get("email")}', 'user': {'email': found.get('email'), 'coins': found.get('coins')}})
-
-@app.route('/api/admin/coins/config', methods=['GET'])
-@admin_required
-def admin_coin_config_get(): return jsonify(get_coin_config())
-
-@app.route('/api/admin/coins/config', methods=['POST'])
-@admin_required
-def admin_update_coin_config():
-    data = request.json or {}
-    cfg = get_coin_config()
-    action = data.get('action')
-    if action in ('add', 'reduce'):
-        try: amount = int(data.get('amount', 0))
-        except: return jsonify({"success": False, "message": "Invalid amount"}), 400
-        if amount <= 0: return jsonify({"success": False, "message": "Enter amount >0"}), 400
-        if action == "add":
-            cfg['total'] = int(cfg.get('total', 0)) + amount
-            cfg['remaining'] = int(cfg.get('remaining', 0)) + amount
-            save_coin_config(cfg)
-            return jsonify({"success": True, "message": f"Added {amount:,} coins", "config": cfg})
-        else:
-            if int(cfg.get('remaining',0)) < amount:
-                return jsonify({"success": False, "message": f"Only {cfg.get('remaining',0):,} remaining!"}), 400
-            cfg['total'] = int(cfg.get('total', 0)) - amount
-            cfg['remaining'] = int(cfg.get('remaining', 0)) - amount
-            save_coin_config(cfg)
-            return jsonify({"success": True, "message": f"Reduced {amount:,} coins", "config": cfg})
-    if 'price' in data: cfg['price'] = int(data['price'])
-    if 'upload_cost' in data: cfg['upload_cost'] = 0
-    if 'total' in data:
-        diff = int(data['total']) - cfg.get('total', TOTAL_COINS)
-        cfg['total'] = int(data['total'])
-        cfg['remaining'] = max(0, cfg.get('remaining',0) + diff)
-    save_coin_config(cfg)
-    return jsonify({'success': True, 'config': cfg, 'message': 'Config updated'})
-
 @app.route('/api/withdraw', methods=['POST'])
 def request_withdraw():
     data = request.json or {}
@@ -1389,26 +1104,7 @@ def my_withdraws():
     withdraws = load_db('withdraws.json', [])
     result = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
     return jsonify(result[::-1])
-
-@app.route('/api/admin/withdraws')
-@admin_required
-def admin_withdraws(): return jsonify(load_db('withdraws.json', [])[::-1])
-
-@app.route('/api/admin/withdraw/action', methods=['POST'])
-@admin_required
-def admin_withdraw_action():
-    data = request.json or {}
-    wid = data.get('id')
-    action = data.get('action','paid')
-    withdraws = load_db('withdraws.json', [])
-    for w in withdraws:
-        if str(w.get('id')) == str(wid):
-            w['status'] = action
-            if action == 'paid': w['paid_time'] = time.time()
-            break
-    save_db('withdraws.json', withdraws)
-    return jsonify({'success': True})
-
+    
 @app.route('/api/sales/summary')
 def sales_summary():
     email = request.args.get('email','').lower().strip()
@@ -1881,73 +1577,6 @@ def unlock_chat():
         print(f"unlock error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
         
-@app.route('/api/admin/data')
-@admin_required
-def admin_data():
-    try:
-        # Load FULL data from Neon - real website data
-        products_full = load_db('products.json', []) or []
-        users_full = load_db('users.json', []) or []
-        shops_full = load_db('shops.json', []) or []
-        orders_full = load_db('orders.json', []) or []
-        coins_full = load_db('coin_transactions.json', []) or []
-        billboard = load_db('billboard.json', {}) or {}
-        contacts_full = load_db('contacts.json', []) or []
-        withdraws_full = load_db('withdraws.json', []) or []
-        wants_full = load_db('wants.json', []) or []
-        shares_full = load_db('share_transactions.json', []) or []
-        coin_cfg = load_db('coin_config.json', {}) or {}
-        for s in shops_full: s['total_products'] = sum(1 for p in products_full if p.get('shop_slug','')==s.get('shop_slug',''))
-        # For display - trim images only, but keep ALL items for counts
-        safe_products = []
-        for p in products_full[-50:][::-1]: # Show last 50 for grid
-            np = dict(p)
-            if 'images' in np: del np['images']
-            # Don't send huge base64 image string
-            if 'image' in np and len(str(np.get('image',''))) > 700:
-                # Keep URL only if it's http, else empty
-                if not str(np['image']).startswith('http'):
-                    np['image'] = ""
-            safe_products.append(np)
-
-        if billboard.get('media_url','') and len(str(billboard.get('media_url','')))>1500:
-            billboard['media_url']=""
-            billboard['active']=False
-
-        return jsonify({
-            'products': safe_products,
-            'products_count': len(products_full), # REAL
-            'users': users_full[-100:],
-            'users_count': len(users_full),
-            'shops': shops_full, # ALL 14 shops
-            'shops_count': len(shops_full),
-            'orders': orders_full[-50:],
-            'orders_count': len(orders_full),
-            'billboard': billboard,
-            'contacts': contacts_full[-50:],
-            'contacts_count': len(contacts_full),
-            'coin_transactions': coins_full[-100:],
-            'coin_transactions_count': len(coins_full),
-            'coin_config': load_db('coin_config.json', {}) or {},
-            'withdraws': withdraws_full[-50:],
-            'withdraws_count': len(withdraws_full),
-            'wants': wants_full[-50:],
-            'wants_count': len(wants_full),
-            'shares': shares_full[-100:][::-1],
-            'shares_count': len(shares_full),
-            'share_profit_coins': coin_cfg.get('share_profit_coins',0),
-            'share_profit_ugx': coin_cfg.get('share_profit_ugx',0),
-            'chat_unlocks': []
-        })
-    except Exception as e:
-        print("admin_data error:", e)
-        import traceback; traceback.print_exc()
-        return jsonify({'products':[],'users':[],'shops':[],'error':str(e)})
-
-@app.route('/api/admin/transactions')
-@admin_required
-def admin_transactions(): return jsonify(load_db('transactions.json', []) or [])
-
 @app.route('/api/orders')
 def get_orders():
     # Combine both order types
@@ -2205,97 +1834,6 @@ def test_email():
     except Exception as e:
         import traceback
         return jsonify({"sent": False, "error": str(e), "trace": traceback.format_exc()}), 500
-
-@app.route('/api/admin/data-fixed')
-@admin_required
-def admin_data_fixed():
-    try:
-        products=load_db('products.json',[]) or []
-        users=load_db('users.json',[]) or []
-        shops=load_db('shops.json',[]) or []
-        products_trim = []
-        for p in products[-20:][::-1]:
-            pp = {k: str(v)[:200] if isinstance(v,str) and len(str(v))>200 else v for k,v in p.items()}
-            pp.pop('images',None)
-            products_trim.append(pp)
-        return jsonify({'products': products_trim, 'users': users[-20:], 'shops': shops, 'total': len(products)})
-    except Exception as e:
-        return jsonify({'products':[],'users':[],'shops':[],'error': str(e)})
-
-@app.route('/api/admin/delete_shop/<slug>', methods=['DELETE', 'POST'])
-def admin_delete_shop(slug):
-    try:
-        slug = slug.lower().strip()
-        print(f"BOSS DELETE REQUEST: {slug}")
-
-        # === LOAD FROM YOUR REAL LOCATION - kv_store ===
-        shops = load_db('shops.json', [])
-        products = load_db('products.json', [])
-        
-        if not shops:
-            return jsonify({"success": False, "message": "No shops found in kv_store!"}), 404
-
-        # Find shop
-        target = None
-        for s in shops:
-            if str(s.get('shop_slug','')).lower() == slug or str(s.get('slug','')).lower() == slug:
-                target = s
-                break
-            if str(s.get('business_name','')).lower() == slug or str(s.get('name','')).lower() == slug:
-                target = s
-                break
-        
-        if not target:
-            # fuzzy search
-            for s in shops:
-                if slug in str(s.get('shop_slug','')).lower() or slug in str(s.get('business_name','')).lower():
-                    target = s
-                    break
-
-        if not target:
-            return jsonify({"success": False, "message": f"Shop '{slug}' not found. Available: {[s.get('shop_slug') for s in shops[:5]]}"}), 404
-
-        real_slug = str(target.get('shop_slug') or target.get('slug') or slug).lower()
-        owner_email = str(target.get('owner_email','')).lower()
-        biz_name = str(target.get('business_name') or target.get('name','')).lower()
-
-        # Delete products belonging to this shop
-        before = len(products)
-        new_products = []
-        for p in products:
-            ps = str(p.get('shop_slug','')).lower()
-            pb = str(p.get('business','')).lower()
-            pe = str(p.get('seller_email','')).lower()
-            if ps == real_slug or pb == biz_name or (owner_email and pe == owner_email):
-                continue  # DELETE
-            if real_slug in ps and ps != "":
-                continue
-            new_products.append(p)
-        
-        deleted_count = before - len(new_products)
-        
-        # Save to Neon - THIS DELETES FROM products TABLE AUTOMATICALLY
-        save_db('products.json', new_products)
-        
-        # Delete shop from kv_store
-        new_shops = [s for s in shops if s != target]
-        save_db('shops.json', new_shops)
-
-        # Clear cache
-        global PRODUCTS_CACHE
-        PRODUCTS_CACHE["data"] = None
-        PRODUCTS_CACHE["time"] = 0
-
-        return jsonify({
-            "success": True, 
-            "message": f"✅ Deleted shop '{real_slug}' + {deleted_count} products! {len(new_shops)} shops left."
-        })
-
-    except Exception as e:
-        print("Delete error:", e)
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
         
 @app.route('/compress-neon-now')
 def compress_neon_now():
@@ -2668,101 +2206,6 @@ def my_dashboard():
         'payments': sorted(my_pays, key=lambda x: x['date'], reverse=True)
     })
 
-# --- ADMIN API FOR KASSAG ---
-@app.route('/kassag/admin')
-@kassag_admin_required
-def kassag_admin_page():
-    return render_template('kassag_admin.html')
-
-@app.route('/api/kassag/admin/members')
-@kassag_admin_required
-def kassag_admin_members():
-    return jsonify(get_kassag_members())
-
-@app.route('/api/kassag/admin/payments')
-@kassag_admin_required
-def kassag_admin_payments():
-    return jsonify(get_kassag_payments())
-
-@app.route('/api/kassag/admin/action/member', methods=['POST'])
-@kassag_admin_required
-def kassag_member_action():
-    data = request.get_json() or {}
-    mid = int(data.get('id',0))
-    action = data.get('action','approve') # approve, reject, make_admin, remove, edit_role
-    members = get_kassag_members()
-    for m in members:
-        if m['id']==mid:
-            if action=='approve':
-                m['status']='Active'
-            elif action=='reject':
-                m['status']='Rejected'
-            elif action=='remove':
-                members = [x for x in members if x['id']!=mid]
-            elif action=='make_admin':
-                m['is_admin']= not m.get('is_admin',False)
-                m['role']='Treasurer' if m.get('is_admin') else 'Member'
-            elif action=='edit_role':
-                m['role']=data.get('role','Member')
-            break
-    save_kassag_members(members)
-    return jsonify({'success':True})
-
-@app.route('/api/kassag/admin/action/payment', methods=['POST'])
-@kassag_admin_required
-def kassag_payment_action():
-    data = request.get_json() or {}
-    pid = int(data.get('id',0))
-    action = data.get('action','approve')
-    payments = get_kassag_payments()
-    for p in payments:
-        if p['id']==pid:
-            p['status']='Approved' if action=='approve' else 'Rejected'
-            break
-    save_kassag_payments(payments)
-    return jsonify({'success':True})
-
-@app.route('/api/kassag/admin/info', methods=['GET','POST'])
-@kassag_admin_required
-def kassag_admin_info():
-    if request.method=='GET':
-        return jsonify(get_kassag_info())
-    data = request.get_json() or {}
-    info = get_kassag_info()
-    for k in ['name','goals','vision','mission','terms','privacy','max_members','logo']:
-        if k in data:
-            info[k]=data[k]
-    save_db(KASSAG_INFO_FILE, info)
-    return jsonify({'success':True,'info':info})
-
-@app.route('/api/kassag/admin/export/members')
-@kassag_admin_required
-def kassag_export_members():
-    import csv, io
-    members = get_kassag_members()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID','Name','Phone','Role','Status','Is Admin','Join Date'])
-    for m in members:
-        writer.writerow([m.get('id'), m.get('name'), m.get('phone'), m.get('role'), m.get('status'), m.get('is_admin'), m.get('join_date')])
-    output.seek(0)
-    return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_members.csv"})
-
-@app.route('/api/kassag/admin/export/payments')
-@kassag_admin_required
-def kassag_export_payments():
-    import csv, io
-    pays = get_kassag_payments()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID','Member Name','Phone','Week','Amount','Status','Date','Screenshot'])
-    for p in pays:
-        writer.writerow([p.get('id'), p.get('member_name'), p.get('member_phone'), p.get('week'), p.get('amount'), p.get('status'), p.get('date'), p.get('screenshot')])
-    output.seek(0)
-    return Response(output.getvalue(), mimetype='text/csv', headers={"Content-Disposition":"attachment;filename=kassag_payments.csv"})
-
-# ===== EXPENDITURE APIS - FIXED PERMANENT ON NEON =====
-
 def get_kassag_expenditures():
     try:
         # Use your same Neon connection variable - change DATABASE_URL to your NEON_URL name
@@ -2851,24 +2294,6 @@ def kassag_stats():
         'actual_balance': actual_balance, # Pot - Expenditure = REAL MONEY LEFT
         'this_week': this_week
     })
-
-@app.route('/api/admin/coins/major/add', methods=['POST'])
-@admin_required
-def add_major_coins():
-    data=request.json
-    amount=int(data.get('amount',0))
-    action=data.get('type','add')  # add or remove
-    if amount <=0:
-        return jsonify({'success':False,'message':'Enter amount'})
-    cfg=get_coin_config()
-    if action == 'remove':
-        cfg['total'] = max(0, cfg.get('total',1000000000) - amount)
-        cfg['remaining'] = max(0, cfg.get('remaining',1000000000) - amount)
-    else:
-        cfg['total'] = cfg.get('total',1000000000) + amount
-        cfg['remaining'] = cfg.get('remaining',1000000000) + amount
-    save_coin_config(cfg)
-    return jsonify({'success':True,'message':f'{action} {amount} done','config':cfg})
 
 # ===== FIXED SHOP SYSTEM - NO MORE LOADING FOREVER =====
 @app.route('/shop/<path:slug>')
