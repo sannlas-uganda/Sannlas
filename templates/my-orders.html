@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>My Orders - Sannlas</title>
+<style>
+body{font-family:Arial;background:#f5f5f5;margin:0;padding:12px}
+.order{background:white;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;color:white}
+.PENDING{background:#F59E0B} .CONFIRMED{background:#3B82F6} .PACKED{background:#8B5CF6} .SHIPPED{background:#FF6A00} .DELIVERED{background:#10B981}
+.btn{padding:12px;border-radius:12px;border:none;background:#000;color:#FFCC02;font-weight:900;width:100%;margin-top:10px;cursor:pointer}
+</style>
+</head>
+<body>
+<h2 style="font-weight:900">📦 My Orders</h2>
+<div id="emailShow" style="font-size:12px;color:#666;margin-bottom:8px"></div>
+<div id="list">Loading...</div>
+
+<script>
+async function load(){
+  try{
+    let raw = localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}';
+    let user = JSON.parse(raw);
+    let email = (user.email||'').toLowerCase().trim();
+    document.getElementById('emailShow').innerText = 'Email: ' + (email||'NOT FOUND - Login!');
+    if(!email){
+      document.getElementById('list').innerHTML='<p style=background:white;padding:15px;border-radius:12px>⚠️ Login first!<br><br><button onclick="location.href=\' / \'" class="btn">Go Home</button></p>';
+      return;
+    }
+    let r = await fetch('/api/orders/my?email='+encodeURIComponent(email));
+    let res = await r.json();
+    let html='';
+    if(!res.orders || res.orders.length==0){
+      html='<p style=background:white;padding:15px;border-radius:12px>No orders yet. Email: '+email+'</p>';
+    } else {
+      res.orders.forEach(o=>{
+        let tid = o.tracking_id;
+        html+= `<div class="order">
+          <div style="display:flex;justify-content:space-between">
+            <b style="color:#FF6A00">${tid}</b>
+            <span class="badge ${o.status}">${o.status}</span>
+          </div>
+          <div style="margin-top:6px;font-size:13px">
+            🛍️ ${o.shop_name||''}<br>
+            💰 UGX ${Number(o.total).toLocaleString()} - ${o.items?o.items.length:0} items<br>
+            📍 ${o.full_address||''}<br>
+            <small>${new Date(o.created_at).toLocaleString()}</small>
+          </div>
+          <button onclick="location.href='/track/${tid}'" class="btn">🔍 Track Order</button>
+        </div>`;
+      });
+    }
+    document.getElementById('list').innerHTML=html;
+  }catch(e){
+    document.getElementById('list').innerHTML='Error: '+e.message;
+  }
+}
+load();
+</script>
+</body>
+</html>
