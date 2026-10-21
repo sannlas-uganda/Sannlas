@@ -23,7 +23,7 @@ def reels_page():
 def reels_feed():
     try:
         conn = get_conn(); cur = conn.cursor()
-        # AUTO-ADD NEW COLUMNS IF NOT EXIST
+        # AUTO-ADD COLUMNS
         try:
             cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS shop_name TEXT")
             cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS description TEXT")
@@ -32,33 +32,66 @@ def reels_feed():
             cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS location TEXT")
             cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS hashtags TEXT")
             cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS shop_slug TEXT")
+            cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS product_id TEXT")
             conn.commit()
         except:
             pass
         
+        # GET REELS - SIMPLE FIRST (don't join yet, your products are JSONB)
         cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 100")
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description]
         data = [dict(zip(cols, r)) for r in rows]
         
-        # ADD SHOP LINK FOR STYLE 1
-        for reel in data:
-            shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
-            reel['shop_name'] = shop
-            reel['shop_slug'] = reel.get('shop_slug') or shop
-            reel['shop_link'] = f"/shop/{shop}"
-            reel['user_name'] = shop
-            # Keep backward compatible
-            if not reel.get('product_link'):
-                reel['product_link'] = reel.get('promo_link') or f"/shop/{shop}"
+        # NOW TRY TO GET REAL PRODUCT PRICE FROM PRODUCTS TABLE (JSONB)
+        try:
+            for reel in data:
+                pid = str(reel.get('product_id') or '').strip()
+                if pid:
+                    # Try to find product in Neon JSONB
+                    try:
+                        # Search by id inside data
+                        cur.execute("SELECT data FROM products WHERE data->>'id' = %s OR id::text = %s LIMIT 1", (pid, pid))
+                        prow = cur.fetchone()
+                        if prow:
+                            pdata = prow[0]
+                            if isinstance(pdata, str):
+                                import json as js
+                                pdata = js.loads(pdata)
+                            # REAL PRICE
+                            reel['price'] = pdata.get('price') or pdata.get('original_price') or reel.get('price') or 0
+                            reel['product_name'] = pdata.get('name') or reel.get('product_name')
+                            reel['product_image'] = pdata.get('image') or ''
+                            reel['p_shop_slug'] = pdata.get('shop_slug') or ''
+                            reel['buy_link'] = f"/product/{pid}"
+                            reel['real_product_link'] = f"/shop/{pdata.get('shop_slug','')}?product={pid}"
+                            reel['shop_link'] = f"/shop/{pdata.get('shop_slug','')}"
+                    except Exception as e:
+                        print(f"Product lookup failed for {pid}: {e}")
+                
+                # For reels without product_id - use shop
+                for reel in data:
+                    shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
+                    reel['shop_name'] = shop
+                    if not reel.get('shop_slug'):
+                        reel['shop_slug'] = reel.get('shop_name') or 'shop'
+                    if not reel.get('shop_link'):
+                        reel['shop_link'] = f"/shop/{reel.get('shop_slug')}"
+                    if not reel.get('product_link'):
+                        reel['product_link'] = reel.get('promo_link') or f"/shop/{shop}"
+                    if not reel.get('buy_link'):
+                        reel['buy_link'] = reel.get('product_link')
+                    if not reel.get('price'):
+                        reel['price'] = reel.get('price') or 0
+        except Exception as e:
+            print("Price enrichment error:", e)
         
         cur.close(); conn.close()
         return jsonify(data)
     except Exception as e:
         print("FEED ERROR:", e)
-        traceback.print_exc()
+        import traceback; traceback.print_exc()
         return jsonify([])
-
 @reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
 def upload_reel():
     try:
