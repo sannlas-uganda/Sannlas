@@ -180,7 +180,11 @@ def delivery_orders():
 
 @orders_bp.route('/track/<tracking_id>')
 def track_page(tracking_id):
-    return render_template_string(TRACK_HTML, tracking_id=tracking_id)
+    try:
+        from flask import render_template
+        return render_template('track.html', tracking_id=tracking_id)
+    except:
+        return render_template_string(TRACK_HTML, tracking_id=tracking_id)
 
 @orders_bp.route('/my-orders')
 def my_orders_page():
