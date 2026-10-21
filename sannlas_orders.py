@@ -5,22 +5,45 @@ from datetime import datetime
 
 orders_bp = Blueprint('orders_bp', __name__)
 
+# ===== SUPER FAST CACHE SYSTEM =====
+PRODUCT_CACHE = {"data": None, "time": 0}
+SHOP_CACHE = {"data": None, "time": 0}
+ORDERS_CACHE = {"data": None, "time": 0}
+ORDERS_V2_CACHE = {"data": None, "time": 0}
+
 def get_orders():
-    return load_db('orders.json', [])
+    now = time.time()
+    # Cache orders for 60 seconds - super fast!
+    if ORDERS_CACHE["data"] is not None and (now - ORDERS_CACHE["time"] < 60):
+        return ORDERS_CACHE["data"]
+    data = load_db('orders.json', [])
+    ORDERS_CACHE["data"] = data
+    ORDERS_CACHE["time"] = now
+    return data
 
 def save_orders(data):
+    ORDERS_CACHE["data"] = data
+    ORDERS_CACHE["time"] = time.time()
     save_db('orders.json', data)
+
+def get_orders_v2():
+    now = time.time()
+    if ORDERS_V2_CACHE["data"] is not None and (now - ORDERS_V2_CACHE["time"] < 60):
+        return ORDERS_V2_CACHE["data"]
+    try:
+        data = load_db('orders_v2.json', [])
+    except:
+        data = []
+    ORDERS_V2_CACHE["data"] = data
+    ORDERS_V2_CACHE["time"] = now
+    return data
 
 def gen_tracking_id():
     return f"SN-{random.randint(100000, 999999)}"
 
-# ===== ADD CACHE AT TOP - FAST WEBSITE =====
-PRODUCT_CACHE = {"data": None, "time": 0}
-SHOP_CACHE = {"data": None, "time": 0}
-
 def get_cached_products():
     now = time.time()
-    if PRODUCT_CACHE["data"] and (now - PRODUCT_CACHE["time"] < 300): # 5 min cache
+    if PRODUCT_CACHE["data"] and (now - PRODUCT_CACHE["time"] < 300):
         return PRODUCT_CACHE["data"]
     data = load_db('products.json', [])
     PRODUCT_CACHE["data"] = data
@@ -40,8 +63,6 @@ def get_product_owner(product_id):
     pid = str(product_id).lower().strip()
     if not pid:
         return "", ""
-    
-    # Use cache - 1 query only! SUPER FAST
     try:
         products = get_cached_products()
         for p in products:
@@ -51,7 +72,6 @@ def get_product_owner(product_id):
                 owner = p.get('seller_email') or p.get('shop_email') or p.get('owner_email') or p.get('email') or p.get('user_email') or ''
                 if owner:
                     return owner.lower().strip(), p.get('business') or p.get('shop_name') or p.get('business_name') or 'Sannlas Shop'
-                # If no email, try shop slug via cache
                 if p.get('shop_slug'):
                     shops = get_cached_shops()
                     sh = next((s for s in shops if s.get('shop_slug') == p.get('shop_slug')), None)
@@ -60,25 +80,6 @@ def get_product_owner(product_id):
                 return "", p.get('business') or p.get('shop_name') or 'Sannlas Shop'
     except Exception as e:
         print(f"Cache lookup error: {e}")
-    
-    # Fallback files (old)
-    files = ['data/products.json','data/sannlas_products.json','products.json','sannlas_products.json']
-    for fp in files:
-        try:
-            if os.path.exists(fp):
-                with open(fp,'r',encoding='utf-8') as f:
-                    prods = json.loads(f.read())
-                    if isinstance(prods, dict):
-                        prods = list(prods.values())
-                    for p in prods:
-                        if not isinstance(p, dict): continue
-                        p_id = str(p.get('id') or p.get('product_id') or '').lower()
-                        if p_id == pid:
-                            owner = p.get('seller_email') or p.get('shop_email') or p.get('owner_email') or p.get('email') or ''
-                            shop = p.get('shop_name') or 'Sannlas Shop'
-                            return owner.lower().strip(), shop
-        except:
-            continue
     return "", ""
 
 @orders_bp.route('/api/orders/create', methods=['POST'])
@@ -117,10 +118,15 @@ def create_orders():
         for item in user_carts:
             try:
                 product_id = item.get('product_id') or item.get('id') or item.get('_id') or item.get('productId')
-                owner_email, shop_from_product = get_product_owner(product_id) if product_id else ("","")
+                # FAST: Use email from item first, no DB!
+                final_seller = (item.get('shop_email') or item.get('seller_email') or item.get('real_seller_email') or item.get('shop_owner_email') or '').lower().strip()
+                final_shop = item.get('shop_name') or item.get('real_shop_name') or 'Sannlas'
                 
-                final_seller = (owner_email or item.get('shop_email') or item.get('seller_email') or item.get('shop_owner_email') or item.get('real_seller_email') or '').lower().strip()
-                final_shop = shop_from_product or item.get('shop_name') or item.get('real_shop_name') or 'Sannlas'
+                # Only lookup if not found
+                if not final_seller:
+                    owner_email, shop_from_product = get_product_owner(product_id) if product_id else ("","")
+                    final_seller = owner_email or final_seller
+                    final_shop = shop_from_product or final_shop
                 
                 if not final_seller:
                     final_seller = "admin@sannlas.com"
@@ -128,7 +134,6 @@ def create_orders():
                 item['real_seller_email'] = final_seller
                 item['real_shop_name'] = final_shop
                 item['real_product_id'] = product_id
-                
                 shops[final_seller].append(item)
             except Exception as e:
                 item['real_seller_email'] = "admin@sannlas.com"
@@ -141,29 +146,18 @@ def create_orders():
             tid = gen_tracking_id()
             while any(o.get('tracking_id')==tid for o in orders):
                 tid = gen_tracking_id()
-                
             total = sum([float(i.get('price',0)) * int(i.get('qty',1) or 1) for i in items])
             order = {
-                "order_id": tid,
-                "tracking_id": tid,
-                "buyer_email": email,
-                "buyer_name": buyer_name,
-                "buyer_phone": buyer_phone,
-                "district": district,
-                "address": address,
-                "full_address": full_address,
-                "shop_key": shop_key,
-                "shop_name": items[0].get('real_shop_name','Sannlas'),
-                "shop_email": items[0].get('real_seller_email',''),
-                "seller_email": items[0].get('real_seller_email',''),
+                "order_id": tid, "tracking_id": tid,
+                "buyer_email": email, "buyer_name": buyer_name,
+                "buyer_phone": buyer_phone, "district": district,
+                "address": address, "full_address": full_address,
+                "shop_key": shop_key, "shop_name": items[0].get('real_shop_name','Sannlas'),
+                "shop_email": items[0].get('real_seller_email',''), "seller_email": items[0].get('real_seller_email',''),
                 "shop_owner_email": items[0].get('real_seller_email',''),
-                "items": items,
-                "total": total,
-                "status": "PENDING",
-                "delivery_man_name": "",
-                "delivery_man_phone": "",
-                "created_at": datetime.now().isoformat(),
-                "timestamp": int(time.time())
+                "items": items, "total": total, "status": "PENDING",
+                "delivery_man_name": "", "delivery_man_phone": "",
+                "created_at": datetime.now().isoformat(), "timestamp": int(time.time())
             }
             orders.append(order)
             created.append(order)
@@ -192,7 +186,7 @@ def my_orders():
     orders = get_orders()
     my = [o for o in orders if o.get('buyer_email','').lower()==email]
     my.sort(key=lambda x: x.get('timestamp',0), reverse=True)
-    return jsonify({"orders": my})
+    return jsonify({"orders": my[:20]})
 
 @orders_bp.route('/api/orders/track/<tracking_id>', methods=['GET'])
 def track_order(tracking_id):
@@ -200,7 +194,7 @@ def track_order(tracking_id):
     order = next((o for o in orders if o.get('tracking_id')==tracking_id), None)
     if not order:
         try:
-            v2 = load_db('orders_v2.json', [])
+            v2 = get_orders_v2()
             order = next((o for o in v2 if str(o.get('id'))==tracking_id or str(o.get('tracking_id'))==tracking_id), None)
         except:
             pass
@@ -212,21 +206,19 @@ def track_order(tracking_id):
 def seller_orders():
     shop_email = (request.args.get('shop_email','').lower() or request.args.get('email','').lower() or request.args.get('shop','').lower()).strip()
     orders = get_orders()
-    try:
-        v2_orders = load_db('orders_v2.json', [])
-        for o in v2_orders:
-            if 'tracking_id' not in o:
-                o['tracking_id'] = str(o.get('id'))
-            if 'seller_email' in o and 'shop_email' not in o:
-                o['shop_email'] = o['seller_email']
-            if 'shop_email' in o and 'seller_email' not in o:
-                o['seller_email'] = o['shop_email']
-        orders = orders + v2_orders
-    except:
-        pass
+    # Only load v2 if needed and cached
+    if shop_email:
+        try:
+            v2_orders = get_orders_v2()
+            for o in v2_orders:
+                if 'tracking_id' not in o:
+                    o['tracking_id'] = str(o.get('id'))
+            orders = orders + v2_orders
+        except:
+            pass
     
     if not shop_email:
-        return jsonify({"orders": orders[::-1][:50], "count": len(orders)}) # Limit 50 for speed
+        return jsonify({"orders": orders[::-1][:50], "count": len(orders)})
     
     filtered = []
     for o in orders:
@@ -241,23 +233,29 @@ def seller_orders():
                 break
     
     filtered.sort(key=lambda x: x.get('timestamp',0) or 0, reverse=True)
-    return jsonify({"orders": filtered[:50], "count": len(filtered), "success": True})
+    return jsonify({"orders": filtered[:30], "count": len(filtered), "success": True})
 
 @orders_bp.route('/api/orders/seller/count', methods=['GET'])
 def seller_count():
     shop_email = (request.args.get('shop_email','').lower() or request.args.get('email','').lower()).strip()
+    if not shop_email:
+        return jsonify({"count": 0, "new_orders": 0})
     orders = get_orders()
-    try:
-        v2 = load_db('orders_v2.json', [])
-        orders = orders + v2
-    except:
-        pass
+    # FAST count - no v2 unless 0 found
     count = 0
     for o in orders:
         if o.get('status','').upper() != 'PENDING': continue
-        o_seller = (o.get('seller_email','') or '').lower()
-        if o_seller == shop_email:
+        if (o.get('seller_email','') or '').lower() == shop_email:
             count += 1
+    if count==0:
+        try:
+            v2 = get_orders_v2()
+            for o in v2:
+                if o.get('status','').upper() != 'PENDING': continue
+                if (o.get('seller_email','') or '').lower() == shop_email:
+                    count += 1
+        except:
+            pass
     return jsonify({"count": count, "new_orders": count})
 
 @orders_bp.route('/api/orders/seller/<tracking_id>/status', methods=['POST'])
@@ -273,13 +271,15 @@ def update_status(tracking_id):
             save_orders(orders)
             return jsonify({"success": True, "order": o})
     try:
-        v2 = load_db('orders_v2.json', [])
+        v2 = get_orders_v2()
         for o in v2:
             if str(o.get('id'))==str(tracking_id) or str(o.get('tracking_id'))==str(tracking_id):
                 if data.get('status'): o['status']=data.get('status').upper()
                 if data.get('delivery_man_name'): o['delivery_man_name']=data.get('delivery_man_name')
                 if data.get('delivery_man_phone'): o['delivery_man_phone']=data.get('delivery_man_phone')
                 save_db('orders_v2.json', v2)
+                ORDERS_V2_CACHE["data"]=v2
+                ORDERS_V2_CACHE["time"]=time.time()
                 return jsonify({"success": True, "order": o})
     except:
         pass
@@ -290,7 +290,6 @@ def fix_all_orders():
     orders = get_orders()
     products = get_cached_products()
     shops = get_cached_shops()
-    users = load_db('users.json', [])
     fixed = 0
     for o in orders:
         if not o.get('seller_email') and not o.get('shop_email'):
@@ -329,7 +328,7 @@ def delivery_orders():
         if rp and (rp==p or rp.endswith(p[-9:])):
             filtered.append(o)
     filtered.sort(key=lambda x: x.get('timestamp',0), reverse=True)
-    return jsonify({"orders": filtered})
+    return jsonify({"orders": filtered[:30]})
 
 @orders_bp.route('/track/<tracking_id>')
 def track_page(tracking_id):
