@@ -21,10 +21,23 @@ body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px;color:#00
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:15px}
 .modal-box{background:#fff;border-radius:15px;padding:15px;max-width:400px;width:100%;color:#000}
 input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:10px}
+/* STEP 2 STYLES */
+.bell-btn{position:absolute;top:12px;right:12px;background:#FFCC02;color:#000;border:none;padding:10px 12px;border-radius:50%;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.bell-count{position:absolute;top:-5px;right:-5px;background:red;color:white;font-size:11px;font-weight:900;padding:3px 7px;border-radius:20px;min-width:10px;display:none;text-align:center;border:2px solid #000}
+.order-card{background:#fff;border:2px solid #FFCC02;border-radius:14px;padding:12px;margin-bottom:10px}
+.order-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800}
+.PENDING{background:#FEF3C7;color:#92400E} .CONFIRMED{background:#DBEAFE;color:#1E40AF} .PACKED{background:#E0E7FF;color:#3730A3} .SHIPPED{background:#FEF08A;color:#713F12} .DELIVERED{background:#D1FAE5;color:#065F46}
 </style></head><body>
 
 <div class="header" id="shopHeader">
  <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900">🏠 Home</button>
+ 
+ <!-- STEP 2 BELL -->
+ <button class="bell-btn" onclick="showTab('orders');document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'})">
+   🔔
+   <span id="orderCount" class="bell-count">0</span>
+ </button>
+
  <img id="sLogo" class="shop-logo" src="https://via.placeholder.com/150" onclick="document.getElementById('logoInput').click()">
  <input type="file" id="logoInput" accept="image/*" hidden onchange="uploadLogo()">
  <div id="sName" style="color:#fff;margin-top:8px">Loading...</div>
@@ -41,7 +54,6 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
  <div class="stat-card" style="border:2px solid #FFCC02">🪙<b id="stCoins">0</b><small>Coins</small></div>
 </div>
 
-<!-- FIXED: Closed the flex div properly -->
 <div class="card">
  <div style="display:flex;justify-content:space-between;align-items:center">
   <h3 style="margin:0">🛍️ My Products</h3>
@@ -54,7 +66,7 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
 <div class="card">
  <h3 style="margin:0 0 10px 0">🔥 Orders / Wants For Me</h3>
  <div style="display:flex;gap:8px;margin-bottom:10px">
-  <button id="tabOrders" onclick="showTab('orders')" class="btn" style="flex:1;background:#000;color:#FFCC02">My Sales Orders</button>
+  <button id="tabOrders" onclick="showTab('orders')" class="btn" style="flex:1;background:#000;color:#FFCC02">📦 New Orders <span id="tabOrderCount" style="background:red;color:#fff;padding:2px 6px;border-radius:10px;display:none">0</span></button>
   <button id="tabWants" onclick="showTab('wants')" class="btn" style="flex:1;background:#eee">Matching Wants</button>
  </div>
 <div style="display:flex;gap:8px;margin-bottom:10px;margin-top:10px">
@@ -62,11 +74,10 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
   <button onclick="showChatTab('chats')" id="btnChats" class="btn" style="flex:1;background:#25D366;color:#000">💬 Chats <span id="chatCount" style="background:#000;color:#fff;padding:2px 6px;border-radius:10px">0</span></button>
   <button onclick="showChatTab('wants')" id="btnWants" class="btn" style="flex:1;background:#eee">Wants</button>
 </div>
-<div id="ordersBox"></div>
+<div id="ordersBox">Loading orders...</div>
 <div id="chatsBox" style="display:none"></div>
 <div id="wantsBox" style="display:none"></div>
 
-<!-- CHAT WINDOW MODAL -->
 <div id="chatModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:99999;flex-direction:column">
   <div style="background:#075E54;color:#fff;padding:15px;display:flex;justify-content:space-between">
     <span id="chatWithName">Chat</span>
@@ -126,6 +137,7 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
 let myUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
 let myEmail = (myUser.email||'').toLowerCase();
 let myShopSlug = '';
+let myShopName = '';
 let currentPage = 1;
 let hasMore = false;
 document.getElementById('todayDate').innerText = new Date().toLocaleDateString();
@@ -138,7 +150,9 @@ async function loadMyShop(page=1){
    document.getElementById('sName').innerHTML='<h2>No Shop Yet</h2><button onclick="location.href=\'/?open=sell\'" style="background:#FFCC02;padding:10px;border-radius:10px">Add First Product</button>';
    return;
  }
- let s = d.shop; myShopSlug = s.shop_slug||s.slug||'';
+ let s = d.shop; myShopSlug = s.shop_slug||s.slug||''; myShopName = s.business_name||'';
+ localStorage.setItem('sannlas_shop_name', myShopName);
+ localStorage.setItem('sannlas_shop_email', myEmail);
  document.getElementById('sLogo').src = s.logo||'https://via.placeholder.com/150?text='+encodeURIComponent((s.business_name||'SHOP').substring(0,3));
  document.getElementById('sName').innerHTML = `<h1>🏪 ${s.business_name||'My Shop'}</h1>`;
  document.getElementById('sInfo').innerHTML = `📍 ${s.location||'Uganda'} | 📞 ${s.phone||''}`;
@@ -147,7 +161,6 @@ async function loadMyShop(page=1){
  document.getElementById('setName').value=s.business_name||''; document.getElementById('setLocation').value=s.location||'';
  document.getElementById('setPhone').value=s.phone||''; document.getElementById('setDelivery').value=s.delivery_info||'';
  document.getElementById('setHours').value=s.working_hours||''; document.getElementById('setPayment').value=s.payment||''; document.getElementById('setDesc').value=s.description||'';
-
  if(page==1){
    document.getElementById('myProducts').innerHTML='';
    document.getElementById('stViews').innerText = d.stats.views||0;
@@ -156,10 +169,8 @@ async function loadMyShop(page=1){
    document.getElementById('stWhats').innerText = d.stats.whatsapp_clicks||0;
    document.getElementById('stCoins').innerText = d.stats.coins||0;
  }
-
  let prods = d.products||[];
  if(prods.length==0 && page==1){ document.getElementById('myProducts').innerHTML='<p>No products yet — <a href="/?open=sell">Add Product FREE</a></p>'; }
-
  prods.forEach(p=>{
    document.getElementById('myProducts').innerHTML += `
     <div class="pcard">
@@ -173,17 +184,104 @@ async function loadMyShop(page=1){
       <button class="btn" style="background:${p.is_hidden?'#00AA00':'#999'};color:#fff" onclick="toggleHide('${p.id}',${!p.is_hidden})">${p.is_hidden?'👁️':'🙈'}</button>
      </div></div></div>`;
  });
-
  hasMore = d.has_more;
  currentPage = d.page;
  document.getElementById('loadMoreBtn').style.display = hasMore? 'block' : 'none';
+ loadSellerOrders(); // Load orders after shop loaded
 }
 
 function loadMoreProducts(){ loadMyShop(currentPage+1); }
+
+// ===== STEP 2: SELLER ORDERS LOGIC =====
 function showTab(t){
  document.getElementById('ordersBox').style.display = t=='orders'? 'block':'none';
  document.getElementById('wantsBox').style.display = t=='wants'? 'block':'none';
+ if(t=='orders') loadSellerOrders();
 }
+function showChatTab(t){
+ document.getElementById('ordersBox').style.display = t=='orders'? 'block':'none';
+ document.getElementById('chatsBox').style.display = t=='chats'? 'block':'none';
+ document.getElementById('wantsBox').style.display = t=='wants'? 'block':'none';
+ if(t=='orders') loadSellerOrders();
+}
+
+async function loadSellerOrders(){
+ let box = document.getElementById('ordersBox');
+ try{
+   let r = await fetch(`/api/orders/seller?shop_email=${encodeURIComponent(myEmail)}&shop_name=${encodeURIComponent(myShopName)}`);
+   let res = await r.json();
+   let orders = res.orders||[];
+   if(orders.length==0){ box.innerHTML='<p style="padding:10px;background:#FFF7ED;border-radius:10px">No orders yet Boss! When buyer clicks Checkout, it will show here with SN- tracking ID.</p>'; return; }
+   let html='';
+   orders.forEach(o=>{
+     html+=`<div class="order-card">
+       <div style="display:flex;justify-content:space-between;align-items:center">
+         <b style="color:#FF6A00">${o.tracking_id}</b>
+         <span class="order-badge ${o.status}">${o.status}</span>
+       </div>
+       <div style="margin-top:8px;font-size:13px;line-height:1.5">
+         👤 <b>${o.buyer_name}</b><br>
+         📞 <a href="tel:${o.buyer_phone}" style="color:#00AA00;font-weight:800">${o.buyer_phone}</a> | ✉️ ${o.buyer_email}<br>
+         📍 ${o.district}, ${o.address}<br>
+         💰 UGX ${Number(o.total).toLocaleString()} - ${o.items.length} items<br>
+         <small style="color:#666">${new Date(o.created_at).toLocaleString()}</small>
+         ${o.delivery_man_name? `<br>🛵 Rider: ${o.delivery_man_name} (${o.delivery_man_phone})`: ''}
+       </div>
+       <details style="margin-top:6px"><summary style="font-size:12px;color:#666">View Items</summary><div style="font-size:12px">${o.items.map(i=>`• ${i.name||i.title} x${i.qty||1} - UGX ${i.price}`).join('<br>')}</div></details>
+       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+         <button onclick="updateOrderStatus('${o.tracking_id}','CONFIRMED')" class="btn" style="background:#000;color:#FFCC02">✅ Confirm</button>
+         <button onclick="openRiderBox('${o.tracking_id}')" class="btn" style="background:#FF6A00;color:#fff">🛵 Assign Rider</button>
+         <button onclick="updateOrderStatus('${o.tracking_id}','PACKED')" class="btn" style="background:#E0E7FF">📦 Packed</button>
+         <button onclick="updateOrderStatus('${o.tracking_id}','SHIPPED')" class="btn" style="background:#FEF08A">🚚 Shipped</button>
+         <button onclick="updateOrderStatus('${o.tracking_id}','DELIVERED')" class="btn" style="background:#D1FAE5">✅ Delivered</button>
+       </div>
+       <div id="rider-${o.tracking_id}" style="display:none;margin-top:8px;background:#f9f9f9;padding:8px;border-radius:10px">
+         <input id="rn-${o.tracking_id}" placeholder="Rider Name" style="padding:8px;border-radius:8px;border:1px solid #ddd;width:48%"><input id="rp-${o.tracking_id}" placeholder="Rider Phone" style="padding:8px;border-radius:8px;border:1px solid #ddd;width:48%;margin-left:2%">
+         <button onclick="saveRider('${o.tracking_id}')" style="margin-top:6px;width:100%;padding:10px;background:#000;color:#FFCC02;border:none;border-radius:10px;font-weight:800">Save Rider & Ship</button>
+       </div>
+     </div>`;
+   });
+   box.innerHTML=html;
+ }catch(e){ box.innerHTML='Error loading orders: '+e.message; }
+}
+
+async function updateOrderStatus(id,status){
+ await fetch(`/api/orders/seller/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:status})});
+ loadSellerOrders();
+}
+function openRiderBox(id){ document.getElementById('rider-'+id).style.display='block'; }
+async function saveRider(id){
+ let name=document.getElementById('rn-'+id).value.trim(); let phone=document.getElementById('rp-'+id).value.trim();
+ if(!name || !phone){ alert('Enter rider name & phone'); return; }
+ await fetch(`/api/orders/seller/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({delivery_man_name:name, delivery_man_phone:phone, status:'SHIPPED'})});
+ loadSellerOrders();
+}
+
+// Bell polling
+async function checkNewOrders(){
+ try{
+   let r = await fetch(`/api/orders/seller?shop_email=${encodeURIComponent(myEmail)}&shop_name=${encodeURIComponent(myShopName)}`);
+   let res = await r.json();
+   let pending = (res.orders||[]).filter(o=>o.status=='PENDING').length;
+   let badge = document.getElementById('orderCount');
+   let tabBadge = document.getElementById('tabOrderCount');
+   if(pending>0){
+     badge.style.display='block'; badge.innerText=pending;
+     tabBadge.style.display='inline-block'; tabBadge.innerText=pending;
+     let last = parseInt(localStorage.getItem('last_pending')||'0');
+     if(pending>last && last!=0){
+       if(navigator.vibrate) navigator.vibrate([200,100,200]);
+       // Optional sound
+       // new Audio('https://cdn.pixabay.com/audio/2022/03/24/audio_...mp3').play().catch(()=>{});
+     }
+   } else {
+     badge.style.display='none'; tabBadge.style.display='none';
+   }
+   localStorage.setItem('last_pending', pending);
+ }catch(e){}
+}
+
+// Other functions
 function openEditPrice(id,price){ document.getElementById('editPriceId').value=id; document.getElementById('editPriceVal').value=price; document.getElementById('editPriceModal').style.display='flex'; }
 function openEditStock(id,stock){ document.getElementById('editStockId').value=id; document.getElementById('editStockVal').value=stock; document.getElementById('editStockModal').style.display='flex'; }
 function openSettings(){ document.getElementById('settingsModal').style.display='flex'; }
@@ -212,4 +310,5 @@ function shareShop(){ let url=location.origin+'/shop/'+myShopSlug; navigator.cli
 function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
 
 loadMyShop(1);
+setInterval(checkNewOrders, 5000);
 </script></body></html>
