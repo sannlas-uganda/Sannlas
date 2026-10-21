@@ -125,17 +125,79 @@ function filterProducts(){
   const q = document.getElementById('searchInput').value.toLowerCase();
   render(allProducts.filter(p=> (p.name||'').toLowerCase().includes(q)));
 }
+function getUser(){
+  try {
+    let u = JSON.parse(localStorage.getItem('sannlas_user')|| localStorage.getItem('user') || '{}');
+    if(!u.email){
+      let email = localStorage.getItem('sannlas_email') || localStorage.getItem('email') || '';
+      let phone = localStorage.getItem('sannlas_phone') || localStorage.getItem('phone') || '';
+      return {email: email, phone: phone};
+    }
+    return u;
+  } catch(e){
+    return {email:'', phone:''};
+  }
+}
+
 function orderNow(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
-  let msg = `Hi Boss! I want ${p.name} - UGX ${p.price} - from SANNLAS PRODUCTS`;
+  if(!p) return;
+  let name = p.name || p.product_name || 'Product';
+  let price = p.price || 0;
+  let msg = `Hi Boss! I want ${name} - UGX ${Number(price).toLocaleString()} - Product ID ${id} - from SANNLAS PRODUCTS`;
   window.open(`https://wa.me/256795712326?text=${encodeURIComponent(msg)}`,'_blank');
 }
-function addToCart(id){
-  let cart = JSON.parse(localStorage.getItem('sannlas_cart')||'[]');
-  cart.push(id);
-  localStorage.setItem('sannlas_cart', JSON.stringify(cart));
-  alert('✅ Added to cart Boss!');
-  closePop();
+
+async function addToCart(id){
+  let p = allProducts.find(x=>String(x.id)===String(id));
+  if(!p){
+    alert('Product not found!');
+    return;
+  }
+  let user = getUser();
+  let email = (user.email || '').toLowerCase().trim();
+  let phone = (user.phone || '').trim();
+
+  if(!email && !phone){
+    alert('⚠️ Please login first Boss! Go to Home and login.');
+    window.location.href = '/';
+    return;
+  }
+
+  let payload = {
+    email: email,
+    phone: phone,
+    product_id: String(p.id),
+    name: p.name || p.product_name || 'Product',
+    price: Number(p.price || 0),
+    image: p.image || p.image_url || '/icon-192.png',
+    shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS',
+    shop_slug: p.shop_slug || p.slug || '',
+    qty: 1
+  };
+
+  try {
+    let r = await fetch('/api/cart/add', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    let res = await r.json();
+    if(res.success){
+      // Also save to local for backup
+      let cart = JSON.parse(localStorage.getItem('sannlas_cart')||'[]');
+      if(!cart.includes(id)) cart.push(id);
+      localStorage.setItem('sannlas_cart', JSON.stringify(cart));
+      
+      alert('✅ ' + res.message + ' Go to Cart to view!');
+      closePop();
+    } else {
+      alert('❌ ' + (res.message || 'Failed to add'));
+    }
+  } catch(e){
+    console.log(e);
+    alert('❌ Network error Boss! Try again');
+  }
 }
 
 load();
