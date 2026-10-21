@@ -29,41 +29,29 @@
       <h2 class="font-black text-lg">TRACK YOUR PACKAGE</h2>
       <p class="text-xs text-zinc-400">Enter code sent to your phone</p>
     </div>
-    <div><label class="text-xs text-zinc-400">TRACKING CODE / ORDER ID</label><input id="t-code" class="w-full bg-black p-4 rounded-xl text-sm mt-1 outline-none border border-[#FFCC02] font-bold tracking-widest" placeholder="e.g. SANN-78421"></div>
-    <div class="mt-3"><label class="text-xs text-zinc-400">PHONE NUMBER</label><input id="t-phone" class="w-full bg-black p-3 rounded-xl text-sm mt-1" placeholder="0755..."></div>
+    <div><label class="text-xs text-zinc-400">TRACKING CODE / ORDER ID</label><input id="t-code" class="w-full bg-black p-4 rounded-xl text-sm mt-1 outline-none border border-[#FFCC02] font-bold tracking-widest" placeholder="e.g. SN-123456"></div>
+    <div class="mt-3"><label class="text-xs text-zinc-400">PHONE NUMBER (Optional)</label><input id="t-phone" class="w-full bg-black p-3 rounded-xl text-sm mt-1" placeholder="0755..."></div>
     <button onclick="doTrack()" class="w-full bg-[#FFCC02] text-black font-black py-4 rounded-xl mt-4">TRACK NOW 🔍</button>
   </div>
-
-  <div id="track-result" class="mt-5 hidden">
-    <div class="bg-zinc-900 rounded-2xl p-4">
-      <div class="flex justify-between items-center mb-4">
-        <p class="font-bold text-sm">SANN-78421 • Shoes Order</p>
-        <span class="bg-[#00FF88] text-black text-xs px-3 py-1 rounded-full font-black">ON THE WAY</span>
-      </div>
-      <div class="space-y-3 relative">
-        <div class="flex gap-3"><div class="w-3 h-3 bg-[#00FF88] rounded-full mt-1"></div><div><p class="text-xs font-bold">Package Received - Kampala Hub</p><p class="text-[10px] text-zinc-400">Today 10:30 AM</p></div></div>
-        <div class="flex gap-3"><div class="w-3 h-3 bg-[#FFCC02] rounded-full mt-1 animate-pulse"></div><div><p class="text-xs font-bold">Rider Assigned - Boda Boda UBA 123A</p><p class="text-[10px] text-zinc-400">Today 11:00 AM • Call: 0755...</p></div></div>
-        <div class="flex gap-3 opacity-40"><div class="w-3 h-3 bg-zinc-600 rounded-full mt-1"></div><div><p class="text-xs">Delivered to Customer</p><p class="text-[10px] text-zinc-400">Pending</p></div></div>
-      </div>
-      <button onclick="window.open('https://wa.me/256700000000')" class="w-full bg-white text-black font-bold py-3 rounded-xl mt-4 text-sm">📞 CALL RIDER</button>
-    </div>
-  </div>
+  <div id="track-result" class="mt-5 hidden"></div>
 </div>
 
-<!-- RIDER / COURIER VIEW -->
+<!-- RIDER VIEW -->
 <div id="rider-view" class="p-4 hidden">
   <div class="bg-zinc-900 rounded-2xl p-4">
-    <h3 class="font-bold mb-4">Register as Delivery Rider / Driver</h3>
-    <div class="grid grid-cols-2 gap-3 mb-3">
-      <select id="r-type" class="bg-black p-3 rounded-xl text-sm"><option>Boda Boda</option><option>Tuk Tuk</option><option>Car</option><option>Van</option><option>Bicycle</option></select>
-      <input id="r-plate" class="bg-black p-3 rounded-xl text-sm" placeholder="Number Plate e.g. UBA 123A">
+    <h3 class="font-bold mb-4">Rider Login</h3>
+    <input id="r-phone-login" class="w-full bg-black p-3 rounded-xl text-sm mb-3 border border-[#FFCC02]" placeholder="Your Phone 0755...">
+    <button onclick="loadRiderOrders()" class="w-full bg-[#FFCC02] text-black font-black py-3 rounded-xl">MY DELIVERIES 📦</button>
+    <div class="mt-4 border-t border-zinc-800 pt-4">
+      <h3 class="font-bold mb-2 text-sm">Register as Delivery Rider</h3>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <select id="r-type" class="bg-black p-3 rounded-xl text-sm"><option>Boda Boda</option><option>Tuk Tuk</option><option>Car</option><option>Van</option><option>Bicycle</option></select>
+        <input id="r-plate" class="bg-black p-3 rounded-xl text-sm" placeholder="Plate UBA 123A">
+      </div>
+      <input id="r-name" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Your Name">
     </div>
-    <input id="r-name" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Your Name">
-    <input id="r-phone" class="w-full bg-black p-3 rounded-xl text-sm mb-3 border border-[#FFCC02]" placeholder="Phone (WhatsApp) 0755...">
-    <input id="r-area" class="w-full bg-black p-3 rounded-xl text-sm mb-3" placeholder="Areas Covered e.g. Kampala, Wakiso">
-    <button onclick="addRider()" class="w-full bg-white text-black font-bold py-3 rounded-xl">REGISTER AS RIDER +</button>
   </div>
-  <div class="mt-5"><h3 class="font-bold text-sm mb-3">ACTIVE DELIVERIES <span id="r-count" class="bg-[#00FF88] text-black px-2 py-1 rounded-full text-xs">0</span></h3><div id="rider-list" class="space-y-3"><p class="text-center text-zinc-500 text-sm py-10">No deliveries yet. Go online to receive orders.</p></div></div>
+  <div class="mt-5"><h3 class="font-bold text-sm mb-3">ACTIVE DELIVERIES <span id="r-count" class="bg-[#00FF88] text-black px-2 py-1 rounded-full text-xs">0</span></h3><div id="rider-list" class="space-y-3"><p class="text-center text-zinc-500 text-sm py-10">Enter phone to see assigned orders.</p></div></div>
 </div>
 
 <script>
@@ -73,19 +61,84 @@ function switchTab(t){
   document.getElementById('btn-track').className=t==='track'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
   document.getElementById('btn-rider').className=t==='rider'?'flex-1 py-4 font-bold text-sm tab-active':'flex-1 py-4 font-bold text-sm text-zinc-400';
 }
-function doTrack(){
-  if(!document.getElementById('t-code').value) return alert('Enter tracking code');
-  document.getElementById('track-result').classList.remove('hidden');
-  document.getElementById('track-result').scrollIntoView({behavior:'smooth'});
+
+async function doTrack(){
+  let code = document.getElementById('t-code').value.trim().toUpperCase();
+  if(!code) return alert('Enter tracking code');
+  let resultDiv = document.getElementById('track-result');
+  resultDiv.classList.remove('hidden');
+  resultDiv.innerHTML = '<p class="text-center py-6">Loading...</p>';
+  try{
+    let r = await fetch('/api/orders/track/'+encodeURIComponent(code));
+    let res = await r.json();
+    if(!res.success){ resultDiv.innerHTML = '<div class="bg-red-900 rounded-2xl p-4 text-center">Order not found! Check code: '+code+'</div>'; return; }
+    let o = res.order;
+    let steps = ['PENDING','CONFIRMED','PACKED','SHIPPED','DELIVERED'];
+    let cur = steps.indexOf(o.status);
+    let timeline = steps.map((s,i)=>{
+      let done = i<=cur;
+      let active = i==cur;
+      return `<div class="flex gap-3"><div class="w-3 h-3 ${done?'bg-[#00FF88]':'bg-zinc-600'} ${active?'animate-pulse':''} rounded-full mt-1"></div><div><p class="text-xs font-bold ${done?'text-white':'text-zinc-500'}">${s} ${done?'✓':''}</p><p class="text-[10px] text-zinc-400">${i==cur?'Current status':i<cur?'Done':'Pending'}</p></div></div>`;
+    }).join('');
+    resultDiv.innerHTML = `
+      <div class="bg-zinc-900 rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-4">
+          <p class="font-bold text-sm">${o.tracking_id} • ${o.shop_name||'Order'}</p>
+          <span class="bg-[#00FF88] text-black text-xs px-3 py-1 rounded-full font-black">${o.status}</span>
+        </div>
+        <div class="text-xs text-zinc-300 mb-3">
+          Buyer: ${o.buyer_name} - ${o.buyer_phone}<br>
+          Address: ${o.full_address}<br>
+          Total: UGX ${Number(o.total).toLocaleString()}
+        </div>
+        <div class="space-y-3 relative">${timeline}</div>
+        ${o.delivery_man_name?`<div class="mt-4 bg-black rounded-xl p-3 text-xs">🛵 Rider: ${o.delivery_man_name}<br>📞 ${o.delivery_man_phone}<br><a href="tel:${o.delivery_man_phone}" class="block mt-2 bg-[#FFCC02] text-black text-center py-2 rounded-xl font-black">CALL RIDER</a></div>`:''}
+      </div>`;
+    resultDiv.scrollIntoView({behavior:'smooth'});
+  }catch(e){
+    resultDiv.innerHTML = 'Error: '+e.message;
+  }
 }
-let riders=[];
-function addRider(){
-  let v={type:document.getElementById('r-type').value, plate:document.getElementById('r-plate').value||'UBA 123A', name:document.getElementById('r-name').value||'John Rider'};
-  riders.push(v);
-  document.getElementById('r-count').innerText=riders.length;
-  document.getElementById('rider-list').innerHTML=riders.map(x=>`
-    <div class="bg-zinc-900 rounded-2xl p-4 flex justify-between items-center"><div><p class="font-bold text-sm">${x.name} • ${x.type}</p><p class="text-xs text-zinc-400">${x.plate} • Online ●</p></div><span class="bg-[#00FF88] text-black text-xs px-3 py-1 rounded-full font-bold">READY</span></div>`).join('');
+
+async function loadRiderOrders(){
+  let phone = document.getElementById('r-phone-login').value.trim() || document.getElementById('r-phone').value.trim();
+  if(!phone){ alert('Enter phone'); return; }
+  localStorage.setItem('rider_phone', phone);
+  let list = document.getElementById('rider-list');
+  list.innerHTML = '<p class="text-center py-6">Loading...</p>';
+  try{
+    let r = await fetch('/api/orders/delivery?phone='+encodeURIComponent(phone));
+    let res = await r.json();
+    document.getElementById('r-count').innerText = res.orders.length;
+    if(res.orders.length==0){
+      list.innerHTML = '<p class="text-center text-zinc-500 text-sm py-10">No deliveries assigned to '+phone+'</p>';
+      return;
+    }
+    list.innerHTML = res.orders.map(o=>`
+      <div class="bg-zinc-900 rounded-2xl p-4">
+        <div class="flex justify-between"><b class="text-sm text-[#FFCC02]">${o.tracking_id}</b><span class="bg-[#FFCC02] text-black text-xs px-2 py-1 rounded-full font-black">${o.status}</span></div>
+        <p class="text-xs mt-2">👤 ${o.buyer_name} - ${o.buyer_phone}</p>
+        <p class="text-xs text-zinc-400">📍 ${o.full_address}</p>
+        <p class="text-xs">💰 UGX ${Number(o.total).toLocaleString()}</p>
+        <div class="flex gap-2 mt-3">
+          <button onclick="updateStatus('${o.tracking_id}','SHIPPED')" class="flex-1 bg-zinc-800 py-2 rounded-xl text-xs">🚚 Picked</button>
+          <button onclick="updateStatus('${o.tracking_id}','DELIVERED')" class="flex-1 bg-[#00FF88] text-black py-2 rounded-xl text-xs font-black">✅ Delivered</button>
+        </div>
+        <a href="tel:${o.buyer_phone}" class="block mt-2 bg-white text-black text-center py-2 rounded-xl text-xs font-bold">📞 Call Buyer</a>
+      </div>
+    `).join('');
+  }catch(e){
+    list.innerHTML = 'Error '+e.message;
+  }
 }
+
+async function updateStatus(id,status){
+  if(!confirm('Mark '+status+'?')) return;
+  await fetch('/api/orders/seller/'+id+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+  loadRiderOrders();
+}
+let saved = localStorage.getItem('rider_phone');
+if(saved) document.getElementById('r-phone-login').value = saved;
 </script>
 </body>
 </html>
