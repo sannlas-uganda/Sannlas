@@ -14,11 +14,14 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:90px}
 .c-info{flex:1}
 .c-name{font-weight:800;font-size:14px;margin-bottom:4px}
 .c-shop{font-size:11px;color:#666;margin-bottom:6px}
-.c-price{color:#FF6600;font-weight:900;font-size:15px}
-.c-actions{display:flex;gap:8px;margin-top:8px}
-.btn-small{border:none;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer}
-.btn-red{background:#FFE5E5;color:#FF0000}
-.btn-black{background:#000;color:#FFCC02}
+.c-price{color:#FF6600;font-weight:900;font-size:14px;margin-bottom:8px}
+.c-qty-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.qty-btn{background:#111;color:#FFCC02;border:none;width:34px;height:34px;border-radius:50%;font-weight:900;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-btn.minus{background:#FFE5E5;color:#FF0000;border:1.5px solid #FF0000}
+.qty-btn.plus{background:#000;color:#FFCC02;border:1.5px solid #FFCC02}
+.qty-num{background:#FFCC02;color:#000;padding:5px 14px;border-radius:12px;font-weight:900;font-size:13px;min-width:40px;text-align:center}
+.btn-small{border:none;padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;margin-left:8px}
+.btn-red{background:#FFE5E5;color:#FF0000;border:1px solid #FF0000}
 .empty{background:white;border-radius:20px;padding:40px 20px;text-align:center;margin-top:20px}
 .total-box{background:white;border-radius:20px;padding:16px;margin-top:16px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .btn{border:none;padding:14px 18px;border-radius:20px;font-weight:900;cursor:pointer;width:100%;font-size:15px}
@@ -55,29 +58,16 @@ async function loadCart(){
   let phone = (user.phone||'').trim();
   
   if(!email && !phone){
-    document.getElementById('cartList').innerHTML = `
-      <div class="empty">
-        <div style="font-size:50px">🔒</div>
-        <h3>Please Login Boss!</h3>
-        <p style="color:#666;margin:10px 0">You need to login to see your cart</p>
-        <button class="btn btn-black" onclick="window.location.href='/'">Go Login</button>
-      </div>`;
+    document.getElementById('cartList').innerHTML = `<div class="empty"><div style="font-size:50px">🔒</div><h3>Please Login Boss!</h3></div>`;
     return;
   }
 
   try {
     let r = await fetch(`/api/cart?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
     let data = await r.json();
-    console.log('Cart data:', data);
     
     if(!data.items || data.items.length==0){
-      document.getElementById('cartList').innerHTML = `
-        <div class="empty">
-          <div style="font-size:50px">🛒</div>
-          <h3>Cart is Empty</h3>
-          <p style="color:#666;margin:10px 0">Add some products first Boss!</p>
-          <button class="btn btn-black" onclick="window.location.href='/products'">Browse Products</button>
-        </div>`;
+      document.getElementById('cartList').innerHTML = `<div class="empty"><div style="font-size:50px">🛒</div><h3>Cart is Empty</h3><p style="color:#666;margin:10px 0">Add some products first Boss!</p><button class="btn btn-orange" onclick="window.location.href='/products'">Browse Products</button></div>`;
       document.getElementById('totalBox').style.display='none';
       return;
     }
@@ -87,9 +77,13 @@ async function loadCart(){
         <img src="${item.image || '/icon-192.png'}" onerror="this.src='/icon-192.png'">
         <div class="c-info">
           <div class="c-name">${item.name||'Product'}</div>
-          <div class="c-shop">🏪 ${item.shop_name||'SANNLAS'} • Qty: ${item.qty||1}</div>
+          <div class="c-shop">🏪 ${item.shop_name||'Sannlas'} • Qty: ${item.qty||1}</div>
           <div class="c-price">UGX ${Number(item.price).toLocaleString()} x ${item.qty||1} = UGX ${Number(item.price * (item.qty||1)).toLocaleString()}</div>
-          <div class="c-actions">
+          
+          <div class="c-qty-row">
+            <button class="qty-btn minus" onclick="updateQty('${item.product_id}', -1)">−</button>
+            <span class="qty-num">${item.qty||1}</span>
+            <button class="qty-btn plus" onclick="updateQty('${item.product_id}', 1)">+</button>
             <button class="btn-small btn-red" onclick="removeItem('${item.product_id}')">🗑️ Remove</button>
           </div>
         </div>
@@ -114,17 +108,33 @@ async function loadCart(){
         <button class="btn btn-outline" onclick="window.location.href='/products'">← Continue Shopping</button>
       </div>
     `;
-
   } catch(e){
-    console.log(e);
     document.getElementById('cartList').innerHTML = `<div class="empty"><h3>Error loading cart</h3><p>${e.message}</p></div>`;
+  }
+}
+
+async function updateQty(product_id, change){
+  let user = getUser();
+  // Use new endpoint
+  let r = await fetch('/api/cart/update', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email: user.email, phone: user.phone, product_id: product_id, change: change})
+  });
+  let res = await r.json();
+  if(res.success){
+    loadCart();
+    // also update top counter in opener if any
+    if(window.opener && window.opener.updateCartCount) window.opener.updateCartCount();
+  } else {
+    alert(res.message||'Failed');
   }
 }
 
 async function removeItem(product_id){
   if(!confirm('Remove this item Boss?')) return;
   let user = getUser();
-  let r = await fetch('/api/cart/remove', {
+  await fetch('/api/cart/remove', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({email: user.email, phone: user.phone, product_id: product_id})
@@ -135,7 +145,7 @@ async function removeItem(product_id){
 async function clearCart(){
   if(!confirm('Clear all cart Boss?')) return;
   let user = getUser();
-  let r = await fetch('/api/cart/clear', {
+  await fetch('/api/cart/clear', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({email: user.email, phone: user.phone})
