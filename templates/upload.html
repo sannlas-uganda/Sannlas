@@ -3,48 +3,29 @@
 <title>Upload Reel - Sannlas</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Arial}
-body{background:#000;color:#fff;min-height:100vh;padding-bottom:90px}
-.header{background:#111;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:99}
+body{background:#fff;color:#111;min-height:100vh;padding-bottom:90px}
+.header{background:#000;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:99}
 .header a{color:#FFCC02;text-decoration:none;font-weight:900;font-size:14px}
-.header b{color:#FFCC02;letter-spacing:1px}
+.header b{color:#FFCC02}
 .container{max-width:500px;margin:0 auto;padding:15px}
-.card{background:#111;border-radius:16px;padding:15px;margin-bottom:15px;border:1px solid #222}
-label{display:block;font-size:12px;color:#FFCC02;font-weight:900;margin:14px 0 6px 2px;letter-spacing:0.5px}
+.card{background:#fff;border-radius:16px;padding:15px;margin-bottom:15px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+label{display:block;font-size:12px;color:#111;font-weight:900;margin:14px 0 6px 2px}
 label:first-child{margin-top:0}
-input,textarea,select{width:100%;background:#000;color:#fff;border:1.5px solid #333;border-radius:12px;padding:13px 14px;font-size:14px;outline:none}
-input:focus,textarea:focus{border-color:#FFCC02}
-textarea{resize:none}
+input,textarea,select{width:100%;background:#fff;color:#111;border:1.5px solid #ddd;border-radius:12px;padding:13px 14px;font-size:14px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:#000}
 .hint{font-size:11px;color:#888;margin-top:4px}
-.video-box{border:2px dashed #333;border-radius:16px;padding:20px;text-align:center;background:#000;cursor:pointer;position:relative;overflow:hidden}
-.video-box.has-video{border-color:#FFCC02;padding:0}
+.video-box{border:2px dashed #ccc;border-radius:16px;padding:20px;text-align:center;background:#fafafa;cursor:pointer;overflow:hidden}
+.video-box.has-video{border-color:#000;padding:0}
 .video-box video{width:100%;max-height:350px;display:block;border-radius:16px}
-.upload-icon{font-size:40px;margin-bottom:8px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn-post{width:100%;background:#FFCC02;color:#000;padding:16px;border:none;border-radius:30px;font-weight:900;font-size:16px;margin-top:20px;cursor:pointer}
-.btn-post:disabled{background:#333;color:#777}
-.badge{background:#222;color:#FFCC02;padding:3px 8px;border-radius:10px;font-size:10px;margin-left:6px}
-.preview-caption{background:#000;border:1px solid #222;border-radius:12px;padding:10px;margin-top:10px;font-size:13px;line-height:1.4}
-</style>
-
-  <style>
-body, html, .page, .wrapper, #app, main{
-  background:#ffffff !important;
-  background-color:#ffffff !important;
-}
-div[style*="background: black"],
-div[style*="background:#000"],
-div[style*="background-color: black"]{
-  background:#ffffff !important;
-  color:#111 !important;
-}
-.card{
-  background:#fff !important;
-}
-</style>
-</head><body>
+.btn-post{width:100%;background:#000;color:#FFCC02;padding:16px;border:none;border-radius:30px;font-weight:900;font-size:16px;margin-top:20px;cursor:pointer}
+.btn-post:disabled{background:#ccc}
+.product-option{display:flex;gap:10px;align-items:center}
+.product-option img{width:50px;height:50px;border-radius:10px;object-fit:cover}
+.badge{background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:900}
+</style></head><body>
 
 <div class="header">
-  <a href="/">← Back to Home</a>
+  <a href="/">← Home</a>
   <b>SANNLAS UPLOAD</b>
   <a href="/reels">Reels</a>
 </div>
@@ -54,9 +35,9 @@ div[style*="background-color: black"]{
     <label>📹 UPLOAD VIDEO * <span class="badge">Required</span></label>
     <div class="video-box" id="videoBox" onclick="document.getElementById('videoInput').click()">
       <div id="videoPlaceholder">
-        <div class="upload-icon">🎥</div>
+        <div style="font-size:40px">🎥</div>
         <b>Tap to select video</b><br>
-        <span class="hint">MP4, MOV - Max 100MB - 15s to 60s recommended</span>
+        <span class="hint">MP4, MOV - Max 100MB</span>
       </div>
       <video id="videoPreview" style="display:none" controls playsinline muted></video>
     </div>
@@ -65,85 +46,138 @@ div[style*="background-color: black"]{
   </div>
 
   <div class="card">
-    <label>🏪 SHOP NAME *</label>
-    <input type="text" id="shopName" placeholder="e.g. STEPH">
-    <div class="hint">Auto-filled from your shop. This will show as 🏪 button on reel (STYLE 1)</div>
+    <!-- NEW: SELECT REAL PRODUCT FROM SHOP -->
+    <label>🛍️ SELECT PRODUCT FROM YOUR SHOP * <span class="badge">FIXES UGX 0</span></label>
+    <select id="productSelect" onchange="onProductSelected()">
+      <option value="">⏳ Loading your products...</option>
+    </select>
+    <div class="hint">Select product - Price & shop will auto-fill. No more UGX 0!</div>
 
-    <label>📝 PRODUCT DESCRIPTION *</label>
-    <textarea id="description" rows="3" placeholder="Describe your product... e.g. Quality ankara dresses, new stock, sizes M-XXL"></textarea>
+    <div id="selectedProductPreview" style="display:none;margin-top:12px;background:#f8fafc;border:1px solid #eee;border-radius:12px;padding:10px;display:flex;gap:10px;align-items:center">
+      <img id="selImg" src="" style="width:60px;height:60px;border-radius:12px;object-fit:cover">
+      <div>
+        <b id="selName">Product</b><br>
+        <span style="font-weight:900" id="selPrice">UGX 0</span> • <span id="selShop" style="font-size:12px"></span>
+      </div>
+    </div>
+
+    <label>🏪 SHOP NAME *</label>
+    <input type="text" id="shopName" placeholder="e.g. STEPH" readonly>
+    
+    <label>📝 DESCRIPTION *</label>
+    <textarea id="description" rows="3" placeholder="Auto-filled from product"></textarea>
 
     <label>💬 CAPTION</label>
-    <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! 🔥 DM for orders"></textarea>
+    <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! 🔥"></textarea>
 
-    <div class="row">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div>
         <label>📍 LOCATION</label>
-        <input type="text" id="location" placeholder="e.g. Kampala, Uganda">
+        <input type="text" id="location" placeholder="Kampala">
       </div>
       <div>
-        <label>💰 PRICE (UGX)</label>
-        <input type="number" id="price" placeholder="e.g. 50000">
+        <label>💰 PRICE (Auto)</label>
+        <input type="number" id="price" placeholder="Auto" readonly style="background:#f1f5f9">
       </div>
     </div>
 
-    <label>#️⃣ HASHTAGS</label>
-    <input type="text" id="hashtags" placeholder="e.g. #fashion #uganda #dresses">
-    <div class="hint">Separate with space. Will help buyers find your reel</div>
-
-    <label>🔗 PROMOTION LINK FOR PROMOTERS</label>
-    <input type="url" id="promoLink" placeholder="e.g. https://sannlas.com/promo/STEPH or your WhatsApp link">
-    <div class="hint">Promoters will share this link. You can track sales from promoters. Leave empty if not using promoters.</div>
-
-    <div class="preview-caption" id="livePreview" style="display:none">
-      <b style="color:#FFCC02">Live Preview on Reel:</b><br>
-      <span id="previewText"></span>
-    </div>
+    <input type="hidden" id="productId">
+    <input type="hidden" id="promoLink">
 
     <button class="btn-post" id="postBtn" onclick="uploadReel()">🚀 POST REEL</button>
-    <div class="hint" style="text-align:center;margin-top:10px">Reel will show shop button 🏪 <span id="previewShop">SHOP</span> that opens /shop/<span id="previewShop2">SHOP</span> directly</div>
+    <div class="hint" style="text-align:center;margin-top:8px">Button will be: <b id="previewBtn">UGX 0 - BUY NOW</b> → Opens product in your shop → Add to Cart</div>
   </div>
 </div>
 
 <script>
 let videoFile = null;
 let user = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+let myProducts = [];
 
-// AUTO-FILL SHOP NAME
-document.getElementById('shopName').value = user.business_name || user.shop_name || user.name || '';
-document.getElementById('location').value = user.location || 'Uganda';
-updatePreview();
+document.getElementById('shopName').value = user.business_name || user.business || user.shop_name || '';
+document.getElementById('location').value = user.location || 'Kampala';
 
-// VIDEO SELECT
+// LOAD MY PRODUCTS FROM YOUR API
+async function loadMyProducts(){
+  try{
+    let email = (user.email||'').toLowerCase();
+    let phone = user.phone||'';
+    let shop = document.getElementById('shopName').value;
+    
+    // Try my-products first (fast)
+    let url = `/api/my-products?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
+    let r = await fetch(url);
+    let products = await r.json();
+    
+    // If empty, try shop filter
+    if(!products || products.length==0){
+      let r2 = await fetch(`/api/products?shop=${encodeURIComponent(shop)}&limit=200`);
+      products = await r2.json();
+      // Filter by email locally
+      if(email){
+        let filtered = products.filter(p=> (p.seller_email||'').toLowerCase()==email);
+        if(filtered.length>0) products = filtered;
+      }
+    }
+
+    myProducts = products;
+    let sel = document.getElementById('productSelect');
+    if(!products || products.length==0){
+      sel.innerHTML = `<option value="">❌ No products found! Upload product first in Sell page</option>`;
+      return;
+    }
+    sel.innerHTML = `<option value="">-- Select Product --</option>` + products.map(p=>{
+      let pid = p.id;
+      let name = (p.name||'Product').replace(/"/g,'');
+      let price = p.price||0;
+      let img = p.image||'';
+      return `<option value="${pid}" data-price="${price}" data-name="${name}" data-shop="${p.shop_slug||''}" data-img="${img}" data-desc="${(p.description||'').replace(/"/g,'')}" data-business="${(p.business||'').replace(/"/g,'')}">${name} - UGX ${Number(price).toLocaleString()}</option>`;
+    }).join('');
+  }catch(e){
+    document.getElementById('productSelect').innerHTML = `<option>Error loading: ${e.message}</option>`;
+  }
+}
+loadMyProducts();
+
+function onProductSelected(){
+  let sel = document.getElementById('productSelect');
+  let opt = sel.selectedOptions[0];
+  if(!opt || !opt.value) return;
+  
+  let pid = opt.value;
+  let price = opt.dataset.price;
+  let name = opt.dataset.name;
+  let shop = opt.dataset.shop || document.getElementById('shopName').value;
+  let img = opt.dataset.img;
+  let desc = opt.dataset.desc;
+  let business = opt.dataset.business || shop;
+
+  document.getElementById('productId').value = pid;
+  document.getElementById('price').value = price;
+  document.getElementById('shopName').value = business;
+  document.getElementById('description').value = desc || name;
+  document.getElementById('promoLink').value = `/product/${pid}`;
+  
+  // Preview
+  document.getElementById('selectedProductPreview').style.display='flex';
+  document.getElementById('selImg').src = img || 'https://via.placeholder.com/60';
+  document.getElementById('selName').innerText = name;
+  document.getElementById('selPrice').innerText = `UGX ${Number(price).toLocaleString()}`;
+  document.getElementById('selShop').innerText = business;
+  document.getElementById('previewBtn').innerText = `UGX ${Number(price).toLocaleString()} - BUY NOW`;
+}
+
 document.getElementById('videoInput').addEventListener('change', function(e){
   let file = e.target.files[0];
   if(!file) return;
-  if(file.size > 100*1024*1024){ alert('Video too big! Max 100MB'); return; }
+  if(file.size > 100*1024*1024){ alert('Too big! Max 100MB'); return; }
   videoFile = file;
   let url = URL.createObjectURL(file);
   let v = document.getElementById('videoPreview');
-  let box = document.getElementById('videoBox');
   v.src = url; v.style.display='block';
   document.getElementById('videoPlaceholder').style.display='none';
-  box.classList.add('has-video');
-  document.getElementById('videoInfo').innerText = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
-  v.onloadedmetadata = ()=>{ if(v.duration>90){ alert('Video too long! Keep under 90s for better views'); } };
-});
-
-function updatePreview(){
-  let shop = document.getElementById('shopName').value || 'SHOP';
-  let cap = document.getElementById('caption').value || '';
-  let desc = document.getElementById('description').value || '';
-  let loc = document.getElementById('location').value || '';
-  let hash = document.getElementById('hashtags').value || '';
-  let price = document.getElementById('price').value || '';
-  document.getElementById('previewShop').innerText = shop;
-  document.getElementById('previewShop2').innerText = shop;
-  let txt = `${desc ? desc+'<br>' : ''}${cap ? cap+'<br>' : ''}${loc ? '📍 '+loc+'<br>' : ''}${price ? '💰 UGX '+price+'<br>' : ''}${hash ? hash : ''}`;
-  if(txt.trim()){ document.getElementById('livePreview').style.display='block'; document.getElementById('previewText').innerHTML = txt; }
-}
-
-['shopName','description','caption','location','hashtags','price'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', updatePreview);
+  document.getElementById('videoBox').classList.add('has-video');
+  document.getElementById('videoInfo').innerText = `${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
 });
 
 async function uploadReel(){
@@ -151,13 +185,13 @@ async function uploadReel(){
   let description = document.getElementById('description').value.trim();
   let caption = document.getElementById('caption').value.trim();
   let location = document.getElementById('location').value.trim();
-  let hashtags = document.getElementById('hashtags').value.trim();
   let price = document.getElementById('price').value.trim();
+  let productId = document.getElementById('productId').value.trim();
   let promoLink = document.getElementById('promoLink').value.trim();
 
   if(!videoFile){ alert('Select video first Boss!'); return; }
-  if(!shopName){ alert('Enter shop name'); return; }
-  if(!description){ alert('Enter product description'); return; }
+  if(!productId){ alert('SELECT PRODUCT FROM YOUR SHOP FIRST! This fixes UGX 0!'); return; }
+  if(!shopName){ alert('Shop name missing'); return; }
 
   let btn = document.getElementById('postBtn');
   btn.disabled = true; btn.innerText = '⏳ Uploading...';
@@ -167,24 +201,23 @@ async function uploadReel(){
     fd.append('video', videoFile);
     fd.append('shop_name', shopName);
     fd.append('business_name', shopName);
-    fd.append('shop_slug', shopName);
+    fd.append('shop_slug', shopName.toLowerCase().replace(/\s+/g,'-'));
     fd.append('description', description);
-    fd.append('caption', `${description}\n${caption}\n📍${location}\n${hashtags}\n💰${price}`.trim());
+    fd.append('caption', `${description}\n${caption}`.trim());
     fd.append('location', location);
-    fd.append('hashtags', hashtags);
     fd.append('price', price);
+    fd.append('product_id', productId);
     fd.append('promo_link', promoLink);
-    fd.append('product_link', promoLink || `/shop/${encodeURIComponent(shopName)}`);
+    fd.append('product_link', promoLink);
     fd.append('user_email', user.email||'');
     fd.append('user_name', shopName);
     fd.append('user_id', user.email||shopName);
 
-    // CHANGE THIS URL TO YOUR REAL UPLOAD API
     let r = await fetch('/api/sannlas/reels/upload', {method:'POST', body:fd});
     let d = await r.json();
     if(!r.ok) throw new Error(d.error||'Upload failed');
 
-    alert('✅ Reel posted Boss! Shop button will be 🏪 '+shopName);
+    alert(`✅ Posted! Button will be: UGX ${Number(price).toLocaleString()} - BUY NOW → Goes to /product/${productId}`);
     location.href = '/reels';
   }catch(e){
     alert('❌ Failed: '+e.message);
