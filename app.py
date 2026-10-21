@@ -9,6 +9,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 from functools import wraps
+from flask import request
+from flask_compress import Compress
 import cloudinary
 import cloudinary.uploader
 import cloudinary_config
@@ -16,6 +18,20 @@ import cloudinary_config
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Allow 100MB videos
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
+# ===== STEP 2 SPEED BOOST =====
+Compress(app)
+
+@app.after_request
+def add_speed_headers(response):
+    if request.path.startswith('/static/') or request.path.endswith(('.png','.jpg','.jpeg','.webp','.js','.css')):
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+    elif request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-cache'
+    else:
+        response.headers['Cache-Control'] = 'public, max-age=15'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Connection'] = 'keep-alive'
+    return response
 # ===== TIKTOK LOGIN CONFIG =====
 CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
 CLIENT_SECRET = os.environ.get("TIKTOK_CLIENT_SECRET")
