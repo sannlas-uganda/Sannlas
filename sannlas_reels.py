@@ -133,22 +133,18 @@ def upload_reel():
         conn = get_conn(); cur = conn.cursor()
         ensure_reels_table()
         
-        # FIXED: 13 columns = 13 %s
-        cur.execute("""
+               cur.execute("""
             INSERT INTO sannlas_reels 
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id) 
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id))
         conn.commit(); cur.close(); conn.close()
-        print(f"DB SAVED OK")
-        return jsonify({'success':True, 'url': video_url, 'shop_link': f'/shop/{shop_slug}'})
-        
+        return jsonify({'success':True, 'url': video_url})
     except Exception as e:
-        print("=== UPLOAD ERROR ===")
         traceback.print_exc()
         return jsonify({'success':False, 'error': str(e)}), 500
-
+        
 @reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
 def like_reel(rid):
     try:
