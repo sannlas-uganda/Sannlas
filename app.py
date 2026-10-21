@@ -2149,10 +2149,31 @@ def my_shop_update_settings():
 
 @app.route('/api/my-products')
 def my_products_compat():
-    phone=request.args.get('phone','').strip()
-    email=request.args.get('email','').lower().strip()
-    products=load_db('products.json', [])
-    result=[p for p in products if (email and (p.get('seller_email') or '').lower()==email) or (phone and p.get('phone')==phone)]
+    phone = request.args.get('phone','').strip()
+    email = request.args.get('email','').lower().strip()
+    print(f"MY-PRODUCTS REQUEST: email={email} phone={phone}") # DEBUG LOG
+    
+    products = load_db('products.json', [])
+    
+    # If no email AND no phone, return empty - NEVER return all!
+    if not email and not phone:
+        print("MY-PRODUCTS: No email/phone provided -> returning 0")
+        return jsonify([])
+
+    result = []
+    for p in products:
+        p_email = (p.get('seller_email') or p.get('email') or p.get('user_email') or '').lower().strip()
+        p_phone = (p.get('phone') or p.get('seller_phone') or '').strip()
+        p_business = (p.get('business') or p.get('shop_name') or '').lower().strip()
+
+        # Match ONLY if email matches exactly
+        if email and p_email and p_email == email:
+            result.append(p)
+        # OR phone matches exactly
+        elif phone and p_phone and p_phone == phone:
+            result.append(p)
+
+    print(f"MY-PRODUCTS: Found {len(result)} / {len(products)} for {email}")
     return jsonify(result)
 
 @app.route('/api/delete-product/<int:pid>', methods=['DELETE'])
