@@ -374,3 +374,35 @@ def fix_slugs():
     save_db('products.json', products)
     PRODUCTS_CACHE["data"] = None
     return jsonify({'success':True,'message':'Fixed'})
+
+@products_bp.route('/api/fix-all-old-products')
+def fix_all_old():
+    products = load_db('products.json', [])
+    shops = load_db('shops.json', [])
+    users = load_db('users.json', [])
+    fixed = 0
+    for p in products:
+        if not p.get('seller_email'):
+            # Try shop
+            shop = next((s for s in shops if s.get('shop_slug') == p.get('shop_slug')), None)
+            if shop and shop.get('owner_email'):
+                p['seller_email'] = shop['owner_email'].lower()
+                p['shop_email'] = p['seller_email']
+                p['owner_email'] = p['seller_email']
+                p['email'] = p['seller_email']
+                p['user_email'] = p['seller_email']
+                fixed += 1
+            else:
+                # Try phone -> user
+                ph = p.get('phone')
+                u = next((x for x in users if x.get('phone') == ph), None)
+                if u and u.get('email'):
+                    p['seller_email'] = u['email'].lower()
+                    p['shop_email'] = u['email'].lower()
+                    p['owner_email'] = u['email'].lower()
+                    p['email'] = u['email'].lower()
+                    p['user_email'] = u['email'].lower()
+                    fixed += 1
+    save_db('products.json', products)
+    PRODUCTS_CACHE["data"] = None
+    return jsonify({'success': True, 'fixed': fixed, 'total': len(products), 'message': f'Fixed {fixed} old products! Now ALL products will send orders to seller!'})
