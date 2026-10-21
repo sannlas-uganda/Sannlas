@@ -10,10 +10,10 @@ PRODUCT_CACHE = {"data": None, "time": 0}
 SHOP_CACHE = {"data": None, "time": 0}
 ORDERS_CACHE = {"data": None, "time": 0}
 ORDERS_V2_CACHE = {"data": None, "time": 0}
+NOTIF_CACHE = {"data": None, "time": 0}  # NEW
 
 def get_orders():
     now = time.time()
-    # Cache orders for 60 seconds - super fast!
     if ORDERS_CACHE["data"] is not None and (now - ORDERS_CACHE["time"] < 60):
         return ORDERS_CACHE["data"]
     data = load_db('orders.json', [])
@@ -37,6 +37,63 @@ def get_orders_v2():
     ORDERS_V2_CACHE["data"] = data
     ORDERS_V2_CACHE["time"] = now
     return data
+
+# ===== NEW: NOTIFICATION SYSTEM =====
+def get_notifications():
+    now = time.time()
+    if NOTIF_CACHE["data"] is not None and (now - NOTIF_CACHE["time"] < 30):
+        return NOTIF_CACHE["data"]
+    data = load_db('notifications.json', [])
+    NOTIF_CACHE["data"] = data
+    NOTIF_CACHE["time"] = now
+    return data
+
+def save_notifications(data):
+    NOTIF_CACHE["data"] = data
+    NOTIF_CACHE["time"] = time.time()
+    save_db('notifications.json', data)
+
+def push_seller_notification(seller_email, order, items):
+    """This is what was missing - SELLER GETS MESSAGE NOW!"""
+    try:
+        notifications = get_notifications()
+        total_items = len(items)
+        first_product = items[0].get('title') or items[0].get('name') or 'Product'
+        
+        notif = {
+            "id": f"NTF-{random.randint(100000,999999)}",
+            "recipient_email": seller_email.lower().strip(),
+            "type": "NEW_ORDER",
+            "title": f"🔥 NEW ORDER! {order['tracking_id']}",
+            "message": f"You have new order: {first_product} x{total_items} - Buyer: {order['buyer_name']} ({order['buyer_phone']}) - Total: UGX {order['total']} - Address: {order['full_address']}",
+            "order_id": order['tracking_id'],
+            "order_data": {
+                "tracking_id": order['tracking_id'],
+                "buyer_name": order['buyer_name'],
+                "buyer_phone": order['buyer_phone'],
+                "total": order['total'],
+                "items_count": total_items,
+                "address": order['full_address']
+            },
+            "is_read": False,
+            "created_at": datetime.now().isoformat(),
+            "timestamp": int(time.time())
+        }
+        notifications.append(notif)
+        save_notifications(notifications)
+        
+        # Keep only last 500 notifications to stay fast
+        if len(notifications) > 500:
+            notifications = notifications[-500:]
+            save_notifications(notifications)
+            
+        print(f"✅ SELLER NOTIFIED: {seller_email} - Order {order['tracking_id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Notification error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 def gen_tracking_id():
     return f"SN-{random.randint(100000, 999999)}"
@@ -118,11 +175,9 @@ def create_orders():
         for item in user_carts:
             try:
                 product_id = item.get('product_id') or item.get('id') or item.get('_id') or item.get('productId')
-                # FAST: Use email from item first, no DB!
                 final_seller = (item.get('shop_email') or item.get('seller_email') or item.get('real_seller_email') or item.get('shop_owner_email') or '').lower().strip()
                 final_shop = item.get('shop_name') or item.get('real_shop_name') or 'Sannlas'
                 
-                # Only lookup if not found
                 if not final_seller:
                     owner_email, shop_from_product = get_product_owner(product_id) if product_id else ("","")
                     final_seller = owner_email or final_seller
@@ -161,6 +216,9 @@ def create_orders():
             }
             orders.append(order)
             created.append(order)
+
+            # ===== FIX: NOTIFY SELLER INSTANTLY =====
+            push_seller_notification(shop_key, order, items)
             
         save_orders(orders)
         
@@ -177,6 +235,52 @@ def create_orders():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e), "error": str(e)}), 500
+
+# ===== NEW ROUTES FOR SELLER NOTIFICATIONS =====
+@orders_bp.route('/api/notifications/seller', methods=['GET'])
+def seller_notifications():
+    email = request.args.get('email','').lower().strip() or request.args.get('shop_email','').lower().strip()
+    if not email:
+        return jsonify({"notifications": [], "count": 0})
+    
+    notifs = get_notifications()
+    my_notifs = [n for n in notifs if n.get('recipient_email','').lower() == email]
+    my_notifs.sort(key=lambda x: x.get('timestamp',0), reverse=True)
+    
+    unread = len([n for n in my_notifs if not n.get('is_read')])
+    
+    return jsonify({
+        "notifications": my_notifs[:50],
+        "count": len(my_notifs),
+        "unread": unread,
+        "success": True
+    })
+
+@orders_bp.route('/api/notifications/mark-read', methods=['POST'])
+def mark_read():
+    data = request.get_json() or {}
+    notif_id = data.get('id') or data.get('notif_id')
+    email = data.get('email','').lower().strip()
+    
+    notifs = get_notifications()
+    for n in notifs:
+        if notif_id and n.get('id') == notif_id:
+            n['is_read'] = True
+        elif email and n.get('recipient_email','').lower() == email:
+            # mark all as read if email provided
+            if not data.get('id'):
+                n['is_read'] = True
+    save_notifications(notifs)
+    return jsonify({"success": True})
+
+@orders_bp.route('/api/notifications/seller/count', methods=['GET'])
+def seller_notif_count():
+    email = request.args.get('email','').lower().strip() or request.args.get('shop_email','').lower().strip()
+    if not email:
+        return jsonify({"count": 0, "unread": 0})
+    notifs = get_notifications()
+    unread = len([n for n in notifs if n.get('recipient_email','').lower() == email and not n.get('is_read')])
+    return jsonify({"count": unread, "unread": unread, "new_notifications": unread})
 
 @orders_bp.route('/api/orders/my', methods=['GET'])
 def my_orders():
@@ -206,7 +310,6 @@ def track_order(tracking_id):
 def seller_orders():
     shop_email = (request.args.get('shop_email','').lower() or request.args.get('email','').lower() or request.args.get('shop','').lower()).strip()
     orders = get_orders()
-    # Only load v2 if needed and cached
     if shop_email:
         try:
             v2_orders = get_orders_v2()
@@ -241,7 +344,6 @@ def seller_count():
     if not shop_email:
         return jsonify({"count": 0, "new_orders": 0})
     orders = get_orders()
-    # FAST count - no v2 unless 0 found
     count = 0
     for o in orders:
         if o.get('status','').upper() != 'PENDING': continue
