@@ -705,11 +705,12 @@ function drawCoinsEconomy(){
 }
 
 async function loadData(){
- document.getElementById('stats').innerHTML='<div class="card" style="border:2px solid #FFCC02">⏳ Loading REAL Control Centre... Connecting to full website...</div>';
+ document.getElementById('stats').innerHTML='<div class="card" style="border:2px solid #FFCC02">⏳ Loading REAL Control Centre...</div>';
  let d = await safeFetchJson('/api/admin/data');
  if(!d){
-   showErrorTop('');
-   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid yellow"><h3 style="color:yellow">⏳ Server Waking... Neon + Render sleeping (free tier)</h3><p>Wait 15 sec then click <button onclick="loadData()" style="background:yellow;color:black;padding:10px 20px;border-radius:8px;font-weight:bold">RELOAD CONTROL CENTRE</button></p></div>`;
+   showErrorTop('Connection slow, retrying automatically...');
+   document.getElementById('stats').innerHTML=`<div class="card" style="border:2px solid #FFCC02;text-align:center"><h3 style="color:#FFCC02">⏳ Loading... Please wait 3 seconds</h3><p style="color:#aaa;font-size:12px">Fast connection mode active</p><p><button onclick="loadData()" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:8px;font-weight:900;border:none">🔄 RETRY NOW</button></p></div>`;
+   setTimeout(loadData, 3000);
    return;
  }
  showErrorTop('');
