@@ -2225,59 +2225,76 @@ def admin_data_fixed():
 @app.route('/api/admin/delete_shop/<slug>', methods=['DELETE', 'POST'])
 def admin_delete_shop(slug):
     try:
-        conn = get_conn()
-        cur = conn.cursor()
+        slug = slug.lower().strip()
+        print(f"BOSS DELETE REQUEST: {slug}")
 
-        # 1. Delete products where data->>'shop_slug' = slug OR data->>'shop' = slug OR data->>'shop_name' = slug
-        cur.execute("""
-            DELETE FROM products
-            WHERE data->>'shop_slug' = %s
-               OR data->>'shop' = %s
-               OR data->>'shop_name' = %s
-               OR data->>'shop_id' = %s
-               OR data->>'slug' = %s
-        """, (slug, slug, slug, slug, slug))
+        # === LOAD FROM YOUR REAL LOCATION - kv_store ===
+        shops = load_db('shops.json', [])
+        products = load_db('products.json', [])
+        
+        if not shops:
+            return jsonify({"success": False, "message": "No shops found in kv_store!"}), 404
 
-        # 2. Also need to delete products linked by shop's ID
-        # First find shop id from data
-        cur.execute("""
-            SELECT id FROM shops
-            WHERE data->>'slug' = %s OR data->>'name' = %s OR id::text = %s
-            LIMIT 1
-        """, (slug, slug, slug))
-        shop_row = cur.fetchone()
+        # Find shop
+        target = None
+        for s in shops:
+            if str(s.get('shop_slug','')).lower() == slug or str(s.get('slug','')).lower() == slug:
+                target = s
+                break
+            if str(s.get('business_name','')).lower() == slug or str(s.get('name','')).lower() == slug:
+                target = s
+                break
+        
+        if not target:
+            # fuzzy search
+            for s in shops:
+                if slug in str(s.get('shop_slug','')).lower() or slug in str(s.get('business_name','')).lower():
+                    target = s
+                    break
 
-        if shop_row:
-            shop_id = shop_row[0]
-            # Delete products linked by shop id inside data
-            cur.execute("""
-                DELETE FROM products
-                WHERE data->>'shop_id' = %s OR data->>'shopId' = %s
-            """, (str(shop_id), str(shop_id)))
+        if not target:
+            return jsonify({"success": False, "message": f"Shop '{slug}' not found. Available: {[s.get('shop_slug') for s in shops[:5]]}"}), 404
 
-        # 3. Delete shop itself - check inside data column
-        cur.execute("""
-            DELETE FROM shops
-            WHERE data->>'slug' = %s
-               OR data->>'name' = %s
-               OR data->>'shop_slug' = %s
-               OR id::text = %s
-        """, (slug, slug, slug, slug))
+        real_slug = str(target.get('shop_slug') or target.get('slug') or slug).lower()
+        owner_email = str(target.get('owner_email','')).lower()
+        biz_name = str(target.get('business_name') or target.get('name','')).lower()
 
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"success": True, "message": f"Shop {slug} deleted from Neon!"})
+        # Delete products belonging to this shop
+        before = len(products)
+        new_products = []
+        for p in products:
+            ps = str(p.get('shop_slug','')).lower()
+            pb = str(p.get('business','')).lower()
+            pe = str(p.get('seller_email','')).lower()
+            if ps == real_slug or pb == biz_name or (owner_email and pe == owner_email):
+                continue  # DELETE
+            if real_slug in ps and ps != "":
+                continue
+            new_products.append(p)
+        
+        deleted_count = before - len(new_products)
+        
+        # Save to Neon - THIS DELETES FROM products TABLE AUTOMATICALLY
+        save_db('products.json', new_products)
+        
+        # Delete shop from kv_store
+        new_shops = [s for s in shops if s != target]
+        save_db('shops.json', new_shops)
+
+        # Clear cache
+        global PRODUCTS_CACHE
+        PRODUCTS_CACHE["data"] = None
+        PRODUCTS_CACHE["time"] = 0
+
+        return jsonify({
+            "success": True, 
+            "message": f"✅ Deleted shop '{real_slug}' + {deleted_count} products! {len(new_shops)} shops left."
+        })
 
     except Exception as e:
-        print("Neon JSONB delete error:", e)
+        print("Delete error:", e)
         import traceback
         traceback.print_exc()
-        if 'conn' in locals():
-            try:
-                conn.rollback()
-            except:
-                pass
         return jsonify({"success": False, "message": str(e)}), 500
         
 @app.route('/compress-neon-now')
