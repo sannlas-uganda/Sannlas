@@ -74,8 +74,8 @@ app.register_blueprint(calls_bp)
 from sannlas_invite import invite_bp
 app.register_blueprint(invite_bp)
 
-from wants_list import wants_list_bp
-app.register_blueprint(wants_list_bp)
+from sannlas_wants import sannlas_wants_bp
+app.register_blueprint(sannlas_wants_bp)
 
 def get_smart_category(text):
     if not text:
