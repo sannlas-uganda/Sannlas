@@ -1,4 +1,4 @@
-# sannlas_wants.py - ONE FILE = LIST + DETAIL + ALL APIS - FINAL
+# sannlas_wants.py - ONE FILE - FIXED - SANNLAS
 from flask import Blueprint, Response, request, jsonify
 import os, json, uuid, time
 from datetime import datetime, timedelta
@@ -8,39 +8,55 @@ sannlas_wants_bp = Blueprint('sannlas_wants_bp', __name__)
 
 def load_db(file, default):
     try:
-        if os.path.exists(f'data/{file}'): return json.load(open(f'data/{file}'))
-        if os.path.exists(file): return json.load(open(file))
+        if os.path.exists(f'data/{file}'):
+            return json.load(open(f'data/{file}'))
+        if os.path.exists(file):
+            return json.load(open(file))
         return default
-    except: return default
+    except:
+        return default
 
 def save_db(file, data):
     os.makedirs('data', exist_ok=True)
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
-def get_wants(): return load_db('wants.json', [])
-def save_wants(d): save_db('wants.json', d)
-def get_offers(): return load_db('offers.json', [])
-def save_offers(d): save_db('offers.json', d)
+def get_wants():
+    return load_db('wants.json', [])
 
-# Cleanup expired wants every hour
+def save_wants(d):
+    save_db('wants.json', d)
+
+def get_offers():
+    return load_db('offers.json', [])
+
+def save_offers(d):
+    save_db('offers.json', d)
+
 def cleanup():
     while True:
         try:
-            now=datetime.utcnow(); wants=get_wants(); orig=len(wants)
-            alive=[]
+            now = datetime.utcnow()
+            wants = get_wants()
+            alive = []
             for w in wants:
-                exp=w.get('expires_at')
-                if not exp: alive.append(w)
+                exp = w.get('expires_at')
+                if not exp:
+                    alive.append(w)
                 else:
                     try:
-                        if datetime.fromisoformat(str(exp).replace('Z',''))>now: alive.append(w)
-                    except: alive.append(w)
-            if len(alive)!=orig: save_wants(alive)
-        except: pass
+                        if datetime.fromisoformat(str(exp).replace('Z','')) > now:
+                            alive.append(w)
+                    except:
+                        alive.append(w)
+            if len(alive) != len(wants):
+                save_wants(alive)
+        except:
+            pass
         time.sleep(3600)
+
 threading.Thread(target=cleanup, daemon=True).start()
 
-COMBINED_HTML = """<!DOCTYPE html>
+COMBINED_HTML = '''<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -106,7 +122,7 @@ if(WID){loadDetail();}else{loadWants();setInterval(loadWants,15000);}
 </script>
 </body>
 </html>
-"""
+'''
 
 @sannlas_wants_bp.route('/wants')
 @sannlas_wants_bp.route('/wants/<path:wid>')
@@ -115,66 +131,130 @@ def wants_page(wid=None):
 
 @sannlas_wants_bp.route('/api/wants')
 def api_list():
-    q=request.args.get('q','').lower(); district=request.args.get('district','').lower(); sort=request.args.get('sort','newest')
-    wants=get_wants(); offers=get_offers()
-    filtered=[w for w in wants if w.get('status','open')=='open']
-    if q: filtered=[w for w in filtered if q in str(w.get('title','')).lower() or q in str(w.get('description','')).lower()]
-    if district: filtered=[w for w in filtered if district in str(w.get('district','')).lower()]
+    q = request.args.get('q','').lower()
+    district = request.args.get('district','').lower()
+    sort = request.args.get('sort','newest')
+    wants = get_wants()
+    offers = get_offers()
+    filtered = [w for w in wants if w.get('status','open') == 'open']
+    if q:
+        filtered = [w for w in filtered if q in str(w.get('title','')).lower() or q in str(w.get('description','')).lower()]
+    if district:
+        filtered = [w for w in filtered if district in str(w.get('district','')).lower()]
     for w in filtered:
-        wo=[o for o in offers if str(o.get('want_id'))==str(w['id'])]
-        w['offers_count']=len(wo); w['lowest_offer']=min([o['price'] for o in wo], default=None)
-    if sort=='most_offers': filtered=sorted(filtered, key=lambda x: x.get('offers_count',0), reverse=True)
-    elif sort=='lowest_budget': filtered=sorted(filtered, key=lambda x: int(x.get('max_budget',0) or 999999999))
-    else: filtered=sorted(filtered, key=lambda x: x.get('created_at',''), reverse=True)
+        wo = [o for o in offers if str(o.get('want_id')) == str(w['id'])]
+        w['offers_count'] = len(wo)
+        w['lowest_offer'] = min([o['price'] for o in wo], default=None)
+    if sort == 'most_offers':
+        filtered = sorted(filtered, key=lambda x: x.get('offers_count',0), reverse=True)
+    elif sort == 'lowest_budget':
+        filtered = sorted(filtered, key=lambda x: int(x.get('max_budget',0) or 999999999))
+    else:
+        filtered = sorted(filtered, key=lambda x: x.get('created_at',''), reverse=True)
     return jsonify(filtered[:150])
 
 @sannlas_wants_bp.route('/api/wants/<path:wid>')
 def api_single(wid):
-    wants=get_wants(); offers=get_offers()
-    want=next((w for w in wants if str(w['id'])==str(wid)), None)
-    if not want: return jsonify({'success':False}),404
-    wo=sorted([o for o in offers if str(o.get('want_id'))==str(wid)], key=lambda x: x.get('price',999999999))
-    want['offers']=wo; want['offers_count']=len(wo)
-    if wo: want['lowest_offer']=wo[0]['price']
+    wants = get_wants()
+    offers = get_offers()
+    want = next((w for w in wants if str(w['id']) == str(wid)), None)
+    if not want:
+        return jsonify({'success':False}),404
+    wo = sorted([o for o in offers if str(o.get('want_id')) == str(wid)], key=lambda x: x.get('price',999999999))
+    want['offers'] = wo
+    want['offers_count'] = len(wo)
+    if wo:
+        want['lowest_offer'] = wo[0]['price']
     return jsonify(want)
 
 @sannlas_wants_bp.route('/api/wants', methods=['POST'])
 def api_create():
-    data=request.get_json() or {}
-    want={"id":str(uuid.uuid4()),"title":data.get('title') or data.get('item') or 'Want',"item":data.get('item'),"quantity":data.get('quantity','1'),"district":data.get('district','Kampala'),"phone":data.get('phone'),"email":data.get('email',''),"min_budget":data.get('min_budget','0'),"max_budget":data.get('max_budget','0'),"description":data.get('description') or '','category":data.get('category',''),"status":"open","expires_at":(datetime.utcnow()+timedelta(hours=int(data.get('expiry_hours',24)))).isoformat(),"created_at":datetime.utcnow().isoformat(),"created":time.time()}
-    wants=get_wants(); wants.append(want); save_wants(wants)
+    data = request.get_json() or {}
+    want = {}
+    want['id'] = str(uuid.uuid4())
+    want['title'] = data.get('title') or data.get('item') or 'Want'
+    want['item'] = data.get('item') or data.get('title')
+    want['quantity'] = data.get('quantity','1')
+    want['district'] = data.get('district','Kampala')
+    want['phone'] = data.get('phone')
+    want['email'] = data.get('email','')
+    want['min_budget'] = data.get('min_budget','0')
+    want['max_budget'] = data.get('max_budget','0')
+    want['description'] = data.get('description') or ''
+    want['category'] = data.get('category','')
+    want['status'] = 'open'
+    want['expires_at'] = (datetime.utcnow() + timedelta(hours=int(data.get('expiry_hours',24)))).isoformat()
+    want['created_at'] = datetime.utcnow().isoformat()
+    want['created'] = time.time()
+    wants = get_wants()
+    wants.append(want)
+    save_wants(wants)
     return jsonify({"success":True,"want":want})
 
 @sannlas_wants_bp.route('/api/wants/<path:wid>/offers', methods=['POST'])
 def api_offer(wid):
-    data=request.get_json() or {}; price=int(data.get('price',0)); phone=data.get('phone',''); email=data.get('email','').lower()
-    if price<=0: return jsonify({'success':False,'message':'Enter price'}),400
-    users=load_db('users.json', []); seller=next((u for u in users if (phone and u.get('phone')==phone) or (email and u.get('email','').lower()==email)), None)
-    if not seller or int(seller.get('coins',0))<1: return jsonify({'success':False,'message':'Need 1 coin'}),402
-    seller['spent']=int(seller.get('spent',0))+1; seller['coins']=int(seller.get('bought',0))+int(seller.get('earned',0))-int(seller['spent']); save_db('users.json', users)
-    offers=get_offers(); new_offer={'id':int(time.time()*1000),'want_id':wid,'seller_phone':phone,'seller_email':email,'shop_slug':data.get('shop_slug',''),'price':price,'delivery_time':data.get('delivery_time','Same day'),'message':data.get('message',''),'warranty':data.get('warranty',''),'status':'pending','created':time.time()}
-    offers.append(new_offer); save_offers(offers)
+    data = request.get_json() or {}
+    price = int(data.get('price',0))
+    phone = data.get('phone','')
+    email = data.get('email','').lower().strip()
+    if price <= 0:
+        return jsonify({'success':False,'message':'Enter price'}),400
+    users = load_db('users.json', [])
+    seller = None
+    for u in users:
+        if (phone and u.get('phone') == phone) or (email and u.get('email','').lower() == email):
+            seller = u
+            break
+    if not seller or int(seller.get('coins',0)) < 1:
+        return jsonify({'success':False,'message':'Need 1 coin'}),402
+    seller['spent'] = int(seller.get('spent',0)) + 1
+    seller['coins'] = int(seller.get('bought',0)) + int(seller.get('earned',0)) - int(seller['spent'])
+    save_db('users.json', users)
+    offers = get_offers()
+    new_offer = {}
+    new_offer['id'] = int(time.time()*1000)
+    new_offer['want_id'] = wid
+    new_offer['seller_phone'] = phone
+    new_offer['seller_email'] = email
+    new_offer['shop_slug'] = data.get('shop_slug','')
+    new_offer['price'] = price
+    new_offer['delivery_time'] = data.get('delivery_time','Same day')
+    new_offer['message'] = data.get('message','')
+    new_offer['warranty'] = data.get('warranty','')
+    new_offer['status'] = 'pending'
+    new_offer['created'] = time.time()
+    offers.append(new_offer)
+    save_offers(offers)
     return jsonify({'success':True,'message':'Offer placed!','offer':new_offer})
 
 @sannlas_wants_bp.route('/api/offers/<int:oid>/accept', methods=['POST'])
 def api_accept(oid):
-    wants=get_wants(); offers=get_offers()
-    offer=next((o for o in offers if o['id']==oid), None)
-    if not offer: return jsonify({'success':False}),404
-    want=next((w for w in wants if str(w['id'])==str(offer.get('want_id'))), None)
+    wants = get_wants()
+    offers = get_offers()
+    offer = next((o for o in offers if o['id'] == oid), None)
+    if not offer:
+        return jsonify({'success':False}),404
+    want = next((w for w in wants if str(w['id']) == str(offer.get('want_id'))), None)
     for o in offers:
-        if str(o.get('want_id'))==str(want['id']): o['status']='accepted' if o['id']==oid else 'outbid'
-    want['status']='closed'; save_offers(offers); save_wants(wants)
+        if str(o.get('want_id')) == str(want['id']):
+            o['status'] = 'accepted' if o['id'] == oid else 'outbid'
+    want['status'] = 'closed'
+    save_offers(offers)
+    save_wants(wants)
     return jsonify({'success':True,'message':f"Accepted! {offer.get('seller_phone')} will call you"})
 
 @sannlas_wants_bp.route('/api/my-wants')
 def api_my_wants():
-    phone=request.args.get('phone',''); email=request.args.get('email','').lower()
-    wants=get_wants()
-    return jsonify([w for w in wants if (phone and w.get('phone')==phone) or (email and w.get('email','').lower()==email)][::-1])
+    phone = request.args.get('phone','')
+    email = request.args.get('email','').lower().strip()
+    wants = get_wants()
+    result = [w for w in wants if (phone and w.get('phone') == phone) or (email and w.get('email','').lower() == email)]
+    return jsonify(result[::-1])
 
 @sannlas_wants_bp.route('/api/my-offers')
 def api_my_offers():
-    phone=request.args.get('phone',''); email=request.args.get('email','').lower()
-    offers=get_offers()
-    return jsonify([o for o in offers if (phone and o.get('seller_phone')==phone) or (email and o.get('seller_email','').lower()==email)][::-1])
+    phone = request.args.get('phone','')
+    email = request.args.get('email','').lower().strip()
+    offers = get_offers()
+    result = [o for o in offers if (phone and o.get('seller_phone') == phone) or (email and o.get('seller_email','').lower() == email)]
+    return jsonify(result[::-1])
