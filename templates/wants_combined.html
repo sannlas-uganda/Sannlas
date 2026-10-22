@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WANTS - Reverse Auction | SANNLAS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;padding-bottom:80px}
+.navbar{background:#000;color:#fff;padding:10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:12}
+.btn{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer;width:100%}
+.btn-yellow{background:#FFCC02;color:#000;border-color:#000}
+.search-bar{background:#111;padding:10px;display:flex;gap:6px;position:sticky;top:50px;z-index:11}
+.search-bar input,.search-bar select{padding:10px;border-radius:20px;border:none;flex:1}
+.wants-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;padding:10px}
+.want-card{background:#fff;border-radius:12px;overflow:hidden;border-left:5px solid #00FF00;cursor:pointer}
+.want-card .top{padding:10px;display:flex;justify-content:space-between}
+.badge-live{background:#00FF00;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold}
+.price-box{background:#000;color:#FFCC02;padding:8px 10px;border-radius:8px;text-align:center;font-weight:bold}
+.offer-count{background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:11px}
+.card{background:#fff;border-radius:12px;padding:15px;margin:10px}
+.offer-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee}
+.offer-row.winner{background:#00FF0011;border:2px solid #00FF00;border-radius:10px}
+.rank{width:30px;height:30px;background:#000;color:#FFCC02;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold}
+.rank.first{background:#FFD700;color:#000}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="navbar">
+<div><a href="/" style="color:#FFCC02;text-decoration:none;font-weight:bold">🛍️ SANNLAS</a> | <a href="/wants" style="color:#FFCC02;text-decoration:none" id="navText">🔥 WANTS AUCTION</a></div>
+<div><button class="btn btn-yellow" onclick="location.href='/'" style="width:auto">Home</button></div>
+</div>
+
+<div id="listView">
+<div class="search-bar">
+<input id="q" placeholder="Search wants... e.g. iPhone, maize" oninput="loadWants()">
+<select id="district" onchange="loadWants()"><option value="">All Districts</option><option>Kampala</option><option>Wakiso</option><option>Mukono</option><option>Mbarara</option><option>Gulu</option></select>
+<select id="sort" onchange="loadWants()"><option value="newest">Newest</option><option value="most_offers">Most Offers 🔥</option><option value="lowest_budget">Low Budget</option></select>
+</div>
+<div style="background:#000;color:#FFCC02;padding:8px;text-align:center;font-weight:bold;border-bottom:3px solid #FFCC02">
+🔥 REVERSE AUCTION - Sellers compete, lowest price wins! <span id="totalWants">0</span> open wants
+</div>
+<div id="wantsGrid" class="wants-grid"><p style="color:white;text-align:center;grid-column:1/-1;padding:30px">⏳ Loading auction wants...</p></div>
+</div>
+
+<div id="detailView" class="hidden">
+<div style="background:#000;padding:8px"><a href="/wants" style="color:#FFCC02;text-decoration:none">← Back to Wants</a></div>
+<div id="wantBox" class="card">⏳ Loading...</div>
+<div class="card" style="background:#000;border:3px solid #FFCC02">
+<h3 style="color:#FFCC02;text-align:center">💰 Place Your Offer (1 coin) - Cheapest Wins!</h3>
+<input id="offerPrice" type="number" placeholder="Your Price UGX e.g. 500000" style="width:100%;padding:12px;margin:8px 0;border-radius:8px;border:2px solid #FFCC02;background:#111;color:#FFCC02;font-weight:bold">
+<input id="offerDelivery" placeholder="Delivery: Same day, 2 days..." style="width:100%;padding:10px;margin:6px 0;border-radius:8px;border:none">
+<input id="offerWarranty" placeholder="Warranty e.g. 6 months" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;border:none">
+<textarea id="offerMsg" placeholder="Message to buyer..." rows="2" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;border:none"></textarea>
+<button class="btn btn-yellow" onclick="placeOffer()">🚀 Place Offer (1 Coin) - Auction Me!</button>
+<p id="offerStatus" style="color:#FFCC02;text-align:center;margin-top:8px"></p>
+</div>
+<div class="card"><h3>🏆 Live Auction Ranking - Lowest First</h3><div id="offersList"><p>⏳ No offers yet - be first!</p></div></div>
+</div>
+
+<script>
+let parts=location.pathname.split('/').filter(Boolean); let WID=(parts.length>=2&&parts[0]=='wants')?parts[1]:null;
+let currentUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+if(WID){document.getElementById('listView').classList.add('hidden');document.getElementById('detailView').classList.remove('hidden');document.getElementById('navText').innerText='AUCTION LIVE';}else{document.getElementById('detailView').classList.add('hidden');document.getElementById('listView').classList.remove('hidden');}
+
+async function loadWants(){
+ let q=document.getElementById('q').value; let district=document.getElementById('district').value; let sort=document.getElementById('sort').value;
+ let url=`/api/wants?q=${encodeURIComponent(q)}&district=${encodeURIComponent(district)}&sort=${sort}`;
+ try{
+   let r=await fetch(url); let wants=await r.json(); if(!Array.isArray(wants)) wants=[];
+   wants.sort((a,b)=>{let ta=new Date(a.created_at||a.created||0).getTime();let tb=new Date(b.created_at||b.created||0).getTime();if(sort==='most_offers')return(b.offers_count||0)-(a.offers_count||0);if(sort==='lowest_budget')return(a.max_budget||9999999999)-(b.max_budget||9999999999);return tb-ta;});
+   document.getElementById('totalWants').innerText=wants.length;
+   if(wants.length==0){document.getElementById('wantsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center;padding:30px">No wants matching - be first to post! 🎯<br><a href="/" style="color:#FFCC02">Post Want on Home</a></p>';return;}
+   document.getElementById('wantsGrid').innerHTML=wants.map(w=>{let lowest=w.lowest_offer?`UGX ${Number(w.lowest_offer).toLocaleString()}`:'No offers yet';let expireSec=w.expires_at?(typeof w.expires_at==='number'?w.expires_at:new Date(w.expires_at).getTime()/1000):0;let expire=expireSec?Math.max(0,Math.floor((expireSec*1000-Date.now())/3600000)):'--';return `<div class="want-card" onclick="location.href='/wants/${w.id}'"><div class="top"><div><b>🎯 ${w.title||w.item}</b><br><small>📦 ${w.quantity||'1'} | 📍 ${w.district} | ⏰ ${expire}h left</small><br><small style="color:#666">${(w.description||w.note||'').slice(0,60)}</small></div><div style="text-align:right"><span class="badge-live">LIVE AUCTION</span><br><div style="margin-top:5px"><span class="offer-count">💬 ${w.offers_count||0} offers</span></div></div></div><div style="display:flex;justify-content:space-between;padding:8px;background:#FFF9C4"><div><small>Budget:</small><br><b>${w.min_budget?`UGX ${Number(w.min_budget).toLocaleString()}`:''} - ${w.max_budget?`UGX ${Number(w.max_budget).toLocaleString()}`:'Negotiable'}</b></div><div class="price-box">Lowest:<br>${lowest}</div></div></div>`;}).join('');
+ }catch(e){document.getElementById('wantsGrid').innerHTML='<p style="color:red;grid-column:1/-1;text-align:center;padding:20px">⚠️ Failed to load: '+e.message+'</p>';}
+}
+async function loadDetail(){
+ let r=await fetch(`/api/wants/${WID}`); let w=await r.json(); if(!w.id){document.getElementById('wantBox').innerHTML='Not found';return;}
+ let exp=w.expires_at?Math.max(0,Math.floor((w.expires_at*1000-Date.now())/3600000)):0;
+ document.getElementById('wantBox').innerHTML=`<div style="display:flex;justify-content:space-between"><h2>🎯 ${w.title||w.item}</h2><span style="background:${w.status=='open'?'#00FF00':'red'};color:#000;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:bold">${w.status.toUpperCase()}</span></div><p style="margin:10px 0">📦 Qty: ${w.quantity} | 📍 ${w.district} | ⏰ ${exp}h left | Category: ${w.category||''}</p><p style="background:#FFF9C4;padding:10px;border-radius:8px;border-left:4px solid #FFCC02">${w.description||w.note||'No description'}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div style="background:#000;color:#FFCC02;padding:10px;border-radius:8px;text-align:center">Budget<br><b>UGX ${Number(w.min_budget||0).toLocaleString()} - ${Number(w.max_budget||0).toLocaleString()}</b></div><div style="background:#111;color:#00FF00;padding:10px;border-radius:8px;text-align:center">Lowest Offer<br><b style="font-size:18px">${w.lowest_offer?'UGX '+Number(w.lowest_offer).toLocaleString():'No offers'}</b><br><small>${w.offers_count||0} sellers competing</small></div></div>`;
+ let ol=document.getElementById('offersList');
+ if(!w.offers||w.offers.length==0){ol.innerHTML='<p style="text-align:center;color:#666;padding:20px">No offers yet - be first to win! 🏆</p>';}
+ else{w.offers.sort((a,b)=>(parseInt(a.price)||999999999)-(parseInt(b.price)||999999999));ol.innerHTML=w.offers.map((o,i)=>`<div class="offer-row ${i==0?'winner':''}"><div style="display:flex;gap:10px;align-items:center"><div class="rank ${i==0?'first':''}">${i==0?'👑':i+1}</div><div><b>UGX ${Number(o.price).toLocaleString()}</b><br><small>🏪 ${o.shop_slug||'Seller'} | ⏱️ ${o.delivery_time||''} | 🛡️ ${o.warranty||''}</small><br><small style="color:#555">${o.message||''}</small></div></div><div style="text-align:right">${w.phone==currentUser.phone||w.email==currentUser.email?`<button onclick="acceptOffer(${o.id})" style="background:#00FF00;color:#000;border:none;padding:8px 12px;border-radius:20px;font-weight:bold;cursor:pointer">✅ Accept</button>`:''}<div style="font-size:11px;color:#888;margin-top:4px">${o.status||'pending'}</div></div></div>`).join('');}
+}
+async function placeOffer(){let price=document.getElementById('offerPrice').value;if(!price){alert('Enter price Boss!');return;}if(!currentUser.phone){alert('Login first!');return;}document.getElementById('offerStatus').innerText='⏳ Placing...';let r=await fetch(`/api/wants/${WID}/offers`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({price:parseInt(price),delivery_time:document.getElementById('offerDelivery').value,warranty:document.getElementById('offerWarranty').value,message:document.getElementById('offerMsg').value,phone:currentUser.phone,email:currentUser.email,shop_slug:currentUser.shop_slug||''})});let d=await r.json();document.getElementById('offerStatus').innerText=d.message;if(d.success){loadDetail();document.getElementById('offerPrice').value='';}}
+async function acceptOffer(oid){if(!confirm('Accept this offer? This will close the want!'))return;let r=await fetch(`/api/offers/${oid}/accept`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:currentUser.phone,email:currentUser.email})});let d=await r.json();alert(d.message);if(d.success)loadDetail();}
+if(WID){loadDetail();}else{loadWants();setInterval(loadWants,15000);}
+</script>
+</body>
+</html>
