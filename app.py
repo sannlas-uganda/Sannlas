@@ -83,6 +83,9 @@ app.register_blueprint(sannlas_sell_bp)
 from sannlas_follow import sannlas_follow_bp
 app.register_blueprint(sannlas_follow_bp)
 
+from sannlas_likes import sannlas_likes_bp
+app.register_blueprint(sannlas_likes_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
