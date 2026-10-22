@@ -77,6 +77,9 @@ app.register_blueprint(invite_bp)
 from sannlas_wants import sannlas_wants_bp
 app.register_blueprint(sannlas_wants_bp)
 
+from sannlas_sell import sannlas_sell_bp
+app.register_blueprint(sannlas_sell_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -497,11 +500,6 @@ def wallet_page():
     return redirect('/balance')
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
-
-@app.route('/sell')
-def sell_page():
-    return render_template('index.html')
-
 
 @app.route('/api/billboard')
 def get_billboard(): return jsonify(get_billboard_config())
