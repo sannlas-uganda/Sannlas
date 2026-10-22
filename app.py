@@ -1215,8 +1215,8 @@ def register():
     my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
     user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':10,'bought':0,'earned':10,'spent':0,'bought_coins':0,'earned_coins':10,'trial_given':True,'referral_code':my_ref_code,'invited_by':ref_code}
     users.append(user)
-       if ref_code:
-        ref_code = str(ref_code).strip()
+    if ref_code:
+    ref_code = str(ref_code).strip()
         rewarded = False
         for ru in users:
             # Old system: match referral_code
