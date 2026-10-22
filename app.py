@@ -71,6 +71,9 @@ app.register_blueprint(live_bp)
 from sannlas_calls import calls_bp
 app.register_blueprint(calls_bp)
 
+from sannlas_invite import invite_bp
+app.register_blueprint(invite_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -857,8 +860,6 @@ def wallet_page():
     return redirect('/balance')
 @app.route('/balance')
 def balance_page(): return render_template('balance.html')
-@app.route('/invite')
-def invite_page(): return render_template('invite.html')
 
 @app.route('/sell')
 def sell_page():
@@ -1148,27 +1149,6 @@ def sales_summary():
         if (now - d).days <7: week+=amt
         if d.year==now.year: year+=amt
     return jsonify({"today":today,"week":week,"year":year,"orders":len(my_orders),"promo_coins_spent":promo_spent})
-
-@app.route('/api/my-referral')
-def my_referral_api():
-    phone = request.args.get('phone','').strip() or session.get('phone','')
-    email = request.args.get('email','').lower().strip() or session.get('email','')
-    if not phone and not email: return jsonify({"success":False, "message":"Login first"}), 401
-    users = load_db('users.json', [])
-    u = None
-    for user in users:
-        if (phone and user.get('phone')==phone) or (email and user.get('email','').lower()==email):
-            u = user; break
-    if not u: return jsonify({"success":False, "message":"User not found"}), 404
-    if not u.get('referral_code'):
-        code = f"SANN-{u.get('phone','0000')[-4:]}-{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=4))}"
-        u['referral_code'] = code
-        save_db('users.json', users)
-    host = request.host_url.rstrip('/')
-    link = f"{host}/?ref={u['referral_code']}"
-    invites = [x for x in users if x.get('invited_by')==u['referral_code']]
-    return jsonify({"success": True,"code": u['referral_code'],"link": link,"total_invites": len(invites),"earned_coins": len(invites) * 1,"earned_ugx": len(invites) * COIN_PRICE,"invites": [{"email": i.get('email'), "phone": i.get('phone'), "business": i.get('business')} for i in invites[-20:]]})
-
 @app.route('/api/balance')
 def api_balance():
     phone = request.args.get('phone','').strip()
@@ -1235,16 +1215,30 @@ def register():
     my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
     user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':10,'bought':0,'earned':10,'spent':0,'bought_coins':0,'earned_coins':10,'trial_given':True,'referral_code':my_ref_code,'invited_by':ref_code}
     users.append(user)
-    if ref_code:
+       if ref_code:
+        ref_code = str(ref_code).strip()
+        rewarded = False
         for ru in users:
+            # Old system: match referral_code
             if ru.get('referral_code')==ref_code:
                 ru['earned'] = int(ru.get('earned',0)) + 1
                 ru['earned_coins'] = ru['earned']
                 ru['coins'] = int(ru.get('bought',0)) + int(ru.get('earned',0)) - int(ru.get('spent',0))
-                txs = load_db('coin_transactions.json', [])
-                txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
-                save_db('coin_transactions.json', txs)
+                rewarded = True
                 break
+            # New system: match phone last digits
+            if ref_code and ref_code[-4:] in str(ru.get('phone',''))[-4:]:
+                # Avoid self-reward
+                if str(ru.get('phone','')) != phone and str(ru.get('email','')).lower() != email.lower():
+                    ru['earned'] = int(ru.get('earned',0)) + 1
+                    ru['earned_coins'] = ru['earned']
+                    ru['coins'] = int(ru.get('bought',0)) + int(ru.get('earned',0)) - int(ru.get('spent',0))
+                    rewarded = True
+                    break
+        if rewarded:
+            txs = load_db('coin_transactions.json', [])
+            txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined via {ref_code}', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
+            save_db('coin_transactions.json', txs)
 
     # === AUTO DEDUCT BONUS 10 FROM MAJOR 1B === PASTE HERE Boss!!!
     coin_cfg = load_db("coin_config.json", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
