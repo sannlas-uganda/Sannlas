@@ -68,6 +68,9 @@ app.register_blueprint(manufacturers_bp)
 from sannlas_live import live_bp
 app.register_blueprint(live_bp)
 
+from sannlas_calls import calls_bp
+app.register_blueprint(calls_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -2533,10 +2536,6 @@ def profile():
 @app.route('/delivery')
 def delivery():
     return render_template('delivery.html')
-
-@app.route('/calls')
-def calls():
-    return render_template('calls.html')
 
 @app.route('/upload')
 def upload_page():
