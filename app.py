@@ -92,6 +92,9 @@ app.register_blueprint(sannlas_messages_bp)
 from sannlas_coins import sannlas_coins_bp
 app.register_blueprint(sannlas_coins_bp)
 
+from sannlas_delivery import sannlas_delivery_bp
+app.register_blueprint(sannlas_delivery_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -1831,10 +1834,6 @@ def profile():
     name = data.get('display_name','TikTok User')
     avatar = data.get('avatar_url','')
     return f"<div style='text-align:center;padding:30px;font-family:sans-serif'><h1>Welcome {name}!</h1><img src='{avatar}' width='120' style='border-radius:50%'><p>Your TikTok is linked to Sannlas!</p><a href='/' style='background:#000;color:#fff;padding:12px 20px;border-radius:20px;text-decoration:none;'>Go Home</a><br><br><pre>{user}</pre></div>"
-
-@app.route('/delivery')
-def delivery():
-    return render_template('delivery.html')
 
 @app.route('/upload')
 def upload_page():
