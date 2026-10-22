@@ -1215,9 +1215,9 @@ def register():
     my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
     user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':10,'bought':0,'earned':10,'spent':0,'bought_coins':0,'earned_coins':10,'trial_given':True,'referral_code':my_ref_code,'invited_by':ref_code}
     users.append(user)
-       if ref_code:
-        for ru in users:
-            if ru.get('referral_code')==ref_code:
+    if ref_code:
+    for ru in users:
+    if ru.get('referral_code') == ref_code:
                 ru['earned'] = int(ru.get('earned',0)) + 1
                 ru['earned_coins'] = ru['earned']
                 ru['coins'] = int(ru.get('bought',0)) + int(ru.get('earned',0)) - int(ru.get('spent',0))
@@ -1225,7 +1225,6 @@ def register():
                 txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
                 save_db('coin_transactions.json', txs)
                 break
-
     # === AUTO DEDUCT BONUS 10 FROM MAJOR 1B === PASTE HERE Boss!!!
     coin_cfg = load_db("coin_config.json", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
     bonus = 10
