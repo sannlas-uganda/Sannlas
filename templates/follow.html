@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FOLLOW - SANNLAS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#f1f5f9;padding-bottom:80px}
+.navbar{background:#000;color:#FFCC02;padding:12px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:10}
+.tab-bar{background:#fff;display:flex;padding:0;border-bottom:2px solid #eee;position:sticky;top:50px;z-index:9}
+.tab-bar button{flex:1;padding:14px;border:none;background:#fff;font-weight:900;cursor:pointer;border-bottom:3px solid transparent}
+.tab-bar button.active{border-bottom-color:#FFCC02;background:#fffde7}
+.user-card{background:#fff;border-radius:14px;padding:12px;margin:8px 10px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 5px rgba(0,0,0,.06)}
+.avatar{width:50px;height:50px;border-radius:50%;background:#000;color:#FFCC02;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px}
+.follow-btn{margin-left:auto;padding:8px 16px;border-radius:20px;border:2px solid #000;font-weight:900;cursor:pointer}
+.btn-follow{background:#FFCC02;color:#000}
+.btn-following{background:#000;color:#fff}
+.btn-self{background:#eee;color:#999;cursor:not-allowed}
+.stats{background:#000;color:#FFCC02;padding:12px;display:flex;justify-content:space-around;text-align:center}
+.stats b{display:block;font-size:20px}
+</style>
+</head>
+<body>
+<div class="navbar"><a href="/" style="color:#FFCC02;text-decoration:none;font-weight:bold">← SANNLAS</a><b>👥 FOLLOW</b><span></span></div>
+<div class="stats"><div><b id="followersCount">0</b><small>Followers</small></div><div><b id="followingCount">0</b><small>Following</small></div><div><b id="totalUsers">0</b><small>Users</small></div></div>
+<div class="tab-bar"><button id="tab-followers" class="active" onclick="switchTab('followers')">Followers</button><button id="tab-following" onclick="switchTab('following')">Following</button><button id="tab-discover" onclick="switchTab('discover')">Discover</button></div>
+<div style="padding:8px"><input id="searchUser" placeholder="Search users..." oninput="filterUsers()" style="width:100%;padding:12px;border-radius:20px;border:1px solid #ddd"></div>
+<div id="usersList"><p style="text-align:center;padding:30px">⏳ Loading...</p></div>
+
+<script>
+let currentUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+let currentTab='followers';
+let allData={followers:[], following:[], discover:[]};
+
+function switchTab(tab){currentTab=tab;document.querySelectorAll('.tab-bar button').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active');renderList();}
+
+async function loadFollowData(){
+ let email=currentUser.email||''; let phone=currentUser.phone||'';
+ try{
+  let r=await fetch(`/api/follow/stats?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`);
+  let d=await r.json();
+  document.getElementById('followersCount').innerText=d.followers||0;
+  document.getElementById('followingCount').innerText=d.following||0;
+  allData.followers=d.followers_list||[];
+  allData.following=d.following_list||[];
+  allData.discover=d.discover||[];
+  document.getElementById('totalUsers').innerText=(d.total_users||0);
+  renderList();
+ }catch(e){document.getElementById('usersList').innerHTML='<p style="color:red;text-align:center">Error: '+e.message+'</p>';}
+}
+
+function renderList(){
+ let list=allData[currentTab]||[];
+ let q=document.getElementById('searchUser').value.toLowerCase();
+ if(q) list=list.filter(u=> (u.business||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q));
+ if(list.length==0){document.getElementById('usersList').innerHTML=`<p style="text-align:center;padding:30px;color:#666">No ${currentTab} yet<br><small>${currentTab=='discover'?'Follow shops to see their products!':''}</small></p>`;return;}
+ document.getElementById('usersList').innerHTML=list.map(u=>{
+  let isSelf=(u.email||'').toLowerCase()===(currentUser.email||'').toLowerCase();
+  let initial=(u.business||u.email||'U')[0].toUpperCase();
+  let btn=isSelf?`<button class="follow-btn btn-self">You</button>`:(u.is_following?`<button class="follow-btn btn-following" onclick="unfollowUser('${u.email}')">Following ✓</button>`:`<button class="follow-btn btn-follow" onclick="followUser('${u.email}')">+ Follow</button>`);
+  return `<div class="user-card"><div class="avatar">${initial}</div><div><b>${u.business||u.email.split('@')[0]}</b><br><small>${u.email} • ${u.followers||0} followers</small></div>${btn}</div>`;
+ }).join('');
+}
+
+function filterUsers(){ renderList(); }
+
+async function followUser(targetEmail){
+ if(!currentUser.email){alert('Login first!');return;}
+ let r=await fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,target_email:targetEmail})});
+ let d=await r.json();
+ alert(d.message);
+ if(d.success) loadFollowData();
+}
+
+async function unfollowUser(targetEmail){
+ if(!currentUser.email){alert('Login first!');return;}
+ if(!confirm('Unfollow?'))return;
+ let r=await fetch('/api/unfollow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,target_email:targetEmail})});
+ let d=await r.json();
+ alert(d.message);
+ if(d.success) loadFollowData();
+}
+
+loadFollowData();
+</script>
+</body>
+</html>
