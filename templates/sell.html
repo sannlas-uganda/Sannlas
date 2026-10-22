@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SELL - SANNLAS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;padding-bottom:80px}
+.navbar{background:#000;color:#fff;padding:10px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:12}
+.btn{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold;cursor:pointer;width:100%}
+.btn-yellow{background:#FFCC02;color:#000}
+.search-bar{background:#111;padding:10px;display:flex;gap:6px;position:sticky;top:50px;z-index:11}
+.search-bar input,.search-bar select{padding:10px;border-radius:20px;border:none;flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
+.card{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer}
+.card img{width:100%;height:150px;object-fit:cover}
+.card-body{padding:8px}
+.upload-box{background:#fff;border-radius:12px;padding:15px;margin:10px;border:3px solid #FFCC02}
+.upload-box input,.upload-box textarea,.upload-box select{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #ddd}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="navbar">
+<div><a href="/" style="color:#FFCC02;text-decoration:none;font-weight:bold">🛍️ SANNLAS</a> | <span id="navText">🛒 SELL</span></div>
+<div><button onclick="showView('sell')" style="background:#FFCC02;border:none;padding:6px 10px;border-radius:10px;font-weight:bold">Shop</button> <button onclick="showView('upload')" style="background:#00FF00;border:none;padding:6px 10px;border-radius:10px;font-weight:bold">+ Sell</button></div>
+</div>
+
+<div id="sellView">
+<div class="search-bar">
+<input id="q" placeholder="Search products..." oninput="loadProducts()">
+<select id="cat" onchange="loadProducts()"><option value="">All Categories</option><option>Electronics</option><option>Fashion</option><option>Home</option><option>Vehicles</option><option>Property</option></select>
+<select id="sort" onchange="loadProducts()"><option value="newest">Newest</option><option value="price_low">Low Price</option><option value="price_high">High Price</option></select>
+</div>
+<div style="background:#000;color:#FFCC02;padding:8px;text-align:center;font-weight:bold">🛒 MARKETPLACE - <span id="totalProducts">0</span> products</div>
+<div id="productsGrid" class="grid"><p style="color:white;text-align:center;grid-column:1/-1;padding:30px">⏳ Loading...</p></div>
+</div>
+
+<div id="uploadView" class="hidden">
+<div class="upload-box">
+<h2 style="text-align:center">📦 Sell Product (FREE! 0 coins)</h2>
+<input id="pName" placeholder="Product Name e.g. iPhone 13">
+<textarea id="pDesc" placeholder="Description..." rows="3"></textarea>
+<input id="pPrice" type="number" placeholder="Price UGX e.g. 1500000">
+<input id="pQty" type="number" placeholder="Quantity" value="1">
+<select id="pCategory"><option>Electronics</option><option>Fashion</option><option>Home & Living</option><option>Vehicles</option><option>Property</option><option>Other</option></select>
+<input id="pLocation" placeholder="Location e.g. Kampala">
+<input id="pImage" type="file" accept="image/*" multiple>
+<p id="imgPreview" style="display:flex;gap:5px;flex-wrap:wrap"></p>
+<label><input type="checkbox" id="pNegotiable" checked> Negotiable</label><br><br>
+<button class="btn btn-yellow" onclick="uploadProduct()">🚀 Upload Product Now</button>
+<p id="uploadStatus" style="text-align:center;margin-top:8px;color:#000;font-weight:bold"></p>
+</div>
+</div>
+
+<div id="detailView" class="hidden">
+<div style="background:#000;padding:8px"><a href="javascript:showView('sell')" style="color:#FFCC02;text-decoration:none">← Back to Shop</a></div>
+<div id="productBox" class="card" style="margin:10px;padding:0"><p style="padding:20px">Loading...</p></div>
+</div>
+
+<script>
+let currentUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+let view='sell';
+function showView(v){
+ document.getElementById('sellView').classList.toggle('hidden', v!=='sell');
+ document.getElementById('uploadView').classList.toggle('hidden', v!=='upload');
+ document.getElementById('detailView').classList.toggle('hidden', v!=='detail');
+ view=v;
+ if(v=='sell') loadProducts();
+ if(v=='upload') document.getElementById('navText').innerText='📤 UPLOAD';
+ else document.getElementById('navText').innerText='🛒 SELL';
+}
+let parts=location.pathname.split('/').filter(Boolean);
+if(parts[0]=='sell' && parts[1]){ loadProductDetail(parts[1]); } else { showView('sell'); }
+
+async function loadProducts(){
+ let q=document.getElementById('q').value; let cat=document.getElementById('cat').value; let sort=document.getElementById('sort').value;
+ let url=`/api/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&sort=${sort}`;
+ try{
+  let r=await fetch(url); let prods=await r.json(); if(!Array.isArray(prods)) prods=[];
+  prods.sort((a,b)=>{if(sort=='price_low') return (a.price||0)-(b.price||0); if(sort=='price_high') return (b.price||0)-(a.price||0); return (b.created||0)-(a.created||0);});
+  document.getElementById('totalProducts').innerText=prods.length;
+  if(prods.length==0){document.getElementById('productsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No products yet - be first to sell!</p>'; return;}
+  document.getElementById('productsGrid').innerHTML=prods.map(p=>`<div class="card" onclick="location.href='/sell/${p.id}'"><img src="${p.image||'https://via.placeholder.com/200'}" onerror="this.src='https://via.placeholder.com/200'"><div class="card-body"><b style="font-size:13px">${(p.name||'').slice(0,30)}</b><br><small>${p.location||'Kampala'}</small><br><b style="color:#c0392b">UGX ${Number(p.price||0).toLocaleString()}</b></div></div>`).join('');
+ }catch(e){document.getElementById('productsGrid').innerHTML='<p style="color:red">Failed: '+e.message+'</p>';}
+}
+async function loadProductDetail(id){
+ showView('detail');
+ let r=await fetch(`/api/products/${id}`); let p=await r.json();
+ if(!p.id){document.getElementById('productBox').innerHTML='Not found'; return;}
+ document.getElementById('productBox').innerHTML=`<img src="${p.image||'https://via.placeholder.com/400'}" style="width:100%;height:300px;object-fit:cover"><div style="padding:15px"><h2>${p.name}</h2><p>${p.description||''}</p><h3 style="color:#c0392b">UGX ${Number(p.price||0).toLocaleString()}</h3><p>📍 ${p.location} | 📦 ${p.quantity} | 📞 ${p.phone}</p><button class="btn btn-yellow" onclick="contactSeller('${p.phone}')">📞 Contact Seller</button></div>`;
+}
+async function uploadProduct(){
+ let name=document.getElementById('pName').value; let price=document.getElementById('pPrice').value;
+ if(!name||!price){alert('Enter name & price Boss!'); return;}
+ if(!currentUser.phone){alert('Login first!'); location.href='/'; return;}
+ document.getElementById('uploadStatus').innerText='⏳ Uploading...';
+ let fd=new FormData();
+ fd.append('name', name); fd.append('description', document.getElementById('pDesc').value);
+ fd.append('price', price); fd.append('quantity', document.getElementById('pQty').value);
+ fd.append('category', document.getElementById('pCategory').value); fd.append('location', document.getElementById('pLocation').value);
+ fd.append('negotiable', document.getElementById('pNegotiable').checked);
+ fd.append('phone', currentUser.phone); fd.append('email', currentUser.email); fd.append('business', currentUser.business||'');
+ let files=document.getElementById('pImage').files; for(let i=0;i<files.length;i++){fd.append('images', files[i]);}
+ try{
+  let r=await fetch('/api/products/create', {method:'POST', body:fd});
+  let d=await r.json();
+  document.getElementById('uploadStatus').innerText=d.message||'Done!';
+  if(d.success){ setTimeout(()=>{location.href='/sell/'+d.product.id}, 800); }
+ }catch(e){ document.getElementById('uploadStatus').innerText='Error: '+e.message; }
+}
+function contactSeller(phone){ if(phone) window.open('https://wa.me/'+phone.replace(/[^0-9]/g,''), '_blank'); }
+
+document.getElementById('pImage').addEventListener('change', function(e){
+ let preview=document.getElementById('imgPreview'); preview.innerHTML='';
+ for(let f of e.target.files){ let url=URL.createObjectURL(f); preview.innerHTML+=`<img src="${url}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #FFCC02">`; }
+});
+loadProducts();
+</script>
+</body>
+</html>
