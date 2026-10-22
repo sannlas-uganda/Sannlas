@@ -1206,26 +1206,45 @@ def withdraw_coins():
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    data=request.json; email=data.get('email','').lower().strip(); phone=data.get('phone','').strip(); pwd=data.get('password',''); biz=data.get('business','')
+    data=request.json
+    email=data.get('email','').lower().strip()
+    phone=data.get('phone','').strip()
+    pwd=data.get('password','')
+    biz=data.get('business','')
     ref_code = data.get('ref') or request.args.get('ref') or request.cookies.get('ref_code') or ''
-    if not email or not phone or not pwd: return jsonify({'success':False,'message':'Fill all'}),400
+    if not email or not phone or not pwd:
+        return jsonify({'success':False,'message':'Fill all'}),400
     users=load_db('users.json',[])
-    if any(u['email']==email for u in users): return jsonify({'success':False,'message':'Email exists - Login'}),400
+    if any(u['email']==email for u in users):
+        return jsonify({'success':False,'message':'Email exists - Login'}),400
     import random, string
     my_ref_code = f"SANN-{phone[-4:]}-{''.join(random.choices(string.ascii_uppercase+string.digits, k=4))}"
     user={'id':int(time.time()*1000),'email':email,'phone':phone,'password':hash_pwd(pwd),'business':biz,'created':time.time(),'plan':'free14','plan_name':'14 Days FREE','subscription_expires':time.time()+14*86400,'paid':True,'verified':False,'followers':0,'total_likes':0,'total_stars':0,'coins':10,'bought':0,'earned':10,'spent':0,'bought_coins':0,'earned_coins':10,'trial_given':True,'referral_code':my_ref_code,'invited_by':ref_code}
     users.append(user)
-    
-        if ref_code:
+    if ref_code:
         for ru in users:
-            if ru.get('referral_code') == ref_code:
+            if ru.get('referral_code')==ref_code:
                 ru['earned'] = int(ru.get('earned',0)) + 1
                 ru['earned_coins'] = ru['earned']
                 ru['coins'] = int(ru.get('bought',0)) + int(ru.get('earned',0)) - int(ru.get('spent',0))
                 txs = load_db('coin_transactions.json', [])
-                txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f"INVITE-{uuid.uuid4().hex[:6].upper()}", 'reason': f"Invite bonus", 'time': time.time(), 'status': 'invite_bonus'})
+                txs.append({'id': int(time.time()*1000), 'email': ru.get('email'), 'phone': ru.get('phone'), 'coins': 1, 'price': 0, 'momo_code': f'INVITE-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Invite bonus - {phone} joined', 'time': time.time(), 'status': 'invite_bonus', 'invited_phone': phone})
                 save_db('coin_transactions.json', txs)
                 break
+    coin_cfg = load_db("coin_config.json", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
+    bonus = 10
+    coin_cfg["remaining"] = max(0, coin_cfg.get("remaining", 1000000000) - bonus)
+    coin_cfg["sold"] = coin_cfg.get("sold",0) + bonus
+    save_db("coin_config.json", coin_cfg)
+    save_db('users.json',users)
+    try:
+        shop = ensure_shop_for_user(user)
+    except:
+        shop = None
+    safe={k:v for k,v in user.items() if k!='password'}
+    if shop:
+        safe['shop']=shop
+    return jsonify({'success':True,'user':safe})
         
     # === AUTO DEDUCT BONUS 10 FROM MAJOR 1B === PASTE HERE Boss!!!
     coin_cfg = load_db("coin_config.json", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
