@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promote & Earn - Sannlas</title>
+<style>
+body{font-family:system-ui,Arial;background:#f5f5f5;margin:0;padding:15px;padding-bottom:90px}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #eee}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;font-weight:900;cursor:pointer;margin:6px 0;font-size:14px}
+.btn-black{background:#000;color:#FFCC02;border:2px solid #FFCC02}
+.btn-green{background:#00c853;color:#fff}
+.btn-red{background:#ff1744;color:#fff}
+.badge{display:inline-block;background:#FFCC02;color:#000;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:900;margin:2px}
+.link-box{background:#000;color:#FFCC02;padding:12px;border-radius:10px;word-break:break-all;margin:10px 0;font-family:monospace;font-size:12px;border-left:4px solid #FFCC02}
+.item{padding:14px;border-bottom:1px solid #f0f0f0}
+.item:last-child{border:none}
+.small{font-size:12px;color:#666}
+h2{margin:0 0 12px;font-size:22px}
+h3{margin:0 0 10px;font-size:16px}
+.top-banner{background:linear-gradient(135deg,#000 0%,#222 100%);color:#FFCC02;padding:18px;border-radius:16px;margin-bottom:14px;text-align:center;border:2px solid #FFCC02}
+.top-banner h1{margin:0;font-size:20px}
+.top-banner p{color:#fff;opacity:.9;font-size:13px;margin:6px 0 0}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:12px;border-top:1px solid #ddd;z-index:99}
+.nav a{text-decoration:none;color:#666;font-size:12px;text-align:center;font-weight:600}
+.nav a.active{color:#ff6f00;font-weight:900}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0}
+.stat{background:#f8fafc;padding:10px;border-radius:12px;text-align:center;border:1px solid #eee}
+.stat b{display:block;font-size:18px;color:#000}
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+<h1>🚀 Promote & Earn Coins</h1>
+<p>Share products, earn commission on every sale!</p>
+</div>
+
+<div class="card">
+<div class="stats">
+<div class="stat"><b id="totalPromos">0</b><small>Links</small></div>
+<div class="stat"><b id="totalSales">0</b><small>Sales</small></div>
+<div class="stat"><b id="totalEarned">0</b><small>Coins Earned</small></div>
+</div>
+<b>How it works:</b><br>
+<small style="line-height:1.6;display:block;margin-top:6px">
+1️⃣ Go to any product > Click <b>Promote & Earn</b><br>
+2️⃣ Get your unique link (PROMO code)<br>
+3️⃣ Share on WhatsApp, TikTok, Facebook<br>
+4️⃣ When someone buys via your link, you earn <b>3-10 coins</b> = UGX 1,800-5,990!<br>
+5️⃣ Coins auto-added to your balance!
+</small>
+</div>
+
+<div class="card">
+<h3>🔗 My Promotion Links - Click to Share</h3>
+<div id="myPromos">⏳ Loading...</div>
+</div>
+
+<div class="card">
+<h3>📥 People Promoting MY Products</h3>
+<small>Approve or Reject promoters for your products</small>
+<div id="requests" style="margin-top:10px">⏳ Loading...</div>
+</div>
+
+<div class="card" style="border:2px dashed #FFCC02">
+<h3>🔥 Top Promoted Products</h3>
+<small>Best commission products - promote them!</small>
+<div id="topProducts">Loading...</div>
+</div>
+
+<div class="nav">
+<a href="/">🏠 Home</a>
+<a href="/promote" class="active">🚀 Promote</a>
+<a href="/balance">💰 Balance</a>
+<a href="/my-shop">🏪 My Shop</a>
+</div>
+
+<script>
+let myUser = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+if(myUser.user) myUser = myUser.user;
+
+async function loadMy(){
+ if(!myUser.email && !myUser.phone){
+   document.getElementById('myPromos').innerHTML = '❌ Login first Boss!';
+   return;
+ }
+ try{
+   let res = await fetch(`/api/promote/my?email=${myUser.email||''}&phone=${myUser.phone||''}`);
+   let data = await res.json();
+   document.getElementById('totalPromos').innerText = data.length;
+   let totalSales = data.reduce((s,p)=> s + (p.sales||0), 0);
+   document.getElementById('totalSales').innerText = totalSales;
+   let totalEarned = data.reduce((s,p)=> s + ((p.sales||0)* (p.commission_coins||3)), 0);
+   document.getElementById('totalEarned').innerText = totalEarned;
+
+   let html='';
+   if(!data.length){
+     html = '<div style="text-align:center;padding:20px;color:#888">No promotions yet!<br><br>👉 Go to homepage, open any product, click <b>🚀 Promote & Earn</b> button!<br><br><a href="/" class="btn btn-black" style="display:block;text-decoration:none;text-align:center">Browse Products</a></div>';
+   } else {
+     data.forEach(p=>{
+       let link = `https://sannlas.onrender.com/?promo=${p.promo_code}&product=${p.product_id}`;
+       let earned = (p.sales||0) * (p.commission_coins||3);
+       html+=`<div class="item">
+       <b>${p.product_name||'Product '+p.product_id}</b> <span class="badge">${p.status}</span><br>
+       <span class="small">Code: <b style="color:#000">${p.promo_code}</b> | Commission: <b>${p.commission_coins} coins</b> = UGX ${(p.commission_coins*599).toLocaleString()} per sale | Sales: <b style="color:#00c853">${p.sales||0}</b> | Earned: <b>${earned} coins</b></span>
+       <div class="link-box">${link}</div>
+       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+         <button class="btn btn-black" onclick="copyLink('${link}')">📋 Copy Link</button>
+         <button class="btn btn-green" onclick="shareWA('${link}','${p.product_name||''}')">📤 WhatsApp</button>
+       </div>
+       <button class="btn btn-black" onclick="shareTikTok('${link}')">🎵 Share TikTok Caption</button>
+       </div>`;
+     });
+   }
+   document.getElementById('myPromos').innerHTML = html;
+ }catch(e){
+   document.getElementById('myPromos').innerHTML = 'Error: '+e.message;
+ }
+}
+
+async function loadRequests(){
+ try{
+   let res = await fetch(`/api/promote/requests?email=${myUser.email||''}&phone=${myUser.phone||''}`);
+   let data = await res.json();
+   let html='';
+   if(!data.length){
+     html='<small style="color:#888">No one promoting your products yet. When someone clicks Promote on your product, they will appear here.</small>';
+   } else {
+     data.forEach(p=>{
+       html+=`<div class="item" style="background:#f8fafc;border-radius:10px;margin:6px 0">
+       <b>👤 ${p.freelancer_phone||''} ${p.freelancer_email||''}</b><br>
+       Wants to promote <b>${p.product_name||p.product_id}</b> for <b>${p.commission_coins} coins/sale</b><br>
+       <span class="small">Code: ${p.promo_code} | Sales: ${p.sales||0} | ${new Date(p.created*1000).toLocaleString()} | Status: ${p.status}</span><br>
+       <div style="display:flex;gap:8px;margin-top:8px">
+         <button class="btn btn-green" style="flex:1" onclick="actionPromo(${p.id},'approved')">✅ Approve</button>
+         <button class="btn btn-red" style="flex:1" onclick="actionPromo(${p.id},'rejected')">❌ Reject</button>
+       </div>
+       </div>`;
+     });
+   }
+   document.getElementById('requests').innerHTML = html;
+ }catch(e){
+   document.getElementById('requests').innerHTML = 'Error: '+e.message;
+ }
+}
+
+async function actionPromo(id,act){
+ if(!confirm(`${act} this promoter?`)) return;
+ let res = await fetch('/api/promote/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,action:act})});
+ let d = await res.json();
+ alert(d.message);
+ loadRequests();
+}
+
+function copyLink(link){
+ navigator.clipboard.writeText(link);
+ alert('✅ Copied! Share now Boss! '+link);
+}
+
+function shareWA(link, name){
+ let text = `🔥 Check this ${name||'product'} Boss! ${link} - Buy from Sannlas!`;
+ window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
+}
+
+function shareTikTok(link){
+ let text = `Found this amazing product on Sannlas! 😍 Link: ${link} #Sannlas #Uganda #Shopping`;
+ navigator.clipboard.writeText(text);
+ alert('✅ Caption copied for TikTok! Paste it! '+text);
+}
+
+// Load top products (optional)
+async function loadTop(){
+ try{
+   let res = await fetch('/api/products?limit=5&sort=promo');
+   let products = await res.json();
+   if(!Array.isArray(products)) products = products.products || [];
+   let html='';
+   products.slice(0,5).forEach(p=>{
+     html+=`<div class="item"><b>${p.name}</b> - Commission: <b>${p.promo_commission||3} coins</b> <a href="/product/${p.id}" style="float:right;background:#000;color:#FFCC02;padding:4px 10px;border-radius:8px;text-decoration:none;font-size:12px">Promote</a></div>`;
+   });
+   if(!html) html='<small>Browse products to find high commission items!</small>';
+   document.getElementById('topProducts').innerHTML = html;
+ }catch{
+   document.getElementById('topProducts').innerHTML = '<small>Go to homepage to find products!</small>';
+ }
+}
+
+loadMy();
+loadRequests();
+loadTop();
+</script>
+</body>
+</html>
