@@ -114,6 +114,9 @@ app.register_blueprint(sannlas_agents_bp)
 from sannlas_permissions import sannlas_permissions_bp
 app.register_blueprint(sannlas_permissions_bp)
 
+from sannlas_commission import sannlas_commission_bp
+app.register_blueprint(sannlas_commission_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -881,13 +884,39 @@ def create_order():
                 "paid_to_view": False,
                 "status": "new",
                 "time": time.time(),
-                "created_at": time.time()
+                "created_at": time.time(),
+                # === ADD BROKER REF ===
+                "broker_agent_phone": data.get('broker_agent_phone') or request.args.get('ref') or request.args.get('ref_agent') or request.cookies.get('ref_code') or "",
+                "shop_slug": sdata.get('items', [{}])[0].get('shop_slug','') if sdata.get('items') else ""
             }
             orders_v2.append(new_o)
             created.append(new_o)
+        
         save_db('orders_v2.json', orders_v2)
-        return jsonify({"success":True, "message":"Order sent! Seller will call you", "order_id": order_group, "orders": created})
 
+        # ===== AUTO COMMISSION SPLIT - 94% Owner / 4% Agent / 2% You =====
+        try:
+            from sannlas_commission import split_and_record
+            for ord in created:
+                total = ord.get('total',0)
+                shop_slug = ord.get('seller_email','') # or shop_slug
+                broker_phone = ord.get('broker_agent_phone','').strip()
+                # If broker_phone is actually agent_code like SANN-AGENT-1234, convert to phone
+                if broker_phone and 'SANN-AGENT' in broker_phone:
+                    agents_db = load_db('sannlas_agents.json',[])
+                    ag = next((a for a in agents_db if a['agent_code']==broker_phone), None)
+                    if ag:
+                        broker_phone = ag['phone']
+                if broker_phone:
+                    split_and_record("broker_sale", total, broker_phone, shop_slug, meta={"order_id":ord['id']})
+                else:
+                    # No broker - You still take 2% platform fee
+                    split_and_record("broker_sale", total, None, shop_slug, meta={"order_id":ord['id']})
+        except Exception as e:
+            print("Commission error:", e)
+        # ===== END COMMISSION =====
+
+        return jsonify({"success":True, "message":"Order sent! Seller will call you", "order_id": order_group, "orders": created})
     # OLD SINGLE PRODUCT + PROMO FLOW - Keep compatible
     promo_code=data.get('promo_code','').strip(); product_id=data.get('product_id'); buyer_phone=data.get('buyer_phone','').strip(); buyer_email=data.get('buyer_email','').lower().strip(); amount=data.get('amount',0)
     orders=load_db('orders.json',[]); new_order={"id":int(time.time()*1000),"product_id":product_id,"amount":amount,"buyer_phone":buyer_phone,"buyer_email":buyer_email,"promo_code":promo_code,"time":time.time(),"status":"pending"}
