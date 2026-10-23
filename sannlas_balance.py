@@ -1,0 +1,181 @@
+# sannlas_balance.py - ONE FILE = BALANCE / WALLET / WITHDRAW - FINAL
+from flask import Blueprint, Response, request, jsonify
+import os, json, time, uuid, hashlib, math
+
+sannlas_balance_bp = Blueprint('sannlas_balance_bp', __name__)
+
+def load_db(file, default):
+    try:
+        if os.path.exists(f'data/{file}'):
+            return json.load(open(f'data/{file}'))
+        if os.path.exists(file):
+            return json.load(open(file))
+        return default
+    except:
+        return default
+
+def save_db(file, data):
+    os.makedirs('data', exist_ok=True)
+    json.dump(data, open(f'data/{file}','w'), indent=2)
+
+COMBINED_BALANCE_HTML = """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>My Balance - Sannlas</title><style>body{font-family:Arial;background:#f5f5f5;margin:0;padding:15px;padding-bottom:80px}.card{background:#fff;border-radius:12px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}.bal{font-size:28px;font-weight:bold;color:#111}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{padding:12px;border-radius:10px;text-align:center}.box b{display:block;font-size:20px}.bought{background:#e3f2fd;color:#0d47a1}.earned{background:#e8f5e9;color:#1b5e20}.spent{background:#ffebee;color:#b71c1c}.total{background:#fff3e0;color:#e65100}.withdrawable{background:#f3e5f5;color:#4a148c;border:2px dashed #7b1fa2}.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;cursor:pointer;margin:5px 0}.btn-withdraw{background:#7b1fa2;color:#fff}.btn-buy{background:#ff6f00;color:#fff}.btn-pack{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;text-align:left}.btn-pack.active{background:#FFCC02;color:#000}.btn-share{background:#111;color:#FFCC02;border:2px solid #FFCC02}input,select{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;margin:8px 0;box-sizing:border-box}small{color:#666;display:block;margin-top:4px}h2{margin:0 0 12px 0}.history-item{padding:10px;border-bottom:1px solid #eee;font-size:14px}.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:10px;border-top:1px solid #ddd}.nav a{text-decoration:none;color:#666;text-align:center;font-size:12px}.nav a.active{color:#7b1fa2;font-weight:bold}.share-preview{background:#111;color:#fff;padding:10px;border-radius:8px;margin:8px 0;font-size:13px;border-left:4px solid #FFCC02}</style></head><body><h2>💰 My Balance & Wallet</h2><div class="card"><div class="bal" id="totalBal">0 Coins</div><small id="totalUgx">UGX 0 = Bought + Earned - Spent</small></div><div class="grid"><div class="box bought"><b id="bought">0</b>BOUGHT<small id="boughtUgx">UGX 0</small></div><div class="box earned"><b id="earned">0</b>EARNED<small id="earnedUgx">UGX 0</small></div><div class="box spent"><b id="spent">0</b>SPENT<small id="spentUgx">UGX 0</small></div><div class="box total"><b id="total">0</b>TOTAL<small>B+E-S</small></div></div><div class="card"><div class="box withdrawable"><b id="withdrawable" style="font-size:32px">0</b> WITHDRAWABLE<br><small style="font-size:13px;color:#4a148c">TOTAL - 10 free trial</small><b id="withdrawableUgx" style="margin-top:6px;font-size:18px">UGX 0</b><small id="withdrawableMsg">Min 50 coins = UGX 29,950</small></div></div><div class="card" style="border:2px solid #FFCC02"><h3>🔄 Share Coins - Send to Friend</h3><small style="background:#000;color:#FFCC02;padding:6px;border-radius:6px;display:block">⚠️ Bonus 10 locked, only bought/earned coins shareable. 10% fee = Sannlas profit. No self-share. Min 10.</small><div style="margin-top:10px"><label style="font-weight:800;font-size:12px">👤 SEND TO - Receiver Email/Phone</label><input id="shareReceiver" type="text" autocomplete="off" value="" placeholder="👤 Receiver Email or Phone - e.g friend@gmail.com or 07..." style="border:2px solid #FFCC02"><label style="font-weight:800;font-size:12px">💰 Amount</label><input id="shareAmount" type="number" placeholder="Coins to share (Min 10)" oninput="calcShareFee()"><div id="sharePreview" class="share-preview" style="display:none">You pay: <b id="sharePay" style="color:#FFCC02">0</b> | Receiver gets: <b id="shareGet" style="color:#00FF00">0</b><br>Fee (10%): <b id="shareFee" style="color:#ff6a00">0</b> = UGX <span id="shareFeeUgx">0</span> profit for Sannlas</div><label style="font-weight:800;font-size:12px">🔒 YOUR Login Password (NOT receiver's)</label><input id="sharePin" type="password" autocomplete="new-password" placeholder="Enter YOUR OWN login password"><small style="color:#FFCC02;font-size:11px;display:block">🔒 Use YOUR login password as PIN</small><button class="btn btn-share" onclick="shareCoinsNow()">🚀 SEND COINS NOW</button><p id="shareMsg" style="font-weight:bold;text-align:center"></p><div id="shareableInfo" style="font-size:12px;color:#666;text-align:center;margin:6px 0"></div><div id="myShares" style="max-height:200px;overflow:auto"></div></div></div><div class="card"><h3>🪙 Buy More Coins - MoMo 0795712326</h3><div id="packs" style="display:grid;gap:8px;margin:10px 0"></div><input id="buyMomoPhone" placeholder="Your MoMo Number - 256..."><input id="buyMomoCode" placeholder="MoMo Transaction Code (after paying)"><button class="btn btn-buy" onclick="buyCoins()">✅ Confirm I Paid - Submit Code</button><p id="buyMsg" style="font-weight:bold"></p><small style="background:#000;color:#FFCC02;padding:8px;border-radius:8px">1. Send Money to <b>0795712326</b><br>2. Enter Transaction Code above<br>3. Admin verifies = coins added instantly!</small></div><div class="card"><h3>💸 Withdraw Coins</h3><input id="momo" placeholder="MoMo Number to receive 077XXXXXXX"><input id="coinsToWithdraw" type="number" placeholder="Coins to withdraw (min 50)"><button class="btn btn-withdraw" onclick="withdraw()">Withdraw to MoMo</button><p id="msg" style="color:green;font-weight:bold"></p></div><div class="card"><h3>📜 Transaction History</h3><div id="history">Loading...</div></div><div class="nav"><a href="/">🏠 Home</a><a href="/balance" class="active">💰 Balance</a><a href="/invite">👥 Invite</a><a href="/">🏪 Shops</a></div><script>
+const FREE_TRIAL=10;const MIN_WITHDRAW=50;const COIN_PRICE=599;let myUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(myUser.user)myUser=myUser.user;let selectedPack='10';let GLOBAL_TOTAL=0;
+async function loadPacks(){let res=await fetch('/api/coins/packs');let packs=await res.json();let html='';let list=Array.isArray(packs)?packs:Object.values(packs);list.forEach((p,idx)=>{let id=p.coins||idx;let isPop=p.best?'⭐ POPULAR':'';html+=`<button class="btn-pack ${id==selectedPack?'active':''}" onclick="selectPack('${id}')" id="pack_${id}"><b>${p.coins} coins - UGX ${p.price.toLocaleString()} ${isPop}</b><br><small>${p.label||p.name||'Pack'} | 1 coin=599 UGX</small></button>`;});document.getElementById('packs').innerHTML=html;}
+function selectPack(id){selectedPack=id;document.querySelectorAll('.btn-pack').forEach(b=>b.classList.remove('active'));document.getElementById('pack_'+id).classList.add('active');}
+function calcShareFee(){let amt=parseInt(document.getElementById('shareAmount').value)||0;if(amt<10){document.getElementById('sharePreview').style.display='none';return;}let fee=Math.ceil(amt*0.10);let receive=amt-fee;document.getElementById('sharePreview').style.display='block';document.getElementById('sharePay').innerText=amt;document.getElementById('shareGet').innerText=receive;document.getElementById('shareFee').innerText=fee;document.getElementById('shareFeeUgx').innerText=(fee*COIN_PRICE).toLocaleString();}
+async function loadBalance(){if(!myUser.email&&!myUser.phone){document.getElementById('history').innerHTML='Login first!';return;}const res=await fetch(`/api/coins/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);const d=await res.json();GLOBAL_TOTAL=d.coins||d.total||0;document.getElementById('bought').innerText=d.bought||0;document.getElementById('boughtUgx').innerText=`UGX ${(d.bought_value||d.bought*COIN_PRICE||0).toLocaleString()}`;document.getElementById('earned').innerText=d.earned||0;document.getElementById('earnedUgx').innerText=`UGX ${(d.earned_value||d.earned*COIN_PRICE||0).toLocaleString()}`;document.getElementById('spent').innerText=d.spent||0;document.getElementById('spentUgx').innerText=`UGX ${(d.spent_value||d.spent*COIN_PRICE||0).toLocaleString()}`;document.getElementById('total').innerText=d.coins||d.total||0;document.getElementById('totalBal').innerText=`${d.coins||d.total||0} Coins`;document.getElementById('totalUgx').innerText=`UGX ${((d.coins||d.total||0)*COIN_PRICE).toLocaleString()} (Bought ${d.bought}+Earned ${d.earned}-Spent ${d.spent})`;let withdrawable=Math.max(0,GLOBAL_TOTAL-FREE_TRIAL);document.getElementById('withdrawable').innerText=withdrawable;document.getElementById('withdrawableUgx').innerText=`UGX ${(withdrawable*COIN_PRICE).toLocaleString()}`;document.getElementById('withdrawableMsg').innerText=withdrawable>=MIN_WITHDRAW?`✅ Ready to withdraw! Min ${MIN_WITHDRAW}`:`Need ${MIN_WITHDRAW-withdrawable} more coins (Min ${MIN_WITHDRAW})`;document.getElementById('shareableInfo').innerHTML=`Shareable: <b style="color:#0d47a1">${Math.max(0,GLOBAL_TOTAL-FREE_TRIAL)}</b> (Total ${GLOBAL_TOTAL} - ${FREE_TRIAL} locked bonus)`;let allData=JSON.parse(localStorage.getItem('sannlas_user')||'{}');if(allData.user)allData.user.coins=GLOBAL_TOTAL;else allData.coins=GLOBAL_TOTAL;localStorage.setItem('sannlas_user',JSON.stringify(allData));const res2=await fetch(`/api/balance?email=${myUser.email||''}&phone=${myUser.phone||''}`);const d2=await res2.json();let html='';if(d2.history&&d2.history.length){d2.history.forEach(h=>{const color=h.coins>0?'green':'red';html+=`<div class="history-item"><span style="color:${color};font-weight:bold">${h.coins>0?'+':''}${h.coins} coins</span> - ${h.reason||h.momo_code||h.status} <br><small>${new Date(h.time*1000).toLocaleString()}</small></div>`;});}else html='No transactions yet';document.getElementById('history').innerHTML=html;loadMyShares();}
+async function buyCoins(){let code=document.getElementById('buyMomoCode').value.trim().toUpperCase().replace(/\\s/g,'');let mphone=document.getElementById('buyMomoPhone').value.trim();if(!mphone)return alert('Enter your MoMo number Boss!');if(!code)return alert('Enter MoMo Transaction Code!');if(code.length<10||code.length>13)return alert('Transaction ID must be 10 to 13 digits!');if(!/^[A-Z0-9]+$/.test(code))return alert('Only letters and numbers allowed!');let usedCodes=JSON.parse(localStorage.getItem('used_codes')||'[]');if(usedCodes.includes(code))return alert('You already submitted this code before!');if(!confirm(`Confirm? Pack ${selectedPack} - Code ${code} from ${mphone}`))return;usedCodes.push(code);localStorage.setItem('used_codes',JSON.stringify(usedCodes));let res=await fetch('/api/coins/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myUser.email,phone:myUser.phone,pack:selectedPack,momo_code:code,momo_phone:mphone,coins:selectedPack})});let d=await res.json();document.getElementById('buyMsg').innerText=d.message;alert(d.message);if(d.success){document.getElementById('buyMomoCode').value='';loadBalance();}}
+async function withdraw(){const momo=document.getElementById('momo').value.trim();const coins=parseInt(document.getElementById('coinsToWithdraw').value);if(!momo)return alert('Enter MoMo number');if(!coins||coins<MIN_WITHDRAW)return alert(`Min withdraw is ${MIN_WITHDRAW} coins!`);if(!confirm(`Withdraw ${coins} coins = UGX ${coins*COIN_PRICE} to ${momo}?`))return;const res=await fetch('/api/withdraw/coins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myUser.email,phone:myUser.phone,coins:coins,momo_number:momo,momo_name:myUser.business||''})});const d=await res.json();document.getElementById('msg').innerText=d.message;alert(d.message);if(d.success)loadBalance();}
+async function shareCoinsNow(){let receiver=document.getElementById('shareReceiver').value.trim().toLowerCase();let amount=parseInt(document.getElementById('shareAmount').value);let pin=document.getElementById('sharePin').value.trim();if(!receiver)return alert('Enter receiver email or phone Boss!');if(!amount||amount<10)return alert('Min 10 coins Boss!');let shareable=Math.max(0,GLOBAL_TOTAL-FREE_TRIAL);if(amount>shareable)return alert(`You only have ${shareable} shareable! ${FREE_TRIAL} bonus locked. Buy more!`);if(myUser.email&&receiver==myUser.email.toLowerCase())return alert('Cannot share to yourself!');if(myUser.phone&&receiver==myUser.phone)return alert('Cannot share to yourself!');if(!pin)return alert('Enter YOUR LOGIN password!');if(!confirm(`Send ${amount} coins to ${receiver}? They will get ${amount-Math.ceil(amount*0.10)} after 10% fee. No reverse!`))return;document.getElementById('shareMsg').innerText='⏳ Sending...';let res=await fetch('/api/coins/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:myUser.email,phone:myUser.phone,receiver:receiver,amount:amount,pin:pin})});let d=await res.json();document.getElementById('shareMsg').innerText=d.message||(d.success?'✅ Sent!':'❌ Failed');document.getElementById('shareMsg').style.color=d.success?'green':'red';if(d.success){alert(`✅ Sent ${d.sent} to ${receiver}, they got ${d.receiver_gets}, fee ${d.fee}`);document.getElementById('shareReceiver').value='';document.getElementById('shareAmount').value='';document.getElementById('sharePin').value='';document.getElementById('sharePreview').style.display='none';loadBalance();}else{alert(d.message||d.error);}}
+async function loadMyShares(){let res=await fetch(`/api/coins/share/history?email=${myUser.email||''}&phone=${myUser.phone||''}`);let d=await res.json().catch(()=>null);if(!d||!d.history)return;let html='<b style="font-size:12px">Recent Shares:</b>';d.history.slice(-5).reverse().forEach(h=>{html+=`<div class="history-item" style="font-size:12px">${h.type=='sent'?`📤 Sent ${h.amount} → ${h.to} (fee ${h.fee})`:`📥 Received ${h.amount} from ${h.from}`} <br><small>${new Date(h.time*1000).toLocaleString()}</small></div>`;});document.getElementById('myShares').innerHTML=html;}
+loadPacks();loadBalance();
+</script></body></html>
+"""
+
+@sannlas_balance_bp.route('/balance')
+@sannlas_balance_bp.route('/wallet')
+@sannlas_balance_bp.route('/my-balance')
+def balance_page():
+    return Response(COMBINED_BALANCE_HTML, mimetype='text/html')
+
+# ============ API: /api/balance - FULL BALANCE + HISTORY ============
+@sannlas_balance_bp.route('/api/balance')
+def api_balance():
+    email = request.args.get('email','').lower().strip()
+    phone = request.args.get('phone','').strip()
+    users = load_db('users.json', [])
+    user = next((u for u in users if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone)), None)
+    if not user:
+        return jsonify({'success':False,'bought':0,'earned':0,'spent':0,'total':0,'withdrawable':0,'history':[]})
+    
+    bought = int(user.get('bought', user.get('bought_coins',0)) or 0)
+    earned = int(user.get('earned', user.get('earned_coins',0)) or 0)
+    spent = int(user.get('spent',0) or 0)
+    total = bought + earned - spent
+    if total <0: total=0
+    
+    FREE_TRIAL = 10
+    COIN_PRICE = 599
+    withdrawable = max(0, total - FREE_TRIAL)
+    
+    txs = load_db('coin_transactions.json', [])
+    history = [t for t in txs if (email and str(t.get('email','')).lower()==email) or (phone and str(t.get('phone',''))==phone)]
+    history = sorted(history, key=lambda x: x.get('time',0), reverse=True)[:100]
+    
+    return jsonify({
+        'success': True,
+        'bought': bought,
+        'earned': earned,
+        'spent': spent,
+        'total': total,
+        'coins': total,
+        'withdrawable': withdrawable,
+        'bought_value': bought*COIN_PRICE,
+        'earned_value': earned*COIN_PRICE,
+        'spent_value': spent*COIN_PRICE,
+        'total_value': total*COIN_PRICE,
+        'withdrawable_value': withdrawable*COIN_PRICE,
+        'history': history,
+        'count': len(history)
+    })
+
+# ============ API: WITHDRAW COINS TO MOMO ============
+@sannlas_balance_bp.route('/api/withdraw/coins', methods=['POST'])
+@sannlas_balance_bp.route('/api/balance/withdraw', methods=['POST'])
+@sannlas_balance_bp.route('/api/coins/withdraw', methods=['POST'])
+def withdraw_coins():
+    data = request.json or {}
+    email = data.get('email','').lower().strip()
+    phone = data.get('phone','').strip()
+    coins = int(data.get('coins',0) or 0)
+    momo_number = data.get('momo_number','').strip() or data.get('momo','').strip()
+    momo_name = data.get('momo_name','').strip()
+    
+    if coins < 50:
+        return jsonify({'success':False,'message':'Min withdraw 50 coins Boss!'}),400
+    if not momo_number:
+        return jsonify({'success':False,'message':'Enter MoMo number!'}),400
+    
+    users = load_db('users.json', [])
+    user = next((u for u in users if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone)), None)
+    if not user:
+        return jsonify({'success':False,'message':'User not found!'}),404
+    
+    bought = int(user.get('bought',0) or 0)
+    earned = int(user.get('earned',0) or 0)
+    spent = int(user.get('spent',0) or 0)
+    total = bought + earned - spent
+    FREE_TRIAL = 10
+    withdrawable = max(0, total - FREE_TRIAL)
+    
+    if coins > withdrawable:
+        return jsonify({'success':False,'message':f'You have {withdrawable} withdrawable! Total {total} - {FREE_TRIAL} locked bonus. Min 50!'}),400
+    
+    COIN_PRICE = 599
+    ugx_amount = coins * COIN_PRICE
+    
+    # Deduct
+    user['spent'] = spent + coins
+    user['coins'] = bought + earned - user['spent']
+    if user['coins'] <0: user['coins']=0
+    save_db('users.json', users)
+    
+    # Log transaction
+    txs = load_db('coin_transactions.json', [])
+    txs.append({
+        'id': int(time.time()*1000),
+        'email': user.get('email'),
+        'phone': user.get('phone'),
+        'coins': -coins,
+        'price': ugx_amount,
+        'momo_code': f'WITHDRAW-{uuid.uuid4().hex[:6].upper()}',
+        'reason': f'Withdraw {coins} coins = UGX {ugx_amount} to {momo_number}',
+        'time': time.time(),
+        'status': 'withdraw',
+        'momo_number': momo_number,
+        'momo_name': momo_name,
+        'ugx': ugx_amount
+    })
+    save_db('coin_transactions.json', txs)
+    
+    # Save withdraw request for admin
+    withdraws = load_db('withdraw_requests.json', [])
+    withdraws.append({
+        'id': int(time.time()*1000),
+        'email': user.get('email'),
+        'phone': user.get('phone'),
+        'coins': coins,
+        'ugx': ugx_amount,
+        'momo_number': momo_number,
+        'momo_name': momo_name,
+        'time': time.time(),
+        'status': 'pending',
+        'tracking_id': f'WD-{int(time.time())%1000000:06d}'
+    })
+    save_db('withdraw_requests.json', withdraws)
+    
+    return jsonify({'success':True,'message':f'✅ Withdraw request {coins} coins = UGX {ugx_amount} to {momo_number} submitted! Admin will send MoMo in 24h','coins':coins,'ugx':ugx_amount,'new_balance':user['coins']})
+
+# ============ API: GET WITHDRAW HISTORY ============
+@sannlas_balance_bp.route('/api/withdraw/history')
+def withdraw_history():
+    email = request.args.get('email','').lower().strip()
+    phone = request.args.get('phone','').strip()
+    withdraws = load_db('withdraw_requests.json', [])
+    my = [w for w in withdraws if (email and str(w.get('email','')).lower()==email) or (phone and str(w.get('phone',''))==phone)]
+    my = sorted(my, key=lambda x: x.get('time',0), reverse=True)[:50]
+    return jsonify({'success':True,'history':my,'count':len(my)})
+
+# ============ API: ADMIN APPROVE WITHDRAW ============
+@sannlas_balance_bp.route('/api/withdraw/admin/approve', methods=['POST'])
+def approve_withdraw():
+    data = request.json or {}
+    withdraw_id = int(data.get('id',0) or 0)
+    withdraws = load_db('withdraw_requests.json', [])
+    for w in withdraws:
+        if w.get('id')==withdraw_id:
+            w['status']='approved'
+            w['approved_time']=time.time()
+            save_db('withdraw_requests.json', withdraws)
+            return jsonify({'success':True,'message':f'Withdraw {withdraw_id} approved!'})
+    return jsonify({'success':False,'message':'Withdraw not found!'}),404
