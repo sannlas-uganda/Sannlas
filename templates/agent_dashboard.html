@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}body{background:#f8fafc}
+.header{background:#000;color:#FFCC02;padding:14px;display:flex;justify-content:space-between;font-weight:900}.header a{color:#FFCC02;text-decoration:none}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px;max-width:900px;margin:auto}
+@media(min-width:700px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:white;border-radius:16px;padding:16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05);border:1px solid #eee}
+.stat h2{font-size:24px}
+.links{background:white;margin:14px;padding:16px;border-radius:16px;max-width:900px;margin-left:auto;margin-right:auto}
+.link-box{background:#f1f5f9;padding:10px;border-radius:10px;margin:8px 0;word-break:break-all;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.btn{padding:8px 12px;background:#000;color:#FFCC02;border-radius:8px;border:none;font-weight:800;cursor:pointer}
+.table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}.table th,.table td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+</style>
+</head>
+<body>
+<div class="header"><a href="/agents">← Agents</a><span>DASHBOARD</span><a href="/">SANNLAS</a></div>
+<div style="padding:16px;max-width:900px;margin:auto"><h2 id="agentName">Loading...</h2><p id="agentCode" style="color:#64748b"></p></div>
+<div class="stats">
+<div class="stat"><p>Total Earned</p><h2 id="s_earned">0 UGX</h2></div>
+<div class="stat"><p>Coins Sold</p><h2 id="s_coins">0</h2></div>
+<div class="stat"><p>Products Uploaded</p><h2 id="s_uploads">0</h2></div>
+<div class="stat"><p>Sales Brokered</p><h2 id="s_sales">0</h2></div>
+</div>
+<div class="links">
+<h3>🔗 Your Referral Links (Share & Earn 15%)</h3>
+<div id="linkList">Loading links...</div>
+</div>
+<div class="links">
+<h3>💸 Recent Commissions</h3>
+<table class="table" id="commTable"><tr><th>Type</th><th>Amount</th><th>You Got</th><th>Date</th></tr></table>
+</div>
+<script>
+const phone = new URLSearchParams(location.search).get('phone') || JSON.parse(localStorage.getItem('sannlas_agent')||'{}').phone;
+async function loadStats(){
+ if(!phone){document.body.innerHTML='<p style=padding:40px>Login first <a href=/agents>Go</a></p>';return;}
+ const r=await fetch('/api/agents/stats?phone='+encodeURIComponent(phone));
+ const d=await r.json();
+ if(!d.success){document.getElementById('agentName').textContent='Agent not found';return;}
+ document.getElementById('agentName').textContent='👋 '+d.agent.name;
+ document.getElementById('agentCode').textContent='Code: '+d.agent.agent_code+' | Phone: '+d.agent.phone+' | Roles: '+(d.agent.roles||[]).join(', ');
+ document.getElementById('s_earned').textContent=(d.stats.total_earned||0).toLocaleString()+' UGX';
+ document.getElementById('s_coins').textContent=d.stats.coins_sold;
+ document.getElementById('s_uploads').textContent=d.stats.products_uploaded;
+ document.getElementById('s_sales').textContent=d.stats.sales_brokered;
+ let h=''; d.commissions.forEach(c=>{ h+=`<tr><td>${c.type}</td><td>${(c.total_amount||0).toLocaleString()}</td><td style="color:green;font-weight:800">+${(c.agent_amount||0).toLocaleString()}</td><td>${new Date(c.time*1000).toLocaleDateString()}</td></tr>`; });
+ document.getElementById('commTable').innerHTML+ = h || '<tr><td colspan=4>No commissions yet - share your link!</td></tr>';
+ const r2=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(phone));
+ const d2=await r2.json();
+ if(d2.success){ let lh=''; for(const k in d2.links){ lh+=`<div class=link-box><span><b>${k}:</b> ${d2.links[k]}</span><button class=btn onclick="navigator.clipboard.writeText('${d2.links[k]}');alert('Copied!')">Copy</button></div>`; } document.getElementById('linkList').innerHTML=lh; }
+}
+loadStats();
+</script>
+</body>
+</html>
