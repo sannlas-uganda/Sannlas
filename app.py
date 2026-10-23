@@ -104,6 +104,10 @@ app.register_blueprint(sannlas_promotion_bp)
 from sannlas_upload import sannlas_upload_bp
 app.register_blueprint(sannlas_upload_bp)
 
+# ===== 🔒 SANNLAS SECURITY - PROTECTION =====
+from sannlas_security import sannlas_security_bp
+app.register_blueprint(sannlas_security_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -714,6 +718,12 @@ def my_sales_stats():
 
 @app.route('/api/login', methods=['POST'])
 def login():
+    from sannlas_security import record_failed_login, clear_login_attempts, get_client_ip, is_banned
+    # Check if IP banned before login
+    ip = get_client_ip()
+    if is_banned(ip):
+        return jsonify({'success':False,'message':'IP banned 24h due to attacks'}),403
+    
     data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
     users=load_db('users.json',[])
     def check_pwd(u, pwd):
@@ -726,7 +736,13 @@ def login():
         except: pass
         return False
     u=next((x for x in users if x['email']==email and check_pwd(x,pwd)), None)
-    if not u: return jsonify({'success':False,'message':'Wrong email/password'}),401
+    if not u:
+        record_failed_login()
+        return jsonify({'success':False,'message':'Wrong email/password'}),401
+    
+    # SUCCESS - clear attempts
+    clear_login_attempts()
+    
     if 'bought' not in u: u['bought'] = int(u.get('bought_coins',0))
     if 'earned' not in u: u['earned'] = int(u.get('earned_coins',0))
     if 'spent' not in u: u['spent'] = 0
@@ -1097,20 +1113,15 @@ def save_kassag_expenditure(amount, reason, spent_by="Admin"):
 
 @app.route('/api/kassag/join', methods=['POST'])
 def kassag_join():
-    # Get all fields
     name = request.form.get('name','').strip()
     phone = request.form.get('phone','').strip()
     role = request.form.get('role','Member')
-    
-    # Personal ID
     dob = request.form.get('dob','')
     gender = request.form.get('gender','')
     nin = request.form.get('nin','')
     occupation = request.form.get('occupation','')
     workplace = request.form.get('workplace','')
     email = request.form.get('email','')
-    
-    # Residential
     country = request.form.get('country','Uganda')
     district = request.form.get('district','')
     county = request.form.get('county','')
@@ -1118,19 +1129,13 @@ def kassag_join():
     parish = request.form.get('parish','')
     village = request.form.get('village','')
     cell = request.form.get('cell','')
-    
-    # Family
     father_name = request.form.get('father_name','')
     mother_name = request.form.get('mother_name','')
-    
-    # Kin 1
     kin1_name = request.form.get('kin1_name','')
     kin1_relationship = request.form.get('kin1_relationship','')
     kin1_phone = request.form.get('kin1_phone','')
     kin1_nin = request.form.get('kin1_nin','')
     kin1_address = request.form.get('kin1_address','')
-    
-    # Kin 2
     kin2_name = request.form.get('kin2_name','')
     kin2_relationship = request.form.get('kin2_relationship','')
     kin2_phone = request.form.get('kin2_phone','')
@@ -1140,6 +1145,12 @@ def kassag_join():
     photo_url = ""
     f = request.files.get('photo')
     if f and f.filename:
+        # ===== 🔒 SECURITY CHECK - BLOCK HACKER FILES =====
+        from sannlas_security import validate_upload_file
+        ok, msg = validate_upload_file(f)
+        if not ok:
+            return jsonify({'success':False,'message':msg}),400
+        # ===== END SECURITY =====
         try:
             res = cloudinary.uploader.upload(f, folder="kassag/members")
             photo_url = res['secure_url']
@@ -1160,7 +1171,6 @@ def kassag_join():
         "id": int(time.time()*1000),
         "name": name, "phone": phone, "photo": photo_url, "role": role,
         "status": "Pending", "join_date": datetime.utcnow().isoformat(), "is_admin": False,
-        # PRIVATE - Only admin sees
         "private": {
             "dob": dob, "gender": gender, "nin": nin, "occupation": occupation,
             "workplace": workplace, "email": email,
@@ -1174,7 +1184,7 @@ def kassag_join():
     members.append(new_m)
     save_kassag_members(members)
     return jsonify({'success':True,'message':'Request sent! Wait for admin approval','member':new_m})
-
+    
 # PUBLIC - Hide private data
 @app.route('/kassag')
 def kassag_home():
@@ -1207,6 +1217,12 @@ def kassag_submit_saving():
     screenshot_url = ""
     f = request.files.get('screenshot')
     if f and f.filename:
+        # ===== 🔒 SECURITY CHECK =====
+        from sannlas_security import validate_upload_file
+        ok, msg = validate_upload_file(f)
+        if not ok:
+            return jsonify({'success':False,'message':msg}),400
+        # ===== END SECURITY =====
         try:
             res = cloudinary.uploader.upload(f, folder="kassag/proofs")
             screenshot_url = res['secure_url']
@@ -1236,7 +1252,7 @@ def kassag_submit_saving():
     payments.append(new_p)
     save_kassag_payments(payments)
     return jsonify({'success':True,'payment':new_p})
-
+    
 @app.route('/api/kassag/my-history')
 def kassag_history():
     phone = request.args.get('phone','').strip()
