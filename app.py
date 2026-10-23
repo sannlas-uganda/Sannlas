@@ -95,6 +95,9 @@ app.register_blueprint(sannlas_coins_bp)
 from sannlas_delivery import sannlas_delivery_bp
 app.register_blueprint(sannlas_delivery_bp)
 
+from sannlas_balance import sannlas_balance_bp
+app.register_blueprint(sannlas_balance_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -189,16 +192,6 @@ def ensure_tables():
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
         conn.commit(); cur.close(); conn.close()
     except Exception as e: 
-        print("ensure_tables:", e)
-
-def ensure_tables():
-    if not DATABASE_URL: return
-    try:
-        conn = get_conn(); cur = conn.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
-        cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
-        conn.commit(); cur.close(); conn.close()
-    except Exception as e:
         print("ensure_tables:", e)
 
 # ===== ADD HERE - SOCIAL TOKENS FOR ALL USERS - NO SQL TABLE NEEDED =====
@@ -509,13 +502,7 @@ def home():
         except:
             pass
     return resp
-
-@app.route('/wallet')
-def wallet_page():
-    return redirect('/balance')
-@app.route('/balance')
-def balance_page(): return render_template('balance.html')
-
+    
 @app.route('/api/billboard')
 def get_billboard(): return jsonify(get_billboard_config())
 
@@ -525,29 +512,6 @@ def api_hero_stories():
     stories = sorted(stories, key=lambda x: x.get('order', 0))
     return jsonify(stories)
         
-@app.route('/api/withdraw', methods=['POST'])
-def request_withdraw():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    phone = data.get('phone','').strip()
-    amount = int(data.get('amount',0))
-    momo_number = data.get('momo_number','').strip()
-    momo_name = data.get('momo_name','').strip()
-    if amount < 5000: return jsonify({'success': False, 'message': 'Minimum withdraw 5000 UGX'}),400
-    if not momo_number: return jsonify({'success': False, 'message': 'MoMo number required'}),400
-    withdraws = load_db('withdraws.json', [])
-    new_w = {'id': int(time.time()*1000), 'email': email, 'phone': phone, 'amount': amount, 'momo_number': momo_number, 'momo_name': momo_name, 'status': 'pending', 'time': time.time(), 'paid_time': None}
-    withdraws.append(new_w)
-    save_db('withdraws.json', withdraws)
-    return jsonify({'success': True, 'message': 'Withdraw request sent!', 'withdraw': new_w})
-
-@app.route('/api/withdraws')
-def my_withdraws():
-    email = request.args.get('email','').lower().strip()
-    phone = request.args.get('phone','').strip()
-    withdraws = load_db('withdraws.json', [])
-    result = [w for w in withdraws if (email and w.get('email','').lower()==email) or (phone and w.get('phone','')==phone)]
-    return jsonify(result[::-1])
     
 @app.route('/api/sales/summary')
 def sales_summary():
@@ -577,60 +541,6 @@ def sales_summary():
         if (now - d).days <7: week+=amt
         if d.year==now.year: year+=amt
     return jsonify({"today":today,"week":week,"year":year,"orders":len(my_orders),"promo_coins_spent":promo_spent})
-@app.route('/api/balance')
-def api_balance():
-    phone = request.args.get('phone','').strip()
-    email = request.args.get('email','').lower().strip()
-    users = load_db('users.json', [])
-    u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
-    if not u: return jsonify({"success":False, "message":"User not found"}), 404
-    txs = load_db('coin_transactions.json', [])
-    my_txs = [t for t in txs if (phone and t.get('phone')==phone) or (email and t.get('email','').lower()==email)]
-    bought = int(u.get('bought', u.get('bought_coins',0)))
-    earned = int(u.get('earned', u.get('earned_coins',0)))
-    spent = int(u.get('spent',0))
-    total = bought + earned - spent
-    if total<0: total=0
-    withdrawable = total - FREE_TRIAL
-    if withdrawable<0: withdrawable=0
-    return jsonify({"success": True,"bought": bought,"earned": earned,"spent": spent,"withdrawable": withdrawable,"bought_coins": bought,"earned_coins": earned,"total_coins": total,"coins": total,"ugx_value": total*COIN_PRICE,"bought_value": bought*COIN_PRICE,"earned_value": earned*COIN_PRICE,"spent_value": spent*COIN_PRICE,"withdrawable_value": withdrawable*COIN_PRICE,"history": my_txs[::-1][:30]})
-@app.route('/api/withdraw/coins', methods=['POST'])
-def withdraw_coins():
-    data = request.json or {}
-    phone = data.get('phone','').strip()
-    email = data.get('email','').lower().strip()
-    coins = int(data.get('coins',0))
-    momo = data.get('momo_number','').strip()
-    if coins <=0: return jsonify({"success":False,"message":"Enter coins >0"}),400
-    if coins < WITHDRAW_MIN_COINS:
-        return jsonify({"success":False,"message":f"Minimum withdraw is {WITHDRAW_MIN_COINS} coins = UGX {WITHDRAW_MIN_COINS*COIN_PRICE:,}!"}),400
-    if not momo: return jsonify({"success":False,"message":"MoMo number required"}),400
-    users = load_db('users.json', [])
-    u = next((x for x in users if (phone and x.get('phone')==phone) or (email and x.get('email','').lower()==email)), None)
-    if not u: return jsonify({"success":False,"message":"User not found"}),404
-    bought = int(u.get('bought',0))
-    earned = int(u.get('earned',0))
-    spent = int(u.get('spent',0))
-    total = bought + earned - spent
-    if total<0: total=0
-    withdrawable = total - FREE_TRIAL
-    if withdrawable<0: withdrawable=0
-    if withdrawable < WITHDRAW_MIN_COINS:
-        return jsonify({"success":False,"message":f"You have {total} total, but {FREE_TRIAL} free not withdrawable. Withdrawable = {withdrawable}. Need {WITHDRAW_MIN_COINS}!"}),400
-    if coins > withdrawable:
-        return jsonify({"success":False,"message":f"Max withdrawable is {withdrawable} coins"}),400
-    ugx = coins * COIN_PRICE
-    u['spent'] = spent + coins
-    u['coins'] = bought + earned - u['spent']
-    if u['coins']<0: u['coins']=0
-    save_db('users.json', users)
-    withdraws = load_db('withdraws.json', [])
-    withdraws.append({'id': int(time.time()*1000),'email': u.get('email'),'phone': u.get('phone'),'amount': ugx,'coins': coins,'momo_number': momo,'momo_name': data.get('momo_name',''),'status': 'pending','type': 'withdrawable','time': time.time(),'paid_time': None})
-    save_db('withdraws.json', withdraws)
-    txs = load_db('coin_transactions.json', [])
-    txs.append({'id': int(time.time()*1000), 'email': u.get('email'), 'phone': u.get('phone'), 'coins': -coins, 'price': ugx, 'momo_code': f'WD-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Withdraw {coins} coins -> UGX {ugx} to {momo}', 'time': time.time(), 'status': 'withdraw_pending'})
-    save_db('coin_transactions.json', txs)
-    return jsonify({"success":True, "message":f"Request sent! {coins} coins = UGX {ugx:,} to {momo}."})
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -673,21 +583,7 @@ def register():
     if shop:
         safe['shop']=shop
     return jsonify({'success':True,'user':safe})
-        
-    # === AUTO DEDUCT BONUS 10 FROM MAJOR 1B === PASTE HERE Boss!!!
-    coin_cfg = load_db("coin_config.json", {"total":1000000000, "remaining":1000000000, "sold":0, "rate":599})
-    bonus = 10
-    coin_cfg["remaining"] = max(0, coin_cfg.get("remaining", 1000000000) - bonus)
-    coin_cfg["sold"] = coin_cfg.get("sold",0) + bonus
-    save_db("coin_config.json", coin_cfg)
-    # === END AUTO DEDUCT ===
-
-    save_db('users.json',users)
-    try: shop = ensure_shop_for_user(user)
-    except: shop = None
-    safe={k:v for k,v in user.items() if k!='password'}
-    if shop: safe['shop']=shop
-    return jsonify({'success':True,'user':safe})
+    
 @app.route('/api/account/set-password', methods=['POST'])
 def set_password_api():
     try:
@@ -899,82 +795,7 @@ def list_shops():
             return jsonify(shops)
         except:
             return jsonify([])
-        
-    shops = load_db('shops.json', [])
-    shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
-    if not shop:
-        biz = user.get('business','')
-        if biz:
-            shop = next((s for s in shops if s.get('business_name','').lower()==biz.lower()), None)
-    if not shop:
-        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome!", "logo":"", "verified":False}
-
-    # === FAST: Only load YOUR products, 10 at a time ===
-    if DATABASE_URL:
-        try:
-            conn = get_conn()
-            from psycopg.rows import dict_row
-            cur = conn.cursor(row_factory=dict_row)
-            # Only your products!
-            cur.execute("SELECT data FROM products WHERE LOWER(data->>'seller_email') = %s ORDER BY id DESC LIMIT %s OFFSET %s", (email, limit, offset))
-            rows = cur.fetchall()
-            my_products = []
-            for r in rows:
-                d=r['data']
-                if isinstance(d,str):
-                    try: d=json.loads(d)
-                    except: pass
-                my_products.append(d)
-
-            # Count total for Load More
-            cur.execute("SELECT COUNT(*) as c FROM products WHERE LOWER(data->>'seller_email') = %s", (email,))
-            total_row = cur.fetchone()
-            total = total_row['c'] if isinstance(total_row, dict) else total_row[0]
-            cur.close(); conn.close()
-        except Exception as e:
-            print("FAST my-shop error:", e)
-            products = load_db('products.json', [])
-            all_mine = [p for p in products if str(p.get('seller_email','')).lower()==email]
-            total = len(all_mine)
-            my_products = all_mine[offset:offset+limit]
-    else:
-        products = load_db('products.json', [])
-        all_mine = [p for p in products if str(p.get('seller_email','')).lower()==email]
-        total = len(all_mine)
-        my_products = all_mine[offset:offset+limit]
-
-    coins = int(user.get('coins',0))
-    if coins==0:
-        coins = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
-        if coins<0: coins=0
-
-    has_more = (offset + limit) < total
-
-    return jsonify({
-        'success':True,
-        'shop': shop,
-        'products': my_products,
-        'stats': {
-            "views": sum(int(p.get('views',0)) for p in my_products),
-            "total_products": total,
-            "call_clicks": total*2,
-            "whatsapp_clicks": total+5,
-            "coins": coins
-        },
-        'orders': [], # Load orders only when seller clicks Orders tab - faster!
-        'matching_wants': [],
-        'total': total,
-        'has_more': has_more,
-        'page': page
-    })
-    
-@app.route('/api/orders')
-def get_orders():
-    # Combine both order types
-    old = load_db('orders.json', [])
-    new = load_db('orders_v2.json', [])
-    return jsonify((old + new)[::-1])
-
+            
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
 
@@ -1312,21 +1133,6 @@ def get_kassag_payments():
 
 def save_kassag_payments(p):
     save_db(KASSAG_PAYMENTS_FILE, p)
-
-# ===== FIXED EXPENDITURE - NOW ON NEON PERMANENT =====
-def get_kassag_expenditures():
-    try:
-        conn = get_neon_connection()  # use your same Neon function you use for members
-        cur = conn.cursor()
-        cur.execute("SELECT id, amount, reason, spent_by, date FROM kassag_expenditures ORDER BY date DESC")
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-        # convert to list of dicts like before
-        return [{"id": r[0], "amount": r[1], "reason": r[2], "spent_by": r[3], "date": str(r[4])} for r in rows]
-    except Exception as e:
-        print("Expend Neon error:", e)
-        return []
 
 def save_kassag_expenditure(amount, reason, spent_by="Admin"):
     # NEW FUNCTION - Add one expenditure
