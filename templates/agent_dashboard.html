@@ -29,6 +29,16 @@
 <h3>🔗 Your Referral Links (Share & Earn 15%)</h3>
 <div id="linkList">Loading links...</div>
 </div>
+<!-- ===== ADD WITHDRAW HERE - COPY START ===== -->
+<div class="links">
+<h3>🏦 Withdraw Earnings (Min 5000 UGX)</h3>
+<input id="w_amount" type="number" placeholder="Amount UGX" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin:6px 0">
+<input id="w_momo" placeholder="MoMo Number 077..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin:6px 0">
+<button class="btn" onclick="withdraw()" style="width:100%;padding:12px;background:#000;color:#FFCC02;border-radius:10px;font-weight:900;margin-top:8px">Request Withdraw</button>
+<p id="w_msg" style="text-align:center;margin-top:8px"></p>
+</div>
+<!-- ===== ADD WITHDRAW END ===== -->
+
 <div class="links">
 <h3>💸 Recent Commissions</h3>
 <table class="table" id="commTable"><tr><th>Type</th><th>Amount</th><th>You Got</th><th>Date</th></tr></table>
@@ -51,6 +61,14 @@ async function loadStats(){
  const r2=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(phone));
  const d2=await r2.json();
  if(d2.success){ let lh=''; for(const k in d2.links){ lh+=`<div class=link-box><span><b>${k}:</b> ${d2.links[k]}</span><button class=btn onclick="navigator.clipboard.writeText('${d2.links[k]}');alert('Copied!')">Copy</button></div>`; } document.getElementById('linkList').innerHTML=lh; }
+}
+async function withdraw(){
+ const body={agent_phone:phone,amount:parseInt(document.getElementById('w_amount').value),momo_number:document.getElementById('w_momo').value};
+ document.getElementById('w_msg').textContent='⏳...';
+ const r=await fetch('/api/commission/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const d=await r.json();
+ document.getElementById('w_msg').textContent=d.message;
+ if(d.success) setTimeout(()=>location.reload(),1500);
 }
 loadStats();
 </script>
