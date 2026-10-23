@@ -1,4 +1,4 @@
-# sannlas_coins.py - ONE FILE = COINS SYSTEM - 1B BUG FIXED - FINAL + SHARE
+# sannlas_coins.py - ONE FILE = COINS SYSTEM - 1B BUG FIXED - FINAL + SHARE + AGENT COMMISSION
 from flask import Blueprint, Response, request, jsonify
 import os, json, time, uuid, random, string, hashlib, math
 
@@ -35,7 +35,24 @@ async function loadBalance(){try{let r=await fetch(`/api/coins/balance?email=${e
 async function loadCoinConfig(){try{let r=await fetch('/api/coins/config');let d=await r.json();document.getElementById('remainingCoins').innerText=Number(d.remaining||0).toLocaleString();let packs=[{coins:5,price:5*599,label:'Starter',best:false},{coins:10,price:10*599,label:'Popular',best:true},{coins:20,price:20*599,label:'Value',best:false},{coins:50,price:50*599,label:'Business',best:false},{coins:100,price:100*599,label:'Pro Seller',best:false},{coins:500,price:500*599,label:'Wholesale',best:false}];document.getElementById('coinPacks').innerHTML=packs.map(p=>`<div class="coin-pack ${p.best?'best':''}">${p.best?'<span style="background:#FFCC02;color:#000;font-size:10px;padding:2px 6px;border-radius:10px">BEST</span>':''}<b>${p.coins} Coins</b><small>${p.label}</small><br><small>UGX ${p.price.toLocaleString()}</small><button onclick="openBuyModal(${p.coins},${p.price})">Buy ${p.coins}</button></div>`).join('');}catch(e){document.getElementById('coinPacks').innerHTML='<p>Error</p>';}}
 function openBuyModal(coins,price){selectedPack={coins,price};document.getElementById('modalTitle').innerText=`Buy ${coins} Coins`;document.getElementById('modalDesc').innerText=`You will get ${coins} coins after confirmation`;document.getElementById('modalAmount').innerText=`UGX ${price.toLocaleString()}`;document.getElementById('buyModal').style.display='flex';}
 function closeModal(){document.getElementById('buyModal').style.display='none';selectedPack=null;document.getElementById('momoCode').value='';}
-async function confirmBuy(){let code=document.getElementById('momoCode').value.trim();if(!code){alert('Enter MoMo code!');return;}if(!selectedPack){alert('Select pack!');return;}try{let r=await fetch('/api/coins/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,coins:selectedPack.coins,price:selectedPack.price,momo_code:code})});let d=await r.json();alert(d.message||d.error);if(d.success){closeModal();loadBalance();loadCoinConfig();}}catch(e){alert('Error: '+e.message);}}
+async function confirmBuy(){
+  let code=document.getElementById('momoCode').value.trim();
+  if(!code){alert('Enter MoMo code!');return;}
+  if(!selectedPack){alert('Select pack!');return;}
+  // Get agent ref from URL - NEW FOR COMMISSION
+  const urlParams = new URLSearchParams(window.location.search);
+  const ref = urlParams.get('ref') || localStorage.getItem('ref_code') || document.cookie.split('ref_code=')[1]?.split(';')[0] || "";
+  try{
+    let r=await fetch('/api/coins/buy?ref='+encodeURIComponent(ref),{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,coins:selectedPack.coins,price:selectedPack.price,momo_code:code,ref:ref})
+    });
+    let d=await r.json();
+    alert(d.message||d.error);
+    if(d.success){closeModal();loadBalance();loadCoinConfig();}
+  }catch(e){alert('Error: '+e.message);}
+}
 async function loadHistory(){try{let r=await fetch(`/api/coins/transactions?email=${encodeURIComponent(currentUser.email||'')}&phone=${encodeURIComponent(currentUser.phone||'')}`);let d=await r.json();let txs=d.transactions||[];if(txs.length==0){document.getElementById('txList').innerHTML='<p style="text-align:center;padding:20px;color:#666">No transactions yet</p>';return;}document.getElementById('txList').innerHTML=txs.map(t=>{let badge=t.status=='invite_bonus'?'BONUS':t.status=='buy'?'BUY':'SPENT';let color=t.coins>0?'green':'red';let sign=t.coins>0?'+':'';return `<div class="tx-card"><div><b>${badge}</b><br><small>${t.reason||t.momo_code||''}</small><br><small style="color:#999">${new Date((t.time||0)*1000).toLocaleString()}</small></div><div style="text-align:right"><b style="color:${color}">${sign}${t.coins} coins</b><br><small>UGX ${(t.price||0).toLocaleString()}</small></div></div>`;}).join('');}catch(e){document.getElementById('txList').innerHTML='<p style="color:red;text-align:center">Error</p>';}}
 function copyRef(){let code=document.getElementById('myRefCode').innerText;let link=location.origin+'/register?ref='+code;navigator.clipboard.writeText(link);alert('Copied: '+link);}
 function shareRef(){let code=document.getElementById('myRefCode').innerText;let link=location.origin+'/register?ref='+code;let text=`Join SANNLAS! Use my code ${code} to get 10 free coins! ${link}`;window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}
@@ -140,170 +157,20 @@ def coins_buy():
     save_db('coin_transactions.json', txs)
     save_db('coin_config.json', coin_cfg)
     save_db('users.json', users)
+
+    # ===== COIN AGENT COMMISSION - 85% You / 15% Agent =====
+    try:
+        from sannlas_commission import split_and_record
+        agent_code = request.args.get('ref') or request.args.get('ref_code') or request.cookies.get('ref_code') or data.get('ref') or ""
+        print(f"Coin buy ref: {agent_code}")
+        if agent_code and 'SANN-AGENT' in agent_code:
+            agents_db = load_db('sannlas_agents.json',[])
+            ag = next((a for a in agents_db if a['agent_code']==agent_code), None)
+            if ag:
+                split_and_record("coin_resale", price, ag['phone'], None, meta={"coins":coins,"buyer":phone or email})
+    except Exception as e:
+        print("Coin commission error:", e)
+        pass
+    # ===== END COIN COMMISSION =====
+
     return jsonify({'success':True,'message':f'✅ {coins} coins added! New balance: {user["coins"]} 🎉','new_balance': user['coins']})
-
-@sannlas_coins_bp.route('/api/coins/transactions')
-def coins_transactions():
-    email = request.args.get('email','').lower().strip()
-    phone = request.args.get('phone','').strip()
-    txs = load_db('coin_transactions.json', [])
-    filtered = [t for t in txs if (email and str(t.get('email','')).lower()==email) or (phone and str(t.get('phone',''))==phone)]
-    filtered = sorted(filtered, key=lambda x: x.get('time',0), reverse=True)[:100]
-    return jsonify({'transactions': filtered, 'count': len(filtered)})
-
-@sannlas_coins_bp.route('/api/coins/packs')
-def coins_packs():
-    packs=[
-        {"coins":5, "price":2995, "label":"Starter"},
-        {"coins":10, "price":5990, "label":"Popular", "best":True},
-        {"coins":20, "price":11980, "label":"Value"},
-        {"coins":50, "price":29950, "label":"Business"},
-        {"coins":100, "price":59900, "label":"Pro"},
-        {"coins":500, "price":299500, "label":"Wholesale"},
-    ]
-    return jsonify(packs)
-
-@sannlas_coins_bp.route('/api/coins/share', methods=['POST'])
-def share_coins():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    phone = data.get('phone','').strip()
-    receiver_raw = data.get('receiver','').lower().strip()
-    amount = int(data.get('amount',0))
-    pin = data.get('pin','').strip()
-    if not receiver_raw: return jsonify({'success':False,'message':'Enter receiver!'}),400
-    if amount < 10: return jsonify({'success':False,'message':'Min 10 coins Boss!'}),400
-    users = load_db('users.json', [])
-    sender = next((u for u in users if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone)), None)
-    if not sender:
-        return jsonify({'success':False,'message':'Sender not found - Login again'}),404
-    stored_pwd = str(sender.get('password','') or '')
-    stored_pin = str(sender.get('coin_pin') or sender.get('pin') or '')
-    is_correct = False
-    if stored_pwd == hashlib.sha256(pin.encode()).hexdigest():
-        is_correct = True
-    elif stored_pin and pin == stored_pin:
-        is_correct = True
-    elif stored_pwd and len(stored_pwd) < 20 and pin == stored_pwd:
-        is_correct = True
-    if not is_correct:
-        return jsonify({'success':False,'message':f'Wrong password Boss! Use YOUR login password!'}),400
-    receiver = next((u for u in users if str(u.get('email','')).lower()==receiver_raw or str(u.get('phone','')).strip()==receiver_raw), None)
-    if not receiver:
-        return jsonify({'success':False,'message':f'Receiver {receiver_raw} not found!'}),404
-    if str(sender.get('email','')).lower()==str(receiver.get('email','')).lower():
-        return jsonify({'success':False,'message':'Cannot share to yourself!'}),400
-    bought = int(sender.get('bought',0))
-    earned = int(sender.get('earned',0))
-    spent = int(sender.get('spent',0))
-    total = bought + earned - spent
-    if total < 0: total = 0
-    if amount > total:
-        return jsonify({'success':False,'message':f'You have {total} coins, cannot send {amount}'}),400
-    fee = math.ceil(amount * 0.10)
-    if fee < 1 and amount >=10: fee=1
-    receiver_gets = amount - fee
-    sender['spent'] = spent + amount
-    sender['coins'] = int(sender.get('bought',0)) + int(sender.get('earned',0)) - int(sender['spent'])
-    if sender['coins'] <0: sender['coins']=0
-    receiver['earned'] = int(receiver.get('earned',0)) + receiver_gets
-    receiver['earned_coins'] = receiver['earned']
-    receiver['coins'] = int(receiver.get('bought',0)) + int(receiver.get('earned',0)) - int(receiver.get('spent',0))
-    save_db('users.json', users)
-    txs = load_db('coin_transactions.json', [])
-    now=time.time()
-    txs.append({'id': int(now*1000), 'email': sender.get('email'), 'phone': sender.get('phone'), 'coins': -amount, 'price': 0, 'momo_code': f'SHARE-SENT-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Sent {amount} to {receiver_raw} (fee {fee}, they got {receiver_gets})', 'time': now, 'status': 'share_sent', 'to': receiver_raw, 'fee': fee})
-    txs.append({'id': int(now*1000)+1, 'email': receiver.get('email'), 'phone': receiver.get('phone'), 'coins': receiver_gets, 'price': 0, 'momo_code': f'SHARE-RECV-{uuid.uuid4().hex[:6].upper()}', 'reason': f'Received {receiver_gets} from {sender.get("email")}', 'time': now, 'status': 'share_received', 'from': sender.get('email'), 'fee': fee})
-    save_db('coin_transactions.json', txs)
-    return jsonify({'success':True, 'message':f'Sent {amount}! {receiver_raw} got {receiver_gets}, fee {fee}', 'sent': amount, 'fee': fee, 'receiver_gets': receiver_gets})
-
-@sannlas_coins_bp.route('/api/coins/share/history')
-def share_history():
-    email = request.args.get('email','').lower().strip()
-    phone = request.args.get('phone','').strip()
-    txs = load_db('coin_transactions.json', [])
-    filtered = [t for t in txs if ((email and str(t.get('email','')).lower()==email) or (phone and str(t.get('phone',''))==phone)) and str(t.get('status','')).startswith('share_')]
-    history=[]
-    for s in filtered:
-        if s.get('status')=='share_sent':
-            history.append({'type':'sent','amount':abs(s.get('coins',0)),'fee':s.get('fee',0),'to':s.get('to',''),'time':s.get('time',0)})
-        else:
-            history.append({'type':'received','amount':s.get('coins',0),'from':s.get('from',''),'time':s.get('time',0)})
-    return jsonify({'success':True,'history':sorted(history, key=lambda x:x.get('time',0), reverse=True)[:20]})
-
-@sannlas_coins_bp.route('/api/coins/set-pin', methods=['POST'])
-def set_coin_pin():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    phone = data.get('phone','').strip()
-    new_pin = str(data.get('pin','')).strip()
-    if len(new_pin) < 4: return jsonify({'success':False,'message':'PIN min 4 digits'}),400
-    users = load_db('users.json', [])
-    for u in users:
-        if (email and str(u.get('email','')).lower()==email) or (phone and str(u.get('phone',''))==phone):
-            u['coin_pin'] = new_pin
-            u['pin'] = new_pin
-            save_db('users.json', users)
-            return jsonify({'success':True,'message':f'PIN set to {new_pin}!'})
-    return jsonify({'success':False,'message':'User not found'}),404
-    
-@sannlas_coins_bp.route('/api/coins/deduct', methods=['POST'])
-def coins_deduct():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    coins = int(data.get('coins',1))
-    reason = data.get('reason','Chat unlock')
-    users = load_db('users.json', [])
-    user = next((u for u in users if str(u.get('email','')).lower()==email), None)
-    if not user:
-        return jsonify({'success':False,'error':'User not found'}),404
-    real_coins = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
-    if real_coins < coins:
-        return jsonify({'success':False,'error':'Not enough coins!'}),400
-    user['spent'] = int(user.get('spent',0)) + coins
-    user['coins'] = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
-    txs = load_db('coin_transactions.json', [])
-    txs.append({
-        'id': int(time.time()*1000),
-        'email': user.get('email'),
-        'phone': user.get('phone'),
-        'coins': -coins,
-        'price': 0,
-        'momo_code': f'SPENT-{uuid.uuid4().hex[:6].upper()}',
-        'reason': reason,
-        'time': time.time(),
-        'status': 'spent'
-    })
-    save_db('coin_transactions.json', txs)
-    save_db('users.json', users)
-    return jsonify({'success':True,'new_balance': user['coins']})
-
-@sannlas_coins_bp.route('/api/coins/admin/add', methods=['POST'])
-def coins_admin_add():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    coins = int(data.get('coins',0))
-    if not email or not coins:
-        return jsonify({'success':False,'error':'Email and coins required'}),400
-    users = load_db('users.json', [])
-    user = next((u for u in users if str(u.get('email','')).lower()==email), None)
-    if not user:
-        return jsonify({'success':False,'error':'User not found'}),404
-    user['earned'] = int(user.get('earned',0)) + coins
-    user['earned_coins'] = user['earned']
-    user['coins'] = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
-    txs = load_db('coin_transactions.json', [])
-    txs.append({
-        'id': int(time.time()*1000),
-        'email': user.get('email'),
-        'phone': user.get('phone'),
-        'coins': coins,
-        'price': 0,
-        'momo_code': f'ADMIN-{uuid.uuid4().hex[:6].upper()}',
-        'reason': f'Admin bonus {coins} coins',
-        'time': time.time(),
-        'status': 'admin_bonus'
-    })
-    save_db('coin_transactions.json', txs)
-    save_db('users.json', users)
-    return jsonify({'success':True,'new_balance': user['coins']})
