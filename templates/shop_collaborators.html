@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop Collaborators - Sannlas</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}body{background:#f8fafc}
+.header{background:#000;color:#FFCC02;padding:14px;display:flex;justify-content:space-between;font-weight:900}.header a{color:#FFCC02;text-decoration:none}
+.box{max-width:700px;margin:16px auto;background:white;padding:20px;border-radius:18px;box-shadow:0 4px 15px rgba(0,0,0,.06)}
+input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin:6px 0}
+.btn{width:100%;padding:14px;background:#000;color:#FFCC02;border-radius:12px;font-weight:900;cursor:pointer;border:2px solid #FFCC02;margin-top:10px}
+.btn-yellow{background:#FFCC02;color:#000;border-color:#000}
+.scope{border:1px solid #eee;padding:8px;border-radius:8px;margin:4px 0;display:flex;justify-content:space-between;font-size:13px}
+.badge{background:#FFCC02;color:#000;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:900}
+.table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+.warn{background:#fef3c7;border:1px solid #fbbf24;padding:12px;border-radius:10px;font-size:13px;margin:12px 0}
+</style>
+</head>
+<body>
+<div class="header"><a href="/">← Home</a><span>COLLABORATORS</span><a href="/">SANNLAS</a></div>
+
+<div class="box">
+<h3>🔐 Add Uploader to Your Shop</h3>
+<p style="font-size:13px;color:#64748b;margin:8px 0">Agent can UPLOAD products but CANNOT edit your shop name, phone, location, or delete products. Like MTN scope!</p>
+
+<div class="warn">⚠️ <b>Protected:</b> Shop name, phone, email, location, description = Agent CANNOT change. Only you can!</div>
+
+<input id="shop_slug" placeholder="Shop slug e.g. mama-tomatoes">
+<input id="owner_phone" placeholder="Your phone (owner)">
+<input id="agent_phone" placeholder="Agent phone e.g. 0771234567">
+<p style="font-size:12px;margin:8px 0">Agent must register at <a href="/agents">/agents</a> first</p>
+
+<div style="margin:12px 0">
+<p style="font-weight:800;font-size:13px">Scopes (what agent can do):</p>
+<label><input type="checkbox" id="s_upload" checked> upload_product - Add new products ✅</label><br>
+<label><input type="checkbox" id="s_view" checked> view_products - See products</label><br>
+<label><input type="checkbox" id="s_editOwn"> edit_own_product - Edit only his uploads</label><br>
+<label><input type="checkbox" id="s_orders"> view_orders - See orders (optional)</label>
+<p style="font-size:11px;color:red;margin-top:6px">❌ edit_shop, delete_shop, edit_phone are BLOCKED automatically - Agent never gets!</p>
+</div>
+
+<input id="comm" type="number" placeholder="Commission per upload UGX (default 400)" value="400">
+
+<button class="btn btn-yellow" onclick="invite()">Add Collaborator 🔑</button>
+<p id="msg" style="text-align:center;margin-top:10px"></p>
+</div>
+
+<div class="box">
+<h3>👥 Current Collaborators</h3>
+<input id="search_slug" placeholder="Enter shop slug to view collaborators">
+<button class="btn" onclick="loadList()">View Collaborators</button>
+<table class="table" id="listTable"><tr><th>Agent</th><th>Scopes</th><th>Uploads</th><th>Action</th></tr></table>
+</div>
+
+<div class="box" style="background:#000;color:white">
+<h3>💡 How MTN Does It</h3>
+<p style="font-size:13px;opacity:.8;margin-top:8px">Shop Owner = MTN Head Office<br>Agent = MTN Branch<br>Scope = Permission like "collection only"<br><br>Agent uses API key, not your password. If he misbehaves, you revoke in 1 click, shop safe!</p>
+</div>
+
+<script>
+const urlSlug = new URLSearchParams(location.search).get('shop') || new URLSearchParams(location.pathname.split('/shop/')[1]||'').get('') || '';
+if(urlSlug) document.getElementById('shop_slug').value = urlSlug;
+const savedShop = localStorage.getItem('my_shop_slug');
+if(savedShop && !document.getElementById('shop_slug').value) document.getElementById('shop_slug').value = savedShop;
+
+async function invite(){
+ const scopes=[];
+ if(document.getElementById('s_upload').checked) scopes.push('upload_product');
+ if(document.getElementById('s_view').checked) scopes.push('view_products');
+ if(document.getElementById('s_editOwn').checked) scopes.push('edit_own_product');
+ if(document.getElementById('s_orders').checked) scopes.push('view_orders');
+ const body={
+  shop_slug:document.getElementById('shop_slug').value,
+  owner_phone:document.getElementById('owner_phone').value,
+  agent_phone:document.getElementById('agent_phone').value,
+  scopes:scopes,
+  commission_per_upload:parseInt(document.getElementById('comm').value)||400
+ };
+ document.getElementById('msg').textContent='⏳ Adding...';
+ const r=await fetch('/api/permissions/invite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const d=await r.json();
+ document.getElementById('msg').textContent=d.message||'Done';
+ if(d.success){ loadList(); }
+}
+async function loadList(){
+ const slug=document.getElementById('search_slug').value || document.getElementById('shop_slug').value;
+ if(!slug){alert('Enter shop slug');return;}
+ const r=await fetch('/api/permissions/list?shop_slug='+encodeURIComponent(slug));
+ const data=await r.json();
+ let h='<tr><th>Agent</th><th>Scopes</th><th>Uploads</th><th>Action</th></tr>';
+ data.forEach(p=>{
+  h+=`<tr><td>${p.agent_name||p.agent_phone}<br><span style="font-size:11px">${p.agent_phone}</span></td><td>${(p.scopes||[]).join(', ')}<br><span class=badge>${p.commission_per_upload} UGX/upload</span></td><td>${p.products_uploaded||0}<br>${p.total_earned||0} earned</td><td><button onclick="revoke(${p.id})" style="background:#ef4444;color:white;border:none;padding:6px 10px;border-radius:8px;cursor:pointer">Revoke</button></td></tr>`;
+ });
+ if(!data.length) h+='<tr><td colspan=4>No collaborators yet</td></tr>';
+ document.getElementById('listTable').innerHTML=h;
+}
+async function revoke(id){
+ if(!confirm('Revoke access? Agent will lose upload permission')) return;
+ const r=await fetch('/api/permissions/revoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({permission_id:id,owner_phone:document.getElementById('owner_phone').value})});
+ const d=await r.json(); alert(d.message); loadList();
+}
+</script>
+</body>
+</html>
