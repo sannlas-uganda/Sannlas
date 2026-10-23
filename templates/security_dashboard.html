@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Dashboard - Sannlas</title>
+<style>
+body{font-family:system-ui;background:#0a0a0a;color:#fff;margin:0;padding:15px;padding-bottom:80px}
+.card{background:#111;border:1px solid #222;border-radius:16px;padding:16px;margin-bottom:14px}
+.btn{padding:10px 14px;border:none;border-radius:10px;font-weight:900;cursor:pointer;margin:4px}
+.btn-yellow{background:#FFCC02;color:#000}
+.btn-red{background:#ff1744;color:#fff}
+.btn-black{background:#222;color:#fff;border:1px solid #333}
+.badge{background:#FFCC02;color:#000;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:900}
+.table{width:100%;border-collapse:collapse;font-size:12px}
+.table th{background:#222;padding:8px;text-align:left}
+.table td{padding:8px;border-bottom:1px solid #222;word-break:break-all}
+.ip{font-family:monospace;background:#222;padding:2px 6px;border-radius:6px}
+.header{background:#000;padding:14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;border-bottom:2px solid #FFCC02}
+h2{margin:0;color:#FFCC02}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.stat{background:#111;border:1px solid #FFCC02;padding:14px;border-radius:12px;text-align:center}
+.stat b{font-size:22px;color:#FFCC02;display:block}
+</style></head><body>
+<div class="header"><a href="/" style="color:#FFCC02;text-decoration:none">← Home</a><h2>🔒 SANNLAS SECURITY</h2><span style="color:#666;font-size:12px">Admin Only</span></div>
+
+<div class="stats">
+<div class="stat"><b id="bannedCount">0</b><small>Banned IPs</small></div>
+<div class="stat"><b id="logsCount">0</b><small>Total Attacks</small></div>
+<div class="stat"><b id="last24">0</b><small>Last 24h</small></div>
+<div class="stat"><b id="attemptsCount">0</b><small>Failed Logins</small></div>
+</div>
+
+<div class="card">
+<h3>🚫 Banned IPs - Auto Ban 24h After 3 Attacks</h3>
+<div style="margin:10px 0"><button class="btn btn-black" onclick="loadBanned()">🔄 Refresh</button> <button class="btn btn-red" onclick="clearAttempts()">🗑️ Clear Login Attempts</button></div>
+<div id="bannedList">Loading...</div>
+</div>
+
+<div class="card">
+<h3>📜 Recent Attack Logs (Last 50)</h3>
+<div style="margin:10px 0"><button class="btn btn-black" onclick="loadLogs()">🔄 Refresh Logs</button></div>
+<div style="overflow:auto"><table class="table"><thead><tr><th>Time</th><th>IP</th><th>Path</th><th>Reason</th><th>Action</th></tr></thead><tbody id="logsTable"></tbody></table></div>
+</div>
+
+<div class="card" style="border:2px dashed #FFCC02">
+<h3>🛡️ How Protection Works</h3>
+<small style="line-height:1.6">
+✅ Every request checked for: <code>../ , &lt;script&gt;, UNION SELECT, .env, wp-admin</code><br>
+✅ Auto-ban IP after 3 dangerous requests or 5 failed logins - 24h ban<br>
+✅ Uploads: Only jpg, png, mp4 allowed - no php/py/exe<br>
+✅ Security headers added to all pages<br>
+✅ Attack logs saved to <code>data/security_logs.json</code><br>
+✅ Banned IPs saved to <code>data/banned_ips.json</code><br><br>
+<b>To unban:</b> Click Unban button or delete file <code>data/banned_ips.json</code><br>
+<b>Admin Access:</b> <code>/admin/security?key=SANNLAS2026SECURE</code> - Change key in sannlas_security.py!
+</small>
+</div>
+
+<script>
+async function loadStats(){
+ try{
+  let r=await fetch('/api/security/stats'); let d=await r.json();
+  document.getElementById('bannedCount').innerText=d.banned_count;
+  document.getElementById('logsCount').innerText=d.total_logs;
+  document.getElementById('last24').innerText=d.last_24h_attacks;
+  document.getElementById('attemptsCount').innerText=d.attempts_count;
+  // banned
+  let html=''; if(!d.banned.length) html='<small style=color:#666>No banned IPs yet - Sannlas is safe!</small>'; else d.banned.reverse().forEach(b=>{
+   let until=new Date(b.until*1000).toLocaleString();
+   html+=`<div style="background:#1a1a1a;padding:10px;border-radius:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center"><div><span class=ip>${b.ip}</span> <span class=badge>${b.reason}</span><br><small style=color:#888>Until: ${until} | Count: ${b.count}</small></div><button class="btn btn-yellow" onclick="unban('${b.ip}')">Unban</button></div>`;
+  });
+  document.getElementById('bannedList').innerHTML=html;
+  // logs
+  let logsHtml=''; (d.recent_logs||[]).forEach(l=>{
+   logsHtml+=`<tr><td>${new Date(l.time).toLocaleString()}</td><td><span class=ip>${l.ip}</span></td><td>${l.path}</td><td>${l.reason}</td><td>${l.action}</td></tr>`;
+  });
+  document.getElementById('logsTable').innerHTML=logsHtml||'<tr><td colspan=5>No attacks yet!</td></tr>';
+ }catch(e){ console.log(e); }
+}
+async function loadBanned(){ loadStats(); }
+async function loadLogs(){ loadStats(); }
+async function unban(ip){
+ if(!confirm('Unban '+ip+'?')) return;
+ let r=await fetch('/api/security/unban',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+ let d=await r.json(); alert(d.message); loadStats();
+}
+async function clearAttempts(){
+ if(!confirm('Clear all failed login attempts?')) return;
+ await fetch('/api/security/clear-attempts',{method:'POST'}); alert('Cleared!'); loadStats();
+}
+loadStats();
+setInterval(loadStats, 10000);
+</script></body></html>
