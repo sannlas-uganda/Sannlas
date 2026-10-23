@@ -111,6 +111,9 @@ app.register_blueprint(sannlas_security_bp)
 from sannlas_agents import sannlas_agents_bp
 app.register_blueprint(sannlas_agents_bp)
 
+from sannlas_permissions import sannlas_permissions_bp
+app.register_blueprint(sannlas_permissions_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
