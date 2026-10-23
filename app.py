@@ -98,6 +98,9 @@ app.register_blueprint(sannlas_delivery_bp)
 from sannlas_balance import sannlas_balance_bp
 app.register_blueprint(sannlas_balance_bp)
 
+from sannlas_promotion import sannlas_promotion_bp
+app.register_blueprint(sannlas_promotion_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
@@ -798,66 +801,6 @@ def list_shops():
             
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
-
-@app.route('/api/promote/apply', methods=['POST'])
-def promote_apply():
-    data=request.json or {}
-    product_id=str(data.get('product_id','')).strip()
-    phone=(data.get('phone') or '').strip()
-    email=(data.get('email') or '').lower().strip()
-    if not phone and not email:
-        return jsonify({"success":False,"message":"Login first"}),401
-    products=load_db('products.json',[])
-    prod=next((p for p in products if str(p.get('id'))==product_id),None)
-    if not prod:
-        return jsonify({"success":False,"message":"Product not found"}),404
-    promos=load_db('promotions.json',[])
-    existing = next((p for p in promos if str(p.get('product_id'))==product_id and (p.get('freelancer_phone')==phone or p.get('freelancer_email','').lower()==email)), None)
-    if existing:
-        code = existing.get('promo_code')
-        link = f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
-        return jsonify({"success":True,"message":f"Already applied!","promo":existing,"link":link,"promo_link":link,"code":code})
-    import random,string
-    code=f"PROMO{product_id[:3]}{phone[-3:]}{''.join(random.choices(string.ascii_uppercase+string.digits,k=3))}"
-    new_promo={
-        "id":int(time.time()*1000),
-        "product_id":product_id,
-        "product_name":prod.get('name'),
-        "product_owner_phone":prod.get('phone'),
-        "product_owner_email":(prod.get('seller_email') or '').lower(),
-        "freelancer_phone":phone,
-        "freelancer_email":email,
-        "commission_coins":int(prod.get('promo_commission',3)),
-        "promo_code":code,
-        "status":"approved",
-        "sales":0,
-        "created":time.time()
-    }
-    promos.append(new_promo)
-    save_db('promotions.json',promos)
-    link = f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
-    return jsonify({"success":True,"message":f"Applied! Earn {new_promo['commission_coins']} coins per sale! Link: {link}","promo":new_promo,"link":link,"promo_link":link,"code":code})
-
-@app.route('/api/promote/my', methods=['GET'])
-def my_promotions():
-    phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
-    promos=load_db('promotions.json',[]); result=[p for p in promos if (phone and p.get('freelancer_phone')==phone) or (email and p.get('freelancer_email','').lower()==email)]
-    return jsonify(result[::-1])
-
-@app.route('/api/promote/requests', methods=['GET'])
-def promote_requests():
-    phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
-    promos=load_db('promotions.json',[]); result=[p for p in promos if (phone and p.get('product_owner_phone')==phone) or (email and p.get('product_owner_email','').lower()==email)]
-    return jsonify(result[::-1])
-
-@app.route('/api/promote/action', methods=['POST'])
-def promote_action():
-    data=request.json or {}; pid=int(data.get('id',0)); action=data.get('action','approve')
-    promos=load_db('promotions.json',[])
-    for p in promos:
-        if int(p.get('id'))==pid: p['status']=action; break
-    save_db('promotions.json',promos)
-    return jsonify({"success":True,"message":f"Promoter {action}d!"})
 
 # ============================================
 # NEW ORDERS SYSTEM - BUYER OK -> SELLER PAYS 2 COINS
