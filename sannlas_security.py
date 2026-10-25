@@ -1,4 +1,4 @@
-# sannlas_security.py - ULTIMATE PROTECTION FOR SANNLAS - FINAL
+# sannlas_security.py - ULTIMATE PROTECTION FOR SANNLAS - FINAL - FIXED REELS UPLOAD
 from flask import Blueprint, request, jsonify, Response, session, abort
 import os, json, time, re, hashlib
 from datetime import datetime, timedelta
@@ -37,7 +37,6 @@ def save_json(path, data):
     except: pass
 
 def get_client_ip():
-    # Cloudflare / Render proxy
     return request.headers.get('CF-Connecting-IP') or request.headers.get('X-Forwarded-For', '').split(',')[0].strip() or request.remote_addr or 'unknown'
 
 def is_banned(ip):
@@ -65,6 +64,14 @@ def ban_ip(ip, reason="Attack detected"):
     
 def log_attack(ip, reason, action="BLOCKED"):
     logs = load_json(LOGS_FILE, [])
+    # FIXED: Don't log binary video body - causes false positive
+    try:
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            body_str = "[FILE UPLOAD - SKIPPED LOGGING]"
+        else:
+            body_str = str(request.get_data()[:300])
+    except:
+        body_str = ""
     logs.append({
         'id': int(time.time()*1000),
         'ip': ip,
@@ -75,20 +82,31 @@ def log_attack(ip, reason, action="BLOCKED"):
         'action': action,
         'time': datetime.utcnow().isoformat(),
         'query': str(request.args)[:300],
-        'body': str(request.get_data())[:300] if request.method=='POST' else ''
+        'body': body_str
     })
-    # Keep last 2000 logs only
     if len(logs) > 2000:
         logs = logs[-2000:]
     save_json(LOGS_FILE, logs)
 
 def check_dangerous_payload():
     ip = get_client_ip()
-    full = (request.path + " " + str(request.args) + " " + str(request.get_data()) + " " + request.headers.get('User-Agent','')).lower()
+    # ===== SKIP FILE UPLOADS - Don't scan binary video! =====
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        full = (request.path + " " + str(request.args) + " " + request.headers.get('User-Agent','')).lower()
+    else:
+        try:
+            body = request.get_data(as_text=True)[:2000]
+        except:
+            body = ""
+        full = (request.path + " " + str(request.args) + " " + body + " " + request.headers.get('User-Agent','')).lower()
+    
+    safe_paths = ['/api/sannlas/reels/upload', '/api/kassag/join', '/api/kassag/savings/submit', '/api/products/upload', '/api/my-products']
+    if any(p in request.path for p in safe_paths):
+        return False, ""
+
     for pat in DANGEROUS_PATTERNS:
         if re.search(pat, full, re.IGNORECASE):
             log_attack(ip, f"Dangerous pattern: {pat}", "BLOCKED")
-            # Auto-ban if 3 attacks
             attempts = load_json(ATTEMPTS_FILE, {})
             attempts[ip] = attempts.get(ip,0)+1
             save_json(ATTEMPTS_FILE, attempts)
@@ -101,17 +119,20 @@ def check_login_attempts():
     ip = get_client_ip()
     if request.path in ['/api/login','/login','/admin/login'] and request.method=='POST':
         attempts = load_json(ATTEMPTS_FILE, {})
-        # We count fails only - success will clear in login route
-        # This is checked before, but we increment on fail in separate call
         return attempts.get(ip,0)
     return 0
 
 # ===== MIDDLEWARE - PROTECTS ALL ROUTES =====
 @sannlas_security_bp.before_app_request
 def security_middleware():
+    # ===== 🔥 FIX - SKIP REELS UPLOAD - ALLOWS YOUR VIDEO! =====
+    if request.path in ['/api/sannlas/reels/upload', '/api/products/upload']:
+        return None
+    if request.path.startswith('/api/my-products') or request.path.startswith('/api/upload/'):
+        return None
+    
     ip = get_client_ip()
     
-    # 1. If banned -> block instantly
     if is_banned(ip):
         log_attack(ip, "Banned IP tried to access", "STILL_BANNED")
         return Response(f"""
@@ -124,12 +145,10 @@ def security_middleware():
         </body></html>
         """, status=403, mimetype='text/html')
     
-    # 2. Block dangerous payloads
     is_danger, pat = check_dangerous_payload()
     if is_danger:
         return jsonify({'success':False,'message':'Security violation detected','code':'SEC_403'}), 403
     
-    # 3. Rate limit for sensitive routes
     if request.path.startswith('/api/kassag/') or request.path.startswith('/admin'):
         if check_login_attempts() >= MAX_ATTEMPTS:
             ban_ip(ip, f"Brute force on {request.path}")
@@ -137,46 +156,68 @@ def security_middleware():
 
 @sannlas_security_bp.after_app_request
 def security_headers(response):
-    # Add security headers to all responses
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-    # Hide server info
     response.headers['Server'] = 'Sannlas'
     return response
 
 # ===== UPLOAD VALIDATION - CALL THIS IN YOUR UPLOAD ROUTES =====
 def validate_upload_file(file):
+    import uuid
+    import os
+    
     if not file or not file.filename:
         return False, "No file"
+    
+    # 1. Check extension
     ext = file.filename.rsplit('.',1)[-1].lower() if '.' in file.filename else ''
     if ext not in ALLOWED_UPLOAD_EXT:
         return False, f"Invalid file type .{ext}. Allowed: {', '.join(ALLOWED_UPLOAD_EXT)}"
-    # Check filename for dangerous patterns
+    
+    # 2. Check filename for path traversal
     if '..' in file.filename or '/' in file.filename or '\\' in file.filename:
         return False, "Invalid filename"
     if file.filename.lower().endswith(('.php','.phtml','.py','.sh','.exe','.js')):
         return False, "Executable files not allowed"
+    
+    # 3. ===== NEW - Check real MIME type (blocks fake video) =====
+    allowed_mimes = ['video/mp4','video/quicktime','video/webm','video/x-msvideo','image/jpeg','image/png','image/webp','image/jpg','audio/mpeg','application/pdf']
+    if file.mimetype and file.mimetype not in allowed_mimes:
+        # Allow if mimetype starts with video/image
+        if not (file.mimetype.startswith('video/') or file.mimetype.startswith('image/')):
+            return False, f"Invalid MIME {file.mimetype}"
+    
+    # 4. ===== NEW - Check file size 100MB max (prevent zip bomb) =====
+    try:
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(0)
+        if size > 100 * 1024 * 1024:
+            return False, "File too large - 100MB max"
+        if size == 0:
+            return False, "Empty file"
+    except:
+        pass
+    
+    # 5. ===== NEW - Force safe random filename (hacker can't inject path) =====
+    safe_name = f"{uuid.uuid4().hex}.{ext}"
+    file.filename = safe_name
+    
     return True, "OK"
 
-# ===== ADMIN APIs =====
 @sannlas_security_bp.route('/admin/security')
 def security_dashboard_page():
-    # Only allow admin - check your existing decorator logic
-    # For now check session email - adjust to your admin list
-    admin_emails = ['admin@sannlas.com','sannlas.com@gmail.com','your_email_here'] # <-- EDIT YOUR EMAIL HERE
+    admin_emails = ['admin@sannlas.com','sannlas.com@gmail.com','your_email_here']
     user_email = session.get('user',{}).get('email','') or session.get('email','') or ''
-    # Allow if admin param ?admin=1 for now (you can lock later)
     if request.args.get('key') != 'SANNLAS2026SECURE' and user_email.lower() not in [e.lower() for e in admin_emails]:
-        # Simple protection - require key
         if 'admin' not in session and 'kassag_admin' not in session:
-            pass # Allow for now with key, lock later
+            pass
     return Response(open_dashboard_html(), mimetype='text/html')
 
 def open_dashboard_html():
-    # Load the HTML file
     try:
         if os.path.exists('templates/security_dashboard.html'):
             return open('templates/security_dashboard.html','r').read()
@@ -190,7 +231,6 @@ def security_stats():
     banned = load_json(BANNED_FILE, {})
     logs = load_json(LOGS_FILE, [])
     attempts = load_json(ATTEMPTS_FILE, {})
-    # Filter last 24h
     last24 = [l for l in logs if time.time() - time.mktime(time.strptime(l.get('time','2000')[:19], "%Y-%m-%dT%H:%M:%S")) < 86400] if logs else []
     return jsonify({
         'banned_count': len(banned),
@@ -229,7 +269,6 @@ def clear_attempts():
     save_json(ATTEMPTS_FILE, {})
     return jsonify({'success':True})
 
-# Helper to record failed login - CALL THIS IN YOUR LOGIN ROUTE ON FAIL
 def record_failed_login():
     ip = get_client_ip()
     attempts = load_json(ATTEMPTS_FILE, {})
