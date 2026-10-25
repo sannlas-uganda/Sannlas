@@ -6,18 +6,20 @@ body{font-family:Arial;background:#f5f5f5;margin:0}
 .shop-logo{width:90px;height:90px;border-radius:50%;border:3px solid #FFCC02;object-fit:cover;background:#fff}
 button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:bold;cursor:pointer}
 .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
-.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.3s}
+.card.highlighted{border:3px solid #FFCC02 !important;box-shadow:0 0 25px #FFCC02 !important;transform:scale(1.05)}
 .card img{width:100%;height:170px;object-fit:cover}
 .discount-badge{position:absolute;top:8px;left:8px;background:red;color:#fff;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:bold}
 .shop-footer{background:#fff;margin:10px;border-radius:15px;padding:15px}
 #buyerChatModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;flex-direction:column}
+.highlight-banner{display:none;background:#FFCC02;color:#000;padding:10px;text-align:center;font-weight:900;position:sticky;top:48px;z-index:9998}
 </style></head><body>
 
-<!-- ✅ FIXED: BACK TO HOME - NOT BACK TO SHOPS -->
 <div id="topNav" style="background:#000;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999">
   <a href="/" style="color:#FFCC02;text-decoration:none;font-weight:900;font-size:14px">← Back to Home</a>
   <span style="color:#FFCC02;font-weight:900;letter-spacing:1px">SANNLAS</span>
 </div>
+<div id="highlightBanner" class="highlight-banner">✨ Highlighting product from Reel ✨</div>
 
 <div class="header" id="h">
   <img id="shopLogoTop" class="shop-logo" src="https://via.placeholder.com/150?text=SHOP" style="display:none">
@@ -50,11 +52,8 @@ let currentShop=null;
 let buyerUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
 let buyerEmail = (buyerUser.email||'').toLowerCase();
 
-// ✅ FORCE BROWSER BACK BUTTON TO GO HOME, NOT ALL SHOPS
 history.pushState(null, '', location.href);
-window.addEventListener('popstate', function(){
-  location.href = '/';
-});
+window.addEventListener('popstate', function(){ location.href = '/'; });
 
 async function load(){
  try{
@@ -70,15 +69,33 @@ async function load(){
 
   document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button><button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button></div><p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
 
-  // RENDER PRODUCTS (if you had it)
+  // ✅ FIXED: ADD ID FOR HIGHLIGHTING - EXACT PRODUCT IN SHOP
   let pEl = document.getElementById('p');
   if(products.length){
-    pEl.innerHTML = products.map(prod=>`
-      <div class="card"><div style="position:relative"><img src="${prod.image||''}"><div class="discount-badge">${prod.discount||''}</div></div><div style="padding:8px"><b>${prod.title||prod.name||'Product'}</b><br><small>UGX ${prod.price||''}</small><br><button style="background:#000;color:#FFCC02;width:100%;margin-top:6px" onclick="location.href='/product/${prod.id||prod._id}'">View Product</button></div></div>
-    `).join('');
+    pEl.innerHTML = products.map(prod=>{
+      let pid = prod.id||prod._id||'';
+      return `<div class="card" id="product-${pid}" data-id="${pid}"><div style="position:relative"><img src="${prod.image||''}"><div class="discount-badge">${prod.discount||''}</div></div><div style="padding:8px"><b>${prod.title||prod.name||'Product'}</b><br><small>UGX ${prod.price||''}</small><br><button style="background:#000;color:#FFCC02;width:100%;margin-top:6px" onclick="location.href='/product/${pid}'">View Product</button></div></div>`
+    }).join('');
+
+    // ===== CORE: AUTO HIGHLIGHT PRODUCT FROM REEL =====
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('product') || params.get('highlight');
+    if(highlightId){
+      setTimeout(()=>{
+        const el = document.getElementById('product-'+highlightId) || document.querySelector(`[data-id="${highlightId}"]`);
+        if(el){
+          document.getElementById('highlightBanner').style.display='block';
+          document.getElementById('highlightBanner').innerHTML=`🎥 From Reel → ✨ ${products.find(p=>(p.id||p._id)==highlightId)?.title||'Product'} ✨`;
+          el.classList.add('highlighted');
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          // Remove highlight after 5 sec
+          setTimeout(()=>{ el.classList.remove('highlighted'); }, 5000);
+        }
+      }, 800);
+    }
   }
 
- }catch(e){ document.getElementById('headerText').innerHTML='<h1>Error loading shop</h1>'; }
+ }catch(e){ document.getElementById('headerText').innerHTML='<h1>Error loading shop</h1>'; console.error(e); }
 }
 function shareShop(){ navigator.clipboard.writeText(location.href); alert('🔗 Copied!'); }
 async function openBuyerWhatsApp(){
