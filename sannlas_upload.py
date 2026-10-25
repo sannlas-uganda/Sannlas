@@ -116,7 +116,7 @@ def upload_reel_post():
         cur.execute("""
             INSERT INTO sannlas_reels 
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id) 
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
             """,
             (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id))
         new_id = cur.fetchone()[0]
