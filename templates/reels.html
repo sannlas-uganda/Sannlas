@@ -43,18 +43,11 @@ async function loadReels(){
     <a class="shop-name" href="/shop/${(reel.shop_slug||'shop')}" style="text-decoration:none;">🏪 @${(reel.shop_name||reel.user_name||'SHOP').toUpperCase()}</a>
     <a class="product-title" href="/shop/${(reel.shop_slug||'shop')}?product=${reel.product_id||''}&highlight=${reel.product_id||''}" style="text-decoration:none; display:block;">${reel.product_name||reel.caption||'New Collection'}</a>
     <div class="product-desc">${reel.description||''}${reel.hashtags?`<br><span style="color:#FFCC02">${reel.hashtags}</span>`:''}</div>
-
-        <!-- ✅✅ PROMOTE ON TOP OF BUY NOW - WITH AMOUNT ✅✅ -->
-    <div class="action-col">
-      <a href="${reel.promote_link || `/promotion/${reel.product_id||reel.id}?commission=${reel.promo_coins||3}&from=reels`}" class="promote-btn">
-        💰 PROMOTE & EARN UGX ${Number(reel.earn_amount || (reel.promo_coins||3)*599).toLocaleString()}
-      </a>
-      <button class="shop-btn" onclick="addToCart('${reel.product_id||reel.id}', '${reel.shop_slug||''}', this)">
-        UGX ${Number(reel.price||0).toLocaleString()} - BUY NOW
-      </button>
+    <div class="action-col" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+      <a href="${reel.promote_link||`/promotion/${reel.product_id||reel.id}?commission=${reel.promo_coins||3}`}" class="promote-btn" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;font-weight:900;border:2px solid #000;display:block;text-decoration:none;font-size:13px;text-align:center;min-width:200px">💰 PROMOTE & EARN UGX ${Number(reel.earn_amount||(reel.promo_coins||3)*599||1797).toLocaleString()}</a>
+      <button class="shop-btn" onclick="addToCart('${reel.product_id||reel.id}', '${reel.shop_slug||''}', this)" style="background:#000;color:#00FF88;padding:10px 20px;border-radius:25px;font-weight:900;border:2px solid #00FF88;display:block;font-size:14px;min-width:200px">UGX ${Number(reel.price||0).toLocaleString()} - BUY NOW</button>
     </div>
-
-    <div style="font-size:10px;opacity:0.6;margin-top:6px">@${(reel.user_name||reel.user_email||'user').split('@')[0]} • ${reel.location||'Uganda'}</div>
+    <div style="font-size:10px;opacity:0.6;margin-top:6px">@${(reel.user_name||'').split('@')[0]} • Uganda</div>
   </div>
  </div>`).join('');
  observeVideos(); addVideoClickHandlers();
