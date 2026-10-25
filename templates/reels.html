@@ -43,15 +43,15 @@ async function loadReels(){
   <!-- 👇👇👇 YOUR ORDER - EXACT AS YOU SAID - SHOP NAME, TITLE, DESC, PROMO, BUY NOW 👇👇👇 -->
   <div class="overlay">
     
-    <!-- 1. SHOP NAME -->
-    <a class="shop-name" href="/shop/${(reel.shop_slug||'shop').toLowerCase().replace(/\\s+/g,'-').replace(/[^a-z0-9-]/g,'')}?product=${reel.product_id||''}&highlight=${reel.product_id||''}" style="text-decoration:none;">
-      🏪 @${(reel.shop_name||reel.user_name||'SHOP').toUpperCase()}
+    <!-- 1. SHOP NAME - LINKS TO SELLER'S SHOP WITH ALL PRODUCTS -->
+    <a class="shop-name" href="/shop/${(reel.shop_slug||'shop')}" style="text-decoration:none;"> 
+    🏪 @${(reel.shop_name||reel.user_name||'SHOP').toUpperCase()}
     </a>
 
-    <!-- 2. PRODUCT TITLE -->
-    <div class="product-title">
+       <!-- 2. PRODUCT TITLE - LINKS TO EXACT PRODUCT IN SELLER'S SHOP -->
+    <a class="product-title" href="/shop/${(reel.shop_slug||'shop')}?product=${reel.product_id||''}&highlight=${reel.product_id||''}" style="text-decoration:none; display:block;">
       ${reel.product_name||reel.caption||'New Collection'}
-    </div>
+    </a>
 
     <!-- 3. PRODUCT DESCRIPTION -->
     <div class="product-desc">
