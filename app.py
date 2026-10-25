@@ -16,7 +16,6 @@ import cloudinary.uploader
 import cloudinary_config
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Allow 100MB videos
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
 # ===== STEP 2 SPEED BOOST =====
 Compress(app)
@@ -165,7 +164,6 @@ Talisman(app, content_security_policy=None, force_https=False)
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
 CORS(app, origins=["https://sannlas.onrender.com"])
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 
 PRODUCTS_CACHE = {"data": None, "time": 0}
 COIN_CONFIG_CACHE = {"data": None, "time": 0}
