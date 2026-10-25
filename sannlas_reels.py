@@ -65,17 +65,24 @@ def reels_feed():
                 reel['shop_name'] = shop
                 reel['shop_slug'] = slug
 
-                # ONLY GET PROMO - DON'T TOUCH PRICE!
+                # ONLY GET PROMO - DON'T TOUCH PRICE! PRICE ALREADY SORTED!
                 product_data = None
                 if pid and pid in products_map:
                     product_data = products_map[pid]
 
                 if product_data:
-                    promo_coins = product_data.get('promo_coins') or product_data.get('promo_commission') or 3
+                    # Get commission from sell file: frontPromoComm
+                    raw_coins = product_data.get('promo_coins') or product_data.get('promo_commission') or product_data.get('promo_comm') or 3
+                    try:
+                        promo_coins = int(float(str(raw_coins).strip()))
+                    except:
+                        promo_coins = 3
+                    
                     reel['promo_coins'] = promo_coins
                     reel['promo_commission'] = promo_coins
-                    reel['promo_commission_ugx'] = int(promo_coins) * 599
-                    reel['earn_amount'] = str(reel['promo_commission_ugx'])
+                    ugx = promo_coins * 599
+                    reel['promo_commission_ugx'] = ugx
+                    reel['earn_amount'] = f"{ugx:,}"  # Formatted: 1,797
                 else:
                     # Default promo if product not found
                     reel['promo_coins'] = 3
@@ -93,8 +100,7 @@ def reels_feed():
                     reel['product_link'] = f"/shop/{slug}"
                     reel['buy_link'] = f"/shop/{slug}"
 
-                # PRICE - LEAVE AS IT IS! DON'T CHANGE!
-                # reel['price'] stays whatever is in DB
+                # PRICE - LEAVE AS IT IS! DON'T CHANGE! YOU SORTED IT!
 
             except Exception as e:
                 print(f"Reel fail {reel.get('id')}: {e}")
