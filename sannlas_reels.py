@@ -1,15 +1,8 @@
-import os, traceback, cloudinary, cloudinary.uploader, time, json
+import os, traceback, json, time
 from flask import Blueprint, request, jsonify, render_template
 import psycopg2
 
 reels_bp = Blueprint('reels_bp', __name__)
-
-cloudinary.config(
-    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
-    api_key=os.getenv('CLOUDINARY_API_KEY'),
-    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
-    secure=True
-)
 
 def get_conn():
     DATABASE_URL = os.getenv('DATABASE_URL')
@@ -63,7 +56,7 @@ def reels_feed():
         cols = [d[0] for d in cur.description]
         data = [dict(zip(cols, r)) for r in rows]
 
-        # TRY TO GET REAL PRICE FROM PRODUCTS (JSONB)
+        # TRY TO GET REAL PRICE FROM PRODUCTS
         for reel in data:
             try:
                 pid = str(reel.get('product_id') or '').strip()
@@ -81,9 +74,8 @@ def reels_feed():
                         reel['real_product_link'] = f"/shop/{pdata.get('shop_slug','')}?product={pid}"
                         reel['shop_link'] = f"/shop/{pdata.get('shop_slug','')}"
             except Exception as e:
-                print(f"Product lookup fail {pid}: {e}")
+                print(f"Product lookup fail: {e}")
 
-        # FILL DEFAULTS FOR ALL REELS (OUTSIDE LOOP!)
         for reel in data:
             shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
             reel['shop_name'] = shop
@@ -105,46 +97,6 @@ def reels_feed():
         traceback.print_exc()
         return jsonify([])
 
-@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
-def upload_reel():
-    try:
-        print("=== REELS UPLOAD START ===")
-        video = request.files.get('video')
-        if not video:
-            return jsonify({'success':False, 'error':'No video file'}),400
-        
-        shop_name = request.form.get('shop_name') or request.form.get('business_name') or 'SANNLAS SHOP'
-        shop_slug = (request.form.get('shop_slug') or shop_name).lower().replace(' ','-')
-        description = request.form.get('description', '')
-        caption = request.form.get('caption', description)
-        price = request.form.get('price', '0')
-        product_id = request.form.get('product_id', '')
-        promo_link = request.form.get('promo_link', '') or request.form.get('product_link', '')
-        product_link = promo_link or f"/product/{product_id}" if product_id else f"/shop/{shop_slug}"
-        location = request.form.get('location', 'Uganda')
-        hashtags = request.form.get('hashtags', '')
-        user_email = request.form.get('user_email','anon')
-        user_name = shop_name
-        
-        print(f"Uploading: Shop={shop_name}, ProductID={product_id}, Price={price}")
-        result = cloudinary.uploader.upload(video, resource_type="video", folder="sannlas_reels", chunk_size=6000000, timeout=120)
-        video_url = result.get('secure_url')
-        
-        conn = get_conn(); cur = conn.cursor()
-        ensure_reels_table()
-        
-        cur.execute("""
-            INSERT INTO sannlas_reels 
-            (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id) 
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """,
-            (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id))
-        conn.commit(); cur.close(); conn.close()
-        return jsonify({'success':True, 'url': video_url})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'success':False, 'error': str(e)}), 500
-        
 @reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
 def like_reel(rid):
     try:
@@ -153,4 +105,5 @@ def like_reel(rid):
         conn.commit(); cur.close(); conn.close()
         return jsonify({'success':True})
     except Exception as e:
+        print("LIKE ERROR", e)
         return jsonify({'success':False})
