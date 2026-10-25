@@ -8,17 +8,13 @@ def get_conn():
     DATABASE_URL = os.getenv('DATABASE_URL')
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-# 👇👇👇 NEW: UNIVERSAL SLUG CLEANER - FOR ALL SHOPS 👇👇👇
 def clean_slug(raw_name):
-    """ Sann 2 -> sann-2 , BEST SHOES!!! -> best-shoes , Sann%202 -> sann-2 """
     if not raw_name:
         return 'shop'
     raw = str(raw_name).strip()
     raw = raw.replace('%20',' ').replace('%2',' ')
-    # Replace anything NOT a-z0-9 with dash
     slug = re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')
     return slug or 'shop'
-# 👆👆👆 END OF NEW FUNCTION 👆👆👆
 
 def ensure_reels_table():
     conn = get_conn(); cur = conn.cursor()
@@ -72,8 +68,6 @@ def reels_feed():
             try:
                 pid = str(reel.get('product_id') or '').strip()
                 shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
-                
-                # 👇👇👇 FIXED HERE: NOW USES clean_slug FOR ALL SHOPS 👇👇👇
                 slug = clean_slug(reel.get('shop_slug') or shop)
                 
                 reel['shop_name'] = shop
@@ -84,6 +78,9 @@ def reels_feed():
                     reel['shop_product_link'] = f"/shop/{slug}?product={pid}&highlight={pid}"
                     reel['shop_link'] = reel['shop_product_link']
                     reel['buy_link'] = f"/product/{pid}"
+                    # NEW: PROMOTE & EARN LINK BASE
+                    reel['promote_link'] = f"/product/{pid}"
+                    reel['earn_amount'] = "5,000" # You can fetch from products table later
 
                     cur.execute("SELECT data FROM products WHERE data->>'id' = %s OR id::text = %s LIMIT 1", (pid, pid))
                     prow = cur.fetchone()
@@ -93,9 +90,11 @@ def reels_feed():
                             pdata = json.loads(pdata)
                         reel['price'] = pdata.get('price') or reel.get('price') or 0
                         reel['product_name'] = pdata.get('name') or ''
+                        # Commission if you have it
+                        if pdata.get('promo_commission'):
+                            reel['earn_amount'] = str(pdata.get('promo_commission'))
                         real_slug = pdata.get('shop_slug')
                         if real_slug:
-                            # 👇👇👇 ALSO CLEAN REAL SLUG FROM PRODUCTS TABLE 👇👇👇
                             real_slug_clean = clean_slug(real_slug)
                             reel['shop_slug'] = real_slug_clean
                             reel['shop_link'] = f"/shop/{real_slug_clean}?product={pid}&highlight={pid}"
@@ -105,6 +104,8 @@ def reels_feed():
                     reel['product_link'] = f"/shop/{slug}"
                     reel['buy_link'] = f"/shop/{slug}"
                     reel['shop_product_link'] = f"/shop/{slug}"
+                    reel['promote_link'] = f"/shop/{slug}"
+                    reel['earn_amount'] = "5,000"
                 
                 if not reel.get('price'):
                     reel['price'] = 0
