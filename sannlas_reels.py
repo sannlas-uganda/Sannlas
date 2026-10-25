@@ -56,11 +56,26 @@ def reels_feed():
         cols = [d[0] for d in cur.description]
         data = [dict(zip(cols, r)) for r in rows]
 
-        # TRY TO GET REAL PRICE FROM PRODUCTS
         for reel in data:
             try:
                 pid = str(reel.get('product_id') or '').strip()
+                shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
+                slug = (reel.get('shop_slug') or shop).lower().replace(' ','-').replace('/','-')
+                
+                reel['shop_name'] = shop
+                reel['shop_slug'] = slug
+
+                # ===== CORE LOGIC - EXACT PRODUCT IN SELLER'S SHOP =====
                 if pid:
+                    # 1. Product page (exact product)
+                    reel['product_link'] = f"/product/{pid}"
+                    # 2. Shop page highlighting that product - THIS IS WHAT YOU WANT!
+                    reel['shop_product_link'] = f"/shop/{slug}?product={pid}&highlight={pid}"
+                    # 3. Shop name tap -> goes to EXACT product in shop
+                    reel['shop_link'] = reel['shop_product_link']  # Tap shop name = product in shop
+                    reel['buy_link'] = f"/product/{pid}"  # BUY NOW button = product page
+
+                    # Try to get real price from products table
                     cur.execute("SELECT data FROM products WHERE data->>'id' = %s OR id::text = %s LIMIT 1", (pid, pid))
                     prow = cur.fetchone()
                     if prow and prow[0]:
@@ -69,26 +84,24 @@ def reels_feed():
                             pdata = json.loads(pdata)
                         reel['price'] = pdata.get('price') or reel.get('price') or 0
                         reel['product_name'] = pdata.get('name') or ''
-                        reel['p_shop_slug'] = pdata.get('shop_slug') or ''
-                        reel['buy_link'] = f"/product/{pid}"
-                        reel['real_product_link'] = f"/shop/{pdata.get('shop_slug','')}?product={pid}"
-                        reel['shop_link'] = f"/shop/{pdata.get('shop_slug','')}"
-            except Exception as e:
-                print(f"Product lookup fail: {e}")
+                        # Use real shop_slug from product if exists
+                        real_slug = pdata.get('shop_slug')
+                        if real_slug:
+                            reel['shop_slug'] = real_slug
+                            reel['shop_link'] = f"/shop/{real_slug}?product={pid}&highlight={pid}"
+                            reel['shop_product_link'] = reel['shop_link']
+                else:
+                    # No product linked - fallback to shop
+                    reel['shop_link'] = f"/shop/{slug}"
+                    reel['product_link'] = f"/shop/{slug}"
+                    reel['buy_link'] = f"/shop/{slug}"
+                    reel['shop_product_link'] = f"/shop/{slug}"
+                
+                if not reel.get('price'):
+                    reel['price'] = 0
 
-        for reel in data:
-            shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
-            reel['shop_name'] = shop
-            if not reel.get('shop_slug'):
-                reel['shop_slug'] = shop.lower().replace(' ','-')
-            if not reel.get('shop_link'):
-                reel['shop_link'] = f"/shop/{reel.get('shop_slug')}"
-            if not reel.get('product_link'):
-                reel['product_link'] = reel.get('promo_link') or f"/shop/{shop}"
-            if not reel.get('buy_link'):
-                reel['buy_link'] = reel.get('product_link')
-            if not reel.get('price'):
-                reel['price'] = 0
+            except Exception as e:
+                print(f"Reel process fail {reel.get('id')}: {e}")
 
         cur.close(); conn.close()
         return jsonify(data)
@@ -96,7 +109,6 @@ def reels_feed():
         print("FEED ERROR:", e)
         traceback.print_exc()
         return jsonify([])
-
 @reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
 def like_reel(rid):
     try:
