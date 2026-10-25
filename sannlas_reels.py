@@ -16,38 +16,28 @@ def clean_slug(raw_name):
     slug = re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')
     return slug or 'shop'
 
+def load_products_json():
+    try:
+        for path in ['data/products.json', 'products.json']:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return {str(p.get('id')): p for p in data}
+    except Exception as e:
+        print("Load products.json fail:", e)
+    return {}
+
 def ensure_reels_table():
     conn = get_conn(); cur = conn.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS sannlas_reels (
       id BIGSERIAL PRIMARY KEY, 
-      user_email TEXT, 
-      user_name TEXT, 
-      shop_name TEXT,
-      shop_slug TEXT,
-      caption TEXT,
-      description TEXT,
-      price TEXT,
-      promo_link TEXT,
-      location TEXT,
-      hashtags TEXT,
-      video_url TEXT, 
-      product_link TEXT,
-      product_id TEXT,
-      likes INT DEFAULT 0, 
+      user_email TEXT, user_name TEXT, shop_name TEXT, shop_slug TEXT,
+      caption TEXT, description TEXT, price TEXT, promo_link TEXT,
+      location TEXT, hashtags TEXT, video_url TEXT, 
+      product_link TEXT, product_id TEXT, likes INT DEFAULT 0, 
       created TIMESTAMP DEFAULT NOW())""")
     conn.commit()
-    try:
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS shop_name TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS shop_slug TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS description TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS price TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS promo_link TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS location TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS hashtags TEXT")
-        cur.execute("ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS product_id TEXT")
-        conn.commit()
-    except Exception as me:
-        print("Migration error:", me)
     cur.close(); conn.close()
 
 @reels_bp.route('/reels')
@@ -58,6 +48,8 @@ def reels_page():
 def reels_feed():
     try:
         ensure_reels_table()
+        products_map = load_products_json()
+        
         conn = get_conn(); cur = conn.cursor()
         cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 100")
         rows = cur.fetchall()
@@ -73,45 +65,39 @@ def reels_feed():
                 reel['shop_name'] = shop
                 reel['shop_slug'] = slug
 
-                if pid:
-                    reel['product_link'] = f"/product/{pid}"
-                    reel['shop_product_link'] = f"/shop/{slug}?product={pid}&highlight={pid}"
-                    reel['shop_link'] = reel['shop_product_link']
-                    reel['buy_link'] = f"/product/{pid}"
-                    # NEW: PROMOTE & EARN LINK BASE
-                    reel['promote_link'] = f"/product/{pid}"
-                    reel['earn_amount'] = "5,000" # You can fetch from products table later
+                # ONLY GET PROMO - DON'T TOUCH PRICE!
+                product_data = None
+                if pid and pid in products_map:
+                    product_data = products_map[pid]
 
-                    cur.execute("SELECT data FROM products WHERE data->>'id' = %s OR id::text = %s LIMIT 1", (pid, pid))
-                    prow = cur.fetchone()
-                    if prow and prow[0]:
-                        pdata = prow[0]
-                        if isinstance(pdata, str):
-                            pdata = json.loads(pdata)
-                        reel['price'] = pdata.get('price') or reel.get('price') or 0
-                        reel['product_name'] = pdata.get('name') or ''
-                        # Commission if you have it
-                        if pdata.get('promo_commission'):
-                            reel['earn_amount'] = str(pdata.get('promo_commission'))
-                        real_slug = pdata.get('shop_slug')
-                        if real_slug:
-                            real_slug_clean = clean_slug(real_slug)
-                            reel['shop_slug'] = real_slug_clean
-                            reel['shop_link'] = f"/shop/{real_slug_clean}?product={pid}&highlight={pid}"
-                            reel['shop_product_link'] = reel['shop_link']
+                if product_data:
+                    promo_coins = product_data.get('promo_coins') or product_data.get('promo_commission') or 3
+                    reel['promo_coins'] = promo_coins
+                    reel['promo_commission'] = promo_coins
+                    reel['promo_commission_ugx'] = int(promo_coins) * 599
+                    reel['earn_amount'] = str(reel['promo_commission_ugx'])
                 else:
-                    reel['shop_link'] = f"/shop/{slug}"
+                    # Default promo if product not found
+                    reel['promo_coins'] = 3
+                    reel['promo_commission'] = 3
+                    reel['promo_commission_ugx'] = 1797
+                    reel['earn_amount'] = "1,797"
+
+                # Links
+                if pid:
+                    reel['promote_link'] = f"/promotion/{pid}?commission={reel['promo_coins']}"
+                    reel['product_link'] = f"/product/{pid}"
+                    reel['buy_link'] = f"/product/{pid}"
+                else:
+                    reel['promote_link'] = f"/shop/{slug}"
                     reel['product_link'] = f"/shop/{slug}"
                     reel['buy_link'] = f"/shop/{slug}"
-                    reel['shop_product_link'] = f"/shop/{slug}"
-                    reel['promote_link'] = f"/shop/{slug}"
-                    reel['earn_amount'] = "5,000"
-                
-                if not reel.get('price'):
-                    reel['price'] = 0
+
+                # PRICE - LEAVE AS IT IS! DON'T CHANGE!
+                # reel['price'] stays whatever is in DB
 
             except Exception as e:
-                print(f"Reel process fail {reel.get('id')}: {e}")
+                print(f"Reel fail {reel.get('id')}: {e}")
 
         cur.close(); conn.close()
         return jsonify(data)
