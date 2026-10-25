@@ -59,11 +59,23 @@ async function loadReels(){
       ${reel.hashtags?`<br><span style="color:#FFCC02">${reel.hashtags}</span>`:''}
     </div>
 
-    <!-- 4. PROMOTION LINK -->
-    ${reel.promo_link?`<div class="promo-link"><a href="${reel.promo_link}" target="_blank">🔗 ${reel.promo_link}</a></div>`:''}
+        <!-- 4. PROMOTION LINK = COMMISSION TO PROMOTERS -->
+    <div class="promo-link" style="margin-bottom:8px;">
+      ${reel.promo_commission||reel.promo_coins ? `
+        <a href="/promotion/${reel.product_id||reel.id}?from=reels&commission=${reel.promo_commission||reel.promo_coins}" 
+           style="text-decoration:none;background:#FFCC02;color:#000;padding:6px 12px;border-radius:20px;font-weight:900;font-size:12px;display:inline-block;">
+           💰 ${reel.promo_commission||reel.promo_coins} coins = ${Number((reel.promo_commission||reel.promo_coins)*599).toLocaleString()} UGX - PROMOTE & EARN ⭐
+        </a>
+      `: `<a href="/promotion/${reel.product_id||reel.id}?from=reels" 
+           style="text-decoration:none;background:rgba(255,204,2,0.2);border:1px solid #FFCC02;color:#FFCC02;padding:5px 12px;border-radius:20px;font-weight:900;font-size:12px;display:inline-block;">
+           🎁 PROMOTE & EARN COMMISSION
+        </a>`}
+    </div>
 
-    <!-- 5. BUY NOW -->
-    ${reel.buy_link?`<a class="shop-btn" href="${reel.buy_link}">🛒 UGX ${Number(reel.price||0).toLocaleString()} - BUY NOW</a>`:''}
+        <!-- 5. BUY NOW = ADD TO CART -->
+    <button class="shop-btn" onclick="addToCart('${reel.product_id||reel.id}', '${reel.shop_slug||''}', this)">
+      🛒 UGX ${Number(reel.price||0).toLocaleString()} - ADD TO CART
+    </button>
 
     <div style="font-size:10px;opacity:0.6;margin-top:6px">@${(reel.user_name||reel.user_email||'user').split('@')[0]} • ${reel.location||'Uganda'}</div>
   </div>
@@ -106,5 +118,48 @@ function observeVideos(){
 async function like(id, btn){ 
   try{ await fetch('/api/sannlas/reels/like/'+id,{method:'POST'}); btn.innerHTML='❤️<br><span style="font-size:10px">+1</span>'; } catch(e){}
 }
+
+// 👇👇👇 PASTE HERE - ADD TO CART FUNCTION 👇👇👇
+async function addToCart(productId, shopSlug, btn){
+  if(!productId){ alert('Product not found'); return; }
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ Adding...';
+  btn.disabled = true;
+  try{
+    const user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+    const r = await fetch('/api/cart/add', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        product_id: productId,
+        quantity: 1,
+        email: user.email||'',
+        phone: user.phone||''
+      })
+    });
+    const d = await r.json();
+    if(d.success || r.ok){
+      btn.innerHTML = '✅ ADDED!';
+      btn.style.background = '#00ff88';
+      btn.animate([{transform:'scale(1)'},{transform:'scale(1.1)'},{transform:'scale(1)'}], {duration:300});
+      setTimeout(()=>{
+        btn.innerHTML = originalText;
+        btn.style.background = '#00ff88';
+        btn.disabled = false;
+        if(confirm('Product added to cart! Go to cart?')) location.href='/cart';
+      }, 1000);
+    }else{
+      throw new Error(d.message||'Failed');
+    }
+  }catch(e){
+    let cart = JSON.parse(localStorage.getItem('sannlas_cart')||'[]');
+    cart.push({product_id: productId, shop: shopSlug, time: Date.now()});
+    localStorage.setItem('sannlas_cart', JSON.stringify(cart));
+    btn.innerHTML = '✅ ADDED!';
+    setTimeout(()=>{ btn.innerHTML = originalText; btn.disabled=false; location.href='/cart'; }, 800);
+  }
+}
+// 👆👆👆 END ADD TO CART 👆👆👆
+
 loadReels();
 </script></body></html>
