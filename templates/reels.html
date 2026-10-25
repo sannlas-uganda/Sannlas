@@ -40,7 +40,7 @@ async function loadReels(){
   </div>
   <div class="overlay">
     <!-- ===== NEW: SHOP NAME TAP = EXACT PRODUCT IN SELLER'S SHOP ===== -->
-    <a class="shop-name-link" href="${reel.shop_link || reel.shop_product_link || '/shop/'+(reel.shop_slug||'')}">
+    <a class="shop-name-link" href="/shop/${(reel.shop_slug||'shop').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')}?product=${reel.product_id||''}&highlight=${reel.product_id||''}">
       🏪 @${(reel.shop_name||reel.user_name||'SHOP').toUpperCase()} 
       <span style="font-size:12px">➡️</span>
     </a>
