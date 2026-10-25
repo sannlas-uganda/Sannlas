@@ -1,4 +1,4 @@
-import os, traceback, json, time
+import os, traceback, json, time, re
 from flask import Blueprint, request, jsonify, render_template
 import psycopg2
 
@@ -7,6 +7,18 @@ reels_bp = Blueprint('reels_bp', __name__)
 def get_conn():
     DATABASE_URL = os.getenv('DATABASE_URL')
     return psycopg2.connect(DATABASE_URL, sslmode='require')
+
+# 👇👇👇 NEW: UNIVERSAL SLUG CLEANER - FOR ALL SHOPS 👇👇👇
+def clean_slug(raw_name):
+    """ Sann 2 -> sann-2 , BEST SHOES!!! -> best-shoes , Sann%202 -> sann-2 """
+    if not raw_name:
+        return 'shop'
+    raw = str(raw_name).strip()
+    raw = raw.replace('%20',' ').replace('%2',' ')
+    # Replace anything NOT a-z0-9 with dash
+    slug = re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')
+    return slug or 'shop'
+# 👆👆👆 END OF NEW FUNCTION 👆👆👆
 
 def ensure_reels_table():
     conn = get_conn(); cur = conn.cursor()
@@ -60,22 +72,19 @@ def reels_feed():
             try:
                 pid = str(reel.get('product_id') or '').strip()
                 shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
-                slug = (reel.get('shop_slug') or shop).lower().replace(' ','-').replace('/','-')
+                
+                # 👇👇👇 FIXED HERE: NOW USES clean_slug FOR ALL SHOPS 👇👇👇
+                slug = clean_slug(reel.get('shop_slug') or shop)
                 
                 reel['shop_name'] = shop
                 reel['shop_slug'] = slug
 
-                # ===== CORE LOGIC - EXACT PRODUCT IN SELLER'S SHOP =====
                 if pid:
-                    # 1. Product page (exact product)
                     reel['product_link'] = f"/product/{pid}"
-                    # 2. Shop page highlighting that product - THIS IS WHAT YOU WANT!
                     reel['shop_product_link'] = f"/shop/{slug}?product={pid}&highlight={pid}"
-                    # 3. Shop name tap -> goes to EXACT product in shop
-                    reel['shop_link'] = reel['shop_product_link']  # Tap shop name = product in shop
-                    reel['buy_link'] = f"/product/{pid}"  # BUY NOW button = product page
+                    reel['shop_link'] = reel['shop_product_link']
+                    reel['buy_link'] = f"/product/{pid}"
 
-                    # Try to get real price from products table
                     cur.execute("SELECT data FROM products WHERE data->>'id' = %s OR id::text = %s LIMIT 1", (pid, pid))
                     prow = cur.fetchone()
                     if prow and prow[0]:
@@ -84,14 +93,14 @@ def reels_feed():
                             pdata = json.loads(pdata)
                         reel['price'] = pdata.get('price') or reel.get('price') or 0
                         reel['product_name'] = pdata.get('name') or ''
-                        # Use real shop_slug from product if exists
                         real_slug = pdata.get('shop_slug')
                         if real_slug:
-                            reel['shop_slug'] = real_slug
-                            reel['shop_link'] = f"/shop/{real_slug}?product={pid}&highlight={pid}"
+                            # 👇👇👇 ALSO CLEAN REAL SLUG FROM PRODUCTS TABLE 👇👇👇
+                            real_slug_clean = clean_slug(real_slug)
+                            reel['shop_slug'] = real_slug_clean
+                            reel['shop_link'] = f"/shop/{real_slug_clean}?product={pid}&highlight={pid}"
                             reel['shop_product_link'] = reel['shop_link']
                 else:
-                    # No product linked - fallback to shop
                     reel['shop_link'] = f"/shop/{slug}"
                     reel['product_link'] = f"/shop/{slug}"
                     reel['buy_link'] = f"/shop/{slug}"
@@ -109,6 +118,7 @@ def reels_feed():
         print("FEED ERROR:", e)
         traceback.print_exc()
         return jsonify([])
+
 @reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
 def like_reel(rid):
     try:
