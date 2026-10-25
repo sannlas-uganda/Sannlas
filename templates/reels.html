@@ -44,10 +44,10 @@ async function loadReels(){
     <a class="product-title" href="/shop/${(reel.shop_slug||'shop')}?product=${reel.product_id||''}&highlight=${reel.product_id||''}" style="text-decoration:none; display:block;">${reel.product_name||reel.caption||'New Collection'}</a>
     <div class="product-desc">${reel.description||''}${reel.hashtags?`<br><span style="color:#FFCC02">${reel.hashtags}</span>`:''}</div>
 
-    <!-- ✅✅ PROMOTE ON TOP OF BUY NOW - VERTICAL STACK ✅✅ -->
+        <!-- ✅✅ PROMOTE ON TOP OF BUY NOW - WITH AMOUNT ✅✅ -->
     <div class="action-col">
-      <a href="/promotion/${reel.product_id||reel.id}?from=reels" class="promote-btn">
-        💰 PROMOTE & EARN
+      <a href="${reel.promote_link || `/promotion/${reel.product_id||reel.id}?commission=${reel.promo_coins||3}&from=reels`}" class="promote-btn">
+        💰 PROMOTE & EARN UGX ${Number(reel.earn_amount || (reel.promo_coins||3)*599).toLocaleString()}
       </a>
       <button class="shop-btn" onclick="addToCart('${reel.product_id||reel.id}', '${reel.shop_slug||''}', this)">
         UGX ${Number(reel.price||0).toLocaleString()} - BUY NOW
