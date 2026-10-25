@@ -40,7 +40,17 @@
 <h2 style="text-align:center">📦 Sell Product (FREE)</h2>
 <input id="pName" placeholder="Product Name e.g. iPhone 13">
 <textarea id="pDesc" placeholder="Description..." rows="3"></textarea>
-<input id="pPrice" type="number" placeholder="Price UGX">
+<input id="pPrice" type="number" placeholder="Price UGX (e.g. 25000)">
+<div style="background:#FFF9C4;border:2px solid #FFCC02;border-radius:10px;padding:10px;margin:6px 0">
+  <label style="font-weight:900;font-size:12px">💰 PROMO COMMISSION - Pay Promoters per sale (Coins):</label>
+  <select id="pPromoCoins" style="width:100%;padding:12px;border-radius:10px;border:2px solid #FFCC02;font-weight:bold;margin-top:5px">
+    <option value="3">3 Coins = UGX 1,797 per sale (RECOMMENDED)</option>
+    <option value="5">5 Coins = UGX 2,995 per sale (More promoters!)</option>
+    <option value="10">10 Coins = UGX 5,990 per sale (Viral!)</option>
+    <option value="15">15 Coins = UGX 8,985 per sale (Super Viral!)</option>
+  </select>
+  <small style="color:#666">Promoters earn this when they sell your product via reels! More coins = more promoters share!</small>
+</div>
 <input id="pQty" type="number" value="1" placeholder="Quantity">
 <select id="pCategory"><option>Electronics</option><option>Fashion</option><option>Home & Living</option><option>Vehicles</option><option>Property</option><option>Other</option></select>
 <input id="pLocation" placeholder="Location e.g. Kampala">
