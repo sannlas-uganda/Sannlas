@@ -1,31 +1,30 @@
 <!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Reels - Sannlas</title>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REELS - SANNLAS</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:black;overflow:hidden;font-family:system-ui}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#fff;font-family:Arial;overflow:hidden}
 #reels-container{height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory}
-.reel{height:100vh;scroll-snap-align:start;position:relative;background:black}
+.reel{position:relative;height:100vh;scroll-snap-align:start;background:#000;display:flex;align-items:center;justify-content:center}
 .reel video{width:100%;height:100%;object-fit:cover}
-.overlay{position:absolute;bottom:0;left:0;right:0;padding:15px 95px 15px 15px;background:linear-gradient(transparent,rgba(0,0,0,.9));color:white}
-.right-actions{position:absolute;right:10px;bottom:160px;display:flex;flex-direction:column;gap:20px; z-index:20;}
-.action-btn{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;color:white; flex-direction:column;}
-.header{position:fixed;top:0;left:0;right:0;z-index:99;padding:12px;display:flex;justify-content:space-between}
-.header a{background:rgba(0,0,0,.5);color:#FFCC02;padding:8px 14px;border-radius:20px;text-decoration:none;font-weight:900}
-.shop-name{color:#FFCC02;font-weight:900;font-size:16px; display:flex; align-items:center; gap:6px; margin-bottom:4px;}
-.product-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:3px;line-height:1.2;text-shadow:1px 1px 2px #000;}
-.product-desc{font-size:13px;color:#ddd;margin-bottom:8px;line-height:1.3; opacity:0.9;}
-.action-col{display:flex; flex-direction:column; gap:8px; align-items:flex-start; margin-top:10px;}
-.shop-btn{background:#000;color:#00ff88;padding:11px 22px;border-radius:25px;font-weight:900;border:2px solid #00ff88;display:inline-block;text-decoration:none;font-size:14px; cursor:pointer; min-width:180px; text-align:center;}
-.promote-btn{background:#FFCC02;color:#000;padding:9px 18px;border-radius:20px;font-weight:900;border:2px solid #000;display:inline-block;text-decoration:none;font-size:13px; cursor:pointer; box-shadow:0 2px 0 #000; min-width:180px; text-align:center;}
-.volume-btn{position:absolute; top:60px; right:15px; width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:white; font-size:22px; cursor:pointer; z-index:30;}
-.unmute-hint{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.75); color:white; padding:10px 16px; border-radius:25px; font-size:14px; z-index:25; pointer-events:none; animation:fadeOut 3s forwards; animation-delay:2s;}
-@keyframes fadeOut{to{opacity:0}}
-</style></head><body>
-<div class="header"><a href="/">← Home</a><a href="/">SANNLAS</a></div>
+.overlay{position:absolute;bottom:0;left:0;right:0;padding:15px 15px 30px 15px;background:linear-gradient(transparent,rgba(0,0,0,0.9));z-index:5}
+.shop-name{color:#FFCC02;font-weight:900;font-size:14px;text-decoration:none;display:block}
+.product-title{color:#fff;font-weight:bold;font-size:15px;display:block;margin:5px 0}
+.product-desc{color:#fff;font-size:12px;opacity:0.8}
+.action-col{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.promote-btn{background:#FFCC02;color:#000;padding:12px 20px;border-radius:25px;font-weight:900;border:3px solid #000;display:block;text-align:center;text-decoration:none;font-size:14px;box-shadow:0 4px 10px rgba(0,0,0,0.5)}
+.shop-btn{background:#000;color:#00FF88;padding:12px 20px;border-radius:25px;font-weight:900;border:2px solid #00FF88;font-size:14px;cursor:pointer}
+.right-actions{position:absolute;right:10px;bottom:150px;display:flex;flex-direction:column;gap:15px;z-index:6}
+.action-btn{background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:22px;padding:10px;border-radius:50%;width:50px;height:50px}
+.volume-btn{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.6);border:none;color:#fff;padding:8px 12px;border-radius:20px;z-index:6}
+.unmute-hint{position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);padding:6px 10px;border-radius:10px;font-size:12px;z-index:6}
+</style>
+</head>
+<body>
 <div id="reels-container"></div>
 <script>
-let reels=[];
+let reels=[];let observer;
 async function loadReels(){
  const r=await fetch('/api/sannlas/reels/feed'); reels=await r.json();
  const c=document.getElementById('reels-container');
@@ -35,27 +34,45 @@ async function loadReels(){
   <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
   <div class="unmute-hint">Tap 🔊 for sound</div>
   <div class="right-actions">
-    <button class="action-btn" onclick="like(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes||0}</span></button>
+    <button class="action-btn" onclick="likeReel(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes||0}</span></button>
     <button class="action-btn">💬</button>
     <button class="action-btn">↗️</button>
   </div>
   <div class="overlay">
-    <a class="shop-name" href="/shop/${(reel.shop_slug||'shop')}" style="text-decoration:none;">🏪 @${(reel.shop_name||reel.user_name||'SHOP').toUpperCase()}</a>
-    <a class="product-title" href="/shop/${(reel.shop_slug||'shop')}?product=${reel.product_id||''}&highlight=${reel.product_id||''}" style="text-decoration:none; display:block;">${reel.product_name||reel.caption||'New Collection'}</a>
-    <div class="product-desc">${reel.description||''}${reel.hashtags?`<br><span style="color:#FFCC02">${reel.hashtags}</span>`:''}</div>
-    <div class="action-col" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-      <a href="${reel.promote_link||`/promotion/${reel.product_id||reel.id}?commission=${reel.promo_coins||3}`}" class="promote-btn" style="background:#FFCC02;color:#000;padding:10px 20px;border-radius:20px;font-weight:900;border:2px solid #000;display:block;text-decoration:none;font-size:13px;text-align:center;min-width:200px">💰 PROMOTE & EARN UGX ${Number(reel.earn_amount||(reel.promo_coins||3)*599||1797).toLocaleString()}</a>
-      <button class="shop-btn" onclick="addToCart('${reel.product_id||reel.id}', '${reel.shop_slug||''}', this)" style="background:#000;color:#00FF88;padding:10px 20px;border-radius:25px;font-weight:900;border:2px solid #00FF88;display:block;font-size:14px;min-width:200px">UGX ${Number(reel.price||0).toLocaleString()} - BUY NOW</button>
+    <a class="shop-name" href="/shop/${(reel.shop_slug||'shop')}">🏪 @${(reel.shop_name||'SHOP').toUpperCase()}</a>
+    <a class="product-title" href="/shop/${(reel.shop_slug||'shop')}?product=${reel.product_id||''}">${reel.product_name||reel.caption||'New Collection'}</a>
+    <div class="product-desc">${(reel.description||'').slice(0,80)}</div>
+    <div class="action-col">
+      <a href="${reel.promote_link||'/shop/'+(reel.shop_slug||'shop')}" class="promote-btn">💰 PROMOTE & EARN UGX ${Number(reel.earn_amount||reel.promo_commission_ugx||1797).toLocaleString()}</a>
+      <button class="shop-btn" onclick="location.href='${reel.product_link||'/shop/'+(reel.shop_slug||'shop')}'">UGX ${Number(reel.price||24000).toLocaleString()} - BUY NOW</button>
     </div>
-    <div style="font-size:10px;opacity:0.6;margin-top:6px">@${(reel.user_name||'').split('@')[0]} • Uganda</div>
+    <div style="font-size:10px;opacity:0.6;margin-top:8px;color:#fff">@${(reel.user_name||'user').split('@')[0]} • ${reel.location||'Uganda'}</div>
   </div>
  </div>`).join('');
  observeVideos(); addVideoClickHandlers();
 }
-function toggleVolume(btn){ const reel=btn.closest('.reel'); const video=reel.querySelector('video'); const hint=reel.querySelector('.unmute-hint'); video.muted=!video.muted; if(video.muted){btn.innerHTML='🔇';} else {btn.innerHTML='🔊'; video.volume=1; video.play().catch(()=>{}); if(hint) hint.style.display='none';}}
-function addVideoClickHandlers(){ document.querySelectorAll('.reel video').forEach(video=>{ video.addEventListener('click', ()=>{ const reel=video.closest('.reel'); const btn=reel.querySelector('.volume-btn'); const hint=reel.querySelector('.unmute-hint'); if(video.muted){video.muted=false; video.volume=1; btn.innerHTML='🔊'; video.play().catch(()=>{}); if(hint) hint.style.display='none';} else {video.paused?video.play():video.pause();}});});}
-function observeVideos(){ const vids=document.querySelectorAll('video'); const io=new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting){ e.target.play().catch(()=>{}); } else { e.target.pause(); } }); },{threshold:0.7}); vids.forEach(v=>io.observe(v));}
-async function like(id, btn){ try{ await fetch('/api/sannlas/reels/like/'+id,{method:'POST'}); btn.innerHTML='❤️<br><span style="font-size:10px">+1</span>'; } catch(e){}}
-async function addToCart(productId, shopSlug, btn){ if(!productId){ alert('Product not found'); return; } const originalText=btn.innerHTML; btn.innerHTML='⏳ Adding...'; btn.disabled=true; try{ const user=JSON.parse(localStorage.getItem('sannlas_user')||'{}'); const r=await fetch('/api/cart/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:productId,quantity:1,email:user.email||'',phone:user.phone||''})}); const d=await r.json(); if(d.success||r.ok){btn.innerHTML='✅ ADDED!'; setTimeout(()=>{btn.innerHTML=originalText; btn.disabled=false; if(confirm('Go to cart?')) location.href='/cart';},1000);}else{throw new Error('Failed');}}catch(e){let cart=JSON.parse(localStorage.getItem('sannlas_cart')||'[]'); cart.push({product_id:productId,shop:shopSlug,time:Date.now()}); localStorage.setItem('sannlas_cart',JSON.stringify(cart)); btn.innerHTML='✅ ADDED!'; setTimeout(()=>{btn.innerHTML=originalText; btn.disabled=false; location.href='/cart';},800);}}
+function observeVideos(){
+ const videos=document.querySelectorAll('video');
+ observer=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+   if(e.isIntersecting){e.target.play().catch(()=>{});}else{e.target.pause();}
+  });
+ },{threshold:0.7});
+ videos.forEach(v=>observer.observe(v));
+}
+function addVideoClickHandlers(){
+ document.querySelectorAll('.reel video').forEach(v=>v.addEventListener('click',function(){this.muted=!this.muted;document.querySelectorAll('.volume-btn').forEach(b=>b.innerText=this.muted?'🔇':'🔊');}));
+}
+function toggleVolume(btn){
+ const video=btn.parentElement.querySelector('video');
+ video.muted=!video.muted;
+ btn.innerText=video.muted?'🔇':'🔊';
+}
+async function likeReel(id,btn){
+ await fetch('/api/sannlas/reels/like/'+id,{method:'POST'});
+ let span=btn.querySelector('span');if(span){span.innerText=parseInt(span.innerText||0)+1;}
+}
 loadReels();
-</script></body></html>
+</script>
+</body>
+</html>
