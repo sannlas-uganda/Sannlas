@@ -715,49 +715,75 @@ function cleanSlug(s){
   return (s||'shop').toString().trim().toLowerCase()
     .replace(/%20|%2520/gi,'-').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';
 }
-async function toggleFollow(targetUserId, reelId, btn){
-  if(!targetUserId){ alert('User not found'); return; }
+async function toggleFollowReal(btn){
+  let targetEmail = btn.getAttribute('data-email') || '';
+  // If reel doesn't have email, try to get from shopName via API
+  if(!targetEmail){
+    alert('Cannot follow: shop email missing in reel feed. Add user_email to reels feed API!');
+    return;
+  }
   let u = localStorage.getItem('sannlas_user');
-  if(!u){ alert('Login first to follow!'); showGate(); return; }
+  if(!u){ alert('Login first!'); if(typeof showGate==='function') showGate(); return; }
   let currentUser;
-  try{ currentUser = JSON.parse(u); }catch(e){ currentUser = {email:u}; }
+  try{ currentUser = JSON.parse(u); }catch(e){ return; }
+  let myEmail = (currentUser.email||'').toLowerCase();
+  let myPhone = currentUser.phone||'';
+  if(!myEmail){ alert('Login email missing'); return; }
+  if(myEmail === targetEmail.toLowerCase()){
+    alert("Can't follow yourself Boss!");
+    return;
+  }
   
   let isFollowing = btn.innerText === '✓';
+  let url = isFollowing ? '/api/unfollow' : '/api/follow';
   let original = btn.innerHTML;
   btn.innerHTML = '...';
   
   try{
-    let r = await fetch('/api/sannlas/follow', {
+    let r = await fetch(url, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        follower_id: currentUser.email || currentUser.id || currentUser,
-        following_id: targetUserId,
-        action: isFollowing ? 'unfollow' : 'follow'
-      })
+      body: JSON.stringify({email: myEmail, phone: myPhone, target_email: targetEmail})
     });
     let j = await r.json();
-    
+    if(!r.ok || !j.success){
+      alert(j.message||'Failed');
+      btn.innerHTML = original;
+      return;
+    }
     if(isFollowing){
-      // Unfollow -> back to +
       btn.innerHTML = '+';
-      btn.style.background = '#FFCC02';
-      btn.style.color = '#000';
+      btn.style.background = '#FFCC02'; btn.style.color='#000'; btn.style.borderColor='#000';
     } else {
-      // Follow -> tick
       btn.innerHTML = '✓';
-      btn.style.background = '#fff';
-      btn.style.color = '#00CC00';
-      btn.style.borderColor = '#00CC00';
-      // Animation like TikTok
-      btn.style.transform = 'translateX(-50%) scale(1.2)';
-      setTimeout(()=> btn.style.transform = 'translateX(-50%) scale(1)', 200);
+      btn.style.background = '#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
+      btn.style.transform = 'translateX(-50%) scale(1.25)';
+      setTimeout(()=>btn.style.transform='translateX(-50%) scale(1)',200);
     }
   }catch(e){
     btn.innerHTML = original;
-    console.error(e);
-    alert('Follow failed: '+e.message);
+    alert('Error: '+e.message);
   }
+}
+
+// Auto-check if already following when reels load
+async function checkFollowStatus(){
+  let u = localStorage.getItem('sannlas_user');
+  if(!u) return;
+  let me;
+  try{ me=JSON.parse(u);}catch(e){return;}
+  if(!me.email) return;
+  document.querySelectorAll('[id^="follow-btn-"]').forEach(async (btn)=>{
+    let target = btn.getAttribute('data-email');
+    if(!target) return;
+    try{
+      let r = await fetch(`/api/follow/check?email=${encodeURIComponent(me.email)}&target=${encodeURIComponent(target)}`);
+      let j = await r.json();
+      if(j.is_following){
+        btn.innerHTML='✓'; btn.style.background='#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
+      }
+    }catch(e){}
+  });
 }
 async function loadHomeReels(){
   let c=document.getElementById('reelsFeedContainer');
@@ -788,12 +814,11 @@ async function loadHomeReels(){
         <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔇</button>
           
 <div style="cursor:pointer;position:relative;text-align:center">
-  <!-- Tap S to go to shop -->
   <div onclick="event.stopPropagation(); openUserShop('${reel.user_id||reel.shop_id||''}', '${shopName.replace(/'/g, "\\'")}')" style="width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.5)">
     ${logo ? `<img src="${logo}" style="width:100%;height:100%;object-fit:cover">` : initial}
   </div>
-  <!-- + BUTTON = FOLLOW BUTTON -->
-  <div id="follow-btn-${reel.id}" onclick="event.stopPropagation(); toggleFollow('${reel.user_id||reel.shop_id||''}', '${reel.id}', this)" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer;transition:0.2s">+</div>
+  <!-- + BUTTON = FOLLOW - USES EMAIL -->
+  <div id="follow-btn-${reel.id}" data-email="${(reel.user_email||reel.email||reel.shop_email||'').toLowerCase()}" onclick="event.stopPropagation(); toggleFollowReal(this)" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer;transition:0.2s">+</div>
 </div>
 
   <!-- LIKE BUTTON NOW BELOW PROFILE -->
@@ -820,8 +845,9 @@ async function loadHomeReels(){
       </div>`;
     }).join('');
     
-    let obs=new IntersectionObserver(es=>{es.forEach(e=>{let v=e.target.querySelector('video'); if(e.isIntersecting&&v){c.querySelectorAll('video').forEach(x=>{if(x!==v)x.pause()}); v.muted=true; v.play().catch(()=>{})}else if(v)v.pause()})},{threshold:0.6,root:c});
+       let obs=new IntersectionObserver(es=>{es.forEach(e=>{let v=e.target.querySelector('video'); if(e.isIntersecting&&v){c.querySelectorAll('video').forEach(x=>{if(x!==v)x.pause()}); v.muted=true; v.play().catch(()=>{})}else if(v)v.pause()})},{threshold:0.6,root:c});
     c.querySelectorAll('.reel-item').forEach(el=>obs.observe(el));
+    setTimeout(checkFollowStatus, 500);
   }
 }
 function toggleHomeVol(video){
