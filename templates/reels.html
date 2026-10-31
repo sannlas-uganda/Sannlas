@@ -18,9 +18,9 @@
 .right-actions{position:absolute;right:10px;bottom:150px;display:flex;flex-direction:column;gap:16px;z-index:6;align-items:center}
 .action-btn{background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:22px;padding:10px;border-radius:50%;width:50px;height:50px;cursor:pointer}
 .profile-btn-wrap{cursor:pointer;text-align:center;position:relative}
-.profile-avatar{width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.5)}
+.profile-avatar{width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.5);cursor:pointer}
 .profile-avatar img{width:100%;height:100%;object-fit:cover}
-.follow-plus{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;border:2px solid #000}
+.follow-plus{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer;transition:0.2s;z-index:7}
 .volume-btn{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.6);border:none;color:#fff;padding:8px 12px;border-radius:20px;z-index:6}
 .unmute-hint{position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);padding:6px 10px;border-radius:10px;font-size:12px;z-index:6}
 </style>
@@ -40,17 +40,22 @@ let reels=[];let observer;
 async function loadReels(){
  const r=await fetch('/api/sannlas/reels/feed'); reels=await r.json();
  const c=document.getElementById('reels-container');
+ if(!reels || reels.length==0){
+   c.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#FFCC02">No reels yet! Upload one.</div>';
+   return;
+ }
  c.innerHTML=reels.map((reel,i)=>{
   const slug = cleanSlug(reel.shop_slug||reel.shop_name||'shop');
   const logo = reel.shop_logo || '';
   const shopInitial = (reel.shop_name||'S')[0].toUpperCase();
-  // PROFILE ICON HTML - ON TOP OF LIKES
+  const email = (reel.user_email||reel.shop_email||reel.email||'').toLowerCase();
+  
   const profileHtml = `
-    <div class="profile-btn-wrap" onclick="location.href='/shop/${slug}'">
-      <div class="profile-avatar">
+    <div class="profile-btn-wrap">
+      <div class="profile-avatar" onclick="event.stopPropagation(); location.href='/shop/${slug}'">
         ${logo ? `<img src="${logo}">` : shopInitial}
       </div>
-      <div class="follow-plus">+</div>
+      <div class="follow-plus" data-email="${email}" id="follow-btn-${reel.id}" onclick="event.stopPropagation(); toggleFollowReal(this)">+</div>
     </div>`;
   
   return `
@@ -76,6 +81,7 @@ async function loadReels(){
   </div>
  </div>`}).join('');
  observeVideos(); addVideoClickHandlers();
+ setTimeout(checkFollowStatus, 800);
 }
 function observeVideos(){
  const videos=document.querySelectorAll('video');
@@ -98,6 +104,75 @@ async function likeReel(id,btn){
  await fetch('/api/sannlas/reels/like/'+id,{method:'POST'});
  let span=btn.querySelector('span');if(span){span.innerText=parseInt(span.innerText||0)+1;}
 }
+
+// ===== FOLLOW SYSTEM - FIXED FOR YOUR API =====
+async function toggleFollowReal(btn){
+  let targetEmail = btn.getAttribute('data-email') || '';
+  if(!targetEmail){
+    alert('Shop email missing! Make sure your sannlas_reels.py sends user_email');
+    return;
+  }
+  let u = localStorage.getItem('sannlas_user');
+  if(!u){ alert('Login first to follow!'); return; }
+  let currentUser;
+  try{ currentUser = JSON.parse(u); }catch(e){ alert('Login error'); return; }
+  let myEmail = (currentUser.email||'').toLowerCase();
+  let myPhone = currentUser.phone||'';
+  if(!myEmail){ alert('Your email missing - login again'); return; }
+  if(myEmail === targetEmail){
+    alert("Can't follow yourself!");
+    return;
+  }
+  let isFollowing = btn.innerText === '✓';
+  let url = isFollowing ? '/api/unfollow' : '/api/follow';
+  let original = btn.innerHTML;
+  btn.innerHTML = '...';
+  try{
+    let r = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email: myEmail, phone: myPhone, target_email: targetEmail})
+    });
+    let j = await r.json();
+    if(!r.ok || !j.success){
+      alert(j.message||'Failed');
+      btn.innerHTML = original;
+      return;
+    }
+    if(isFollowing){
+      btn.innerHTML = '+';
+      btn.style.background = '#FFCC02'; btn.style.color='#000'; btn.style.borderColor='#000';
+    } else {
+      btn.innerHTML = '✓';
+      btn.style.background = '#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
+      btn.style.transform = 'translateX(-50%) scale(1.25)';
+      setTimeout(()=>btn.style.transform='translateX(-50%) scale(1)',200);
+    }
+  }catch(e){
+    btn.innerHTML = original;
+    alert('Error: '+e.message);
+  }
+}
+
+async function checkFollowStatus(){
+  let u = localStorage.getItem('sannlas_user');
+  if(!u) return;
+  let me;
+  try{ me=JSON.parse(u);}catch(e){return;}
+  if(!me.email) return;
+  document.querySelectorAll('.follow-plus').forEach(async (btn)=>{
+    let target = btn.getAttribute('data-email');
+    if(!target) return;
+    try{
+      let r = await fetch(`/api/follow/check?email=${encodeURIComponent(me.email)}&target=${encodeURIComponent(target)}`);
+      let j = await r.json();
+      if(j.is_following){
+        btn.innerHTML='✓'; btn.style.background='#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
+      }
+    }catch(e){}
+  });
+}
+
 loadReels();
 </script>
 </body>
