@@ -92,8 +92,31 @@ async function load(){
   currentShop=shop;
   document.getElementById('shopLogoTop').src=shop.logo||`https://via.placeholder.com/150?text=SHOP`; document.getElementById('shopLogoTop').style.display='inline-block';
 
-  document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button><button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button></div><p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p><p style="margin-top:8px"><a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#FFCC02;text-decoration:none;font-weight:bold;border:1px solid #FFCC02;padding:6px 12px;border-radius:20px">🎥 View Reels Profile ➔ /@/${cleanSlug(shop.shop_slug||shop.business_name)}</a></p>`;
+document.getElementById('headerText').innerHTML=`
+<h1>🏪 ${shop.business_name}</h1>
+<p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p>
+<p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p>
+<div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px">
+  <button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button>
+  <button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button>
+  <button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button>
+  <button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button>
+</div>
+<p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>
+<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+  <a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:8px 16px;border-radius:20px;font-size:13px">🎥 View Reels Profile</a>
+  <a href="/my-shop" id="myShopBtnHeader" style="color:#FFCC02;background:#000;text-decoration:none;font-weight:900;padding:8px 16px;border-radius:20px;font-size:13px;border:2px solid #FFCC02">🏪 My Shop</a>
+</div>`;
 
+   // OWNER ONLY - Hide My Shop if not logged owner
+try{
+  let u = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+  let myEmail = (u.email||'').toLowerCase();
+  if(!myEmail){
+    document.getElementById('myShopBtnHeader').style.display='none';
+  }
+}catch(e){}
+   
   let pEl = document.getElementById('p');
   if(products.length){
     pEl.innerHTML = products.map(prod=>{
