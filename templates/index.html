@@ -785,17 +785,7 @@ async function checkFollowStatus(){
     }catch(e){}
   });
 }
-async function loadHomeReels(){
-  let c=document.getElementById('reelsFeedContainer');
-  let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
-  if(cached.length>0) renderReels(cached); 
-  else c.innerHTML='<div style="height:85vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
-  
-  fetch('/api/sannlas/reels/feed').then(r=>r.json()).then(reels=>{
-    if(reels?.length>0){ localStorage.setItem('sannlas_reels_cache',JSON.stringify(reels)); renderReels(reels); }
-  }).catch(()=>{});
-
-  function renderReels(reels){
+function renderReels(reels){
     let feed=reels.length<4?[...reels,...reels,...reels].slice(0,15):reels;
     c.innerHTML=feed.map((reel,i)=>{
       let media=reel.video_url||reel.image_url||reel.media_url||'';
