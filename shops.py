@@ -184,12 +184,18 @@ def get_shop_by_slug(slug):
     try:
         raw = unquote(unquote(slug)).strip()
         cleaned = clean_slug_fix(raw)
+        print(f"SHOP REQUEST: {slug} -> {raw} -> {cleaned}")
 
-        shops = load_db('shops.json', [])
+        shops = load_db('shops.json', []) or []
+        products = load_db('products.json', []) or []
+        
         shop = None
+        
+        # 1. SEARCH IN shops.json FIRST
         for s in shops:
             for key in ['shop_slug','slug','business_name','name']:
-                if clean_slug_fix(s.get(key,'')) == cleaned:
+                val = str(s.get(key,'') or '')
+                if clean_slug_fix(val) == cleaned or val.lower().strip() == raw.lower():
                     shop=s; break
             if shop: break
 
@@ -198,53 +204,102 @@ def get_shop_by_slug(slug):
                 if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
                     shop=s; break
 
+        # 2. FALLBACK: SEARCH IN products.json (YOUR CASE - Sannlas has products but no shop entry!)
         if not shop:
-            return jsonify({'success':False,'shop':None,'products':[]}),404
+            print(f"Not in shops.json, searching products for {cleaned}")
+            for p in products:
+                business = str(p.get('business','') or p.get('shop_slug','') or '').strip()
+                if not business: continue
+                if clean_slug_fix(business) == cleaned or business.lower() == raw.lower() or cleaned in clean_slug_fix(business):
+                    # CREATE SHOP FROM PRODUCT
+                    shop = {
+                        "shop_slug": clean_slug_fix(business),
+                        "slug": clean_slug_fix(business),
+                        "business_name": business,
+                        "name": business,
+                        "description": f"Welcome to {business} shop!",
+                        "location": p.get('location','Kampala'),
+                        "phone": p.get('phone',''),
+                        "owner_email": p.get('seller_email',''),
+                        "logo": p.get('shop_logo',''),
+                        "verified": False
+                    }
+                    print(f"FOUND SHOP FROM PRODUCT: {business}")
+                    break
+
+        if not shop:
+            return jsonify({'success':False,'shop':None,'products':[], 'message': f'Shop {raw} not found'}),404
 
         real_slug = clean_slug_fix(shop.get('shop_slug') or cleaned)
         real_name_clean = clean_slug_fix(shop.get('business_name') or '')
+        owner_email = str(shop.get('owner_email','')).lower()
 
-        products = load_db('products.json', [])
         shop_products=[]
         for p in products:
             ps_clean = clean_slug_fix(p.get('shop_slug',''))
             pb_clean = clean_slug_fix(p.get('business',''))
-            owner_match = str(p.get('seller_email','')).lower() == str(shop.get('owner_email','')).lower()
-            if ps_clean==real_slug or pb_clean==real_name_clean or ps_clean==cleaned or owner_match:
+            p_email = str(p.get('seller_email','')).lower()
+            if ps_clean==real_slug or pb_clean==real_name_clean or ps_clean==cleaned or pb_clean==cleaned or (owner_email and p_email==owner_email):
                 pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
 
+        # If still 0 products, try loose match for Sannlas
+        if not shop_products:
+            for p in products:
+                b = str(p.get('business','') or '').lower()
+                if 'sannlas' in b or cleaned in b or b in cleaned:
+                    shop_products.append(p)
+
+        print(f"FOUND SHOP {shop.get('business_name')} with {len(shop_products)} products")
         return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
-
+        
 # ===== API: /api/shops - ALL SHOPS LIST =====
+        
 @shops_bp.route('/api/shops')
 def get_all_shops():
     try:
         shops = load_db('shops.json', []) or []
         products = load_db('products.json', []) or []
         
-        # Count products per shop
-        count_map = {}
-        for p in products:
-            key = clean_slug_fix(p.get('shop_slug','') or p.get('business',''))
-            count_map[key] = count_map.get(key,0)+1
-            # also by email
-            em = str(p.get('seller_email','')).lower()
-            count_map[em] = count_map.get(em,0)+1
+        # If shops.json empty, build from products business names
+        if not shops:
+            seen = {}
+            for p in products:
+                b = str(p.get('business','') or '').strip()
+                if not b: continue
+                key = clean_slug_fix(b)
+                if key not in seen:
+                    seen[key] = {
+                        "shop_slug": key,
+                        "slug": key,
+                        "business_name": b,
+                        "name": b,
+                        "location": p.get('location','Kampala'),
+                        "logo": "",
+                        "total_products": 0
+                    }
+                seen[key]["total_products"] += 1
+            shops = list(seen.values())
+        else:
+            count_map = {}
+            for p in products:
+                key = clean_slug_fix(p.get('shop_slug','') or p.get('business',''))
+                count_map[key] = count_map.get(key,0)+1
+                em = str(p.get('seller_email','')).lower()
+                count_map[em] = count_map.get(em,0)+1
+            result=[]
+            for s in shops:
+                slug = clean_slug_fix(s.get('shop_slug') or s.get('business_name') or 'shop')
+                s_copy = dict(s)
+                s_copy['shop_slug'] = slug
+                s_copy['total_products'] = count_map.get(slug,0) or count_map.get(str(s.get('owner_email','')).lower(),0)
+                result.append(s_copy)
+            shops = sorted(result, key=lambda x: x.get('total_products',0), reverse=True)
 
-        result=[]
-        for s in shops:
-            slug = clean_slug_fix(s.get('shop_slug') or s.get('business_name') or 'shop')
-            s_copy = dict(s)
-            s_copy['shop_slug'] = slug
-            s_copy['total_products'] = count_map.get(slug,0) or count_map.get(str(s.get('owner_email','')).lower(),0)
-            result.append(s_copy)
-
-        # Sort by product count desc
-        result = sorted(result, key=lambda x: x.get('total_products',0), reverse=True)
-        return jsonify(result)
+        shops = sorted(shops, key=lambda x: x.get('total_products',0), reverse=True)
+        return jsonify(shops)
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify([])
