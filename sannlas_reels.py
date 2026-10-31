@@ -119,20 +119,25 @@ def get_user_reels(shop_slug):
         products_map = load_products_json()
         conn = get_conn(); cur = conn.cursor()
         
-        # Search by slug OR name OR user_name
-        cur.execute("""
-            SELECT * FROM sannlas_reels 
-            WHERE LOWER(shop_slug) = LOWER(%s) 
-            OR LOWER(shop_name) = LOWER(%s) 
-            OR LOWER(user_name) = LOWER(%s)
-            ORDER BY id DESC
-        """, (shop_slug, shop_slug, shop_slug))
+        # Clean the incoming slug too!
+        incoming = clean_slug(shop_slug)
         
+        cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 200")
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description]
-        data = [dict(zip(cols, r)) for r in rows]
+        all_data = [dict(zip(cols, r)) for r in rows]
 
-        # Same promo logic as feed
+        # Filter in Python to catch Sann%202 == sann-2
+        filtered = []
+        for r in all_data:
+            db_slug = clean_slug(r.get('shop_slug') or '')
+            db_name = clean_slug(r.get('shop_name') or '')
+            db_user = clean_slug(r.get('user_name') or '')
+            if incoming in [db_slug, db_name, db_user] or db_slug == incoming or incoming in db_slug or db_slug in incoming:
+                filtered.append(r)
+        
+        data = filtered
+
         for reel in data:
             pid = str(reel.get('product_id') or '').strip()
             shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
@@ -160,7 +165,7 @@ def get_user_reels(shop_slug):
         print("USER REELS ERROR:", e)
         traceback.print_exc()
         return jsonify([])
-
+        
 @reels_bp.route('/profile/<shop_slug>')
 @reels_bp.route('/@<shop_slug>')
 @reels_bp.route('/reels/user/<shop_slug>')
