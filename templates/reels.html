@@ -51,7 +51,7 @@ async function loadReels(){
   </div>
   <div class="overlay">
     <a class="shop-name" href="/@/${(reel.shop_slug||'shop')}">🏪 @${(reel.shop_name||'SHOP').toUpperCase()} ➔</a>
-    <a class="product-title" href="/shop/${(reel.shop_slug||'shop')}?product=${reel.product_id||''}">${reel.product_name||reel.caption||'New Collection'}</a>
+    <a class="product-title" href="/@/${(reel.shop_slug||'shop')}">${reel.product_name||reel.caption||'New Collection'}</a>
     <div class="product-desc">${(reel.description||'').slice(0,80)}</div>
     <div class="action-col">
       <a href="${reel.promote_link||'/shop/'+(reel.shop_slug||'shop')}" class="promote-btn">💰 PROMOTE & EARN UGX ${Number(reel.earn_amount||reel.promo_commission_ugx||1797).toLocaleString()}</a>
