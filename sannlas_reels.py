@@ -229,3 +229,43 @@ def like_reel(rid):
     except Exception as e:
         print("LIKE ERROR", e)
         return jsonify({'success':False})
+
+# ADD THIS AFTER your like_reel function at bottom of file:
+
+@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
+def upload_reel():
+    try:
+        ensure_reels_table()
+        file = request.files.get('video')
+        caption = request.form.get('caption') or request.form.get('product_name') or 'New Reel 🔥'
+        user_email = (request.form.get('user_email') or request.form.get('email') or '').lower().strip()
+        user_name = request.form.get('user_name') or user_email.split('@')[0] if user_email else 'SANNLAS USER'
+        product_id = request.form.get('product_id') or ''
+        shop_name = request.form.get('shop_name') or user_name or 'SANNLAS SHOP'
+        shop_slug = clean_slug(request.form.get('shop_slug') or shop_name)
+        
+        if not file:
+            return jsonify({'success': False, 'error': 'No video file'}), 400
+        if not user_email:
+            return jsonify({'success': False, 'error': 'user_email missing - login first!'}), 400
+
+        # --- Upload to Cloudinary (your existing logic) ---
+        import cloudinary.uploader
+        # Ensure cloudinary configured in your app.py
+        result = cloudinary.uploader.upload(file, resource_type="video", folder="sannlas_reels")
+        video_url = result.get('secure_url') or result.get('url')
+
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO sannlas_reels 
+            (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0) RETURNING id
+        """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url))
+        new_id = cur.fetchone()[0]
+        conn.commit(); cur.close(); conn.close()
+        
+        return jsonify({'success': True, 'id': new_id, 'url': video_url, 'video_url': video_url})
+    except Exception as e:
+        print("UPLOAD ERROR:", e)
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
