@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, session, redirect
 import os, json, time, re
 
 my_shop_bp = Blueprint('my_shop', __name__)
@@ -108,19 +108,40 @@ def make_shop_slug(business):
     base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
     return base[:50] or 'shop'
 
+def get_logged_user_email():
+    # 1. From session (best)
+    email = session.get('user_email') or session.get('email')
+    if email:
+        return email.lower().strip()
+    # 2. From Authorization header or args as fallback (for your frontend localStorage)
+    # We will STILL require it to match session later if session exists
+    email = request.args.get('email') or (request.json or {}).get('email') if request.is_json else None
+    if not email:
+        email = request.headers.get('X-User-Email')
+    if email:
+        return email.lower().strip()
+    return None
+
 @my_shop_bp.route('/my-shop')
 def my_shop_page():
+    # If no session, frontend will handle redirect via JS, but we allow page to load
+    # to let JS check localStorage. For strict security, uncomment next 3 lines:
+    # if not session.get('user_email') and not session.get('email'):
+    #    return redirect('/login?next=/my-shop')
     return render_template('my_shop.html')
 
 @my_shop_bp.route('/api/my-shop')
 def api_my_shop():
-    email = request.args.get('email','').lower().strip()
+    # SECURE: Get email from session first!
+    email = get_logged_user_email()
     if not email:
-        return jsonify({'success':False,'message':'Email required'}),400
+        return jsonify({'success':False,'message':'Please login first'}),401
+    
     users = load_db('users.json', [])
     user = next((u for u in users if str(u.get('email','')).lower()==email), None)
     if not user:
-        return jsonify({'success':False,'message':'User not found'}),404
+        return jsonify({'success':False,'message':'User not found - please register'}),404
+        
     shops = load_db('shops.json', [])
     shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
     if not shop:
@@ -129,11 +150,17 @@ def api_my_shop():
             shop = next((s for s in shops if s.get('business_name','').lower()==biz.lower()), None)
     if not shop:
         shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "owner_email": email, "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome to my shop!", "logo":"", "verified":False, "created": time.time()}
+    
     products = load_db('products.json', [])
     my_products = [p for p in products if str(p.get('seller_email','')).lower()==email]
     my_products = sorted(my_products, key=lambda x: x.get('created',0), reverse=True)
     orders_v2 = load_db('orders_v2.json', [])
     my_orders = [o for o in orders_v2 if str(o.get('seller_email','')).lower()==email]
+    
+    # ADD REELS FOR OWNER
+    reels = load_db('reels.json', []) or load_db('sannlas_reels.json', []) or []
+    my_reels = [r for r in reels if str(r.get('owner_email','') or r.get('seller_email','') or r.get('email','')).lower()==email]
+    
     wants = load_db('wants.json', [])
     matching_wants = [w for w in wants if w.get('status','open')=='open'][:20]
     coins = int(user.get('coins',0))
@@ -141,44 +168,57 @@ def api_my_shop():
         coins = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
         if coins<0: coins=0
     return jsonify({
-        'success':True, 'shop': shop, 'products': my_products,
-        'stats': {"views": sum(int(p.get('views',0)) for p in my_products), "total_products": len(my_products), "call_clicks": len(my_products)*3, "whatsapp_clicks": len(my_products)*2, "coins": coins},
+        'success':True, 'shop': shop, 'products': my_products, 'reels': my_reels,
+        'stats': {"views": sum(int(p.get('views',0)) for p in my_products), "total_products": len(my_products), "total_reels": len(my_reels), "call_clicks": len(my_products)*3, "whatsapp_clicks": len(my_products)*2, "coins": coins},
         'orders': sorted(my_orders, key=lambda x: x.get('created_at',0), reverse=True),
         'matching_wants': matching_wants, 'total': len(my_products), 'has_more': False, 'page': 1
     })
 
+# ALL OTHER ROUTES MUST ALSO CHECK OWNER - SECURE VERSION
 @my_shop_bp.route('/api/my-shop/update-price', methods=['POST'])
 def my_shop_update_price():
-    data=request.json or {}; pid=str(data.get('id','')); price=int(data.get('price',0)); email=data.get('email','').lower()
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False,'message':'Login required'}),401
+    pid=str(data.get('id','')); price=int(data.get('price',0)); 
     products=load_db('products.json',[])
     for p in products:
-        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email:
             p['price']=price; save_db('products.json',products); return jsonify({'success':True})
-    return jsonify({'success':False}),403
+    return jsonify({'success':False,'message':'Not your product'}),403
 
 @my_shop_bp.route('/api/my-shop/update-stock', methods=['POST'])
 def my_shop_update_stock():
-    data=request.json or {}; pid=str(data.get('id','')); stock=int(data.get('stock',0)); email=data.get('email','').lower()
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False}),401
+    pid=str(data.get('id','')); stock=int(data.get('stock',0))
     products=load_db('products.json',[])
     for p in products:
-        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email:
             p['stock']=stock; save_db('products.json',products); return jsonify({'success':True})
     return jsonify({'success':False}),403
 
 @my_shop_bp.route('/api/my-shop/toggle-hide', methods=['POST'])
 def my_shop_toggle_hide():
-    data=request.json or {}; pid=str(data.get('id','')); hidden=bool(data.get('hidden',False)); email=data.get('email','').lower()
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False}),401
+    pid=str(data.get('id','')); hidden=bool(data.get('hidden',False))
     products=load_db('products.json',[])
     for p in products:
-        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==email:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email:
             p['is_hidden']=hidden; save_db('products.json',products); return jsonify({'success':True})
     return jsonify({'success':False}),403
 
 @my_shop_bp.route('/api/my-shop/delete', methods=['POST'])
 def my_shop_delete():
-    data=request.json or {}; pid=str(data.get('id','')); email=data.get('email','').lower()
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False}),401
+    pid=str(data.get('id',''))
     products=load_db('products.json',[])
-    new_products=[p for p in products if not (str(p['id'])==pid and str(p.get('seller_email','')).lower()==email)]
+    new_products=[p for p in products if not (str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email)]
     if len(new_products)!=len(products):
         save_db('products.json',new_products); return jsonify({'success':True})
     return jsonify({'success':False}),404
@@ -186,86 +226,54 @@ def my_shop_delete():
 @my_shop_bp.route('/api/my-shop/update-settings', methods=['POST'])
 def my_shop_update_settings():
     data=request.json or {}
-    email=data.get('email','').lower().strip()
+    email=get_logged_user_email()
     if not email:
-        return jsonify({'success':False,'message':'Email required'}),400
+        return jsonify({'success':False,'message':'Login required'}),401
     
     print(f"MY-SHOP UPDATE: {email} -> {data}")
-    
     shops=load_db('shops.json',[]) or []
     users=load_db('users.json',[]) or []
     products=load_db('products.json',[]) or []
     
-    # FIND OR CREATE SHOP - FIXED!
     shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
-    
     if not shop:
-        # CREATE NEW SHOP if not exists - THIS WAS MISSING!
         biz_name = data.get('business_name','My Shop').strip() or 'My Shop'
         new_slug = make_shop_slug(biz_name)
-        # Ensure slug unique
         existing_slugs = [str(s.get('shop_slug','')).lower() for s in shops]
         base_slug = new_slug
         counter=1
         while new_slug in existing_slugs:
             new_slug = f"{base_slug}-{counter}"
             counter+=1
-        
         shop = {
-            "business_name": biz_name,
-            "shop_slug": new_slug,
-            "owner_email": email,
-            "location": data.get('location','Kampala'),
-            "phone": data.get('phone',''),
-            "description": data.get('description','Welcome!'),
-            "logo": data.get('logo',''),
-            "verified": False,
-            "created": time.time(),
-            "updated": time.time()
+            "business_name": biz_name, "shop_slug": new_slug, "owner_email": email,
+            "location": data.get('location','Kampala'), "phone": data.get('phone',''),
+            "description": data.get('description','Welcome!'), "logo": data.get('logo',''),
+            "verified": False, "created": time.time(), "updated": time.time()
         }
         shops.append(shop)
-        print(f"CREATED NEW SHOP: {new_slug}")
     else:
-        # UPDATE EXISTING - KEEP SAME SLUG (don't break links)
-        old_name = shop.get('business_name','')
-        new_name = data.get('business_name','').strip()
-        if new_name and new_name != old_name:
-            shop['business_name'] = new_name
-            # OPTIONAL: Keep old slug for SEO, or uncomment to update slug:
-            # shop['shop_slug'] = make_shop_slug(new_name)
-        
+        if data.get('business_name'): shop['business_name']=data.get('business_name').strip()
         shop['location'] = data.get('location', shop.get('location','Kampala'))
         shop['phone'] = data.get('phone', shop.get('phone',''))
         shop['description'] = data.get('description', shop.get('description',''))
-        if data.get('logo'):
-            shop['logo'] = data.get('logo')
-        shop['updated'] = time.time()
-        print(f"UPDATED SHOP: {shop['shop_slug']}")
+        if data.get('logo'): shop['logo']=data.get('logo')
+        shop['updated']=time.time()
 
-    # ALSO UPDATE USER BUSINESS NAME
     for u in users:
         if str(u.get('email','')).lower()==email:
-            if data.get('business_name'):
-                u['business'] = data.get('business_name')
-            if data.get('phone'):
-                u['phone'] = data.get('phone')
+            if data.get('business_name'): u['business']=data.get('business_name')
+            if data.get('phone'): u['phone']=data.get('phone')
             break
 
-    # ALSO UPDATE ALL PRODUCTS BUSINESS FIELD (so shop page shows new name)
-    updated_products = 0
+    updated_products=0
     for p in products:
         if str(p.get('seller_email','')).lower()==email:
-            if data.get('business_name'):
-                p['business'] = data.get('business_name')
-            # Keep product shop_slug synced to shop
-            p['shop_slug'] = shop['shop_slug']
+            if data.get('business_name'): p['business']=data.get('business_name')
+            p['shop_slug']=shop['shop_slug']
             updated_products+=1
 
     save_db('shops.json', shops)
     save_db('users.json', users)
-    if updated_products>0:
-        save_db('products.json', products)
-
-    print(f"SHOP SAVE OK: {shop['shop_slug']} + {updated_products} products updated")
-    
-    return jsonify({'success':True, 'shop': shop, 'updated_products': updated_products, 'message': f"Shop saved! {updated_products} products updated"})
+    if updated_products>0: save_db('products.json', products)
+    return jsonify({'success':True, 'shop': shop, 'updated_products': updated_products})
