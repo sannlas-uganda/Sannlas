@@ -46,7 +46,6 @@ def reels_page():
     try:
         return render_template('reels.html')
     except:
-        # If not in templates folder, serve from root
         try:
             return send_from_directory('.', 'reels.html')
         except:
@@ -90,10 +89,9 @@ def reels_feed():
                 reel['promo_coins'] = promo_coins
                 reel['promo_commission'] = promo_coins
                 reel['promo_commission_ugx'] = ugx
-                reel['earn_amount'] = ugx  # NUMBER! No comma! 1797
-                reel['earn_amount_formatted'] = f"{ugx:,}"  # "1,797" for display
+                reel['earn_amount'] = ugx
+                reel['earn_amount_formatted'] = f"{ugx:,}"
 
-                # Links - YOUR PROMOTE LINK!
                 if pid:
                     reel['promote_link'] = f"/promotion/{pid}?commission={promo_coins}&from=reels"
                     reel['product_link'] = f"/product/{pid}"
@@ -112,6 +110,69 @@ def reels_feed():
         print("FEED ERROR:", e)
         traceback.print_exc()
         return jsonify([])
+
+# ===== NEW: USER PROFILE API - TIKTOK STYLE =====
+@reels_bp.route('/api/sannlas/reels/user/<shop_slug>')
+def get_user_reels(shop_slug):
+    try:
+        ensure_reels_table()
+        products_map = load_products_json()
+        conn = get_conn(); cur = conn.cursor()
+        
+        # Search by slug OR name OR user_name
+        cur.execute("""
+            SELECT * FROM sannlas_reels 
+            WHERE LOWER(shop_slug) = LOWER(%s) 
+            OR LOWER(shop_name) = LOWER(%s) 
+            OR LOWER(user_name) = LOWER(%s)
+            ORDER BY id DESC
+        """, (shop_slug, shop_slug, shop_slug))
+        
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description]
+        data = [dict(zip(cols, r)) for r in rows]
+
+        # Same promo logic as feed
+        for reel in data:
+            pid = str(reel.get('product_id') or '').strip()
+            shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
+            slug = clean_slug(reel.get('shop_slug') or shop)
+            reel['shop_name'] = shop
+            reel['shop_slug'] = slug
+            
+            raw_coins = 3
+            if pid and pid in products_map:
+                pd = products_map[pid]
+                raw_coins = pd.get('promo_coins') or pd.get('promo_commission') or 3
+            try:
+                promo_coins = int(float(str(raw_coins).strip()))
+            except:
+                promo_coins = 3
+            ugx = promo_coins * 599
+            reel['promo_coins'] = promo_coins
+            reel['earn_amount'] = ugx
+            reel['earn_amount_formatted'] = f"{ugx:,}"
+            reel['promote_link'] = f"/promotion/{pid}?commission={promo_coins}&from=reels" if pid else f"/shop/{slug}"
+
+        cur.close(); conn.close()
+        return jsonify(data)
+    except Exception as e:
+        print("USER REELS ERROR:", e)
+        traceback.print_exc()
+        return jsonify([])
+
+@reels_bp.route('/profile/<shop_slug>')
+@reels_bp.route('/@<shop_slug>')
+@reels_bp.route('/reels/user/<shop_slug>')
+@reels_bp.route('/user/<shop_slug>')
+def user_profile_page(shop_slug):
+    try:
+        return render_template('user_profile.html', shop_slug=shop_slug)
+    except:
+        try:
+            return send_from_directory('templates', 'user_profile.html')
+        except:
+            return f"Create templates/user_profile.html first for @{shop_slug}", 404
 
 @reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
 def like_reel(rid):
