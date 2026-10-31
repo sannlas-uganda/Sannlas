@@ -28,6 +28,22 @@ def load_products_json():
         print("Load products.json fail:", e)
     return {}
 
+def load_shops_map():
+    try:
+        for path in ['data/shops.json', 'shops.json']:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        m={}
+                        for s in data:
+                            key=clean_slug(s.get('shop_slug') or s.get('business_name') or '')
+                            m[key]=s
+                            m[s.get('business_name','').lower()]=s
+                        return m
+    except: pass
+    return {}
+
 def ensure_reels_table():
     conn = get_conn(); cur = conn.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS sannlas_reels (
@@ -56,6 +72,7 @@ def reels_feed():
     try:
         ensure_reels_table()
         products_map = load_products_json()
+        shops_map = load_shops_map()
         
         conn = get_conn(); cur = conn.cursor()
         cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 100")
@@ -71,6 +88,11 @@ def reels_feed():
                 
                 reel['shop_name'] = shop
                 reel['shop_slug'] = slug
+
+                # ===== ADD LOGO FOR PROFILE ICON =====
+                shop_obj = shops_map.get(slug) or shops_map.get(shop.lower()) or {}
+                reel['shop_logo'] = shop_obj.get('logo','')
+                reel['shop_profile_url'] = f"/shop/{slug}"
 
                 product_data = None
                 if pid and pid in products_map:
@@ -111,23 +133,19 @@ def reels_feed():
         traceback.print_exc()
         return jsonify([])
 
-# ===== NEW: USER PROFILE API - TIKTOK STYLE =====
+# ===== USER PROFILE API - TIKTOK STYLE =====
 @reels_bp.route('/api/sannlas/reels/user/<shop_slug>')
 def get_user_reels(shop_slug):
     try:
         ensure_reels_table()
         products_map = load_products_json()
+        shops_map = load_shops_map()
         conn = get_conn(); cur = conn.cursor()
-        
-        # Clean the incoming slug too!
         incoming = clean_slug(shop_slug)
-        
         cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 200")
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description]
         all_data = [dict(zip(cols, r)) for r in rows]
-
-        # Filter in Python to catch Sann%202 == sann-2
         filtered = []
         for r in all_data:
             db_slug = clean_slug(r.get('shop_slug') or '')
@@ -135,16 +153,16 @@ def get_user_reels(shop_slug):
             db_user = clean_slug(r.get('user_name') or '')
             if incoming in [db_slug, db_name, db_user] or db_slug == incoming or incoming in db_slug or db_slug in incoming:
                 filtered.append(r)
-        
         data = filtered
-
         for reel in data:
             pid = str(reel.get('product_id') or '').strip()
             shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
             slug = clean_slug(reel.get('shop_slug') or shop)
             reel['shop_name'] = shop
             reel['shop_slug'] = slug
-            
+            shop_obj = shops_map.get(slug) or {}
+            reel['shop_logo'] = shop_obj.get('logo','')
+            reel['shop_profile_url'] = f"/shop/{slug}"
             raw_coins = 3
             if pid and pid in products_map:
                 pd = products_map[pid]
@@ -158,7 +176,6 @@ def get_user_reels(shop_slug):
             reel['earn_amount'] = ugx
             reel['earn_amount_formatted'] = f"{ugx:,}"
             reel['promote_link'] = f"/promotion/{pid}?commission={promo_coins}&from=reels" if pid else f"/shop/{slug}"
-
         cur.close(); conn.close()
         return jsonify(data)
     except Exception as e:
