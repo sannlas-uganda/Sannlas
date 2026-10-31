@@ -57,7 +57,7 @@ function cleanSlug(s){
 let raw_slug = (location.pathname.split('/shop/')[1] || new URLSearchParams(location.search).get('slug') || '').trim();
 raw_slug = decodeURIComponent(raw_slug).split('?')[0].split('/')[0];
 let slug = cleanSlug(raw_slug);
-let originalSlug = raw_slug; // Keep original for fallback
+let originalSlug = raw_slug;
 let currentShop=null;
 let buyerUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
 let buyerEmail = (buyerUser.email||'').toLowerCase();
@@ -67,7 +67,6 @@ window.addEventListener('popstate', function(){ location.href = '/'; });
 
 async function load(){
  try{
-  // Try clean slug first, then original, then decoded
   let attempts = [slug, originalSlug, raw_slug, cleanSlug(originalSlug)];
   let shop = null; let products = []; let d=null;
   for(let trySlug of attempts){
@@ -92,6 +91,7 @@ async function load(){
   currentShop=shop;
   document.getElementById('shopLogoTop').src=shop.logo||`https://via.placeholder.com/150?text=SHOP`; document.getElementById('shopLogoTop').style.display='inline-block';
 
+// ✅ FIXED - BOTH BUTTONS SIDE BY SIDE - ALWAYS SHOW
 document.getElementById('headerText').innerHTML=`
 <h1>🏪 ${shop.business_name}</h1>
 <p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p>
@@ -103,19 +103,10 @@ document.getElementById('headerText').innerHTML=`
   <button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button>
 </div>
 <p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>
-<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-  <a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:8px 16px;border-radius:20px;font-size:13px">🎥 View Reels Profile</a>
-  <a href="/my-shop" id="myShopBtnHeader" style="color:#FFCC02;background:#000;text-decoration:none;font-weight:900;padding:8px 16px;border-radius:20px;font-size:13px;border:2px solid #FFCC02">🏪 My Shop</a>
+<div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
+  <a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;box-shadow:0 2px 8px rgba(255,204,2,0.3)">🎬 View Reels Profile</a>
+  <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏪 My Shop</a>
 </div>`;
-
-   // OWNER ONLY - Hide My Shop if not logged owner
-try{
-  let u = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
-  let myEmail = (u.email||'').toLowerCase();
-  if(!myEmail){
-    document.getElementById('myShopBtnHeader').style.display='none';
-  }
-}catch(e){}
    
   let pEl = document.getElementById('p');
   if(products.length){
