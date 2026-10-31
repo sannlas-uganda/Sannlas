@@ -46,8 +46,18 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 </div>
 
 <script>
-let slug = (location.pathname.split('/shop/')[1] || new URLSearchParams(location.search).get('slug') || '').trim();
-slug = decodeURIComponent(slug).split('?')[0].split('/')[0];
+function cleanSlug(s){
+  return (s||'shop').toString().trim().toLowerCase()
+    .replace(/%20|%2520|%20%20/gi,'-')
+    .replace(/\s+/g,'-')
+    .replace(/[^a-z0-9-]/g,'-')
+    .replace(/-+/g,'-')
+    .replace(/^-|-$/g,'') || 'shop';
+}
+let raw_slug = (location.pathname.split('/shop/')[1] || new URLSearchParams(location.search).get('slug') || '').trim();
+raw_slug = decodeURIComponent(raw_slug).split('?')[0].split('/')[0];
+let slug = cleanSlug(raw_slug);
+let originalSlug = raw_slug; // Keep original for fallback
 let currentShop=null;
 let buyerUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
 let buyerEmail = (buyerUser.email||'').toLowerCase();
@@ -57,27 +67,39 @@ window.addEventListener('popstate', function(){ location.href = '/'; });
 
 async function load(){
  try{
-  let r = await fetch('/api/shop/'+slug); let d = await r.json();
-  let shop = d.shop; let products = d.products || [];
-  if((!r.ok ||!shop) && products.length==0){
-    let r2 = await fetch('/api/products?shop='+slug); products = await r2.json();
-    if(products.length>0){ let s = products[0]; shop = {business_name: s.business||'Shop', location: s.location||'Uganda', phone: s.phone||'', description: 'Welcome!', shop_slug: slug, logo: '', created_at: Date.now()/1000}; }
+  // Try clean slug first, then original, then decoded
+  let attempts = [slug, originalSlug, raw_slug, cleanSlug(originalSlug)];
+  let shop = null; let products = []; let d=null;
+  for(let trySlug of attempts){
+    if(!trySlug) continue;
+    try{
+      let r = await fetch('/api/shop/'+encodeURIComponent(trySlug));
+      d = await r.json();
+      if(d && d.shop){ shop=d.shop; products=d.products||[]; slug=trySlug; break; }
+      if(d && d.products && d.products.length>0){ products=d.products; }
+    }catch(e){}
   }
-  if(!shop){ document.getElementById('headerText').innerHTML=`<h1>Shop Not Found</h1>`; return; }
+  if((!shop) && products.length==0){
+    for(let trySlug of attempts){
+      try{
+        let r2 = await fetch('/api/products?shop='+encodeURIComponent(trySlug)); 
+        let prods = await r2.json();
+        if(prods.length>0){ products=prods; let s = products[0]; shop = {business_name: s.business||'Shop', location: s.location||'Uganda', phone: s.phone||'', description: 'Welcome!', shop_slug: slug, logo: '', created_at: Date.now()/1000}; break; }
+      }catch(e){}
+    }
+  }
+  if(!shop){ document.getElementById('headerText').innerHTML=`<h1>Shop Not Found: ${raw_slug}</h1><p style="color:#aaa">Trying ${slug}...</p><a href="/" style="color:#FFCC02">Go Home</a>`; return; }
   currentShop=shop;
   document.getElementById('shopLogoTop').src=shop.logo||`https://via.placeholder.com/150?text=SHOP`; document.getElementById('shopLogoTop').style.display='inline-block';
 
-  document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button><button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button></div><p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
+  document.getElementById('headerText').innerHTML=`<h1>🏪 ${shop.business_name}</h1><p>📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}</p><p style="color:#FFCC02;font-size:13px">${shop.description||'Quality products!'}</p><div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:5px"><button style="background:#25D366;color:#fff" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button><button style="background:#000;color:#FFCC02;border:2px solid #FFCC02" onclick="openBuyerChat()">💬 Chat • 1 Coin</button><button style="background:#FFCC02;color:#000" onclick="openBuyerCall()">📞 Call • 1 Coin</button><button style="background:#fff;color:#000" onclick="shareShop()">🔗 Share Shop</button></div><p style="font-size:11px;color:#0f0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p><p style="margin-top:8px"><a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#FFCC02;text-decoration:none;font-weight:bold;border:1px solid #FFCC02;padding:6px 12px;border-radius:20px">🎥 View Reels Profile ➔ /@/${cleanSlug(shop.shop_slug||shop.business_name)}</a></p>`;
 
-  // ✅ FIXED: ADD ID FOR HIGHLIGHTING - EXACT PRODUCT IN SHOP
   let pEl = document.getElementById('p');
   if(products.length){
     pEl.innerHTML = products.map(prod=>{
       let pid = prod.id||prod._id||'';
       return `<div class="card" id="product-${pid}" data-id="${pid}"><div style="position:relative"><img src="${prod.image||''}"><div class="discount-badge">${prod.discount||''}</div></div><div style="padding:8px"><b>${prod.title||prod.name||'Product'}</b><br><small>UGX ${prod.price||''}</small><br><button style="background:#000;color:#FFCC02;width:100%;margin-top:6px" onclick="location.href='/product/${pid}'">View Product</button></div></div>`
     }).join('');
-
-    // ===== CORE: AUTO HIGHLIGHT PRODUCT FROM REEL =====
     const params = new URLSearchParams(window.location.search);
     const highlightId = params.get('product') || params.get('highlight');
     if(highlightId){
@@ -88,14 +110,12 @@ async function load(){
           document.getElementById('highlightBanner').innerHTML=`🎥 From Reel → ✨ ${products.find(p=>(p.id||p._id)==highlightId)?.title||'Product'} ✨`;
           el.classList.add('highlighted');
           el.scrollIntoView({behavior:'smooth', block:'center'});
-          // Remove highlight after 5 sec
           setTimeout(()=>{ el.classList.remove('highlighted'); }, 5000);
         }
       }, 800);
     }
   }
-
- }catch(e){ document.getElementById('headerText').innerHTML='<h1>Error loading shop</h1>'; console.error(e); }
+ }catch(e){ document.getElementById('headerText').innerHTML='<h1>Error loading shop</h1><p>'+e+'</p>'; console.error(e); }
 }
 function shareShop(){ navigator.clipboard.writeText(location.href); alert('🔗 Copied!'); }
 async function openBuyerWhatsApp(){
