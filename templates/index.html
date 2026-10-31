@@ -795,7 +795,7 @@ async function loadHomeReels(){
     if(reels?.length>0){ localStorage.setItem('sannlas_reels_cache',JSON.stringify(reels)); renderReels(reels); }
   }).catch(()=>{});
 
- function renderReels(reels){
+  function renderReels(reels){
     let feed=reels.length<4?[...reels,...reels,...reels].slice(0,15):reels;
     c.innerHTML=feed.map((reel,i)=>{
       let media=reel.video_url||reel.image_url||reel.media_url||'';
@@ -807,32 +807,44 @@ async function loadHomeReels(){
       let productId = reel.product_id || reel.id || '';
       let desc = reel.description || reel.caption || 'Amazing product';
       let price = reel.price ? `UGX ${Number(reel.price).toLocaleString()}` : 'UGX 24,000';
-      
-      // ===== THIS WAS MISSING - CAUSED BLACK BOX! =====
-      let logo = reel.shop_logo || reel.logo || '';
+      let logo = reel.shop_logo || '';
       let initial = (shopName||'S')[0].toUpperCase();
       let email = (reel.user_email||reel.email||reel.shop_email||'').toLowerCase();
       let slug = cleanSlug(reel.shop_slug||shopName||'shop');
+      let likes = reel.likes||0;
 
       return `<div class="reel-item" style="position:relative;height:100dvh;scroll-snap-align:start;background:#000;overflow:hidden">
         ${tag}
-        <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔇</button>
+        <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔊</button>
           
-        <div class="reel-actions" style="position:absolute;right:12px;bottom:140px;display:flex;flex-direction:column;gap:12px;z-index:5;align-items:center">
+        <!-- RIGHT ACTIONS - ALL BUTTONS BACK! -->
+        <div class="reel-actions" style="position:absolute;right:10px;bottom:110px;display:flex;flex-direction:column;gap:10px;z-index:6;align-items:center;max-height:75vh;overflow-y:auto;padding-top:10px">
+          
+          <!-- S + FOLLOW -->
           <div style="position:relative;text-align:center">
             <div onclick="event.stopPropagation(); location.href='/shop/${slug}'" style="width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.5);cursor:pointer">
               ${logo ? `<img src="${logo}" style="width:100%;height:100%;object-fit:cover">` : initial}
             </div>
             <div id="follow-btn-${reel.id}" data-email="${email}" onclick="event.stopPropagation(); toggleFollowReal(this)" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer">+</div>
           </div>
-          <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:22px">❤️</button>
+
+          <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3);color:white;font-size:20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center">❤️<span style="font-size:9px;margin-top:1px">${likes}</span></button>
+          <button class="reel-act" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3);color:white;font-size:20px;cursor:pointer">💬</button>
+          <button class="reel-act" onclick="shareHomeReel('${media}')" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3);color:white;font-size:20px;cursor:pointer">↗️</button>
+
+          <a href="/transport" style="width:48px;height:48px;border-radius:50%;background:#00FF88;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:900">🚚</a>
+          <a href="/manufacturers" style="width:48px;height:48px;border-radius:50%;background:#FFCC02;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none">🏭</a>
+          <a href="/delivery" style="width:48px;height:48px;border-radius:50%;background:#fff;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none">📦</a>
+          <a href="/live" style="width:48px;height:48px;border-radius:50%;background:#000;border:2px solid #ff0000;color:#ff0000;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;text-decoration:none;">LIVE</a>
+          <a href="/calls" style="width:48px;height:48px;border-radius:50%;background:#00FF00;border:2px solid #000;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none">📞</a>
         </div>
 
-        <div style="position:absolute;bottom:80px;left:14px;right:70px;z-index:5">
-          <button onclick="event.stopPropagation(); location.href='/shop/${slug}'" style="background:none;border:none;color:#FFCC02;font-weight:900;font-size:13px;display:block;margin-bottom:4px;cursor:pointer;text-shadow:0 2px 10px #000;text-align:left;">🏪 ${shopName}</button>
-          <button onclick="event.stopPropagation(); openReelProduct('${productId}')" style="background:none;border:none;color:#fff;font-weight:900;font-size:15px;display:block;margin-bottom:4px;cursor:pointer;text-shadow:0 2px 10px #000;text-align:left;width:100%">🛍️ ${productName}</button>
-          <div style="color:#eee;font-size:12px;margin-bottom:8px;text-shadow:0 2px 8px #000;">${desc.slice(0,90)}</div>
-          <button onclick="event.stopPropagation(); openReelProduct('${productId}')" style="background:rgba(0,0,0,0.6);border:1px solid #00FF00;color:#00FF88;font-weight:900;font-size:14px;padding:5px 12px;border-radius:20px;cursor:pointer;">${price} - BUY NOW</button>
+        <!-- BOTTOM INFO - LIFTED UP SO NOT HIDDEN -->
+        <div style="position:absolute;bottom:15px;left:14px;right:75px;z-index:5;background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);padding:12px 10px 0 0;border-radius:12px">
+          <button onclick="event.stopPropagation(); location.href='/shop/${slug}'" style="background:none;border:none;color:#FFCC02;font-weight:900;font-size:13px;display:block;margin-bottom:4px;cursor:pointer;text-shadow:0 2px 10px #000;text-align:left;">🏪 @${shopName.toUpperCase()}</button>
+          <button onclick="event.stopPropagation(); openReelProduct('${productId}')" style="background:none;border:none;color:#fff;font-weight:900;font-size:15px;display:block;margin-bottom:4px;cursor:pointer;text-shadow:0 2px 10px #000;text-align:left;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🛍️ ${productName}</button>
+          <div style="color:#ddd;font-size:11px;margin-bottom:8px;text-shadow:0 2px 8px #000;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${desc.slice(0,85)}</div>
+          <button onclick="event.stopPropagation(); openReelProduct('${productId}')" style="background:#000;border:1.5px solid #00FF88;color:#00FF88;font-weight:900;font-size:13px;padding:6px 14px;border-radius:20px;cursor:pointer;">${price} - BUY NOW</button>
         </div>
       </div>`;
     }).join('');
@@ -841,7 +853,6 @@ async function loadHomeReels(){
     c.querySelectorAll('.reel-item').forEach(el=>obs.observe(el));
     setTimeout(checkFollowStatus, 500);
   }
-}
 function toggleHomeVol(video){
   let btn = video.parentElement.querySelector('button');
   if(video.muted){ video.muted=false; video.volume=1; btn.innerHTML='🔊'; video.play(); }
