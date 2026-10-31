@@ -25,7 +25,6 @@ def load_db(file, default):
             try:
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
-                # PRODUCTS
                 if file == 'products.json':
                     cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
                     result=[]
@@ -36,7 +35,6 @@ def load_db(file, default):
                             except: pass
                         result.append(d)
                     return result
-                # REELS - TRY MULTIPLE TABLES
                 elif 'reel' in file.lower():
                     for tbl in ['sannlas_reels','reels','videos']:
                         try:
@@ -51,27 +49,10 @@ def load_db(file, default):
                                         except: pass
                                     result.append(d)
                                 cur.close(); conn.close()
-                                print(f"Loaded {len(result)} reels from {tbl}")
                                 return result
                         except: continue
-                    # fallback to kv_store
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
-                    if not row: 
-                        # try other kv keys
-                        conn2=get_conn()
-                        cur2=conn2.cursor(row_factory=dict_row)
-                        for k in ['reels.json','sannlas_reels.json','reels']:
-                            cur2.execute("SELECT data FROM kv_store WHERE key=%s", (k,))
-                            rw=cur2.fetchone()
-                            if rw:
-                                d=rw['data']
-                                if isinstance(d,str):
-                                    try: d=json.loads(d)
-                                    except: pass
-                                cur2.close(); conn2.close()
-                                return d if isinstance(d,list) else [d]
-                        cur2.close(); conn2.close()
-                        return default
+                    if not row: return default
                     d=row['data']
                     if isinstance(d,str):
                         try: d=json.loads(d)
@@ -88,7 +69,6 @@ def load_db(file, default):
             except:
                 import psycopg2.extras
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                # same fallback for psycopg2...
                 if 'reel' in file.lower():
                     for tbl in ['sannlas_reels','reels','videos']:
                         try:
@@ -117,20 +97,17 @@ def load_db(file, default):
                 except: return default
             return default
     except Exception as e:
-        print(f"load_db error {file}: {e}")
         return default
         
 def clean_slug_fix(s):
     return re.sub(r'[^a-z0-9]+', '-', str(s or 'shop').lower().replace('%20','-').replace('%2520','-')).strip('-') or 'shop'
 
-# ===== PAGE: /shop/<slug> - FIXED FOR Sann%202 BUG =====
 @shops_bp.route('/shop/<path:slug>')
 def shop_page_slug(slug):
     return """
 <!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shop</title>
-<style>
+<title>Shop</title><style>
 body{font-family:system-ui;background:#f8fafc;margin:0}
 .header{background:#000;color:#FFCC02;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
 .header a{color:#FFCC02;text-decoration:none;font-weight:900}
@@ -150,7 +127,11 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 <body>
 <div class="header"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
 <div id="loading">⏳ Loading shop...</div>
-<div id="shop-hero" class="shop-hero" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p><p id="shop-count"></p><p style="margin-top:12px"><a id="reels-link" href="#" style="color:#000;background:#FFCC02;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:900">🎥 View Reels Profile</a></p></div>
+<div id="shop-hero" class="shop-hero" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p><p id="shop-count"></p>
+<p style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
+<a id="reels-link" href="#" style="color:#000;background:#FFCC02;padding:12px 20px;border-radius:25px;text-decoration:none;font-weight:900;font-size:14px">🎬 View Reels Profile</a>
+<a id="myshop-link" href="/my-shop" style="color:#FFCC02;background:#1a1a1a;padding:12px 20px;border-radius:25px;text-decoration:none;font-weight:900;font-size:14px;border:2px solid #FFCC02">🏪 My Shop</a>
+</p></div>
 <div id="products" class="grid"></div>
 <script>
 function cleanSlug(s){return (s||'shop').toString().toLowerCase().replace(/%20|%2520/gi,'-').replace(/\\s+/g,'-').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';}
@@ -178,7 +159,6 @@ loadShop();
 </script></body></html>
 """
 
-# ===== PAGE: /all-shops =====
 @shops_bp.route('/all-shops')
 @shops_bp.route('/shops')
 def all_shops_page():
@@ -226,40 +206,29 @@ loadShops();
 </script></body></html>
 """
 
-# ===== API: /api/shop/<slug> - FIXED =====
 @shops_bp.route('/api/shop/<path:slug>')
 def get_shop_by_slug(slug):
     try:
         raw = unquote(unquote(slug)).strip()
         cleaned = clean_slug_fix(raw)
-        print(f"SHOP REQUEST: {slug} -> {raw} -> {cleaned}")
-
         shops = load_db('shops.json', []) or []
         products = load_db('products.json', []) or []
-        
         shop = None
-        
-        # 1. SEARCH IN shops.json FIRST
         for s in shops:
             for key in ['shop_slug','slug','business_name','name']:
                 val = str(s.get(key,'') or '')
                 if clean_slug_fix(val) == cleaned or val.lower().strip() == raw.lower():
                     shop=s; break
             if shop: break
-
         if not shop:
             for s in shops:
                 if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
                     shop=s; break
-
-        # 2. FALLBACK: SEARCH IN products.json (YOUR CASE - Sannlas has products but no shop entry!)
         if not shop:
-            print(f"Not in shops.json, searching products for {cleaned}")
             for p in products:
                 business = str(p.get('business','') or p.get('shop_slug','') or '').strip()
                 if not business: continue
                 if clean_slug_fix(business) == cleaned or business.lower() == raw.lower() or cleaned in clean_slug_fix(business):
-                    # CREATE SHOP FROM PRODUCT
                     shop = {
                         "shop_slug": clean_slug_fix(business),
                         "slug": clean_slug_fix(business),
@@ -272,16 +241,12 @@ def get_shop_by_slug(slug):
                         "logo": p.get('shop_logo',''),
                         "verified": False
                     }
-                    print(f"FOUND SHOP FROM PRODUCT: {business}")
                     break
-
         if not shop:
             return jsonify({'success':False,'shop':None,'products':[], 'message': f'Shop {raw} not found'}),404
-
         real_slug = clean_slug_fix(shop.get('shop_slug') or cleaned)
         real_name_clean = clean_slug_fix(shop.get('business_name') or '')
         owner_email = str(shop.get('owner_email','')).lower()
-
         shop_products=[]
         for p in products:
             ps_clean = clean_slug_fix(p.get('shop_slug',''))
@@ -289,29 +254,21 @@ def get_shop_by_slug(slug):
             p_email = str(p.get('seller_email','')).lower()
             if ps_clean==real_slug or pb_clean==real_name_clean or ps_clean==cleaned or pb_clean==cleaned or (owner_email and p_email==owner_email):
                 pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
-
-        # If still 0 products, try loose match for Sannlas
         if not shop_products:
             for p in products:
                 b = str(p.get('business','') or '').lower()
                 if 'sannlas' in b or cleaned in b or b in cleaned:
                     shop_products.append(p)
-
-        print(f"FOUND SHOP {shop.get('business_name')} with {len(shop_products)} products")
         return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
-        
-# ===== API: /api/shops - ALL SHOPS LIST =====
         
 @shops_bp.route('/api/shops')
 def get_all_shops():
     try:
         shops = load_db('shops.json', []) or []
         products = load_db('products.json', []) or []
-        
-        # If shops.json empty, build from products business names
         if not shops:
             seen = {}
             for p in products:
@@ -345,14 +302,11 @@ def get_all_shops():
                 s_copy['total_products'] = count_map.get(slug,0) or count_map.get(str(s.get('owner_email','')).lower(),0)
                 result.append(s_copy)
             shops = sorted(result, key=lambda x: x.get('total_products',0), reverse=True)
-
         shops = sorted(shops, key=lambda x: x.get('total_products',0), reverse=True)
         return jsonify(shops)
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify([])
 
-# ===== SHOW REELS PROFILE - REDIRECT TO REAL PROFILE PAGE =====
 @shops_bp.route('/@/<path:slug>')
 @shops_bp.route('/@/<path:slug>/reels')
 def reels_profile_by_shop(slug):
