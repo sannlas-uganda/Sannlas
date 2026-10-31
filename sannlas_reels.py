@@ -40,6 +40,9 @@ def load_shops_map():
                             key=clean_slug(s.get('shop_slug') or s.get('business_name') or '')
                             m[key]=s
                             m[s.get('business_name','').lower()]=s
+                            # also index by email for follow
+                            if s.get('email'):
+                                m[s.get('email','').lower()]=s
                         return m
     except: pass
     return {}
@@ -89,10 +92,20 @@ def reels_feed():
                 reel['shop_name'] = shop
                 reel['shop_slug'] = slug
 
-                # ===== ADD LOGO FOR PROFILE ICON =====
                 shop_obj = shops_map.get(slug) or shops_map.get(shop.lower()) or {}
                 reel['shop_logo'] = shop_obj.get('logo','')
                 reel['shop_profile_url'] = f"/shop/{slug}"
+
+                # ===== FIXED: SEND EMAIL FOR FOLLOW BUTTON =====
+                db_email = reel.get('user_email') or ''
+                shop_email = shop_obj.get('email') or shop_obj.get('owner_email') or shop_obj.get('business_email') or ''
+                final_email = (db_email or shop_email or '').lower().strip()
+
+                reel['user_email'] = final_email
+                reel['shop_email'] = final_email
+                reel['email'] = final_email
+                reel['user_id'] = final_email or reel.get('user_id') or slug
+                reel['shop_id'] = final_email or slug
 
                 product_data = None
                 if pid and pid in products_map:
@@ -133,7 +146,6 @@ def reels_feed():
         traceback.print_exc()
         return jsonify([])
 
-# ===== USER PROFILE API - TIKTOK STYLE =====
 @reels_bp.route('/api/sannlas/reels/user/<shop_slug>')
 def get_user_reels(shop_slug):
     try:
@@ -163,6 +175,17 @@ def get_user_reels(shop_slug):
             shop_obj = shops_map.get(slug) or {}
             reel['shop_logo'] = shop_obj.get('logo','')
             reel['shop_profile_url'] = f"/shop/{slug}"
+
+            # ===== FIXED EMAIL FOR FOLLOW =====
+            db_email = reel.get('user_email') or ''
+            shop_email = shop_obj.get('email') or ''
+            final_email = (db_email or shop_email or '').lower().strip()
+            reel['user_email'] = final_email
+            reel['shop_email'] = final_email
+            reel['email'] = final_email
+            reel['user_id'] = final_email or slug
+            reel['shop_id'] = final_email or slug
+
             raw_coins = 3
             if pid and pid in products_map:
                 pd = products_map[pid]
