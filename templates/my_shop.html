@@ -57,15 +57,6 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
  <button id="loadMoreBtn" onclick="loadMoreProducts()" style="display:none;background:#fff;border:2px solid #FF6A00;color:#FF6A00;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:12px">⬇️ Load More</button>
 </div>
 
-<!-- OWNER REELS SECTION -->
-<div class="card">
- <div style="display:flex;justify-content:space-between;align-items:center">
-  <h3 style="margin:0">🎬 My Reels</h3>
-  <button onclick="location.href='/upload-reel'" style="background:#000;color:#FFCC02;padding:8px 14px;border-radius:10px;font-weight:900;border:none">➕ Upload Reel</button>
- </div>
- <div class="products" id="myReels" style="margin-top:10px"></div>
-</div>
-
 <div class="card" id="ordersSection">
  <h3 style="margin:0 0 12px 0">📦 My Shop Orders</h3>
  <button onclick="toggleOrders()" id="singleOrdersBtn" style="width:100%;padding:16px;background:#000;color:#FFCC02;border:3px solid #FFCC02;border-radius:14px;font-weight:900;font-size:16px;display:flex;justify-content:center;align-items:center;gap:10px">
@@ -126,7 +117,6 @@ let hasMore = false;
 let ordersVisible = true;
 document.getElementById('todayDate').innerText = new Date().toLocaleDateString();
 
-// 🔒 OWNER ONLY GUARD
 if(!myEmail){
   alert('⚠️ Please login first to view your shop!');
   location.href='/login?next=/my-shop';
@@ -162,13 +152,6 @@ async function loadMyShop(page=1){
    document.getElementById('stReels').innerText = d.stats.total_reels||(d.reels||[]).length||0;
    document.getElementById('stWhats').innerText = d.stats.whatsapp_clicks||0;
    document.getElementById('stCoins').innerText = d.stats.coins||0;
-   // Render reels
-   let reelsHtml='';
-   (d.reels||[]).forEach(r=>{
-     reelsHtml+=`<div class="pcard"><video src="${r.video_url||r.video}" muted></video><div style="padding:8px"><b style="font-size:12px">${(r.title||r.caption||'Reel').substring(0,30)}</b><br><small>❤️ ${r.likes||0}</small></div></div>`;
-   });
-   if(!reelsHtml) reelsHtml='<p style="padding:12px;color:#888">No reels yet. <a href="/upload-reel">Upload first reel</a></p>';
-   document.getElementById('myReels').innerHTML=reelsHtml;
  }
  let prods = d.products||[];
  if(prods.length==0 && page==1){ document.getElementById('myProducts').innerHTML='<p>No products yet — <a href="/?open=sell">Add Product FREE</a></p>'; }
