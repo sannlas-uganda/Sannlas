@@ -15,8 +15,12 @@
 .action-col{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 .promote-btn{background:#FFCC02;color:#000;padding:12px 20px;border-radius:25px;font-weight:900;border:3px solid #000;display:block;text-align:center;text-decoration:none;font-size:14px}
 .shop-btn{background:#000;color:#00FF88;padding:12px 20px;border-radius:25px;font-weight:900;border:2px solid #00FF88;font-size:14px;cursor:pointer}
-.right-actions{position:absolute;right:10px;bottom:150px;display:flex;flex-direction:column;gap:15px;z-index:6}
-.action-btn{background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:22px;padding:10px;border-radius:50%;width:50px;height:50px}
+.right-actions{position:absolute;right:10px;bottom:150px;display:flex;flex-direction:column;gap:16px;z-index:6;align-items:center}
+.action-btn{background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:22px;padding:10px;border-radius:50%;width:50px;height:50px;cursor:pointer}
+.profile-btn-wrap{cursor:pointer;text-align:center;position:relative}
+.profile-avatar{width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.5)}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}
+.follow-plus{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;border:2px solid #000}
 .volume-btn{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.6);border:none;color:#fff;padding:8px 12px;border-radius:20px;z-index:6}
 .unmute-hint{position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);padding:6px 10px;border-radius:10px;font-size:12px;z-index:6}
 </style>
@@ -24,7 +28,6 @@
 <body>
 <div id="reels-container"></div>
 <script>
-// CLEAN SLUG - fixes Sann%202 -> sann-2
 function cleanSlug(s){
   return (s||'shop').toString().trim().toLowerCase()
     .replace(/%20|%2520|%20%20/gi,'-')
@@ -39,12 +42,24 @@ async function loadReels(){
  const c=document.getElementById('reels-container');
  c.innerHTML=reels.map((reel,i)=>{
   const slug = cleanSlug(reel.shop_slug||reel.shop_name||'shop');
+  const logo = reel.shop_logo || '';
+  const shopInitial = (reel.shop_name||'S')[0].toUpperCase();
+  // PROFILE ICON HTML - ON TOP OF LIKES
+  const profileHtml = `
+    <div class="profile-btn-wrap" onclick="location.href='/shop/${slug}'">
+      <div class="profile-avatar">
+        ${logo ? `<img src="${logo}">` : shopInitial}
+      </div>
+      <div class="follow-plus">+</div>
+    </div>`;
+  
   return `
  <div class="reel" data-id="${reel.id}">
   <video src="${reel.video_url}" loop playsinline muted ${i==0?'autoplay':''}></video>
   <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
   <div class="unmute-hint">Tap 🔊 for sound</div>
   <div class="right-actions">
+    ${profileHtml}
     <button class="action-btn" onclick="likeReel(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes||0}</span></button>
     <button class="action-btn">💬</button>
     <button class="action-btn">↗️</button>
@@ -54,10 +69,10 @@ async function loadReels(){
     <a class="product-title" href="/@/${slug}">${reel.product_name||reel.caption||'New Collection'}</a>
     <div class="product-desc">${(reel.description||'').slice(0,80)}</div>
     <div class="action-col">
-      <a href="/@/${slug}" class="promote-btn">💰 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
-      <button class="shop-btn" onclick="location.href='/@/${slug}'">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW PROFILE</button>
+      <a href="/shop/${slug}" class="promote-btn">🏪 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
+      <button class="shop-btn" onclick="location.href='/shop/${slug}'">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW SHOP</button>
     </div>
-    <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="/@/${slug}">@${slug} • ${reel.location||'Uganda'} ➔ Tap to View All Videos</a></div>
+    <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="/shop/${slug}">@${slug} • ${reel.location||'Uganda'} ➔ Tap profile pic to View Shop</a></div>
   </div>
  </div>`}).join('');
  observeVideos(); addVideoClickHandlers();
