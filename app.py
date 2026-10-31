@@ -1260,6 +1260,12 @@ def kassag_stats():
     })
 
 # ===== FIXED SHOP SYSTEM - NO MORE LOADING FOREVER =====
+from urllib.parse import unquote
+import re
+
+def clean_slug_fix(s):
+    return re.sub(r'[^a-z0-9]+', '-', str(s or 'shop').lower().replace('%20','-').replace('%2520','-').replace('%20%20','-')).strip('-') or 'shop'
+
 @app.route('/shop/<path:slug>')
 def shop_page_slug(slug):
     return """
@@ -1286,21 +1292,25 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 <body>
 <div class="header"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
 <div id="loading">⏳ Loading shop...</div>
-<div id="shop-hero" class="shop-hero" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p><p id="shop-count"></p></div>
+<div id="shop-hero" class="shop-hero" style="display:none"><h1 id="shop-name"></h1><p id="shop-desc"></p><p id="shop-count"></p><p style="margin-top:12px"><a id="reels-link" href="#" style="color:#000;background:#FFCC02;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:900">🎥 View Reels Profile</a></p></div>
 <div id="products" class="grid"></div>
 <script>
+function cleanSlug(s){return (s||'shop').toString().toLowerCase().replace(/%20|%2520/gi,'-').replace(/\\s+/g,'-').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';}
 async function loadShop(){
- const slug=location.pathname.split('/shop/')[1].split('?')[0].split('/')[0];
+ let raw=decodeURIComponent(location.pathname.split('/shop/')[1].split('?')[0].split('/')[0]);
+ let slug=cleanSlug(raw);
  try{
   const r=await fetch('/api/shop/'+encodeURIComponent(slug));
   const d=await r.json();
-  if(!d.shop){ document.getElementById('loading').innerHTML='❌ Shop not found: '+slug; return;}
+  if(!d.shop){ document.getElementById('loading').innerHTML='❌ Shop not found: '+raw+' (tried '+slug+')<br><a href=/all-shops style=color:#FFCC02>All Shops</a>'; return;}
   const shop=d.shop, prods=d.products||[];
   document.getElementById('loading').style.display='none';
   document.getElementById('shop-hero').style.display='block';
   document.getElementById('shop-name').textContent=shop.business_name||shop.name||slug;
   document.getElementById('shop-desc').textContent=shop.description||'Welcome to '+ (shop.business_name||slug) +' shop!';
   document.getElementById('shop-count').textContent=prods.length+' products • '+ (shop.location||'Kampala');
+  document.getElementById('reels-link').href='/@/'+cleanSlug(shop.shop_slug||shop.business_name);
+  document.getElementById('reels-link').textContent='🎥 View @'+cleanSlug(shop.shop_slug||shop.business_name)+' Reels';
   let h='';
   prods.forEach(p=>{
    h+=`<div class="card"><img src="${p.image||'https://via.placeholder.com/300'}" onerror="this.src='https://via.placeholder.com/300'"><div class="card-body"><h4>${(p.name||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id}">View Product</a></div></div>`;
@@ -1340,6 +1350,7 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 <div id="loading">⏳ Loading shops...</div>
 <div id="shops" class="grid"></div>
 <script>
+function cleanSlug(s){return (s||'shop').toString().toLowerCase().replace(/%20|%2520/gi,'-').replace(/\\s+/g,'-').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';}
 async function loadShops(){
  try{
   const r=await fetch('/api/shops');
@@ -1349,11 +1360,12 @@ async function loadShops(){
   let h='';
   shops.forEach(s=>{
     const name=s.business_name||s.name||s.shop_slug||'Shop';
-    const slug=s.shop_slug||s.slug||name.toLowerCase().replace(/\\s+/g,'-');
+    const raw_slug=s.shop_slug||s.slug||name;
+    const slug=cleanSlug(raw_slug);
     const count=s.total_products||s.product_count||0;
     const logo=s.logo||s.logo_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(name)+'&background=000&color=FFCC02&bold=true';
     const verified=s.verified?'<span class=badge>✓ VERIFIED</span>':'';
-    h+=`<div class="shop-card" onclick="location.href='/shop/${slug}'"><img class="shop-logo" src="${logo}" onerror="this.src='https://via.placeholder.com/70'"><div class="shop-name">${name}</div><div class="shop-meta">${count} products<br>${s.location||'Kampala'}<br>${verified}</div></div>`;
+    h+=`<div class="shop-card" onclick="location.href='/shop/${slug}'"><img class="shop-logo" src="${logo}" onerror="this.src='https://via.placeholder.com/70'"><div class="shop-name">${name}</div><div class="shop-meta">${count} products<br>${s.location||'Kampala'}<br>${verified}<br><small style=color:#FFCC02>@${slug}</small></div></div>`;
   });
   document.getElementById('shops').innerHTML=h;
  }catch(e){document.getElementById('loading').innerHTML='Error: '+e.message;}
@@ -1365,37 +1377,54 @@ loadShops();
 @app.route('/api/shop/<path:slug>')
 def get_shop_by_slug(slug):
     try:
-        clean = slug.lower().strip()
+        from urllib.parse import unquote
+        raw = unquote(slug).strip()
+        raw = unquote(raw)  # double decode for %2520
+        cleaned = clean_slug_fix(raw)
+        print(f"SHOP REQUEST: raw={slug} -> decoded={raw} -> cleaned={cleaned}")
+
         shops = load_db('shops.json', [])
-        # FIND SHOP - try every field
         shop = None
+        
+        # FIXED SEARCH - handles Sann%202, Sann 2, sann-2 all same!
         for s in shops:
             for key in ['shop_slug','slug','business_name','name']:
-                if str(s.get(key,'')).lower().strip() == clean: shop=s; break
+                val = str(s.get(key,'') or '')
+                if clean_slug_fix(val) == cleaned:
+                    shop=s; break
             if shop: break
+        
         if not shop:
             for s in shops:
-                if clean in str(s.get('shop_slug','')).lower() or clean in str(s.get('business_name','')).lower():
+                if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
                     shop=s; break
-        if not shop:
-            return jsonify({'success':False,'message':f'Shop {slug} not found','shop':None,'products':[]}),404
 
-        real_slug = str(shop.get('shop_slug') or shop.get('slug') or slug).lower()
-        real_name = str(shop.get('business_name') or shop.get('name') or '').lower()
+        if not shop:
+            # Last try - exact raw
+            for s in shops:
+                if str(s.get('shop_slug','')).lower() == raw.lower() or str(s.get('shop_slug','')).lower() == slug.lower():
+                    shop=s; break
+
+        if not shop:
+            return jsonify({'success':False,'message':f'Shop {raw} not found','shop':None,'products':[]}),404
+
+        real_slug = clean_slug_fix(shop.get('shop_slug') or shop.get('slug') or cleaned)
+        real_name_clean = clean_slug_fix(shop.get('business_name') or shop.get('name') or '')
 
         products = load_db('products.json', [])
         shop_products=[]
         for p in products:
-            ps = str(p.get('shop_slug','')).lower()
-            pn = str(p.get('business','')).lower()
-            if ps==real_slug or ps==clean or pn==real_name or real_slug in ps:
+            ps_clean = clean_slug_fix(p.get('shop_slug',''))
+            pb_clean = clean_slug_fix(p.get('business',''))
+            owner_match = str(p.get('seller_email','')).lower() == str(shop.get('owner_email','')).lower()
+            if ps_clean==real_slug or pb_clean==real_name_clean or ps_clean==cleaned or owner_match:
                 pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
 
         return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
-
+        
 # ====== TIKTOK VERIFICATION - EXACT FILES ======
 
 # 1. TERMS PAGE VERIFICATION
