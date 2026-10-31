@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My Shop - Sannlas</title>
+<title>My Shop - SANNLAS</title>
 <style>
 body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px;color:#000}
 .header{background:#000;color:#fff;padding:20px;text-align:center;position:relative;min-height:160px}
@@ -14,6 +14,7 @@ body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px;color:#00
 .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
 .pcard{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);position:relative;color:#000}
 .pcard img{width:100%;height:150px;object-fit:cover}
+.pcard video{width:100%;height:150px;object-fit:cover}
 .btn{padding:8px 12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer;margin:3px;font-size:12px}
 .badge{position:absolute;top:8px;right:8px;padding:4px 8px;border-radius:20px;font-size:11px;font-weight:bold}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
@@ -30,10 +31,7 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
 
 <div class="header" id="shopHeader">
  <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900">🏠 Home</button>
- <button class="bell-btn" onclick="document.getElementById('ordersSection').scrollIntoView({behavior:'smooth'}); loadSellerOrders();">
-   🔔
-   <span id="orderCount" class="bell-count">0</span>
- </button>
+ <button class="bell-btn" onclick="document.getElementById('ordersSection').scrollIntoView({behavior:'smooth'}); loadSellerOrders();">🔔<span id="orderCount" class="bell-count">0</span></button>
  <img id="sLogo" class="shop-logo" src="https://via.placeholder.com/150" onclick="document.getElementById('logoInput').click()">
  <input type="file" id="logoInput" accept="image/*" hidden onchange="uploadLogo()">
  <div id="sName" style="color:#fff;margin-top:8px">Loading...</div>
@@ -45,7 +43,7 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
 <div class="stats">
  <div class="stat-card">👁️<b id="stViews">0</b><small>Views</small></div>
  <div class="stat-card">📦<b id="stProducts">0</b><small>Products</small></div>
- <div class="stat-card">📞<b id="stCalls">0</b><small>Call Clicks</small></div>
+ <div class="stat-card">🎬<b id="stReels">0</b><small>Reels</small></div>
  <div class="stat-card">💬<b id="stWhats">0</b><small>WhatsApp</small></div>
  <div class="stat-card" style="border:2px solid #FFCC02">🪙<b id="stCoins">0</b><small>Coins</small></div>
 </div>
@@ -56,10 +54,18 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
   <button onclick="location.href='/?open=sell'" style="background:#FF6A00;color:#fff;padding:8px 14px;border-radius:10px;font-weight:900;border:none">➕ Add FREE</button>
  </div>
  <div class="products" id="myProducts" style="margin-top:10px"></div>
- <button id="loadMoreBtn" onclick="loadMoreProducts()" style="display:none;background:#fff;border:2px solid #FF6A00;color:#FF6A00;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:12px">⬇️ Load 10 More</button>
+ <button id="loadMoreBtn" onclick="loadMoreProducts()" style="display:none;background:#fff;border:2px solid #FF6A00;color:#FF6A00;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:12px">⬇️ Load More</button>
 </div>
 
-<!-- ✅ SINGLE ORDERS BUTTON ONLY - SELLER INTERFACE -->
+<!-- OWNER REELS SECTION -->
+<div class="card">
+ <div style="display:flex;justify-content:space-between;align-items:center">
+  <h3 style="margin:0">🎬 My Reels</h3>
+  <button onclick="location.href='/upload-reel'" style="background:#000;color:#FFCC02;padding:8px 14px;border-radius:10px;font-weight:900;border:none">➕ Upload Reel</button>
+ </div>
+ <div class="products" id="myReels" style="margin-top:10px"></div>
+</div>
+
 <div class="card" id="ordersSection">
  <h3 style="margin:0 0 12px 0">📦 My Shop Orders</h3>
  <button onclick="toggleOrders()" id="singleOrdersBtn" style="width:100%;padding:16px;background:#000;color:#FFCC02;border:3px solid #FFCC02;border-radius:14px;font-weight:900;font-size:16px;display:flex;justify-content:center;align-items:center;gap:10px">
@@ -81,9 +87,9 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
  <h3>⚡ Quick Actions</h3>
  <div class="quick">
   <button onclick="location.href='/?open=sell'" style="background:#FF6A00;color:#fff;width:100%">➕ Add Product FREE</button>
-  <button onclick="shareShop()" style="background:#00AA00;color:#fff;width:100%">🔗 Share Link</button>
+  <button onclick="shareShop()" style="background:#00AA00;color:#fff;width:100%">🔗 Share Shop</button>
   <button onclick="viewAsBuyer()" style="background:#fff;border:2px solid #00AA00;color:#00AA00;width:100%">👁️ View as Buyer</button>
-  <button onclick="location.href='/invite'" style="background:#fff;border:2px solid #FF6A00;color:#FF6A00;width:100%">🎁 Invite & Earn</button>
+  <button onclick="location.href='/@'+myShopSlug" style="background:#fff;border:2px solid #FFCC02;color:#000;width:100%">🎬 My Reels Profile</button>
  </div>
 </div>
 
@@ -112,7 +118,7 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
 
 <script>
 let myUser = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
-let myEmail = (myUser.email||'').toLowerCase();
+let myEmail = (myUser.email||localStorage.getItem('user_email')||'').toLowerCase();
 let myShopSlug = '';
 let myShopName = '';
 let currentPage = 1;
@@ -120,17 +126,27 @@ let hasMore = false;
 let ordersVisible = true;
 document.getElementById('todayDate').innerText = new Date().toLocaleDateString();
 
+// 🔒 OWNER ONLY GUARD
+if(!myEmail){
+  alert('⚠️ Please login first to view your shop!');
+  location.href='/login?next=/my-shop';
+}
+
+async function secureFetch(url, opts={}){
+  opts.headers = opts.headers||{};
+  opts.headers['X-User-Email'] = myEmail;
+  opts.headers['Content-Type'] = opts.headers['Content-Type']||'application/json';
+  return fetch(url, opts);
+}
+
 async function loadMyShop(page=1){
- if(!myEmail){ alert('Login first!'); location.href='/'; return; }
- let r = await fetch('/api/my-shop?email='+encodeURIComponent(myEmail)+'&page='+page);
+ if(!myEmail) return;
+ try{
+ let r = await secureFetch('/api/my-shop?email='+encodeURIComponent(myEmail)+'&page='+page);
  let d = await r.json();
- if(!d.success ||!d.shop){
-   document.getElementById('sName').innerHTML='<h2>No Shop Yet</h2><button onclick="location.href=\'/?open=sell\'" style="background:#FFCC02;padding:10px;border-radius:10px">Add First Product</button>';
-   return;
- }
+ if(!d.success){ alert(d.message); return; }
  let s = d.shop; myShopSlug = s.shop_slug||s.slug||''; myShopName = s.business_name||'';
  localStorage.setItem('sannlas_shop_name', myShopName);
- localStorage.setItem('sannlas_shop_email', myEmail);
  document.getElementById('sLogo').src = s.logo||'https://via.placeholder.com/150?text='+encodeURIComponent((s.business_name||'SHOP').substring(0,3));
  document.getElementById('sName').innerHTML = `<h1>🏪 ${s.business_name||'My Shop'}</h1>`;
  document.getElementById('sInfo').innerHTML = `📍 ${s.location||'Uganda'} | 📞 ${s.phone||''}`;
@@ -143,9 +159,16 @@ async function loadMyShop(page=1){
    document.getElementById('myProducts').innerHTML='';
    document.getElementById('stViews').innerText = d.stats.views||0;
    document.getElementById('stProducts').innerText = d.total||0;
-   document.getElementById('stCalls').innerText = d.stats.call_clicks||0;
+   document.getElementById('stReels').innerText = d.stats.total_reels||(d.reels||[]).length||0;
    document.getElementById('stWhats').innerText = d.stats.whatsapp_clicks||0;
    document.getElementById('stCoins').innerText = d.stats.coins||0;
+   // Render reels
+   let reelsHtml='';
+   (d.reels||[]).forEach(r=>{
+     reelsHtml+=`<div class="pcard"><video src="${r.video_url||r.video}" muted></video><div style="padding:8px"><b style="font-size:12px">${(r.title||r.caption||'Reel').substring(0,30)}</b><br><small>❤️ ${r.likes||0}</small></div></div>`;
+   });
+   if(!reelsHtml) reelsHtml='<p style="padding:12px;color:#888">No reels yet. <a href="/upload-reel">Upload first reel</a></p>';
+   document.getElementById('myReels').innerHTML=reelsHtml;
  }
  let prods = d.products||[];
  if(prods.length==0 && page==1){ document.getElementById('myProducts').innerHTML='<p>No products yet — <a href="/?open=sell">Add Product FREE</a></p>'; }
@@ -166,15 +189,14 @@ async function loadMyShop(page=1){
  currentPage = d.page;
  document.getElementById('loadMoreBtn').style.display = hasMore? 'block' : 'none';
  loadSellerOrders();
+ }catch(e){ console.log(e); }
 }
-
 function loadMoreProducts(){ loadMyShop(currentPage+1); }
 function toggleOrders(){
   ordersVisible = !ordersVisible;
   document.getElementById('ordersBox').style.display = ordersVisible ? 'block' : 'none';
   if(ordersVisible) loadSellerOrders();
 }
-
 async function loadSellerOrders(){
  let box = document.getElementById('ordersBox');
  try{
@@ -185,120 +207,38 @@ async function loadSellerOrders(){
    let bell = document.getElementById('orderCount');
    let pending = orders.filter(o=>o.status=='PENDING').length;
    let total = orders.length;
-   if(total>0){
-     badge.style.display='inline-block'; badge.innerText=total;
-     bell.style.display='block'; bell.innerText=pending>0?pending:total;
-   } else {
-     badge.style.display='none'; bell.style.display='none';
-   }
-   if(orders.length==0){ box.innerHTML='<p style="padding:12px;background:#FFF7ED;border-radius:10px;text-align:center;color:#666">No orders yet Boss! When buyer clicks Checkout, it will show here with SN- tracking ID.</p>'; return; }
-   let html='';
-   orders.forEach(o=>{
-     html+=`<div class="order-card">
-       <div style="display:flex;justify-content:space-between;align-items:center">
-         <b style="color:#FF6A00">${o.tracking_id}</b>
-         <span class="order-badge ${o.status}">${o.status}</span>
-       </div>
-       <div style="margin-top:8px;font-size:13px;line-height:1.6">
-         👤 <b>${o.buyer_name}</b><br>
-         📞 <a href="tel:${o.buyer_phone}" style="color:#00AA00;font-weight:800">${o.buyer_phone}</a> | ✉️ ${o.buyer_email}<br>
-         📍 ${o.district}, ${o.address}<br>
-         💰 UGX ${Number(o.total).toLocaleString()} - ${o.items.length} items<br>
-         <small style="color:#666">${new Date(o.created_at).toLocaleString()}</small>
-         ${o.delivery_man_name? `<br>🛵 Rider: ${o.delivery_man_name} (${o.delivery_man_phone})`: ''}
-       </div>
-       <details style="margin-top:6px"><summary style="font-size:12px;color:#666">View Items</summary><div style="font-size:12px">${o.items.map(i=>`• ${i.name||i.title} x${i.qty||1} - UGX ${i.price}`).join('<br>')}</div></details>
-       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-         <button onclick="updateOrderStatus('${o.tracking_id}','CONFIRMED')" class="btn" style="background:#000;color:#FFCC02">✅ Confirm</button>
-         <button onclick="openRiderBox('${o.tracking_id}')" class="btn" style="background:#FF6A00;color:#fff">🛵 Assign Rider</button>
-         <button onclick="updateOrderStatus('${o.tracking_id}','PACKED')" class="btn" style="background:#E0E7FF">📦 Packed</button>
-         <button onclick="updateOrderStatus('${o.tracking_id}','SHIPPED')" class="btn" style="background:#FEF08A">🚚 Shipped</button>
-         <button onclick="updateOrderStatus('${o.tracking_id}','DELIVERED')" class="btn" style="background:#D1FAE5">✅ Delivered</button>
-       </div>
-       <div id="rider-${o.tracking_id}" style="display:none;margin-top:8px;background:#f9f9f9;padding:8px;border-radius:10px">
-         <input id="rn-${o.tracking_id}" placeholder="Rider Name" style="padding:8px;border-radius:8px;border:1px solid #ddd;width:48%"><input id="rp-${o.tracking_id}" placeholder="Rider Phone" style="padding:8px;border-radius:8px;border:1px solid #ddd;width:48%;margin-left:2%">
-         <button onclick="saveRider('${o.tracking_id}')" style="margin-top:6px;width:100%;padding:10px;background:#000;color:#FFCC02;border:none;border-radius:10px;font-weight:800">Save Rider & Ship</button>
-       </div>
-       <button onclick="shareTracking('${o.tracking_id}')" class="btn" style="background:#000;color:#FFCC02;width:100%;margin-top:8px">🔗 Copy Tracking Link</button>
-       <button onclick="window.open('https://wa.me/'+'${o.buyer_phone}'.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent('Hello ${o.buyer_name}! Your order ${o.tracking_id} is ${o.status}! Track: '+location.origin+'/track/${o.tracking_id}'), '_blank')" class="btn" style="background:#25D366;color:#fff;width:100%;margin-top:6px">💬 WhatsApp Buyer</button>
-       <button onclick="location.href='/track/${o.tracking_id}'" class="btn" style="background:#fff;border:2px solid #000;width:100%;margin-top:6px">👁️ View Tracking Page</button>
-     </div>`;
-   });
-   box.innerHTML=html;
- }catch(e){ box.innerHTML='Error loading orders: '+e.message; }
+   if(total>0){ badge.style.display='inline-block'; badge.innerText=total; bell.style.display='block'; bell.innerText=pending>0?pending:total; } else { badge.style.display='none'; bell.style.display='none'; }
+   if(orders.length==0){ box.innerHTML='<p style="padding:12px;background:#FFF7ED;border-radius:10px;text-align:center;color:#666">No orders yet Boss!</p>'; return; }
+   let html=''; orders.forEach(o=>{
+     html+=`<div class="order-card"><div style="display:flex;justify-content:space-between"><b style="color:#FF6A00">${o.tracking_id}</b><span class="order-badge ${o.status}">${o.status}</span></div><div style="margin-top:8px;font-size:13px">👤 <b>${o.buyer_name}</b><br>📞 ${o.buyer_phone}<br>📍 ${o.district}<br>💰 UGX ${Number(o.total).toLocaleString()}</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="updateOrderStatus('${o.tracking_id}','CONFIRMED')" class="btn" style="background:#000;color:#FFCC02">✅ Confirm</button><button onclick="updateOrderStatus('${o.tracking_id}','DELIVERED')" class="btn" style="background:#D1FAE5">✅ Delivered</button></div></div>`;
+   }); box.innerHTML=html;
+ }catch(e){ box.innerHTML='Error: '+e.message; }
 }
-
 async function updateOrderStatus(id,status){
  await fetch(`/api/orders/seller/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:status})});
  loadSellerOrders();
 }
-function openRiderBox(id){ document.getElementById('rider-'+id).style.display='block'; }
-async function saveRider(id){
- let name=document.getElementById('rn-'+id).value.trim(); let phone=document.getElementById('rp-'+id).value.trim();
- if(!name || !phone){ alert('Enter rider name & phone'); return; }
- await fetch(`/api/orders/seller/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({delivery_man_name:name, delivery_man_phone:phone, status:'SHIPPED'})});
- loadSellerOrders();
-}
-
-async function checkNewOrders(){
- try{
-   let r = await fetch(`/api/orders/seller?shop_email=${encodeURIComponent(myEmail)}&shop_name=${encodeURIComponent(myShopName)}`);
-   let res = await r.json();
-   let pending = (res.orders||[]).filter(o=>o.status=='PENDING').length;
-   let badge = document.getElementById('orderCount');
-   let myBadge = document.getElementById('myOrdersBadge');
-   if(pending>0){
-     badge.style.display='block'; badge.innerText=pending;
-     myBadge.style.display='inline-block'; myBadge.innerText=pending;
-     let last = parseInt(localStorage.getItem('last_pending')||'0');
-     if(pending > last){
-       if(navigator.vibrate) navigator.vibrate([300,100,300]);
-       try { let audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c8d5f6.mp3?filename=notification-101340.mp3'); audio.play().catch(()=>{}); } catch(e){}
-       if(confirm(`🔥 NEW ORDER! You have ${pending} new order(s)! View now?`)){
-         document.getElementById('ordersSection').scrollIntoView({behavior:'smooth'});
-         loadSellerOrders();
-       }
-     }
-   } else {
-     badge.style.display='none';
-     if(myBadge) { myBadge.style.display = (res.orders||[]).length>0 ? 'inline-block' : 'none'; myBadge.innerText = (res.orders||[]).length; }
-   }
-   localStorage.setItem('last_pending', pending);
- }catch(e){}
-}
-setInterval(checkNewOrders, 10000);
-setTimeout(checkNewOrders, 2000);
-
 function openEditPrice(id,price){ document.getElementById('editPriceId').value=id; document.getElementById('editPriceVal').value=price; document.getElementById('editPriceModal').style.display='flex'; }
 function openEditStock(id,stock){ document.getElementById('editStockId').value=id; document.getElementById('editStockVal').value=stock; document.getElementById('editStockModal').style.display='flex'; }
 function openSettings(){ document.getElementById('settingsModal').style.display='flex'; }
 function closeModals(){ document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); }
 async function savePrice(){
  let id=document.getElementById('editPriceId').value; let price=parseInt(document.getElementById('editPriceVal').value);
- let r=await fetch('/api/my-shop/update-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,price,email:myEmail})});
- let d=await r.json(); if(d.success){ closeModals(); loadMyShop(1); } else alert(d.message);
+ let r=await secureFetch('/api/my-shop/update-price',{method:'POST',body:JSON.stringify({id,price,email:myEmail})});
+ if((await r.json()).success){ closeModals(); loadMyShop(1); }
 }
 async function saveStock(){
  let id=document.getElementById('editStockId').value; let stock=parseInt(document.getElementById('editStockVal').value);
- let r=await fetch('/api/my-shop/update-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,stock,email:myEmail})});
- let d=await r.json(); if(d.success){ closeModals(); loadMyShop(1); } else alert(d.message);
+ let r=await secureFetch('/api/my-shop/update-stock',{method:'POST',body:JSON.stringify({id,stock,email:myEmail})});
+ if((await r.json()).success){ closeModals(); loadMyShop(1); }
 }
-async function deleteProd(id){ if(!confirm('Delete?')) return; let r=await fetch('/api/my-shop/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,email:myEmail})}); if((await r.json()).success) loadMyShop(1); }
-async function toggleHide(id,hide){ let r=await fetch('/api/my-shop/toggle-hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,hidden:hide,email:myEmail})}); if((await r.json()).success) loadMyShop(1); }
-async function uploadLogo(){
- let file=document.getElementById('logoInput').files[0]; if(!file) return; let fd=new FormData(); fd.append('logo',file); fd.append('email',myEmail); fd.append('shop_slug',myShopSlug);
- let r=await fetch('/api/shop/upload-logo',{method:'POST',body:fd}); if((await r.json()).success) loadMyShop(1);
-}
+async function deleteProd(id){ if(!confirm('Delete?')) return; let r=await secureFetch('/api/my-shop/delete',{method:'POST',body:JSON.stringify({id,email:myEmail})}); if((await r.json()).success) loadMyShop(1); }
+async function toggleHide(id,hide){ let r=await secureFetch('/api/my-shop/toggle-hide',{method:'POST',body:JSON.stringify({id,hidden:hide,email:myEmail})}); if((await r.json()).success) loadMyShop(1); }
 async function saveSettings(){
  let payload={email:myEmail,business_name:document.getElementById('setName').value,location:document.getElementById('setLocation').value,phone:document.getElementById('setPhone').value,delivery_info:document.getElementById('setDelivery').value,working_hours:document.getElementById('setHours').value,payment:document.getElementById('setPayment').value,description:document.getElementById('setDesc').value};
- let r=await fetch('/api/my-shop/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if((await r.json()).success){ closeModals(); loadMyShop(1); }
+ let r=await secureFetch('/api/my-shop/update-settings',{method:'POST',body:JSON.stringify(payload)}); if((await r.json()).success){ closeModals(); loadMyShop(1); }
 }
 function shareShop(){ let url=location.origin+'/shop/'+myShopSlug; navigator.clipboard.writeText(url); alert('Link copied: '+url); }
 function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
-function shareTracking(id){
-  let url = location.origin + '/track/' + id;
-  navigator.clipboard.writeText(url);
-  alert('Tracking link copied: ' + url);
-}
 loadMyShop(1);
 </script></body></html>
