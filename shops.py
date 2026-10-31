@@ -25,6 +25,7 @@ def load_db(file, default):
             try:
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
+                # PRODUCTS
                 if file == 'products.json':
                     cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
                     result=[]
@@ -35,6 +36,47 @@ def load_db(file, default):
                             except: pass
                         result.append(d)
                     return result
+                # REELS - TRY MULTIPLE TABLES
+                elif 'reel' in file.lower():
+                    for tbl in ['sannlas_reels','reels','videos']:
+                        try:
+                            cur.execute(f"SELECT data FROM {tbl} ORDER BY id DESC")
+                            rows = cur.fetchall()
+                            if rows:
+                                result=[]
+                                for r in rows:
+                                    d=r['data']
+                                    if isinstance(d,str):
+                                        try: d=json.loads(d)
+                                        except: pass
+                                    result.append(d)
+                                cur.close(); conn.close()
+                                print(f"Loaded {len(result)} reels from {tbl}")
+                                return result
+                        except: continue
+                    # fallback to kv_store
+                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                    if not row: 
+                        # try other kv keys
+                        conn2=get_conn()
+                        cur2=conn2.cursor(row_factory=dict_row)
+                        for k in ['reels.json','sannlas_reels.json','reels']:
+                            cur2.execute("SELECT data FROM kv_store WHERE key=%s", (k,))
+                            rw=cur2.fetchone()
+                            if rw:
+                                d=rw['data']
+                                if isinstance(d,str):
+                                    try: d=json.loads(d)
+                                    except: pass
+                                cur2.close(); conn2.close()
+                                return d if isinstance(d,list) else [d]
+                        cur2.close(); conn2.close()
+                        return default
+                    d=row['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
+                        except: pass
+                    return d
                 else:
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
                     if not row: return default
@@ -46,16 +88,20 @@ def load_db(file, default):
             except:
                 import psycopg2.extras
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                # same fallback for psycopg2...
+                if 'reel' in file.lower():
+                    for tbl in ['sannlas_reels','reels','videos']:
+                        try:
+                            cur.execute(f"SELECT data FROM {tbl} ORDER BY id DESC")
+                            rows = cur.fetchall()
+                            if rows:
+                                result=[r['data'] if not isinstance(r['data'],str) else json.loads(r['data']) for r in rows]
+                                cur.close(); conn.close()
+                                return result
+                        except: continue
                 if file == 'products.json':
                     cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                    result=[]
-                    for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        result.append(d)
-                    return result
+                    return [r['data'] if not isinstance(r['data'],str) else json.loads(r['data']) for r in rows]
                 else:
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
                     if not row: return default
@@ -70,8 +116,10 @@ def load_db(file, default):
                 try: return json.load(open(path))
                 except: return default
             return default
-    except: return default
-
+    except Exception as e:
+        print(f"load_db error {file}: {e}")
+        return default
+        
 def clean_slug_fix(s):
     return re.sub(r'[^a-z0-9]+', '-', str(s or 'shop').lower().replace('%20','-').replace('%2520','-')).strip('-') or 'shop'
 
@@ -303,3 +351,113 @@ def get_all_shops():
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify([])
+
+# ===== SHOW REELS PROFILE - BY SHOP OWNER =====
+@shops_bp.route('/@/<path:slug>')
+@shops_bp.route('/@/<path:slug>/reels')
+def reels_profile_by_shop(slug):
+    try:
+        from flask import render_template_string
+        raw = unquote(unquote(slug)).strip()
+        cleaned = clean_slug_fix(raw)
+        
+        shops = load_db('shops.json', []) or []
+        products = load_db('products.json', []) or []
+        reels = load_db('reels.json', []) or load_db('sannlas_reels.json', []) or []
+        
+        # FIND SHOP (same logic as before)
+        shop = None
+        for s in shops:
+            for key in ['shop_slug','slug','business_name','name']:
+                if clean_slug_fix(str(s.get(key,''))) == cleaned:
+                    shop=s; break
+            if shop: break
+        
+        if not shop:
+            for p in products:
+                b = str(p.get('business','') or '').strip()
+                if clean_slug_fix(b) == cleaned or b.lower() == raw.lower():
+                    shop = {"shop_slug":cleaned,"business_name":b,"owner_email":p.get('seller_email',''),"name":b}
+                    break
+        
+        if not shop:
+            return f"<h1>Shop {raw} not found</h1><a href='/all-shops'>Back to Shops</a>",404
+        
+        owner_email = str(shop.get('owner_email','') or shop.get('email','')).lower()
+        real_slug = clean_slug_fix(shop.get('shop_slug') or shop.get('business_name') or cleaned)
+        real_name_clean = clean_slug_fix(shop.get('business_name') or '')
+        
+        # FIND REELS BY THIS OWNER ONLY
+        owner_reels = []
+        for r in reels:
+            r_email = str(r.get('owner_email','') or r.get('seller_email','') or r.get('email','') or r.get('user_email','')).lower()
+            r_shop = clean_slug_fix(r.get('shop_slug','') or r.get('business','') or r.get('business_name','') or r.get('username','') or r.get('owner',''))
+            r_name = clean_slug_fix(r.get('owner_name','') or '')
+            
+            if (owner_email and r_email == owner_email) or r_shop == real_slug or r_shop == real_name_clean or r_shop == cleaned or r_name == real_name_clean:
+                owner_reels.append(r)
+        
+        # Loose fallback for Sannlas
+        if not owner_reels and cleaned == 'sannlas':
+            for r in reels:
+                b = str(r.get('business','') or r.get('owner','') or '').lower()
+                if 'sannlas' in b:
+                    owner_reels.append(r)
+        
+        owner_reels = sorted(owner_reels, key=lambda x: x.get('created_at',''), reverse=True)
+        print(f"REELS PROFILE {shop.get('business_name')} -> {len(owner_reels)} reels found")
+        
+        # SIMPLE TIKTOK GRID TEMPLATE
+        html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>@{{shop.business_name}} - Reels</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body{background:#000;color:#fff;font-family:Arial;margin:0}
+                .header{padding:20px;text-align:center;border-bottom:1px solid #333}
+                .header h1{color:#ff0050;margin:5px}
+                .btn{background:#ffcc00;color:#000;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:bold}
+                .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
+                .reel{aspect-ratio:9/16;background:#111;position:relative;overflow:hidden}
+                .reel video,.reel img{width:100%;height:100%;object-fit:cover}
+                .reel-info{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,black);padding:8px;font-size:12px}
+                .empty{padding:50px;text-align:center;color:#888}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>@{{shop.business_name}}</h1>
+                <p>{{shop.business_name}} • {{reels|length}} reels</p>
+                <a class="btn" href="/shop/{{shop.shop_slug}}">Back to Shop</a>
+                <a class="btn" href="/all-shops" style="background:#fff">All Shops</a>
+            </div>
+            {% if reels %}
+            <div class="grid">
+                {% for r in reels %}
+                <div class="reel" onclick="window.location='/reel/{{r.id or r._id}}'">
+                    {% if r.video_url or r.video %}
+                    <video src="{{r.video_url or r.video}}" muted loop poster="{{r.thumbnail or r.cover or ''}}"></video>
+                    {% else %}
+                    <img src="{{r.thumbnail or r.image or r.cover or 'https://via.placeholder.com/300x500?text=Reel'}}">
+                    {% endif %}
+                    <div class="reel-info">{{r.title or r.caption or 'Reel'[:30]}}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty">
+                <h2>No reels yet</h2>
+                <p>{{shop.business_name}} hasn't uploaded any reels</p>
+                <a class="btn" href="/upload-reel">Upload First Reel</a>
+            </div>
+            {% endif %}
+        </body>
+        </html>
+        """
+        return render_template_string(html, shop=shop, reels=owner_reels)
+        
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return f"Error: {e}",500
