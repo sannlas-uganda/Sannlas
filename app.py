@@ -128,6 +128,61 @@ app.register_blueprint(admin_ai_bp)
 from sannlas_ai_crawler import crawler_bp
 app.register_blueprint(crawler_bp)
 
+# === AUTO-ADD PRODUCTS DAILY - B) - ADDED BY BOSS ===
+import threading
+import time
+
+def daily_product_sync():
+    while True:
+        try:
+            time.sleep(86400)  # 24 hours = 86400 secs
+            print("⏰ Daily sync: Adding new products Q&A...")
+            from sannlas_ai_crawler import load_knowledge, save_knowledge, get_conn
+            import json
+            all_qa = load_knowledge()
+            existing = set([k.get('question','').lower() for k in all_qa])
+            conn = get_conn()
+            if conn:
+                cur = conn.cursor()
+                cur.execute("SELECT data FROM products ORDER BY id DESC LIMIT 50")
+                rows = cur.fetchall()
+                cur.close()
+                conn.close()
+                added = 0
+                for r in rows:
+                    d = r[0]
+                    if isinstance(d, str):
+                        try: d = json.loads(d)
+                        except: continue
+                    if not isinstance(d, dict): continue
+                    name = d.get('name','').strip()
+                    if not name: continue
+                    q = f"Do you have {name}?"
+                    if q.lower() not in existing:
+                        all_qa.append({
+                            'id': len(all_qa)+1,
+                            'question': q,
+                            'answer': f"Yes! {name} - UGX {d.get('price','')} - {d.get('location','Kampala')}! 🛍️",
+                            'category': 'products',
+                            'keywords': name.lower().split()[:5],
+                            'source': 'daily auto'
+                        })
+                        added += 1
+                if added > 0:
+                    save_knowledge(all_qa)
+                    print(f"✅ Daily sync added {added} new products Q&A!")
+        except Exception as e:
+            print(f"Daily sync error {e}")
+            time.sleep(3600)
+
+# Start daily thread (only once)
+try:
+    thread = threading.Thread(target=daily_product_sync, daemon=True)
+    thread.start()
+    print("✅ Daily product sync thread started - will run every 24h")
+except: pass
+# === END AUTO-ADD DAILY ===
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
