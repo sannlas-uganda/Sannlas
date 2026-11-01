@@ -27,6 +27,26 @@
 </head>
 <body>
 <div id="reels-container"></div>
+
+<!-- SANNLAS AI CHAT MODAL - NEW -->
+<div id="sannlasAIModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:100000;flex-direction:column">
+  <div style="background:#000;color:#FFCC02;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #FFCC02">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:#FFCC02;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px">🧠</div>
+      <div><b>Sannlas AI</b><div style="font-size:10px;color:#fff;opacity:0.7">Online • Knows all Sannlas products</div></div>
+    </div>
+    <button onclick="closeSannlasAI()" style="background:#fff;color:#000;border:none;width:32px;height:32px;border-radius:50%;font-weight:900">✕</button>
+  </div>
+  <div id="aiMessages" style="flex:1;overflow-y:auto;padding:16px;background:#f8fafc;display:flex;flex-direction:column;gap:10px">
+    <div style="background:#fff;color:#000;padding:12px 14px;border-radius:18px;border-bottom-left-radius:4px;max-width:85%;box-shadow:0 1px 3px rgba(0,0,0,.1)">Hi Boss! 👋 I'm <b>Sannlas AI</b>!<br>Ask me:<br>• "Find iPhone under 1M"<br>• "How to sell on Sannlas?"<br>• "Shops in Kampala?"</div>
+  </div>
+  <div id="aiProducts" style="padding:8px 16px;background:#fff;display:none;gap:8px;overflow-x:auto"></div>
+  <div style="background:#fff;padding:10px 12px;display:flex;gap:8px;border-top:1px solid #eee">
+    <input id="aiInput" placeholder="Ask Sannlas AI..." style="flex:1;padding:12px 14px;border-radius:24px;border:1px solid #ddd;outline:none;color:#000" onkeypress="if(event.key=='Enter')sendToAI()">
+    <button onclick="sendToAI()" style="background:#000;color:#FFCC02;border:none;width:44px;height:44px;border-radius:50%;font-weight:900">↑</button>
+  </div>
+</div>
+
 <script>
 function cleanSlug(s){
   return (s||'shop').toString().trim().toLowerCase()
@@ -76,6 +96,8 @@ async function loadReels(){
     <div class="action-col">
       <a href="/shop/${slug}" class="promote-btn">🏪 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
       <button class="shop-btn" onclick="location.href='/shop/${slug}'">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW SHOP</button>
+      <!-- SANNLAS AI BUTTON - BELOW CALL - NEW -->
+      <button onclick="openSannlasAI('${slug}')" style="background:linear-gradient(135deg,#000,#1a1a1a);color:#FFCC02;padding:12px 20px;border-radius:25px;font-weight:900;border:2px solid #FFCC02;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 10px rgba(255,204,2,0.3)">🧠 SANNLAS AI - ASK ANYTHING</button>
     </div>
     <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="/shop/${slug}">@${slug} • ${reel.location||'Uganda'} ➔ Tap profile pic to View Shop</a></div>
   </div>
@@ -105,120 +127,65 @@ async function likeReel(id,btn){
  let span=btn.querySelector('span');if(span){span.innerText=parseInt(span.innerText||0)+1;}
 }
 
-// ===== FOLLOW SYSTEM - FIXED FOR YOUR API =====
+// ===== SANNLAS AI FUNCTIONS - NEW =====
+let aiHistory = [];
+let currentShopSlug = '';
+function openSannlasAI(shopSlug=''){
+  currentShopSlug = shopSlug;
+  document.getElementById('sannlasAIModal').style.display='flex';
+  document.getElementById('aiInput').focus();
+  if(shopSlug){
+    document.getElementById('aiInput').placeholder = `Ask about @${shopSlug} or anything...`;
+  }
+}
+function closeSannlasAI(){
+  document.getElementById('sannlasAIModal').style.display='none';
+}
+async function sendToAI(){
+  let input=document.getElementById('aiInput'); let msg=input.value.trim(); if(!msg) return;
+  let box=document.getElementById('aiMessages');
+  box.innerHTML+=`<div style="background:#000;color:#FFCC02;padding:10px 14px;border-radius:18px;border-bottom-right-radius:4px;max-width:85%;align-self:flex-end;margin-left:auto">${msg}</div>`;
+  input.value=''; box.scrollTop=box.scrollHeight; aiHistory.push({role:'user',content:msg + (currentShopSlug ? ` [current shop: ${currentShopSlug}]` : '')});
+  box.innerHTML+=`<div id="aiTyping" style="background:#fff;color:#000;padding:10px 14px;border-radius:18px;max-width:85%">🧠 Sannlas AI typing...</div>`;
+  box.scrollTop=box.scrollHeight;
+  try{
+    let r=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:aiHistory})});
+    let data=await r.json(); document.getElementById('aiTyping')?.remove();
+    box.innerHTML+=`<div style="background:#fff;color:#000;padding:12px 14px;border-radius:18px;border-bottom-left-radius:4px;max-width:85%;box-shadow:0 1px 3px rgba(0,0,0,.1)">${data.reply.replace(/\n/g,'<br>')}</div>`;
+    aiHistory.push({role:'assistant',content:data.reply});
+    if(data.products && data.products.length){
+      let pBox=document.getElementById('aiProducts'); pBox.style.display='flex';
+      pBox.innerHTML=data.products.map(p=>`<div onclick="location.href='/product/${p.id||p._id}'" style="min-width:140px;background:#f8fafc;border-radius:12px;padding:8px;border:1px solid #eee;cursor:pointer"><img src="${p.image||''}" style="width:100%;height:80px;object-fit:cover;border-radius:8px"><div style="font-size:12px;font-weight:800;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#000">${p.name||p.title}</div><div style="font-size:11px;color:#000;font-weight:900">UGX ${(p.price||0).toLocaleString()}</div></div>`).join('');
+    }
+    box.scrollTop=box.scrollHeight;
+  }catch(e){document.getElementById('aiTyping')?.remove(); box.innerHTML+=`<div style="background:#ffeaea;color:#000;padding:10px;border-radius:12px">Sorry Boss, network! Try again 🚀</div>`;}
+}
+
+// ===== FOLLOW SYSTEM =====
 async function toggleFollowReal(btn){
   let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
   if(!user.email){ alert('Login first Boss!'); return; }
-  
-  let targetEmail = btn.getAttribute('data-email') || btn.getAttribute('data-user-email') || '';
-  let targetShop = btn.getAttribute('data-slug') || btn.getAttribute('data-shop') || '';
-  
-  if(!targetEmail && targetShop){
-    // Try get email from data
-    targetEmail = '';
-  }
-  
-  // Prevent self follow
-  if(targetEmail && user.email.toLowerCase() === targetEmail.toLowerCase()){
-    alert("Can't follow yourself Boss!"); return;
-  }
-
+  let targetEmail = btn.getAttribute('data-email') || '';
+  let targetShop = btn.getAttribute('data-slug') || '';
+  if(targetEmail && user.email.toLowerCase() === targetEmail.toLowerCase()){ alert("Can't follow yourself Boss!"); return; }
   let isFollowing = btn.innerText.includes('✓') || btn.classList.contains('following');
   let url = isFollowing ? '/api/unfollow' : '/api/follow';
-  
-  let originalHTML = btn.innerHTML;
-  btn.innerHTML = '...';
-  btn.disabled = true;
-
+  let originalHTML = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
   try{
-    let r = await fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        email: user.email,
-        phone: user.phone||'',
-        target_email: targetEmail,
-        target_shop: targetShop
-      })
-    });
+    let r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({email: user.email,phone: user.phone||'',target_email: targetEmail,target_shop: targetShop})});
     let j = await r.json();
-    
-    if(!r.ok || !j.success){
-      alert(j.message || 'Failed');
-      btn.innerHTML = originalHTML;
-      btn.disabled = false;
-      return;
-    }
-
-    // ✅ AUTO INCREASE / REDUCE - MAGIC!
-    if(isFollowing){
-      btn.innerHTML = '+';
-      btn.classList.remove('following');
-      btn.style.background = '#FFCC02';
-      btn.style.color = '#000';
-    } else {
-      btn.innerHTML = '✓';
-      btn.classList.add('following');
-      btn.style.background = '#fff';
-      btn.style.color = '#00CC00';
-      btn.style.borderColor = '#00CC00';
-    }
-
-    // ✅ Update ALL follower counts on page if same shop
-    if(targetShop){
-      try{
-        let rr = await fetch('/api/user/follow-count/' + encodeURIComponent(targetShop));
-        let dd = await rr.json();
-        // Update shop page stats if open
-        let fEl = document.getElementById('statFollowers');
-        if(fEl) fEl.innerText = (dd.followers||0).toLocaleString();
-        let fEl2 = document.getElementById('followersCount');
-        if(fEl2) fEl2.innerText = dd.followers||0;
-        
-        // Update all same shop buttons
-        document.querySelectorAll(`[data-slug="${targetShop}"]`).forEach(b=>{
-          if(b !== btn){
-            b.innerHTML = isFollowing ? '+' : '✓';
-            if(isFollowing){
-              b.classList.remove('following');
-              b.style.background='#FFCC02'; b.style.color='#000';
-            } else {
-              b.classList.add('following');
-              b.style.background='#fff'; b.style.color='#00CC00';
-            }
-          }
-        });
-      }catch(e){ console.log(e); }
-    }
-
+    if(!r.ok || !j.success){ alert(j.message || 'Failed'); btn.innerHTML = originalHTML; btn.disabled = false; return; }
+    if(isFollowing){ btn.innerHTML = '+'; btn.classList.remove('following'); btn.style.background = '#FFCC02'; btn.style.color = '#000'; }
+    else { btn.innerHTML = '✓'; btn.classList.add('following'); btn.style.background = '#fff'; btn.style.color = '#00CC00'; btn.style.borderColor = '#00CC00'; }
     btn.disabled = false;
-    
-  }catch(e){
-    btn.innerHTML = originalHTML;
-    btn.disabled = false;
-    alert(e.message);
-  }
+  }catch(e){ btn.innerHTML = originalHTML; btn.disabled = false; alert(e.message); }
 }
-
 async function checkFollowStatus(){
-  let u = localStorage.getItem('sannlas_user');
-  if(!u) return;
-  let me;
-  try{ me=JSON.parse(u);}catch(e){return;}
-  if(!me.email) return;
-  document.querySelectorAll('.follow-plus').forEach(async (btn)=>{
-    let target = btn.getAttribute('data-email');
-    if(!target) return;
-    try{
-      let r = await fetch(`/api/follow/check?email=${encodeURIComponent(me.email)}&target=${encodeURIComponent(target)}`);
-      let j = await r.json();
-      if(j.is_following){
-        btn.innerHTML='✓'; btn.style.background='#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
-      }
-    }catch(e){}
+  let u = localStorage.getItem('sannlas_user'); if(!u) return; let me; try{ me=JSON.parse(u);}catch(e){return;} if(!me.email) return;
+  document.querySelectorAll('.follow-plus').forEach(async (btn)=>{ let target = btn.getAttribute('data-email'); if(!target) return;
+    try{ let r = await fetch(`/api/follow/check?email=${encodeURIComponent(me.email)}&target=${encodeURIComponent(target)}`); let j = await r.json(); if(j.is_following){ btn.innerHTML='✓'; btn.style.background='#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00'; } }catch(e){}
   });
 }
-
 loadReels();
 </script>
 </body>
