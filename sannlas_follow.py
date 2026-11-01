@@ -236,3 +236,39 @@ def api_follow_check():
     follows = get_follows()
     is_following = any(f.get('follower_email','').lower()==email and f.get('following_email','').lower()==target for f in follows)
     return jsonify({'is_following': is_following})
+
+@sannlas_follow_bp.route('/api/user/follow-count/<shop_slug>')
+def user_follow_count(shop_slug):
+    import re
+    def clean_slug(s):
+        return re.sub(r'[^a-z0-9]+', '-', str(s).lower()).strip('-')
+    target_slug = clean_slug(shop_slug)
+    users = get_users()
+    follows = get_follows()
+    
+    # Find user by slug/name
+    target_user = None
+    target_email = ''
+    for u in users:
+        biz = (u.get('business') or '')
+        if clean_slug(biz) == target_slug or (biz.lower() == shop_slug.lower()):
+            target_user = u
+            target_email = (u.get('email','') or '').lower()
+            break
+    
+    # Also check shops.json
+    if not target_email:
+        shops = load_db('shops.json', [])
+        for s in shops:
+            s_slug = clean_slug(s.get('shop_slug') or s.get('business_name') or '')
+            if s_slug == target_slug:
+                target_email = (s.get('owner_email') or s.get('email') or '').lower()
+                break
+    
+    if not target_email:
+        return jsonify({'followers':0,'following':0})
+    
+    followers = len([f for f in follows if f.get('following_email','').lower() == target_email])
+    following = len([f for f in follows if f.get('follower_email','').lower() == target_email])
+    
+    return jsonify({'followers': followers, 'following': following, 'email': target_email})
