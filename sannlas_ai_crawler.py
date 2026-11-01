@@ -1,4 +1,4 @@
-# sannlas_ai_crawler.py - NO BS4 - USES ONLY BUILT-IN - FINAL FIX
+# sannlas_ai_crawler.py - A+B+C - WITH PRODUCTS & SHOPS AUTO
 from flask import Blueprint, request, jsonify
 import os, json, re
 import urllib.request
@@ -52,7 +52,6 @@ def save_knowledge(data_list):
         print(f"Save error {e}")
         return False
 
-# Simple HTML stripper - NO BS4 NEEDED!
 class TextExtractor(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -76,11 +75,8 @@ def extract_text_from_html(html):
 
 @crawler_bp.route('/api/admin/crawl/auto', methods=['GET'])
 def auto_crawl():
-    """One-click auto load 15+ Q&A - NO EXTERNAL LIBS!"""
     try:
         all_qa = load_knowledge()
-        
-        # Default 25 Q&A - From your website sannlas.onrender.com
         default_qa = [
             {"question": "What is Sannlas?", "answer": "Sannlas is Uganda's marketplace! Buy & sell anything - shoes, phones, watches, bags, groceries in Kampala & Kawempe! 🛍️", "category": "general", "keywords": ["what", "sannlas"]},
             {"question": "How to buy on Sannlas?", "answer": "Search product → Tap it → Add to Cart → Checkout → Pay MTN/Airtel or Cash on Delivery → Delivered in 1-2 days! 🛒", "category": "buying", "keywords": ["how", "buy"]},
@@ -108,8 +104,6 @@ def auto_crawl():
             {"question": "How to track order?", "answer": "After order, seller calls you! Delivery in 1-2 days! Check notifications for updates! 📦", "category": "delivery", "keywords": ["track", "order"]},
             {"question": "What is Royco?", "answer": "Royco is seasoning! Available on Sannlas - Mchuzi Mix, Beef flavor! Search 'Royco'! 🍲", "category": "products", "keywords": ["royco"]},
         ]
-        
-        # Merge with existing
         existing_q = set([k.get('question','').lower() for k in all_qa])
         added = 0
         for qa in default_qa:
@@ -118,88 +112,139 @@ def auto_crawl():
                 all_qa.append(qa)
                 existing_q.add(qa['question'].lower())
                 added += 1
-        
-        # Auto-add from REAL products table
-        try:
-            conn = get_conn()
-            if conn:
-                cur = conn.cursor()
-                cur.execute("SELECT data FROM products LIMIT 30")
-                rows = cur.fetchall()
-                cur.close()
-                conn.close()
-                for r in rows:
-                    d = r[0]
-                    if isinstance(d, str):
-                        try: d = json.loads(d)
-                        except: continue
-                    if isinstance(d, dict):
-                        name = d.get('name','')
-                        if not name: continue
-                        price = d.get('price','')
-                        loc = d.get('location','Kampala')
-                        q = f"Do you have {name}?"
-                        if q.lower() not in existing_q:
-                            all_qa.append({
-                                'id': len(all_qa)+1,
-                                'question': q,
-                                'answer': f"Yes! {name} - UGX {price} - Available in {loc}! Search '{name}' on Sannlas to buy! 🛍️",
-                                'category': 'products',
-                                'keywords': name.lower().split()[:5],
-                            })
-                            existing_q.add(q.lower())
-                            added += 1
-        except Exception as e:
-            print(f"Products error {e}")
-        
         save_knowledge(all_qa)
-        
-        return jsonify({
-            'success': True,
-            'total_qa': len(all_qa),
-            'new_added': added,
-            'message': f'✅ Loaded {len(all_qa)} Q&A! {added} new! Go to /admin/ai-knowledge',
-            'data': all_qa[-5:]
-        })
+        return jsonify({'success': True, 'total_qa': len(all_qa), 'new_added': added, 'message': f'✅ Loaded {len(all_qa)} Q&A! {added} new!', 'data': all_qa[-5:]})
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@crawler_bp.route('/api/admin/crawl/products', methods=['POST'])
+def crawl_products():
+    """B) AUTO-ADD PRODUCTS Q&A from Neon DB"""
+    try:
+        all_qa = load_knowledge()
+        existing_q = set([k.get('question','').lower() for k in all_qa])
+        added = 0
+        conn = get_conn()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("SELECT data FROM products ORDER BY id DESC LIMIT 100")
+            rows = cur.fetchall()
+            cur.close()
+            conn.close()
+            for r in rows:
+                d = r[0]
+                if isinstance(d, str):
+                    try: d = json.loads(d)
+                    except: continue
+                if not isinstance(d, dict): continue
+                name = d.get('name','').strip()
+                if not name: continue
+                price = d.get('price','')
+                loc = d.get('location','Kampala')
+                # 2 Q&A per product
+                q1 = f"Do you have {name}?"
+                q2 = f"How much is {name}?"
+                if q1.lower() not in existing_q:
+                    all_qa.append({
+                        'id': len(all_qa)+1,
+                        'question': q1,
+                        'answer': f"Yes! {name} - UGX {price} - Available in {loc}! Search '{name}' on Sannlas to buy! 🛍️",
+                        'category': 'products',
+                        'keywords': name.lower().split()[:5],
+                        'source': 'products table auto'
+                    })
+                    existing_q.add(q1.lower())
+                    added += 1
+                if q2.lower() not in existing_q:
+                    all_qa.append({
+                        'id': len(all_qa)+1,
+                        'question': q2,
+                        'answer': f"{name} costs UGX {price} in {loc}! Tap to buy - Cash on Delivery or Mobile Money! 💰",
+                        'category': 'products',
+                        'keywords': name.lower().split()[:5],
+                        'source': 'products table auto'
+                    })
+                    existing_q.add(q2.lower())
+                    added += 1
+        save_knowledge(all_qa)
+        return jsonify({'success': True, 'total_qa': len(all_qa), 'new_added': added, 'message': f'Added {added} products Q&A!'})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@crawler_bp.route('/api/admin/crawl/shops', methods=['POST'])
+def crawl_shops():
+    """Auto-add shops Q&A"""
+    try:
+        all_qa = load_knowledge()
+        existing_q = set([k.get('question','').lower() for k in all_qa])
+        added = 0
+        conn = get_conn()
+        if conn:
+            cur = conn.cursor()
+            try:
+                cur.execute("SELECT data FROM shops ORDER BY id DESC LIMIT 50")
+                rows = cur.fetchall()
+            except:
+                cur.execute("SELECT DISTINCT data->>'shop_name', data->>'location' FROM products WHERE data->>'shop_name' IS NOT NULL LIMIT 20")
+                rows = cur.fetchall()
+            cur.close()
+            conn.close()
+            for r in rows:
+                d = r[0]
+                if isinstance(d, dict):
+                    shop = d.get('shop_name') or d.get('name') or 'Shop'
+                    loc = d.get('location','Kampala')
+                elif isinstance(d, str):
+                    try:
+                        jd = json.loads(d)
+                        shop = jd.get('shop_name') or jd.get('name') or d[:30]
+                        loc = jd.get('location','Kampala')
+                    except:
+                        shop = d[:30]
+                        loc = 'Kampala'
+                else:
+                    continue
+                q = f"What about {shop} shop?"
+                if q.lower() not in existing_q and shop:
+                    all_qa.append({
+                        'id': len(all_qa)+1,
+                        'question': q,
+                        'answer': f"{shop} is in {loc}! Visit shop on Sannlas to see all products! 🛍️",
+                        'category': 'shops',
+                        'keywords': [shop.lower(), 'shop'],
+                        'source': 'shops auto'
+                    })
+                    existing_q.add(q.lower())
+                    added += 1
+        save_knowledge(all_qa)
+        return jsonify({'success': True, 'total_qa': len(all_qa), 'new_added': added})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @crawler_bp.route('/api/admin/crawl', methods=['POST'])
 def crawl_website():
-    # Simple crawl using urllib - NO BS4
     try:
         data = request.get_json(silent=True) or {}
         base = data.get('base_url', 'https://sannlas.onrender.com')
-        
         all_qa = load_knowledge()
         existing_q = set([k.get('question','').lower() for k in all_qa])
-        
-        # Try to fetch homepage
         try:
             req = urllib.request.Request(base, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 html = resp.read().decode('utf-8', errors='ignore')
                 text = extract_text_from_html(html)
-                
-                # Extract lines that look like questions
                 for line in text.split('\n'):
                     line = line.strip()
-                    if len(line) > 10 and len(line) < 150:
-                        if '?' in line or line.lower().startswith(('how','what','where','can','do','is')):
-                            if line.lower() not in existing_q:
-                                all_qa.append({
-                                    'id': len(all_qa)+1,
-                                    'question': line[:150],
-                                    'answer': f"Yes! {line} - Check Sannlas.com for more details! 🛍️",
-                                    'category': 'auto',
-                                    'keywords': line.lower().split()[:5],
-                                })
-                                existing_q.add(line.lower())
+                    if 10 < len(line) < 150 and ('?' in line or line.lower().startswith(('how','what','where','can','do','is'))):
+                        if line.lower() not in existing_q:
+                            all_qa.append({'id': len(all_qa)+1, 'question': line[:150], 'answer': f"Yes! {line} - Check Sannlas.com! 🛍️", 'category': 'auto', 'keywords': line.lower().split()[:5], 'source': base})
+                            existing_q.add(line.lower())
         except Exception as e:
             print(f"Crawl error {e}")
-        
         save_knowledge(all_qa)
         return jsonify({'success': True, 'total_qa': len(all_qa), 'crawled': base})
     except Exception as e:
