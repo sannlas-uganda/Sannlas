@@ -716,84 +716,98 @@ function cleanSlug(s){
     .replace(/%20|%2520/gi,'-').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';
 }
 async function toggleFollowReal(btn){
-  let targetEmail = (btn.getAttribute('data-email') || '').trim().toLowerCase();
-  let shopSlug = btn.getAttribute('data-slug') || '';
-  let shopName = btn.getAttribute('data-shop') || '';
+  let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+  if(!user.email){ alert('Login first Boss!'); return; }
   
-  let u = localStorage.getItem('sannlas_user');
-  if(!u){ alert('Login first!'); if(typeof showGate==='function') showGate(); return; }
+  let targetEmail = btn.getAttribute('data-email') || btn.getAttribute('data-user-email') || '';
+  let targetShop = btn.getAttribute('data-slug') || btn.getAttribute('data-shop') || '';
   
-  let currentUser;
-  try{ currentUser = JSON.parse(u); }catch(e){ return; }
-  let myEmail = (currentUser.email||'').toLowerCase();
-  let myPhone = currentUser.phone||'';
-
-  if(!targetEmail && shopSlug){
-    // Try to resolve email from shop slug
-    btn.innerHTML='...';
-    try{
-      let rr = await fetch(`/api/shop/info/${shopSlug}`);
-      let jj = await rr.json();
-      if(jj && jj.email) targetEmail = jj.email.toLowerCase();
-      else if(jj && jj.owner_email) targetEmail = jj.owner_email.toLowerCase();
-    }catch(e){}
-  }
-
-  if(!targetEmail){
-    // Last try: use shopName as email search
-    if(shopName){
-      btn.innerHTML='...';
-      try{
-        let rr = await fetch(`/api/users/search?q=${encodeURIComponent(shopName)}`);
-        let jj = await rr.json();
-        if(jj && jj.length>0 && jj[0].email) targetEmail = jj[0].email.toLowerCase();
-      }catch(e){}
-    }
-  }
-
-  if(!targetEmail){
-    alert('This shop owner email not in reels feed Boss! Need to add user_email to /api/sannlas/reels/feed');
-    btn.innerHTML='+';
-    return;
-  }
-
-  if(myEmail === targetEmail){
-    alert("Can't follow yourself Boss!");
-    btn.innerHTML='✓';
-    return;
+  if(!targetEmail && targetShop){
+    // Try get email from data
+    targetEmail = '';
   }
   
-  let isFollowing = btn.innerText === '✓';
+  // Prevent self follow
+  if(targetEmail && user.email.toLowerCase() === targetEmail.toLowerCase()){
+    alert("Can't follow yourself Boss!"); return;
+  }
+
+  let isFollowing = btn.innerText.includes('✓') || btn.classList.contains('following');
   let url = isFollowing ? '/api/unfollow' : '/api/follow';
-  let original = btn.innerHTML;
-  btn.innerHTML = '...';
   
+  let originalHTML = btn.innerHTML;
+  btn.innerHTML = '...';
+  btn.disabled = true;
+
   try{
     let r = await fetch(url, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email: myEmail, phone: myPhone, target_email: targetEmail, target_shop: shopSlug})
+      body: JSON.stringify({
+        email: user.email,
+        phone: user.phone||'',
+        target_email: targetEmail,
+        target_shop: targetShop
+      })
     });
     let j = await r.json();
-    console.log("Follow response:", j);
+    
     if(!r.ok || !j.success){
-      alert(j.message||j.error||'Failed - '+JSON.stringify(j));
-      btn.innerHTML = original;
+      alert(j.message || 'Failed');
+      btn.innerHTML = originalHTML;
+      btn.disabled = false;
       return;
     }
+
+    // ✅ AUTO INCREASE / REDUCE - MAGIC!
     if(isFollowing){
       btn.innerHTML = '+';
+      btn.classList.remove('following');
       btn.style.background = '#FFCC02';
+      btn.style.color = '#000';
     } else {
       btn.innerHTML = '✓';
-      btn.style.background = '#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
+      btn.classList.add('following');
+      btn.style.background = '#fff';
+      btn.style.color = '#00CC00';
+      btn.style.borderColor = '#00CC00';
     }
+
+    // ✅ Update ALL follower counts on page if same shop
+    if(targetShop){
+      try{
+        let rr = await fetch('/api/user/follow-count/' + encodeURIComponent(targetShop));
+        let dd = await rr.json();
+        // Update shop page stats if open
+        let fEl = document.getElementById('statFollowers');
+        if(fEl) fEl.innerText = (dd.followers||0).toLocaleString();
+        let fEl2 = document.getElementById('followersCount');
+        if(fEl2) fEl2.innerText = dd.followers||0;
+        
+        // Update all same shop buttons
+        document.querySelectorAll(`[data-slug="${targetShop}"]`).forEach(b=>{
+          if(b !== btn){
+            b.innerHTML = isFollowing ? '+' : '✓';
+            if(isFollowing){
+              b.classList.remove('following');
+              b.style.background='#FFCC02'; b.style.color='#000';
+            } else {
+              b.classList.add('following');
+              b.style.background='#fff'; b.style.color='#00CC00';
+            }
+          }
+        });
+      }catch(e){ console.log(e); }
+    }
+
+    btn.disabled = false;
+    
   }catch(e){
-    btn.innerHTML = original;
-    alert('Error: '+e.message);
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
+    alert(e.message);
   }
 }
-// Auto-check if already following when reels load
 async function checkFollowStatus(){
   let u = localStorage.getItem('sannlas_user');
   if(!u) return;
