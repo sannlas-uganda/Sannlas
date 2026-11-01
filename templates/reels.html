@@ -107,50 +107,96 @@ async function likeReel(id,btn){
 
 // ===== FOLLOW SYSTEM - FIXED FOR YOUR API =====
 async function toggleFollowReal(btn){
-  let targetEmail = btn.getAttribute('data-email') || '';
-  if(!targetEmail){
-    alert('Shop email missing! Make sure your sannlas_reels.py sends user_email');
-    return;
+  let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+  if(!user.email){ alert('Login first Boss!'); return; }
+  
+  let targetEmail = btn.getAttribute('data-email') || btn.getAttribute('data-user-email') || '';
+  let targetShop = btn.getAttribute('data-slug') || btn.getAttribute('data-shop') || '';
+  
+  if(!targetEmail && targetShop){
+    // Try get email from data
+    targetEmail = '';
   }
-  let u = localStorage.getItem('sannlas_user');
-  if(!u){ alert('Login first to follow!'); return; }
-  let currentUser;
-  try{ currentUser = JSON.parse(u); }catch(e){ alert('Login error'); return; }
-  let myEmail = (currentUser.email||'').toLowerCase();
-  let myPhone = currentUser.phone||'';
-  if(!myEmail){ alert('Your email missing - login again'); return; }
-  if(myEmail === targetEmail){
-    alert("Can't follow yourself!");
-    return;
+  
+  // Prevent self follow
+  if(targetEmail && user.email.toLowerCase() === targetEmail.toLowerCase()){
+    alert("Can't follow yourself Boss!"); return;
   }
-  let isFollowing = btn.innerText === '✓';
+
+  let isFollowing = btn.innerText.includes('✓') || btn.classList.contains('following');
   let url = isFollowing ? '/api/unfollow' : '/api/follow';
-  let original = btn.innerHTML;
+  
+  let originalHTML = btn.innerHTML;
   btn.innerHTML = '...';
+  btn.disabled = true;
+
   try{
     let r = await fetch(url, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email: myEmail, phone: myPhone, target_email: targetEmail})
+      body: JSON.stringify({
+        email: user.email,
+        phone: user.phone||'',
+        target_email: targetEmail,
+        target_shop: targetShop
+      })
     });
     let j = await r.json();
+    
     if(!r.ok || !j.success){
-      alert(j.message||'Failed');
-      btn.innerHTML = original;
+      alert(j.message || 'Failed');
+      btn.innerHTML = originalHTML;
+      btn.disabled = false;
       return;
     }
+
+    // ✅ AUTO INCREASE / REDUCE - MAGIC!
     if(isFollowing){
       btn.innerHTML = '+';
-      btn.style.background = '#FFCC02'; btn.style.color='#000'; btn.style.borderColor='#000';
+      btn.classList.remove('following');
+      btn.style.background = '#FFCC02';
+      btn.style.color = '#000';
     } else {
       btn.innerHTML = '✓';
-      btn.style.background = '#fff'; btn.style.color='#00CC00'; btn.style.borderColor='#00CC00';
-      btn.style.transform = 'translateX(-50%) scale(1.25)';
-      setTimeout(()=>btn.style.transform='translateX(-50%) scale(1)',200);
+      btn.classList.add('following');
+      btn.style.background = '#fff';
+      btn.style.color = '#00CC00';
+      btn.style.borderColor = '#00CC00';
     }
+
+    // ✅ Update ALL follower counts on page if same shop
+    if(targetShop){
+      try{
+        let rr = await fetch('/api/user/follow-count/' + encodeURIComponent(targetShop));
+        let dd = await rr.json();
+        // Update shop page stats if open
+        let fEl = document.getElementById('statFollowers');
+        if(fEl) fEl.innerText = (dd.followers||0).toLocaleString();
+        let fEl2 = document.getElementById('followersCount');
+        if(fEl2) fEl2.innerText = dd.followers||0;
+        
+        // Update all same shop buttons
+        document.querySelectorAll(`[data-slug="${targetShop}"]`).forEach(b=>{
+          if(b !== btn){
+            b.innerHTML = isFollowing ? '+' : '✓';
+            if(isFollowing){
+              b.classList.remove('following');
+              b.style.background='#FFCC02'; b.style.color='#000';
+            } else {
+              b.classList.add('following');
+              b.style.background='#fff'; b.style.color='#00CC00';
+            }
+          }
+        });
+      }catch(e){ console.log(e); }
+    }
+
+    btn.disabled = false;
+    
   }catch(e){
-    btn.innerHTML = original;
-    alert('Error: '+e.message);
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
+    alert(e.message);
   }
 }
 
