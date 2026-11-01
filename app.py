@@ -122,6 +122,9 @@ app.register_blueprint(sannlas_commission_bp)
 from sannlas_ai import ai_bp
 app.register_blueprint(ai_bp)
 
+from sannlas_ai_admin import admin_ai_bp
+app.register_blueprint(admin_ai_bp)
+
 def get_smart_category(text):
     if not text:
         return "Other / Miscellaneous"
