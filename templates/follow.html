@@ -56,28 +56,62 @@ function renderList(){
  document.getElementById('usersList').innerHTML=list.map(u=>{
   let isSelf=(u.email||'').toLowerCase()===(currentUser.email||'').toLowerCase();
   let initial=(u.business||u.email||'U')[0].toUpperCase();
-  let btn=isSelf?`<button class="follow-btn btn-self">You</button>`:(u.is_following?`<button class="follow-btn btn-following" onclick="unfollowUser('${u.email}')">Following ✓</button>`:`<button class="follow-btn btn-follow" onclick="followUser('${u.email}')">+ Follow</button>`);
+  let btn=isSelf?`<button class="follow-btn btn-self">You</button>`:(u.is_following?`<button class="follow-btn btn-following" onclick="unfollowUser('${u.email}', this)">Following ✓</button>`:`<button class="follow-btn btn-follow" onclick="followUser('${u.email}', this)">+ Follow</button>`);
   return `<div class="user-card"><div class="avatar">${initial}</div><div><b>${u.business||u.email.split('@')[0]}</b><br><small>${u.email} • ${u.followers||0} followers</small></div>${btn}</div>`;
  }).join('');
 }
 
 function filterUsers(){ renderList(); }
 
-async function followUser(targetEmail){
+async function followUser(targetEmail, btn){
  if(!currentUser.email){alert('Login first!');return;}
- let r=await fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,target_email:targetEmail})});
- let d=await r.json();
- alert(d.message);
- if(d.success) loadFollowData();
+ if(btn){ btn.innerText='...'; btn.disabled=true; }
+ try{
+  let r=await fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,target_email:targetEmail})});
+  let d=await r.json();
+  if(!d.success){ alert(d.message); if(btn){btn.innerText='+ Follow'; btn.disabled=false;} return; }
+  // AUTO INCREASE - NO RELOAD!
+  let countEl = document.getElementById('followingCount');
+  countEl.innerText = (parseInt(countEl.innerText||'0')+1).toString();
+  // Update button instantly
+  if(btn){
+    btn.innerText='Following ✓';
+    btn.className='follow-btn btn-following';
+    btn.setAttribute('onclick', `unfollowUser('${targetEmail}', this)`);
+    btn.disabled=false;
+  }
+  // Update data
+  let u = allData.discover.find(x=>x.email.toLowerCase()===targetEmail.toLowerCase()) || allData.followers.find(x=>x.email.toLowerCase()===targetEmail.toLowerCase());
+  if(u) u.is_following=true;
+  // Move to following tab data
+  if(!allData.following.find(x=>x.email.toLowerCase()===targetEmail.toLowerCase()) && u){
+    allData.following.push(u);
+  }
+ }catch(e){ alert(e.message); if(btn){btn.innerText='+ Follow'; btn.disabled=false;} }
 }
 
-async function unfollowUser(targetEmail){
+async function unfollowUser(targetEmail, btn){
  if(!currentUser.email){alert('Login first!');return;}
- if(!confirm('Unfollow?'))return;
- let r=await fetch('/api/unfollow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,target_email:targetEmail})});
- let d=await r.json();
- alert(d.message);
- if(d.success) loadFollowData();
+ if(btn){ btn.innerText='...'; btn.disabled=true; }
+ try{
+  let r=await fetch('/api/unfollow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:currentUser.email,phone:currentUser.phone,target_email:targetEmail})});
+  let d=await r.json();
+  if(!d.success){ alert(d.message); if(btn){btn.innerText='Following ✓'; btn.disabled=false;} return; }
+  // AUTO REDUCE!
+  let countEl = document.getElementById('followingCount');
+  countEl.innerText = Math.max(0, parseInt(countEl.innerText||'0')-1).toString();
+  if(btn){
+    btn.innerText='+ Follow';
+    btn.className='follow-btn btn-follow';
+    btn.setAttribute('onclick', `followUser('${targetEmail}', this)`);
+    btn.disabled=false;
+  }
+  // Update data
+  allData.following = allData.following.filter(x=>x.email.toLowerCase()!==targetEmail.toLowerCase());
+  let u = allData.followers.find(x=>x.email.toLowerCase()===targetEmail.toLowerCase()) || allData.discover.find(x=>x.email.toLowerCase()===targetEmail.toLowerCase());
+  if(u) u.is_following=false;
+  if(currentTab==='following') renderList();
+ }catch(e){ alert(e.message); if(btn){btn.innerText='Following ✓'; btn.disabled=false;} }
 }
 
 loadFollowData();
