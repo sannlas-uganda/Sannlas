@@ -56,12 +56,18 @@ def clean_slug(s):
     if not s: return 'shop'
     return re.sub(r'[^a-z0-9]+', '-', str(s).lower()).strip('-')
 
-# ... KEEP YOUR COMBINED_FOLLOW_HTML AS IS ...
-COMBINED_FOLLOW_HTML = """<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FOLLOW - SANNLAS</title></head><body>...</body></html>"""
+def get_follow_html():
+    try:
+        if os.path.exists('templates/follow.html'):
+            return open('templates/follow.html', encoding='utf-8').read()
+        if os.path.exists('follow.html'):
+            return open('follow.html', encoding='utf-8').read()
+    except: pass
+    return "<h1>Follow page not found - put follow.html in templates/</h1>"
 
 @sannlas_follow_bp.route('/follow')
 def follow_page():
-    return Response(COMBINED_FOLLOW_HTML, mimetype='text/html')
+    return Response(get_follow_html(), mimetype='text/html')
 
 @sannlas_follow_bp.route('/api/follow/stats')
 def follow_stats():
