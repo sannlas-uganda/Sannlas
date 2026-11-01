@@ -1,132 +1,106 @@
-# sannlas_ai.py - SANNLAS AI BRAIN - FREE Groq
+# sannlas_ai.py - SANNLAS AI - FIXED BY BOSS
 from flask import Blueprint, request, jsonify
-import os, json, requests
-from datetime import datetime
+import os
+import requests
 
-ai_bp = Blueprint('ai_bp', __name__)
+ai_bp = Blueprint('sannlas_ai', __name__)
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-def get_conn():
-    if not DATABASE_URL:
-        raise Exception("No DATABASE_URL")
-    try:
-        import psycopg
-        return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
-    except:
-        import psycopg2
-        return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
-
-def load_db(file, default):
-    try:
-        if DATABASE_URL:
-            conn = get_conn()
-            try:
-                from psycopg.rows import dict_row
-                cur = conn.cursor(row_factory=dict_row)
-                if file == 'products.json':
-                    cur.execute("SELECT data FROM products ORDER BY id ASC LIMIT 100")
-                    rows = cur.fetchall(); cur.close(); conn.close()
-                    result=[]
-                    for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        result.append(d)
-                    return result
-                else:
-                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                    row = cur.fetchone(); cur.close(); conn.close()
-                    if not row: return default
-                    d=row['data']
-                    if isinstance(d,str):
-                        try: d=json.loads(d)
-                        except: pass
-                    return d
-            except:
-                import psycopg2.extras
-                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                cur.execute("SELECT data FROM products ORDER BY id ASC LIMIT 100")
-                rows = cur.fetchall(); cur.close(); conn.close()
-                return [r['data'] if not isinstance(r['data'],str) else json.loads(r['data']) for r in rows]
-        else:
-            return default
-    except:
-        return default
-
-def get_sannlas_context():
-    try:
-        products = load_db('products.json', [])[:25]
-        prod_text = "\n".join([f"- {p.get('name','')} | UGX {p.get('price',0)} | Shop: {p.get('business','')} | {p.get('location','Kampala')}" for p in products[:15]])
-        return f"""
-You are SANNLAS AI - Official AI for Sannlas.com
-Uganda's #1 Shopping + Reels App (TikTok + Jumia)
-
-CURRENT PRODUCTS:
-{prod_text}
-
-YOUR STYLE:
-- Friendly Ugandan, call user Boss, use Kale, Ssebo sometimes
-- Short answers (2-3 lines) for mobile
-- If user wants to buy, mention product + price
-- If user asks how to sell, explain Sannlas is FREE to open shop
-- Never say you are Groq or ChatGPT, you are Sannlas AI built by Sannlas team
-- Currency UGX, Location Uganda
-"""
-    except:
-        return "You are Sannlas AI for Sannlas.com - Ugandan shopping + reels"
-
-@ai_bp.route('/api/ai/chat', methods=['POST'])
+@ai_bp.route('/api/ai/chat', methods=['POST', 'OPTIONS', 'GET'])
 def ai_chat():
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+    if request.method == 'GET':
+        has_key = bool(os.environ.get('GROQ_API_KEY'))
+        return jsonify({'status': 'Sannlas AI Live!', 'has_key': has_key})
+
     try:
-        data = request.json
-        user_msg = data.get('message','').strip()
-        history = data.get('history',[])
-        
+        data = request.get_json(silent=True) or {}
+        user_msg = (data.get('message') or '').strip()
+        history = data.get('history', []) or []
+
         if not user_msg:
-            return jsonify({'reply':'Hi Boss! 👋 I am Sannlas AI! Ask me anything - products, shops, or how to sell on Sannlas!','products':[]})
-        
-        groq_key = os.environ.get('GROQ_API_KEY')
+            return jsonify({'reply': 'Hi Boss! 👋 I am Sannlas AI! Ask me anything about Sannlas!', 'products': []})
+
+        groq_key = os.environ.get('GROQ_API_KEY', '').strip()
         if not groq_key:
-            return jsonify({'reply':'Sannlas AI is setting up Boss! Add GROQ_API_KEY in Render and I will be live! 🚀','products':[]})
-        
-        context = get_sannlas_context()
-        messages = [{"role":"system","content":context}]
-        for h in history[-6:]:
-            if h.get('role') in ['user','assistant']:
-                messages.append({"role":h['role'],"content":h['content'][:400]})
-        messages.append({"role":"user","content":user_msg})
-        
+            return jsonify({'reply': 'Boss, add GROQ_API_KEY in Render → Environment → Save → I will be live! 🚀', 'products': []})
+
+        # Simple context - NO DB CALL (fast!)
+        system_prompt = """You are SANNLAS AI - Official AI for Sannlas.com, Uganda's #1 shopping + reels app (like TikTok + Jumia).
+Products: phones, watches, shoes, bags, electronics in Kampala, Uganda.
+Currency UGX. Style: Friendly Ugandan, call user Boss, short 2-3 lines, mobile friendly.
+If user asks to buy, say you can find it on Sannlas.
+If user asks how to sell: Click SELL button, upload photo, set price, FREE shop!
+Never say you are Groq/ChatGPT, you are Sannlas AI built by Sannlas team.
+"""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        for h in history[-4:]:
+            if isinstance(h, dict) and h.get('role') in ['user', 'assistant'] and h.get('content'):
+                messages.append({"role": h['role'], "content": str(h['content'])[:300]})
+        messages.append({"role": "user", "content": user_msg})
+
+        # Use WORKING MODEL - 8b is FREE and FAST, 70b is deprecated!
         resp = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization":f"Bearer {groq_key}","Content-Type":"application/json"},
+            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
             json={
-                "model":"llama-3.3-70b-versatile",
-                "messages":messages,
-                "temperature":0.7,
-                "max_tokens":350
+                "model": "llama-3.1-8b-instant",  # FIXED MODEL - 70b deprecated!
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 250
             },
-            timeout=15
+            timeout=20
         )
+
+        print(f"Groq Status: {resp.status_code}")
         
         if resp.status_code != 200:
-            return jsonify({'reply':'Kale Boss, small network! Try again Boss? I am ready!','products':[]})
-        
+            print(f"Groq Error: {resp.text}")
+            # Try fallback model
+            resp2 = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.2-3b-preview",
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 200
+                },
+                timeout=20
+            )
+            if resp2.status_code == 200:
+                ai_reply = resp2.json()['choices'][0]['message']['content']
+                return jsonify({'reply': ai_reply, 'products': []})
+            
+            # If both fail, show real error in logs, but friendly reply to user
+            return jsonify({'reply': f"Hey Boss! 👋 I'm Sannlas AI, ready! You said '{user_msg}'. On Sannlas you can find everything in Uganda! What do you want to buy today? 🛍️", 'products': []})
+
         ai_reply = resp.json()['choices'][0]['message']['content']
         
-        products = load_db('products.json', [])
-        relevant = []
-        keywords = user_msg.lower().split()
-        for p in products:
-            name = str(p.get('name','')+p.get('title','')).lower()
-            if any(k in name for k in keywords if len(k)>2):
-                relevant.append(p)
-            if len(relevant)>=3:
-                break
-        
-        return jsonify({'reply':ai_reply,'products':relevant[:3]})
+        # Products - try but never crash
+        products = []
+        try:
+            # Optional: fetch products without DB heavy call
+            pr = requests.get('https://sannlas.onrender.com/api/products', timeout=4)
+            if pr.status_code == 200:
+                data_p = pr.json()
+                all_p = data_p if isinstance(data_p, list) else data_p.get('products', [])[:5]
+                # Simple keyword match
+                kws = [k for k in user_msg.lower().split() if len(k) > 2]
+                for p in all_p:
+                    name = str(p.get('name','') + p.get('title','')).lower()
+                    if any(k in name for k in kws):
+                        products.append(p)
+                if not products:
+                    products = all_p[:3]
+        except:
+            pass
+
+        return jsonify({'reply': ai_reply, 'products': products[:3]})
+
     except Exception as e:
-        return jsonify({'reply':'Sorry Boss, try again? I am Sannlas AI ready to help! 🚀','products':[],'error':str(e)})
+        print(f"AI ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'reply': 'Kale Boss, I am here! 🧠 Ask me: Find watches under 100k, Shops in Kampala, or How to sell on Sannlas? 🚀', 'products': []}), 200
