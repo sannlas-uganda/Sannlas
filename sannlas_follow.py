@@ -119,53 +119,85 @@ def follow_stats():
 
 @sannlas_follow_bp.route('/api/follow', methods=['POST'])
 def follow_user():
-    data = request.get_json()
+    import re
+    def clean_slug(s):
+        if not s: return ''
+        return re.sub(r'[^a-z0-9]+', '-', str(s).lower()).strip('-')
+
+    data = request.get_json() or {}
     my_email = (data.get('email','') or '').lower().strip()
     target_email = (data.get('target_email','') or '').lower().strip()
-    target_shop = (data.get('target_shop','') or '').lower().strip()
+    target_shop_raw = (data.get('target_shop','') or '').lower().strip()
+    target_shop_slug = clean_slug(target_shop_raw)
 
-    # If no email, try find by shop slug/name
-    if not target_email and target_shop:
+    print(f"Follow try: my={my_email} target_email={target_email} shop={target_shop_raw} slug={target_shop_slug}")
+
+    # If no email, try find by shop slug/name - SMART MATCH
+    if not target_email and target_shop_raw:
         try:
             users = load_db('users.json', [])
             for u in users:
-                shop_slug = (u.get('shop_slug','') or '').lower()
-                shop_name = (u.get('shop_name','') or u.get('business','') or '').lower()
-                username = (u.get('username','') or '').lower()
-                if target_shop in [shop_slug, shop_name, username] or target_shop == shop_slug:
-                    target_email = (u.get('email','') or '').lower()
+                u_email = (u.get('email','') or '').lower().strip()
+                if not u_email: continue
+                u_business = (u.get('business') or u.get('shop_name') or '')
+                u_business_slug = clean_slug(u_business)
+                u_slug = clean_slug(u.get('shop_slug') or '')
+                
+                # Match any: slug==slug OR business name contains shop OR shop contains business
+                if (target_shop_slug == u_business_slug or 
+                    target_shop_slug == u_slug or
+                    target_shop_slug in u_business_slug or
+                    u_business_slug in target_shop_slug or
+                    target_shop_raw in u_business.lower()):
+                    target_email = u_email
+                    print(f"FOUND via users.json: {u_business} -> {u_email}")
                     break
+            
             # Also check shops.json
             if not target_email:
                 shops = load_db('shops.json', [])
                 for s in shops:
-                    s_slug = (s.get('shop_slug','') or s.get('slug','') or '').lower()
-                    s_name = (s.get('business_name','') or s.get('name','') or '').lower()
-                    if target_shop == s_slug or target_shop == s_name:
-                        target_email = (s.get('owner_email','') or '').lower()
+                    s_slug = clean_slug(s.get('shop_slug') or s.get('slug') or '')
+                    s_name = (s.get('business_name') or s.get('name') or '').lower()
+                    s_name_slug = clean_slug(s_name)
+                    s_owner = (s.get('owner_email') or s.get('email') or '').lower().strip()
+                    if not s_owner: continue
+                    
+                    if (target_shop_slug == s_slug or 
+                        target_shop_slug == s_name_slug or
+                        target_shop_slug in s_name_slug or
+                        s_name_slug in target_shop_slug):
+                        target_email = s_owner
+                        print(f"FOUND via shops.json: {s_name} -> {s_owner}")
                         break
         except Exception as e:
             print("Follow search error:", e)
+            import traceback; traceback.print_exc()
 
     if not target_email:
-        return jsonify({"success": False, "message": "user not found - no email in reel"}), 404
+        return jsonify({"success": False, "message": f"user not found - shop '{target_shop_raw}' not linked to any email"}), 404
 
     if my_email == target_email:
         return jsonify({"success": False, "message": "Can't follow yourself"}), 400
 
     try:
         follows = load_db('follows.json', [])
-        # Check if already following
         for f in follows:
             if f.get('follower_email','').lower() == my_email and f.get('following_email','').lower() == target_email:
                 return jsonify({"success": True, "message": "Already following"})
-
         follows.append({
             "follower_email": my_email,
             "following_email": target_email,
             "created_at": time.time()
         })
         save_db('follows.json', follows)
+        # Increment followers count
+        users = get_users()
+        for u in users:
+            if (u.get('email','') or '').lower() == target_email:
+                u['followers'] = int(u.get('followers',0)) + 1
+                break
+        save_db('users.json', users)
         return jsonify({"success": True, "message": "Followed!"})
     except Exception as e:
         print("Follow error:", e)
