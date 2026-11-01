@@ -118,46 +118,59 @@ def follow_stats():
     })
 
 @sannlas_follow_bp.route('/api/follow', methods=['POST'])
-def api_follow():
-    data = request.json or {}
-    email = data.get('email','').lower().strip()
-    phone = data.get('phone','').strip()
-    target = data.get('target_email','').lower().strip()
+def follow_user():
+    data = request.get_json()
+    my_email = (data.get('email','') or '').lower().strip()
+    target_email = (data.get('target_email','') or '').lower().strip()
+    target_shop = (data.get('target_shop','') or '').lower().strip()
 
-    if not target:
-        return jsonify({'success':False,'message':'Target required'}),400
-    if email==target:
-        return jsonify({'success':False,'message':'Cannot follow yourself!'}),400
+    # If no email, try find by shop slug/name
+    if not target_email and target_shop:
+        try:
+            users = load_db('users.json', [])
+            for u in users:
+                shop_slug = (u.get('shop_slug','') or '').lower()
+                shop_name = (u.get('shop_name','') or u.get('business','') or '').lower()
+                username = (u.get('username','') or '').lower()
+                if target_shop in [shop_slug, shop_name, username] or target_shop == shop_slug:
+                    target_email = (u.get('email','') or '').lower()
+                    break
+            # Also check shops.json
+            if not target_email:
+                shops = load_db('shops.json', [])
+                for s in shops:
+                    s_slug = (s.get('shop_slug','') or s.get('slug','') or '').lower()
+                    s_name = (s.get('business_name','') or s.get('name','') or '').lower()
+                    if target_shop == s_slug or target_shop == s_name:
+                        target_email = (s.get('owner_email','') or '').lower()
+                        break
+        except Exception as e:
+            print("Follow search error:", e)
 
-    users = get_users()
-    follows = get_follows()
+    if not target_email:
+        return jsonify({"success": False, "message": "user not found - no email in reel"}), 404
 
-    target_user = next((u for u in users if str(u.get('email','')).lower()==target), None)
-    if not target_user:
-        return jsonify({'success':False,'message':'User not found!'}),404
+    if my_email == target_email:
+        return jsonify({"success": False, "message": "Can't follow yourself"}), 400
 
-    # Already following?
-    exists = next((f for f in follows if f.get('follower_email','').lower()==email and f.get('following_email','').lower()==target), None)
-    if exists:
-        return jsonify({'success':False,'message':'Already following!'}),400
+    try:
+        follows = load_db('follows.json', [])
+        # Check if already following
+        for f in follows:
+            if f.get('follower_email','').lower() == my_email and f.get('following_email','').lower() == target_email:
+                return jsonify({"success": True, "message": "Already following"})
 
-    follows.append({
-        'follower_email': email,
-        'follower_phone': phone,
-        'following_email': target,
-        'time': time.time()
-    })
-    save_follows(follows)
-
-    # Update follower count in users.json
-    for u in users:
-        if str(u.get('email','')).lower()==target:
-            u['followers'] = int(u.get('followers',0)) + 1
-            break
-    save_db('users.json', users)
-
-    return jsonify({'success':True,'message':f'✅ Following {target_user.get("business") or target}! 🎉'})
-
+        follows.append({
+            "follower_email": my_email,
+            "following_email": target_email,
+            "created_at": time.time()
+        })
+        save_db('follows.json', follows)
+        return jsonify({"success": True, "message": "Followed!"})
+    except Exception as e:
+        print("Follow error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+        
 @sannlas_follow_bp.route('/api/unfollow', methods=['POST'])
 def api_unfollow():
     data = request.json or {}
