@@ -1,4 +1,4 @@
-# sannlas_ai.py - READS FROM ADMIN Q&A - PUBLIC ONLY - FINAL
+# sannlas_ai.py - FIXED - ADMIN Q&A FIRST PRIORITY - FINAL
 from flask import Blueprint, request, jsonify
 import os, json, re
 
@@ -20,7 +20,6 @@ def get_conn():
         except: return None
 
 def load_admin_knowledge():
-    # Load from your admin panel!
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -37,28 +36,36 @@ def load_admin_knowledge():
     except: return []
 
 def find_from_admin_knowledge(msg):
-    ml = msg.lower()
+    ml = msg.lower().strip()
     knowledge = load_admin_knowledge()
+    # FIRST - Exact match (highest priority)
+    for item in knowledge:
+        q = item.get('question','').lower().strip()
+        if q == ml:
+            return item.get('answer')
+    # SECOND - Contains match
+    for item in knowledge:
+        q = item.get('question','').lower().strip()
+        if q in ml or ml in q:
+            if len(q) > 2:  # avoid too short
+                return item.get('answer')
+    # THIRD - Keyword match
     best = None
     best_score = 0
     for item in knowledge:
         score = 0
         q = item.get('question','').lower()
-        # Exact match
-        if q in ml or ml in q:
-            score += 10
-        # Keyword match
-        for kw in item.get('keywords', []):
-            if kw in ml and len(kw) > 2:
-                score += 2
-        # Word overlap
+        # keywords
         for word in q.split():
-            if len(word) > 3 and word in ml:
+            if len(word) > 2 and word in ml:
+                score += 1
+        for kw in item.get('keywords', []):
+            if kw.lower() in ml and len(kw) > 2:
                 score += 1
         if score > best_score:
             best_score = score
             best = item.get('answer')
-    if best_score >= 3:
+    if best_score >= 1:  # LOW threshold - to catch "hello"
         return best
     return None
 
@@ -91,7 +98,6 @@ def load_products(search="", max_price=None, location="", limit=6):
                 "price": d.get("price"),
                 "location": d.get("location","Kampala"),
                 "image": d.get("image",""),
-                "rating": d.get("rating",5.0),
             })
             if len(result) >= limit: break
         return result
@@ -106,7 +112,7 @@ def parse_price(text):
 def ai_chat():
     if request.method == 'GET':
         k = load_admin_knowledge()
-        return jsonify({'status': f'Sannlas AI LIVE - {len(k)} Q&A from admin', 'knowledge_count': len(k)})
+        return jsonify({'status': f'AI LIVE - {len(k)} Q&A from admin', 'knowledge_count': len(k), 'sample': k[:1] if k else []})
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
@@ -117,53 +123,44 @@ def ai_chat():
         if not msg:
             return jsonify({'reply': "Hi Boss! 👋 Welcome to Sannlas! What do you want to buy? 🛍️", 'products': []})
 
+        # ===== STEP 1: ADMIN Q&A FIRST - HIGHEST PRIORITY! =====
+        admin_answer = find_from_admin_knowledge(msg)
+        if admin_answer:
+            # If admin has answer, use it! No other checks!
+            print(f"FOUND ADMIN ANSWER for '{msg}': {admin_answer}")
+            return jsonify({'reply': admin_answer, 'products': []})
+
+        # ===== STEP 2: Products & other logic =====
         max_price = parse_price(ml)
         location = "Kawempe" if 'kawempe' in ml else "Kampala" if 'kampala' in ml else ""
         products = []
+        is_search = any(k in ml for k in ['shoe','chunky','watch','bag','phone','royco','flour','rice','show','find','search','tiv','dress'])
 
-        # FIRST - Check admin Q&A!
-        admin_answer = find_from_admin_knowledge(msg)
-        is_search = any(k in ml for k in ['shoe','chunky','watch','bag','phone','royco','flour','rice','show','find','search','tiv'])
-
-        if admin_answer and not is_search:
-            return jsonify({'reply': admin_answer, 'products': []})
-
-        # PRODUCTS SEARCH
         if is_search or 'shop' in ml:
-            q = ""
-            if 'chunky' in ml or 'shoe' in ml: q = 'shoe'
-            elif 'watch' in ml: q = 'watch'
-            elif 'bag' in ml: q = 'bag'
-            elif 'royco' in ml: q = 'royco'
-            elif 'flour' in ml: q = 'flour'
-            else: q = ml.split()[-1] if ml.split() else ""
-            
+            q = ml.split()[-1] if ml.split() else ""
+            if 'shoe' in ml: q = 'shoe'
+            if 'watch' in ml: q = 'watch'
+            if 'bag' in ml: q = 'bag'
             if len(q) > 2:
                 products = load_products(search=q, max_price=max_price, location=location, limit=6)
-            
             if products:
-                reply = f"Found {len(products)} for '{q}'! 👇"
+                return jsonify({'reply': f"Found {len(products)} for '{q}'! 👇", 'products': products[:6]})
             else:
-                reply = admin_answer if admin_answer else f"Searching '{q}'... Try 'shoes', 'Royco'! 🛍️"
-                if not products:
-                    products = load_products(limit=4)
-            
-            return jsonify({'reply': reply, 'products': products[:6]})
+                products = load_products(limit=4)
+                return jsonify({'reply': f"Searching '{q}'... Try 'shoes', 'Royco'! 🛍️", 'products': products[:4]})
 
-        # FAQ from admin
-        if admin_answer:
-            return jsonify({'reply': admin_answer, 'products': []})
-
-        # GREETING
+        # ===== STEP 3: Default greeting (only if no admin answer) =====
         if any(k in ml for k in ['hi','hello','hey','kale','ssebo','help']):
-            reply = "Hi Boss! 👋 Welcome to Sannlas! 🛍️\n\nI can help with:\n• Find products\n• Shops in Kampala\n• How to buy/sell\n• Delivery & payment\n\nWhat do you need? 😊"
+            # This only runs if NO admin answer found!
             products = load_products(limit=4)
-            return jsonify({'reply': reply, 'products': products[:4]})
+            return jsonify({'reply': "Hi Boss! 👋 Welcome to Sannlas! 🛍️ What do you want to buy today?", 'products': products[:4]})
 
-        # FALLBACK
+        # Fallback
         products = load_products(search=ml.split()[0] if ml.split() else "", limit=4)
         return jsonify({'reply': "Got it Boss! 🔍 Found products for you! 👇" if products else "Hi Boss! Tell me what you want - e.g. 'shoes', 'Royco'! 🛍️", 'products': products[:6]})
 
     except Exception as e:
         print(f"ERROR {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'reply': "Hi Boss! Welcome to Sannlas! 🛍️", 'products': []}), 200
