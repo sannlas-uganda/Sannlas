@@ -29,23 +29,65 @@ def load_products_json():
     return {}
 
 def load_shops_map():
-    try:
-        for path in ['data/shops.json', 'shops.json']:
-            if os.path.exists(path):
+    shops_data = []
+    users_data = []
+    # Load shops
+    for path in ['data/shops.json', 'shops.json']:
+        if os.path.exists(path):
+            try:
                 with open(path, 'r') as f:
-                    data = json.load(f)
-                    if isinstance(data, list):
-                        m={}
-                        for s in data:
-                            key=clean_slug(s.get('shop_slug') or s.get('business_name') or '')
-                            m[key]=s
-                            m[s.get('business_name','').lower()]=s
-                            # also index by email for follow
-                            if s.get('email'):
-                                m[s.get('email','').lower()]=s
-                        return m
-    except: pass
-    return {}
+                    shops_data = json.load(f)
+                    break
+            except: pass
+    # Load users for email fallback
+    for path in ['data/users.json', 'users.json']:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    users_data = json.load(f)
+                    break
+            except: pass
+    
+    # Build map
+    m = {}
+    try:
+        for s in shops_data:
+            if not isinstance(s, dict): continue
+            slug = clean_slug(s.get('shop_slug') or s.get('slug') or s.get('business_name') or '')
+            name = (s.get('business_name') or s.get('name') or '').lower().strip()
+            email = (s.get('owner_email') or s.get('email') or '').lower().strip()
+            if slug: m[slug] = s
+            if name: m[name] = s
+            if email: m[email] = s
+            # ensure email field exists
+            if email and not s.get('email'):
+                s['email'] = email
+                s['owner_email'] = email
+        
+        # Also map users by shop name
+        for u in users_data:
+            if not isinstance(u, dict): continue
+            u_email = (u.get('email') or '').lower().strip()
+            u_business = (u.get('business') or u.get('shop_name') or '').lower().strip()
+            u_slug = clean_slug(u_business)
+            if u_email:
+                # If shop exists, add email to it
+                if u_slug in m:
+                    if not m[u_slug].get('email'):
+                        m[u_slug]['email'] = u_email
+                        m[u_slug]['owner_email'] = u_email
+                if u_business in m:
+                    if not m[u_business].get('email'):
+                        m[u_business]['email'] = u_email
+                        m[u_business]['owner_email'] = u_email
+                # Also add user itself as fallback
+                if u_business not in m:
+                    m[u_business] = {'email': u_email, 'owner_email': u_email, 'business_name': u.get('business')}
+                if u_slug not in m:
+                    m[u_slug] = {'email': u_email, 'owner_email': u_email, 'business_name': u.get('business')}
+    except Exception as e:
+        print("load_shops_map error:", e)
+    return m
 
 def ensure_reels_table():
     conn = get_conn(); cur = conn.cursor()
@@ -269,3 +311,28 @@ def upload_reel():
         print("UPLOAD ERROR:", e)
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@reels_bp.route('/fix-old-reels-emails')
+def fix_old_reels():
+    try:
+        shops_map = load_shops_map()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT id, shop_name, shop_slug, user_email FROM sannlas_reels")
+        rows = cur.fetchall()
+        fixed = 0
+        for r in rows:
+            rid, shop_name, shop_slug, user_email = r
+            if user_email and '@' in str(user_email): 
+                continue
+            slug = clean_slug(shop_slug or shop_name)
+            shop_obj = shops_map.get(slug) or shops_map.get((shop_name or '').lower()) or {}
+            email = (shop_obj.get('email') or shop_obj.get('owner_email') or '').lower().strip()
+            if email:
+                cur.execute("UPDATE sannlas_reels SET user_email=%s WHERE id=%s", (email, rid))
+                fixed += 1
+        conn.commit()
+        cur.close(); conn.close()
+        return f"Fixed {fixed} reels with emails! Now + button will work!"
+    except Exception as e:
+        traceback.print_exc()
+        return f"Error: {e}", 500
