@@ -119,6 +119,9 @@ app.register_blueprint(sannlas_permissions_bp)
 from sannlas_commission import sannlas_commission_bp
 app.register_blueprint(sannlas_commission_bp)
 
+from sannlas_agency import sannlas_agency_bp
+app.register_blueprint(sannlas_agency_bp)
+
 from sannlas_ai import ai_bp
 app.register_blueprint(ai_bp)
 
