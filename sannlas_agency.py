@@ -445,4 +445,97 @@ def agency_promote():
     save_db('promotions.json', promos)
     
     link=f"https://sannlas.onrender.com/?promo={code}&product={product_id}"
+    # ===== FIXED: PENDING REQUESTS FOR OWNER TO APPROVE (PHONE + EMAIL SUPPORT) =====
+@sannlas_agency_bp.route('/api/agency/pending-requests')
+def pending_requests():
+    owner_phone = request.args.get('owner_phone','').strip()
+    owner_email = request.args.get('owner_email','').lower().strip()
+    shop_slug_filter = request.args.get('shop_slug','').lower().strip()
+    
+    perms = load_db('sannlas_permissions.json', [])
+    shops_db = load_db('shops.json', [])
+    users_db = load_db('users.json', [])
+    
+    # Find all my shop slugs by phone OR email
+    my_shop_slugs = []
+    for s in shops_db:
+        s_slug = (s.get('shop_slug') or s.get('slug') or '').lower()
+        s_phone = str(s.get('phone','') or '').strip()
+        s_owner_phone = str(s.get('owner_phone','') or '').strip()
+        s_owner_email = str(s.get('owner_email','') or '').lower().strip()
+        
+        # Match by phone or email
+        if owner_phone and (s_phone == owner_phone or s_owner_phone == owner_phone):
+            my_shop_slugs.append(s_slug)
+        if owner_email and s_owner_email == owner_email:
+            my_shop_slugs.append(s_slug)
+    
+    # Also check user business mapping
+    if owner_email:
+        user = next((u for u in users_db if str(u.get('email','')).lower()==owner_email), None)
+        if user:
+            # Find shop by business name
+            biz = str(user.get('business','')).lower()
+            for s in shops_db:
+                if str(s.get('business_name','')).lower()==biz:
+                    my_shop_slugs.append((s.get('shop_slug') or '').lower())
+    
+    my_shop_slugs = list(set([s for s in my_shop_slugs if s]))
+    
+    # Filter pending
+    pending = []
+    for p in perms:
+        if p.get('status') != 'pending':
+            continue
+        p_slug = p.get('shop_slug','').lower()
+        # If filter by specific shop_slug, check it
+        if shop_slug_filter:
+            if p_slug == shop_slug_filter:
+                pending.append(p)
+        else:
+            # If no filter, show all pending for my shops
+            if my_shop_slugs and p_slug in my_shop_slugs:
+                pending.append(p)
+            # Fallback: if we have no my_shop_slugs list, show all pending that match owner_phone empty (unassigned)
+            elif not my_shop_slugs:
+                pending.append(p)
+    
+    return jsonify({"success":True,"requests":pending, "my_shops":my_shop_slugs})
+
+@sannlas_agency_bp.route('/api/agency/approve-request', methods=['POST'])
+def approve_request():
+    data=request.json or {}
+    shop_slug=data.get('shop_slug','').lower().strip()
+    agent_phone=data.get('agent_phone','').strip()
+    owner_phone=data.get('owner_phone','').strip()
+    owner_email=data.get('owner_email','').lower().strip()
+    
+    perms=load_db('sannlas_permissions.json', [])
+    found=False
+    for p in perms:
+        if p['shop_slug'].lower()==shop_slug.lower() and p['agent_phone']==agent_phone and p.get('status')=='pending':
+            p['status']='active'
+            p['owner_phone']=owner_phone or p.get('owner_phone','')
+            p['owner_email']=owner_email or p.get('owner_email','')
+            p['approved_at']=time.time()
+            p['approved_by']=owner_phone or owner_email
+            found=True
+            break
+    
+    if not found:
+        return jsonify({"success":False,"message":"Request not found"}),404
+    
+    save_db('sannlas_permissions.json', perms)
+    return jsonify({"success":True,"message":f"✅ Approved! {agent_phone} can now upload for {shop_slug}"})
+
+@sannlas_agency_bp.route('/api/agency/reject-request', methods=['POST'])
+def reject_request():
+    data=request.json or {}
+    shop_slug=data.get('shop_slug','').lower().strip()
+    agent_phone=data.get('agent_phone','').strip()
+    
+    perms=load_db('sannlas_permissions.json', [])
+    new_perms=[p for p in perms if not (p['shop_slug'].lower()==shop_slug.lower() and p['agent_phone']==agent_phone and p.get('status')=='pending')]
+    save_db('sannlas_permissions.json', new_perms)
+    return jsonify({"success":True,"message":"❌ Request rejected"})
     return jsonify({"success":True,"message":"Agency promo link created!","promo":new_promo,"link":link})
