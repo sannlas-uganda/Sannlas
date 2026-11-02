@@ -230,9 +230,10 @@ async function saveSettings(){
 function shareShop(){ let url=location.origin+'/shop/'+myShopSlug; navigator.clipboard.writeText(url); alert('Link copied: '+url); }
 function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
 
-// ===== AGENCY PENDING REQUESTS LOGIC =====
+// ===== AGENCY PENDING REQUESTS =====
 async function loadPendingRequests(){
   let phoneToUse = myUser.phone||myUser.phone_number||'';
+  if(!phoneToUse) return;
   let url=`/api/agency/pending-requests?owner_phone=${encodeURIComponent(phoneToUse)}&shop_slug=${encodeURIComponent(myShopSlug)}`;
   try{
     let r=await fetch(url);
@@ -246,41 +247,26 @@ async function loadPendingRequests(){
       count.innerText=reqs.length;
       list.innerHTML=reqs.map(req=>`
         <div style="border:2px solid #000;border-radius:12px;padding:12px;margin:8px 0;background:#fff8e1;display:flex;justify-content:space-between;align-items:center;gap:10px;color:#000">
-          <div>
-            <b>🧠 ${req.agent_name||'Agent'}</b><br>
-            <small>📱 ${req.agent_phone}</small><br>
-            <small>🏪 Wants: ${req.shop_name||req.shop_slug}</small><br>
-            <small style="color:#666">${new Date(req.created*1000).toLocaleString()}</small>
-          </div>
+          <div><b>🧠 ${req.agent_name||'Agent'}</b><br><small>📱 ${req.agent_phone}</small><br><small>🏪 ${req.shop_name||req.shop_slug}</small><br><small>${new Date(req.created*1000).toLocaleString()}</small></div>
           <div style="display:flex;flex-direction:column;gap:6px">
-            <button onclick="approveAgent('${req.shop_slug}','${req.agent_phone}')" style="background:#00c853;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:900;cursor:pointer">✅ APPROVE</button>
-            <button onclick="rejectAgent('${req.shop_slug}','${req.agent_phone}')" style="background:#ff1744;color:#fff;border:none;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer">❌ Reject</button>
+            <button onclick="approveAgent('${req.shop_slug}','${req.agent_phone}')" style="background:#00c853;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:900">✅ APPROVE</button>
+            <button onclick="rejectAgent('${req.shop_slug}','${req.agent_phone}')" style="background:#ff1744;color:#fff;border:none;padding:8px 14px;border-radius:10px;font-weight:700">❌ Reject</button>
           </div>
-        </div>
-      `).join('');
-    }else{
-      box.style.display='none';
-    }
-  }catch(e){ console.log('pending err',e); }
+        </div>`).join('');
+    }else{ box.style.display='none'; }
+  }catch(e){ console.log(e); }
 }
-
 async function approveAgent(shop_slug, agent_phone){
-  if(!confirm(`Approve ${agent_phone} to upload FOR your shop ${shop_slug}? They earn 400 UGX per product, you keep ownership!`)) return;
-  let myPhone=myUser.phone||myUser.phone_number||'';
+  if(!confirm(`Approve ${agent_phone} for ${shop_slug}?`)) return;
+  let myPhone=myUser.phone||'';
   let r=await fetch('/api/agency/approve-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:shop_slug, agent_phone:agent_phone, owner_phone:myPhone})});
-  let d=await r.json();
-  alert(d.message);
-  loadPendingRequests();
+  let d=await r.json(); alert(d.message); loadPendingRequests();
 }
-
 async function rejectAgent(shop_slug, agent_phone){
   if(!confirm(`Reject ${agent_phone}?`)) return;
   let r=await fetch('/api/agency/reject-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:shop_slug, agent_phone:agent_phone})});
-  let d=await r.json();
-  alert(d.message);
-  loadPendingRequests();
+  let d=await r.json(); alert(d.message); loadPendingRequests();
 }
-
 loadMyShop(1);
 setTimeout(loadPendingRequests, 2000);
 setInterval(loadPendingRequests, 15000);
