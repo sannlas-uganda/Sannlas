@@ -39,6 +39,13 @@ input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd
  <div style="margin-top:8px"><span style="background:#FFCC02;color:#000;padding:3px 10px;border-radius:20px;font-size:11px" id="sVerified">⏳ Checking</span></div>
 </div>
 
+<!-- 🔔 PENDING AGENCY REQUESTS - OWNER APPROVAL BOX - INSERTED HERE -->
+<div id="pendingRequestsBox" style="display:none;background:#fff;border:3px solid #FF6A00;border-radius:16px;padding:16px;margin:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+  <h3 style="margin:0 0 8px 0;color:#000">🔔 New Helper Requests (<span id="pendingCount">0</span>) - Approve!</h3>
+  <p style="font-size:11px;color:#666;margin:0 0 12px 0">Agents want to upload products FOR YOU and earn 400 UGX. You keep shop ownership!</p>
+  <div id="pendingList">Loading...</div>
+</div>
+
 <div style="padding:10px 15px 0 15px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5"><h3 style="margin:0;color:#000">📊 Today's Business</h3><small id="todayDate" style="color:#666"></small></div>
 <div class="stats">
  <div class="stat-card">👁️<b id="stViews">0</b><small>Views</small></div>
@@ -222,5 +229,59 @@ async function saveSettings(){
 }
 function shareShop(){ let url=location.origin+'/shop/'+myShopSlug; navigator.clipboard.writeText(url); alert('Link copied: '+url); }
 function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
+
+// ===== AGENCY PENDING REQUESTS LOGIC =====
+async function loadPendingRequests(){
+  let phoneToUse = myUser.phone||myUser.phone_number||'';
+  let url=`/api/agency/pending-requests?owner_phone=${encodeURIComponent(phoneToUse)}&shop_slug=${encodeURIComponent(myShopSlug)}`;
+  try{
+    let r=await fetch(url);
+    let d=await r.json();
+    let reqs=d.requests||[];
+    let box=document.getElementById('pendingRequestsBox');
+    let list=document.getElementById('pendingList');
+    let count=document.getElementById('pendingCount');
+    if(reqs.length>0){
+      box.style.display='block';
+      count.innerText=reqs.length;
+      list.innerHTML=reqs.map(req=>`
+        <div style="border:2px solid #000;border-radius:12px;padding:12px;margin:8px 0;background:#fff8e1;display:flex;justify-content:space-between;align-items:center;gap:10px;color:#000">
+          <div>
+            <b>🧠 ${req.agent_name||'Agent'}</b><br>
+            <small>📱 ${req.agent_phone}</small><br>
+            <small>🏪 Wants: ${req.shop_name||req.shop_slug}</small><br>
+            <small style="color:#666">${new Date(req.created*1000).toLocaleString()}</small>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button onclick="approveAgent('${req.shop_slug}','${req.agent_phone}')" style="background:#00c853;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:900;cursor:pointer">✅ APPROVE</button>
+            <button onclick="rejectAgent('${req.shop_slug}','${req.agent_phone}')" style="background:#ff1744;color:#fff;border:none;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer">❌ Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }else{
+      box.style.display='none';
+    }
+  }catch(e){ console.log('pending err',e); }
+}
+
+async function approveAgent(shop_slug, agent_phone){
+  if(!confirm(`Approve ${agent_phone} to upload FOR your shop ${shop_slug}? They earn 400 UGX per product, you keep ownership!`)) return;
+  let myPhone=myUser.phone||myUser.phone_number||'';
+  let r=await fetch('/api/agency/approve-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:shop_slug, agent_phone:agent_phone, owner_phone:myPhone})});
+  let d=await r.json();
+  alert(d.message);
+  loadPendingRequests();
+}
+
+async function rejectAgent(shop_slug, agent_phone){
+  if(!confirm(`Reject ${agent_phone}?`)) return;
+  let r=await fetch('/api/agency/reject-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:shop_slug, agent_phone:agent_phone})});
+  let d=await r.json();
+  alert(d.message);
+  loadPendingRequests();
+}
+
 loadMyShop(1);
+setTimeout(loadPendingRequests, 2000);
+setInterval(loadPendingRequests, 15000);
 </script></body></html>
