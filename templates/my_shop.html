@@ -129,7 +129,9 @@ function viewAsBuyer(){ location.href='/shop/'+myShopSlug; }
 
 // ===== AGENCY PENDING REQUESTS - YOUR CODE GOES HERE =====
 async function loadPendingRequests(){
-  let phoneToUse = myUser.phone||myUser.phone_number||'';
+  let phoneToUse = myUser.phone||myUser.phone_number||myEmail||'';
+  let url=`/api/agency/pending-requests?owner_phone=${encodeURIComponent(phoneToUse)}&owner_email=${encodeURIComponent(myEmail)}&shop_slug=${encodeURIComponent(myShopSlug)}`;
+  let r=await fetch('/api/agency/approve-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:shop_slug, agent_phone:agent_phone, owner_phone:myUser.phone||'', owner_email:myEmail})});
   if(!phoneToUse) return;
   let url=`/api/agency/pending-requests?owner_phone=${encodeURIComponent(phoneToUse)}&shop_slug=${encodeURIComponent(myShopSlug)}`;
   try{
