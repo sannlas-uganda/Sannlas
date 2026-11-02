@@ -120,25 +120,39 @@ async function loadMyClients(){
  document.getElementById('statShops').innerText=shops.length;
  let totalProd=0,totalEarn=0;
  let html=''; let options='<option value="">-- Select Shop --</option>';
- if(!shops.length){ html='<small>No shops yet. Ask shop owner to add you as helper at /my-shop/collaborators</small>'; }
- else{
-  shops.forEach(item=>{
+ if(!shops.length){ 
+   // FALLBACK - load available shops
+   let r2=await fetch('/api/agency/available-shops');
+   let d2=await r2.json();
+   shops=(d2.shops||[]).map(s=>({permission:{shop_slug:s.shop_slug||s.slug, shop_name:s.business_name||s.name, status:'available', scopes:['upload_product'], products_uploaded:0, total_earned:0, commission_per_upload:400}, shop:s, is_my_client:false}));
+   html='<div style="background:#FFCC02;padding:8px;border-radius:8px;margin-bottom:8px">⚠️ You are not helper yet - Select any shop below to REQUEST access!</div>';
+ }
+ shops.forEach(item=>{
    let perm=item.permission||item; let shop=item.shop||{};
    totalProd+=perm.products_uploaded||0; totalEarn+=perm.total_earned||0;
    let name=perm.shop_name||perm.shop_slug;
-   options+=`<option value="${perm.shop_slug}" ${activeShop==perm.shop_slug?'selected':''}>${name} (${perm.shop_slug}) - ${perm.scopes.join(', ')}</option>`;
-   html+=`<div class="card shop-card"><b>${name}</b> <span class="badge badge-green">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${perm.scopes.join(', ')}<br>Uploaded: ${perm.products_uploaded||0} | Earned: ${perm.total_earned||0} UGX | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn-black" onclick="selectShop('${perm.shop_slug}')">Switch to this shop</button></div>`;
-  });
- }
+   let isAvailable=item.is_my_client===false || perm.status=='available';
+   options+=`<option value="${perm.shop_slug}" ${activeShop==perm.shop_slug?'selected':''}>${name} (${perm.shop_slug}) - ${isAvailable?'AVAILABLE - Click to request':perm.scopes.join(', ')}</option>`;
+   html+=`<div class="card shop-card" style="${isAvailable?'border-left:4px solid #FF6A00':''}"><b>${name}</b> <span class="badge ${isAvailable?'badge-yellow':'badge-green'}">${isAvailable?'AVAILABLE TO SELECT':perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${perm.scopes.join(', ')}<br>Uploaded: ${perm.products_uploaded||0} | Earned: ${perm.total_earned||0} UGX | Per Upload: ${perm.commission_per_upload||400} UGX</small><br>
+   ${isAvailable?`<button class="btn-black" style="background:#FF6A00" onclick="requestAccess('${perm.shop_slug}','${name}')">👉 REQUEST TO MANAGE THIS SHOP</button>`:`<button class="btn-black" onclick="selectShop('${perm.shop_slug}')">✅ Switch to this shop</button>`}
+   </div>`;
+ });
  document.getElementById('myClients').innerHTML=html;
  document.getElementById('shopSwitch').innerHTML=options;
  document.getElementById('statProducts').innerText=totalProd;
  document.getElementById('statEarn').innerText=totalEarn;
- if(!activeShop && shops.length) selectShop(shops[0].permission.shop_slug);
+ if(!activeShop && shops.length && shops[0].is_my_client) selectShop(shops[0].permission.shop_slug);
  loadCommissions();
  loadMyHelpers();
 }
 
+async function requestAccess(shop_slug, shop_name){
+ if(!confirm(`Request to become helper for ${shop_name} (${shop_slug})?`)) return;
+ let res=await fetch('/api/agency/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:shop_slug, shop_name:shop_name, agent_phone:myPhone, agent_name:user.business||user.email||'Helper'})});
+ let d=await res.json();
+ alert(d.message);
+ loadMyClients();
+}
 function selectShop(slug){
  activeShop=slug; localStorage.setItem('sannlas_active_shop', slug);
  document.getElementById('contextInfo').innerHTML=`✅ Active: <b>${slug}</b> - All uploads now go to this shop`;
@@ -217,25 +231,87 @@ loadMyClients();
 def agency_page():
     return Response(AGENCY_HTML, mimetype='text/html')
 
-# ===== API: MY CLIENTS (Shops where I am helper) - wrapper for your permissions =====
+# ===== API: MY CLIENTS - FIXED TO SHOW ALL SHOPS FOR SELECTION =====
 @sannlas_agency_bp.route('/api/agency/my-clients')
 def my_clients():
     phone = request.args.get('phone','').strip()
     email = request.args.get('email','').lower().strip()
-    if not phone and not email:
-        return jsonify({"success":False,"message":"Login first"}),401
     
     perms = load_db('sannlas_permissions.json', [])
-    # filter active where agent_phone == my phone
-    my_perms = [p for p in perms if (p.get('agent_phone')==phone) and p.get('status')=='active']
-    
     shops_db = load_db('shops.json', [])
+    
+    # 1. My actual clients where I am helper
+    my_perms = [p for p in perms if (p.get('agent_phone')==phone) and p.get('status')=='active']
     result=[]
     for perm in my_perms:
         shop = next((s for s in shops_db if s.get('shop_slug','').lower()==perm['shop_slug'].lower() or s.get('slug','').lower()==perm['shop_slug'].lower()), None)
-        result.append({"permission": perm, "shop": shop})
+        if not shop:
+            # Create fake shop object if not found
+            shop = {"shop_slug": perm['shop_slug'], "business_name": perm.get('shop_name', perm['shop_slug']), "total_products":0, "location":"Uganda"}
+        result.append({"permission": perm, "shop": shop, "is_my_client": True})
+    
+    # 2. If no clients, also show ALL available shops for selection (test mode)
+    # So user can SELECT and request
+    if len(result)==0:
+        # Show all shops as available to select
+        for s in shops_db[:100]:  # limit 100
+            if (s.get('total_products') or s.get('product_count') or 0) >=0: # allow even 0
+                fake_perm = {
+                    "shop_slug": s.get('shop_slug') or s.get('slug') or s.get('business_name','shop'),
+                    "shop_name": s.get('business_name') or s.get('name') or 'Shop',
+                    "status": "available",
+                    "scopes": ["upload_product"],
+                    "products_uploaded":0,
+                    "total_earned":0,
+                    "commission_per_upload":400
+                }
+                result.append({"permission": fake_perm, "shop": s, "is_my_client": False})
     
     return jsonify({"success":True,"shops":result})
+
+# ===== NEW API: ALL SHOPS FOR SELECTION =====
+@sannlas_agency_bp.route('/api/agency/available-shops')
+def available_shops():
+    shops_db = load_db('shops.json', [])
+    # Return all, sorted by products
+    shops_sorted = sorted(shops_db, key=lambda x: x.get('total_products',0) or 0, reverse=True)
+    return jsonify({"success":True,"shops":shops_sorted[:200]})
+
+# ===== NEW API: REQUEST TO BE HELPER =====
+@sannlas_agency_bp.route('/api/agency/request', methods=['POST'])
+def request_helper():
+    data=request.json or {}
+    shop_slug=data.get('shop_slug','').lower().strip()
+    agent_phone=data.get('agent_phone','').strip()
+    agent_name=data.get('agent_name','Helper')
+    
+    if not shop_slug or not agent_phone:
+        return jsonify({"success":False,"message":"shop and phone needed"}),400
+    
+    perms = load_db('sannlas_permissions.json', [])
+    # Check already exists
+    exists = next((p for p in perms if p['agent_phone']==agent_phone and p['shop_slug'].lower()==shop_slug.lower()), None)
+    if exists:
+        return jsonify({"success":True,"message":"Already requested / already helper","permission":exists})
+    
+    # Create pending request
+    new_perm={
+        "id": int(time.time()*1000),
+        "shop_slug": shop_slug,
+        "shop_name": data.get('shop_name', shop_slug),
+        "agent_phone": agent_phone,
+        "agent_name": agent_name,
+        "owner_phone": "", # will be filled when owner approves
+        "scopes": ["upload_product","view_products","edit_own_product"],
+        "status": "pending",
+        "products_uploaded":0,
+        "total_earned":0,
+        "commission_per_upload":400,
+        "created": time.time()
+    }
+    perms.append(new_perm)
+    save_db('sannlas_permissions.json', perms)
+    return jsonify({"success":True,"message":f"Request sent to {shop_slug}! Owner will approve.","permission":new_perm})
 
 # ===== API: MY HELPERS (People helping me) =====
 @sannlas_agency_bp.route('/api/agency/my-helpers')
