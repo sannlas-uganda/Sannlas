@@ -1,91 +1,279 @@
-<!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My Shop - SANNLAS</title>
-<style>
-body{font-family:Arial;background:#f5f5f5;margin:0;padding-bottom:80px;color:#000}
-.header{background:#000;color:#fff;padding:20px;text-align:center;position:relative;min-height:160px}
-.header h1{color:#FFCC02;margin:8px 0;font-size:20px}
-.shop-logo{width:90px;height:90px;border-radius:50%;border:3px solid #FFCC02;object-fit:cover;background:#fff;cursor:pointer;margin-top:10px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px}
-.stat-card{background:#fff!important;border-radius:12px;padding:10px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.1);color:#000!important}
-.stat-card b{font-size:18px;display:block;color:#000!important}
-.stat-card small{color:#666}
-.card{background:#fff;border-radius:12px;margin:10px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);color:#000}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}
-.pcard{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);position:relative;color:#000}
-.pcard img{width:100%;height:150px;object-fit:cover}
-.pcard video{width:100%;height:150px;object-fit:cover}
-.btn{padding:8px 12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer;margin:3px;font-size:12px}
-.badge{position:absolute;top:8px;right:8px;padding:4px 8px;border-radius:20px;font-size:11px;font-weight:bold}
-.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
-.quick button{padding:14px;border-radius:12px;font-size:14px;border:none;font-weight:800}
-.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:15px}
-.modal-box{background:#fff;border-radius:15px;padding:15px;max-width:400px;width:100%;color:#000}
-input,textarea,select{width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:10px}
-.bell-btn{position:absolute;top:12px;right:12px;background:#FFCC02;color:#000;border:none;padding:10px 12px;border-radius:50%;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
-.bell-count{position:absolute;top:-5px;right:-5px;background:red;color:white;font-size:11px;font-weight:900;padding:3px 7px;border-radius:20px;min-width:10px;display:none;text-align:center;border:2px solid #000}
-.order-card{background:#fff;border:2px solid #FFCC02;border-radius:14px;padding:12px;margin-bottom:10px}
-.order-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800}
-.PENDING{background:#FEF3C7;color:#92400E} .CONFIRMED{background:#DBEAFE;color:#1E40AF} .PACKED{background:#E0E7FF;color:#3730A3} .SHIPPED{background:#FEF08A;color:#713F12} .DELIVERED{background:#D1FAE5;color:#065F46}
-</style></head><body>
+from flask import Blueprint, request, jsonify, render_template, session, redirect
+import os, json, time, re
 
-<div class="header" id="shopHeader">
- <button onclick="location.href='/'" style="position:absolute;top:12px;left:12px;background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900">🏠 Home</button>
- <button class="bell-btn" onclick="document.getElementById('ordersSection').scrollIntoView({behavior:'smooth'}); loadSellerOrders();">🔔<span id="orderCount" class="bell-count">0</span></button>
- <img id="sLogo" class="shop-logo" src="https://via.placeholder.com/150" onclick="document.getElementById('logoInput').click()">
- <input type="file" id="logoInput" accept="image/*" hidden onchange="uploadLogo()">
- <div id="sName" style="color:#fff;margin-top:8px">Loading...</div>
- <div id="sInfo" style="font-size:13px;color:#aaa"></div>
- <div style="margin-top:8px"><span style="background:#FFCC02;color:#000;padding:3px 10px;border-radius:20px;font-size:11px" id="sVerified">⏳ Checking</span></div>
-</div>
+my_shop_bp = Blueprint('my_shop', __name__)
 
-<!-- 🔔 PENDING AGENCY REQUESTS - OWNER APPROVAL BOX - NEW INSERTED -->
-<div id="pendingRequestsBox" style="display:none;background:#fff;border:3px solid #FF6A00;border-radius:16px;padding:16px;margin:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
-  <h3 style="margin:0 0 8px 0;color:#000">🔔 New Helper Requests (<span id="pendingCount">0</span>) - Approve!</h3>
-  <p style="font-size:11px;color:#666;margin:0 0 12px 0">Agents want to upload products FOR YOU and earn 400 UGX. You keep shop ownership!</p>
-  <div id="pendingList">Loading...</div>
-</div>
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-<div style="padding:10px 15px 0 15px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5"><h3 style="margin:0;color:#000">📊 Today's Business</h3><small id="todayDate" style="color:#666"></small></div>
-<div class="stats">
- <div class="stat-card">👁️<b id="stViews">0</b><small>Views</small></div>
- <div class="stat-card">📦<b id="stProducts">0</b><small>Products</small></div>
- <div class="stat-card">💬<b id="stWhats">0</b><small>WhatsApp</small></div>
- <div class="stat-card" style="border:2px solid #FFCC02">🪙<b id="stCoins">0</b><small>Coins</small></div>
-</div>
+def get_conn():
+    if not DATABASE_URL:
+        raise Exception("No DATABASE_URL")
+    try:
+        import psycopg
+        return psycopg.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
+    except:
+        import psycopg2
+        return psycopg2.connect(DATABASE_URL, sslmode='require', connect_timeout=10)
 
-<div class="card">
- <div style="display:flex;justify-content:space-between;align-items:center">
-  <h3 style="margin:0">🛍️ My Products</h3>
-  <button onclick="location.href='/?open=sell'" style="background:#FF6A00;color:#fff;padding:8px 14px;border-radius:10px;font-weight:900;border:none">➕ Add FREE</button>
- </div>
- <div class="products" id="myProducts" style="margin-top:10px"></div>
- <button id="loadMoreBtn" onclick="loadMoreProducts()" style="display:none;background:#fff;border:2px solid #FF6A00;color:#FF6A00;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:12px">⬇️ Load More</button>
-</div>
+def ensure_tables():
+    if not DATABASE_URL: return
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
+        cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e: 
+        print("ensure_tables:", e)
 
-<div class="card" id="ordersSection">
- <h3 style="margin:0 0 12px 0">📦 My Shop Orders</h3>
- <button onclick="toggleOrders()" id="singleOrdersBtn" style="width:100%;padding:16px;background:#000;color:#FFCC02;border:3px solid #FFCC02;border-radius:14px;font-weight:900;font-size:16px;display:flex;justify-content:center;align-items:center;gap:10px">
-   📦 Orders <span id="myOrdersBadge" style="background:red;color:#fff;padding:4px 10px;border-radius:20px;font-size:13px;display:none">0</span>
- </button>
- <div id="ordersBox" style="margin-top:12px">Loading orders...</div>
-</div>
+def load_db(file, default):
+    try:
+        if DATABASE_URL:
+            ensure_tables(); conn = get_conn()
+            try:
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                if file == 'products.json':
+                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                    result=[]
+                    for r in rows:
+                        d=r['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        result.append(d)
+                    return result
+                else:
+                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                    if not row: return default
+                    d=row['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
+                        except: pass
+                    return d
+            except:
+                import psycopg2.extras
+                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                if file == 'products.json':
+                    cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
+                    result=[]
+                    for r in rows:
+                        d=r['data']
+                        if isinstance(d,str):
+                            try: d=json.loads(d)
+                            except: pass
+                        result.append(d)
+                    return result
+                else:
+                    cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
+                    if not row: return default
+                    d=row['data']
+                    if isinstance(d,str):
+                        try: d=json.loads(d)
+                        except: pass
+                    return d
+        else:
+            path=f'data/{file}'
+            if os.path.exists(path):
+                try: return json.load(open(path))
+                except: return default
+            return default
+    except: return default
 
-<div class="card">
- <h3>⚙️ Shop Settings</h3>
- <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-  <button class="btn" style="background:#000;color:#fff;width:100%" onclick="openSettings()">✏️ Edit Shop Info</button>
-  <button class="btn" style="background:#fff;border:1px solid #ccc;width:100%" onclick="toggleHours()">🕒 Hours</button>
- </div>
- <div id="settingsPreview" style="font-size:13px;color:#555;margin-top:10px"></div>
-</div>
+def save_db(file, data):
+    if DATABASE_URL:
+        try:
+            ensure_tables(); conn = get_conn(); cur = conn.cursor()
+            try:
+                from psycopg.types.json import Jsonb
+                if file == 'products.json':
+                    cur.execute("DELETE FROM products")
+                    for item in data: cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(item)])
+                else:
+                    cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, Jsonb(data)))
+            except ImportError:
+                import json as js
+                if file == 'products.json':
+                    cur.execute("DELETE FROM products")
+                    for item in data: cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(item)])
+                else:
+                    cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", (file, js.dumps(data)))
+            conn.commit(); cur.close(); conn.close(); return
+        except Exception as e: print("SAVE ERROR:", e)
+    json.dump(data, open(f'data/{file}','w'), indent=2)
 
-<div class="card">
- <h3>⚡ Quick Actions</h3>
- <div class="quick">
-  <button onclick="location.href='/?open=sell'" style="background:#FF6A00;color:#fff;width:100%">➕ Add Product FREE</button>
-  <button onclick="shareShop()" style="background:#00AA00;color:#fff;width:100%">🔗 Share Shop</button>
-  <button onclick="viewAsBuyer()" style="background:#fff;border:2px solid #00AA00;color:#00AA00;width:100%">👁️ View as Buyer</button>
-  <button onclick="location.href='/@'+myShopSlug" style="background:#fff;border:2px solid #FFCC02;color:#000;width:100%">🎬 My Reels Profile</button>
- </div>
-</div>
+def make_shop_slug(business):
+    if not business: return 'shop'
+    base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
+    return base[:50] or 'shop'
+
+def get_logged_user_email():
+    # 1. From session (best)
+    email = session.get('user_email') or session.get('email')
+    if email:
+        return email.lower().strip()
+    # 2. From Authorization header or args as fallback (for your frontend localStorage)
+    # We will STILL require it to match session later if session exists
+    email = request.args.get('email') or (request.json or {}).get('email') if request.is_json else None
+    if not email:
+        email = request.headers.get('X-User-Email')
+    if email:
+        return email.lower().strip()
+    return None
+
+@my_shop_bp.route('/my-shop')
+def my_shop_page():
+    # If no session, frontend will handle redirect via JS, but we allow page to load
+    # to let JS check localStorage. For strict security, uncomment next 3 lines:
+    # if not session.get('user_email') and not session.get('email'):
+    #    return redirect('/login?next=/my-shop')
+    return render_template('my_shop.html')
+
+@my_shop_bp.route('/api/my-shop')
+def api_my_shop():
+    # SECURE: Get email from session first!
+    email = get_logged_user_email()
+    if not email:
+        return jsonify({'success':False,'message':'Please login first'}),401
+    
+    users = load_db('users.json', [])
+    user = next((u for u in users if str(u.get('email','')).lower()==email), None)
+    if not user:
+        return jsonify({'success':False,'message':'User not found - please register'}),404
+        
+    shops = load_db('shops.json', [])
+    shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
+    if not shop:
+        biz = user.get('business','')
+        if biz:
+            shop = next((s for s in shops if s.get('business_name','').lower()==biz.lower()), None)
+    if not shop:
+        shop = {"business_name": user.get('business','My Shop'), "shop_slug": make_shop_slug(user.get('business','shop')), "owner_email": email, "location":"Kampala", "phone":user.get('phone',''), "description":"Welcome to my shop!", "logo":"", "verified":False, "created": time.time()}
+    
+    products = load_db('products.json', [])
+    my_products = [p for p in products if str(p.get('seller_email','')).lower()==email]
+    my_products = sorted(my_products, key=lambda x: x.get('created',0), reverse=True)
+    orders_v2 = load_db('orders_v2.json', [])
+    my_orders = [o for o in orders_v2 if str(o.get('seller_email','')).lower()==email]
+    
+    # ADD REELS FOR OWNER
+    reels = load_db('reels.json', []) or load_db('sannlas_reels.json', []) or []
+    my_reels = [r for r in reels if str(r.get('owner_email','') or r.get('seller_email','') or r.get('email','')).lower()==email]
+    
+    wants = load_db('wants.json', [])
+    matching_wants = [w for w in wants if w.get('status','open')=='open'][:20]
+    coins = int(user.get('coins',0))
+    if coins==0:
+        coins = int(user.get('bought',0)) + int(user.get('earned',0)) - int(user.get('spent',0))
+        if coins<0: coins=0
+    return jsonify({
+        'success':True, 'shop': shop, 'products': my_products, 'reels': my_reels,
+        'stats': {"views": sum(int(p.get('views',0)) for p in my_products), "total_products": len(my_products), "total_reels": len(my_reels), "call_clicks": len(my_products)*3, "whatsapp_clicks": len(my_products)*2, "coins": coins},
+        'orders': sorted(my_orders, key=lambda x: x.get('created_at',0), reverse=True),
+        'matching_wants': matching_wants, 'total': len(my_products), 'has_more': False, 'page': 1
+    })
+
+# ALL OTHER ROUTES MUST ALSO CHECK OWNER - SECURE VERSION
+@my_shop_bp.route('/api/my-shop/update-price', methods=['POST'])
+def my_shop_update_price():
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False,'message':'Login required'}),401
+    pid=str(data.get('id','')); price=int(data.get('price',0)); 
+    products=load_db('products.json',[])
+    for p in products:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email:
+            p['price']=price; save_db('products.json',products); return jsonify({'success':True})
+    return jsonify({'success':False,'message':'Not your product'}),403
+
+@my_shop_bp.route('/api/my-shop/update-stock', methods=['POST'])
+def my_shop_update_stock():
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False}),401
+    pid=str(data.get('id','')); stock=int(data.get('stock',0))
+    products=load_db('products.json',[])
+    for p in products:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email:
+            p['stock']=stock; save_db('products.json',products); return jsonify({'success':True})
+    return jsonify({'success':False}),403
+
+@my_shop_bp.route('/api/my-shop/toggle-hide', methods=['POST'])
+def my_shop_toggle_hide():
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False}),401
+    pid=str(data.get('id','')); hidden=bool(data.get('hidden',False))
+    products=load_db('products.json',[])
+    for p in products:
+        if str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email:
+            p['is_hidden']=hidden; save_db('products.json',products); return jsonify({'success':True})
+    return jsonify({'success':False}),403
+
+@my_shop_bp.route('/api/my-shop/delete', methods=['POST'])
+def my_shop_delete():
+    data=request.json or {}; 
+    owner_email = get_logged_user_email()
+    if not owner_email: return jsonify({'success':False}),401
+    pid=str(data.get('id',''))
+    products=load_db('products.json',[])
+    new_products=[p for p in products if not (str(p['id'])==pid and str(p.get('seller_email','')).lower()==owner_email)]
+    if len(new_products)!=len(products):
+        save_db('products.json',new_products); return jsonify({'success':True})
+    return jsonify({'success':False}),404
+
+@my_shop_bp.route('/api/my-shop/update-settings', methods=['POST'])
+def my_shop_update_settings():
+    data=request.json or {}
+    email=get_logged_user_email()
+    if not email:
+        return jsonify({'success':False,'message':'Login required'}),401
+    
+    print(f"MY-SHOP UPDATE: {email} -> {data}")
+    shops=load_db('shops.json',[]) or []
+    users=load_db('users.json',[]) or []
+    products=load_db('products.json',[]) or []
+    
+    shop = next((s for s in shops if str(s.get('owner_email','')).lower()==email), None)
+    if not shop:
+        biz_name = data.get('business_name','My Shop').strip() or 'My Shop'
+        new_slug = make_shop_slug(biz_name)
+        existing_slugs = [str(s.get('shop_slug','')).lower() for s in shops]
+        base_slug = new_slug
+        counter=1
+        while new_slug in existing_slugs:
+            new_slug = f"{base_slug}-{counter}"
+            counter+=1
+        shop = {
+            "business_name": biz_name, "shop_slug": new_slug, "owner_email": email,
+            "location": data.get('location','Kampala'), "phone": data.get('phone',''),
+            "description": data.get('description','Welcome!'), "logo": data.get('logo',''),
+            "verified": False, "created": time.time(), "updated": time.time()
+        }
+        shops.append(shop)
+    else:
+        if data.get('business_name'): shop['business_name']=data.get('business_name').strip()
+        shop['location'] = data.get('location', shop.get('location','Kampala'))
+        shop['phone'] = data.get('phone', shop.get('phone',''))
+        shop['description'] = data.get('description', shop.get('description',''))
+        if data.get('logo'): shop['logo']=data.get('logo')
+        shop['updated']=time.time()
+
+    for u in users:
+        if str(u.get('email','')).lower()==email:
+            if data.get('business_name'): u['business']=data.get('business_name')
+            if data.get('phone'): u['phone']=data.get('phone')
+            break
+
+    updated_products=0
+    for p in products:
+        if str(p.get('seller_email','')).lower()==email:
+            if data.get('business_name'): p['business']=data.get('business_name')
+            p['shop_slug']=shop['shop_slug']
+            updated_products+=1
+
+    save_db('shops.json', shops)
+    save_db('users.json', users)
+    if updated_products>0: save_db('products.json', products)
+    return jsonify({'success':True, 'shop': shop, 'updated_products': updated_products})
