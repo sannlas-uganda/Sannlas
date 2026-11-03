@@ -17,11 +17,11 @@
 <meta charset="utf-8">
 <title>SANNLAS UGANDA - Premium Marketplace</title>
 <meta name="description" content="Sannlas - Uganda's #1 marketplace to buy, sell & request anything in Kampala. Best prices on watches, bags, shoes, electronics. Post a Want, get offers instantly.">
-<link rel="canonical" href="https://sannlas.onrender.com/">
+<link rel="canonical" href="https://sannlas.store/">
 <meta property="og:title" content="Sannlas Uganda - Premium Marketplace">
 <meta property="og:description" content="Uganda's marketplace for everything. Post a Want, get offers instantly.">
-<meta property="og:image" content="https://sannlas.onrender.com/icon-512.png">
-<meta property="og:url" content="https://sannlas.onrender.com/">
+<meta property="og:image" content="https://sannlas.store/icon-512.png">
+<meta property="og:url" content="https://sannlas.store/">
 <meta name="keywords" content="Sannlas, Uganda marketplace, buy sell Uganda, Kampala shopping, watches Uganda, bags Uganda">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -1839,7 +1839,7 @@ function openCart(){
 function changeQty(id,delta){}
 function removeCart(id){}
 async function doCheckout(){ window.location.href='/cart'; }
-function applyPromote(pid,comm){let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}if(!u||!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{let link=d.link||d.promo_link||`https://sannlas.onrender.com/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;document.getElementById('promoLinkInput').value=link;document.getElementById('promoModal').style.display='flex';}).catch(e=>alert('Error: '+e.message));}
+function applyPromote(pid,comm){let u=null;try{u=JSON.parse(localStorage.getItem('sannlas_user')||'{}');}catch(e){}if(!u||!u.phone){alert('Login first Boss!');location.href='/balance';return;}if(!confirm(`🤝 Apply to promote? You earn ${comm||3} coins per sale!`))return;fetch('/api/promote/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,phone:u.phone,email:u.email})}).then(r=>r.json()).then(d=>{let link=d.link||d.promo_link||`https://sannlas.store/?promo=PROMO${pid}${u.phone.slice(-4)}&product=${pid}`;document.getElementById('promoLinkInput').value=link;document.getElementById('promoModal').style.display='flex';}).catch(e=>alert('Error: '+e.message));}
 function copyPromoLink(){let v=document.getElementById('promoLinkInput').value;navigator.clipboard.writeText(v).then(()=>{let m=document.getElementById('promoCopyMsg');m.style.display='block';m.innerText='✅ Copied! Now go sell Boss! 💰';setTimeout(()=>m.style.display='none',3000);});}
 function closePromoModal(){document.getElementById('promoModal').style.display='none';}
 function toggleAccountMenu(){let dd=document.getElementById('accountDropdown');if(dd.style.display==='flex'){dd.style.display='none';}else{dd.style.display='flex';dd.style.flexDirection='column';}refreshMyBalanceHeader();}
@@ -2125,7 +2125,7 @@ setInterval(forceJellyButtons, 800);
     <h3>🎬 Post Reel (Any video)</h3>
     <input type="file" id="reelFile" accept="video/*" style="width:100%;margin:10px 0;padding:10px;border:2px dashed #FF6600;border-radius:12px">
     <textarea id="reelCaption" placeholder="Caption... #fun #product" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;margin:6px 0"></textarea>
-    <input id="reelProductLink" placeholder="Product link optional e.g. https://sannlas.onrender.com/product/123" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;margin:6px 0">
+    <input id="reelProductLink" placeholder="Product link optional e.g. https://sannlas.store/product/123" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;margin:6px 0">
     <div id="reelProgress" style="display:none;background:black;color:#FFCC02;padding:10px;border-radius:10px;text-align:center;margin:8px 0">Uploading...</div>
     <button onclick="uploadReel()" style="width:100%;background:black;color:#FFCC02;padding:12px;border:none;border-radius:12px;font-weight:900;margin-top:8px">🚀 POST REEL</button>
     <button onclick="document.getElementById('reelModal').style.display='none'" style="width:100%;background:#eee;color:black;padding:10px;border:none;border-radius:10px;margin-top:8px">Cancel</button>
