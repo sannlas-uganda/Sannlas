@@ -34,7 +34,7 @@ def add_speed_headers(response):
 # ===== TIKTOK LOGIN CONFIG =====
 CLIENT_KEY = os.environ.get("TIKTOK_CLIENT_KEY")
 CLIENT_SECRET = os.environ.get("TIKTOK_CLIENT_SECRET")
-REDIRECT_URI = "https://sannlas.store.com/auth/tiktok/callback"
+REDIRECT_URI = "https://sannlas.store/auth/tiktok/callback"
 print(f"DEBUG TIKTOK KEY LOADED: {CLIENT_KEY}")
 from broadcast import broadcast_bp
 app.register_blueprint(broadcast_bp)
@@ -232,7 +232,7 @@ os.makedirs('static/billboards', exist_ok=True)
 
 Talisman(app, content_security_policy=None, force_https=False)
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per 15 minutes"], storage_uri="memory://",)
-CORS(app, origins=["https://sannlas.store.com"])
+CORS(app, origins=["https://sannlas.store"])
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 PRODUCTS_CACHE = {"data": None, "time": 0}
