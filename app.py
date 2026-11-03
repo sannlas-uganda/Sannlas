@@ -904,7 +904,32 @@ def llms_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.onrender.com/sitemap.xml", mimetype="text/plain")
+    return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.store/sitemap.xml", mimetype="text/plain")
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    from flask import Response
+    # Load products for dynamic sitemap
+    try:
+        products = load_db('products.json', [])[:200] # limit 200 for speed
+    except:
+        products = []
+    
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    xml += '  <url><loc>https://sannlas.store/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>\n'
+    xml += '  <url><loc>https://sannlas.store/shops</loc><priority>0.9</priority></url>\n'
+    
+    for p in products:
+        try:
+            pid = p.get('id')
+            slug = p.get('slug') or pid
+            if pid:
+                xml += f'  <url><loc>https://sannlas.store/product/{slug}</loc><priority>0.8</priority></url>\n'
+        except:
+            continue
+            
+    xml += '</urlset>'
+    return Response(xml, mimetype='text/xml')
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
         import socket, smtplib
