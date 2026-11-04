@@ -801,7 +801,7 @@ def login():
     if is_banned(ip):
         return jsonify({'success':False,'message':'IP banned 24h due to attacks'}),403
     
-    data=request.json; email=data.get('email','').lower(); pwd=data.get('password','')
+    data=request.get_json() or {}; email=(data.get('email','') or '').lower().strip(); pwd=data.get('password','') or ''
     users=load_db('users.json',[])
     def check_pwd(u, pwd):
         if u.get('password') == hash_pwd(pwd):
