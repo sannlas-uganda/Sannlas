@@ -2304,25 +2304,56 @@ function startVoiceIndex() {
 }
 
 async function sendToAIIndex(){
-  let input=document.getElementById('aiInputIndex'); let msg=input.value.trim(); if(!msg) return;
+  let input=document.getElementById('aiInputIndex'); 
+  let msg=input.value.trim(); if(!msg) return;
   let box=document.getElementById('aiMessagesIndex');
   box.innerHTML+=`<div style="background:#000;color:#FFCC02;padding:11px 15px;border-radius:20px;border-bottom-right-radius:4px;max-width:85%;align-self:flex-end;margin-left:auto">${msg}</div>`;
-  input.value=''; box.scrollTop=box.scrollHeight; aiHistoryIndex.push({role:'user',content:msg});
+  input.value=''; box.scrollTop=box.scrollHeight; 
+  aiHistoryIndex.push({role:'user',content:msg});
   box.innerHTML+=`<div id="aiTypingIndex" style="background:#fff;color:#111;padding:11px 15px;border-radius:20px;max-width:85%">🧠 Sannlas AI typing...</div>`;
   box.scrollTop=box.scrollHeight;
+
+  let reply = "";
+  let products = [];
+  let lang = 'en';
+
   try{
     let r=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:aiHistoryIndex})});
-    let data=await r.json(); document.getElementById('aiTypingIndex')?.remove();
-    box.innerHTML+=`<div style="background:#fff;color:#111;padding:13px 15px;border-radius:20px;border-bottom-left-radius:4px;max-width:85%;box-shadow:0 2px 10px rgba(0,0,0,0.08)">${data.reply.replace(/\n/g,'<br>')}</div>`;
-    aiHistoryIndex.push({role:'assistant',content:data.reply});
-    // 🔊 SPEAK!
-    speakTextIndex(data.reply, data.detected_lang || 'en');
-    if(data.products && data.products.length){
-      let pBox=document.getElementById('aiProductsIndex'); pBox.style.display='flex';
-      pBox.innerHTML=data.products.map(p=>`<div onclick="closeSannlasAIIndex(); if(window.viewProduct){viewProduct('${p.id||p._id}')} else {location.href='/product/${p.id||p._id}'}" style="min-width:150px;background:#E9EFF7;border-radius:14px;padding:8px;border:1.5px solid #d1d9e6;cursor:pointer"><img src="${p.image||p.images?.[0]||''}" style="width:100%;height:90px;object-fit:cover;border-radius:10px"><div style="font-size:11px;font-weight:800;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111">${p.name||p.title}</div><div style="font-size:11px;color:#FF6A00;font-weight:900">UGX ${(p.price||0).toLocaleString()}</div></div>`).join('');
+    if(r.ok){ let d=await r.json(); reply=d.reply||d.answer||d.message||""; products=d.products||[]; lang=d.detected_lang||'en'; }
+  }catch(e){}
+
+  if(!reply){
+    try{
+      let r=await fetch('/api/ai/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:msg,lang:'en'})});
+      if(r.ok){ let d=await r.json(); reply=d.answer||d.reply||d.message||""; products=d.products||[]; }
+    }catch(e){}
+  }
+
+  if(!reply){
+    try{
+      let r=await fetch('/api/products?q='+encodeURIComponent(msg));
+      let prods=await r.json();
+      if(prods && prods.length){
+        products=prods.slice(0,6);
+        reply=`I found ${prods.length} results for "${msg}" Boss! 🔥 Check below!`;
+      } else {
+        reply=`Hi Boss! I got "${msg}" - Tell me what you want - watches, shoes, bags? And budget? Eg: "shoes under 100k"`;
+      }
+    }catch(e){
+      reply=`Hi Boss! I'm Sannlas AI 👋 I got "${msg}"! Tell me what you want to buy and your budget!`;
     }
-    box.scrollTop=box.scrollHeight;
-   }catch(e){document.getElementById('aiTypingIndex')?.remove(); box.innerHTML+=`<div style="background:#ffeaea;color:#111;padding:10px;border-radius:12px">Network issue Boss! Try again 🚀</div>`;}
+  }
+
+  document.getElementById('aiTypingIndex')?.remove();
+  box.innerHTML+=`<div style="background:#fff;color:#111;padding:13px 15px;border-radius:20px;border-bottom-left-radius:4px;max-width:85%">${reply.replace(/\n/g,'<br>')}</div>`;
+  aiHistoryIndex.push({role:'assistant',content:reply});
+  speakTextIndex(reply, lang);
+
+  if(products && products.length){
+    let pBox=document.getElementById('aiProductsIndex'); pBox.style.display='flex';
+    pBox.innerHTML=products.map(p=>`<div onclick="closeSannlasAIIndex(); location.href='/product/${p.id||p._id}'" style="min-width:150px;background:#E9EFF7;border-radius:14px;padding:8px;border:1.5px solid #d1d9e6;cursor:pointer"><img src="${p.image||p.images?.[0]||''}" style="width:100%;height:90px;object-fit:cover;border-radius:10px"><div style="font-size:11px;font-weight:800;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111">${p.name||p.title}</div><div style="font-size:11px;color:#FF6A00;font-weight:900">UGX ${(p.price||0).toLocaleString()}</div></div>`).join('');
+  }
+  box.scrollTop=box.scrollHeight;
 }
 </script>
 <script>
