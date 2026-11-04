@@ -719,35 +719,6 @@ div[style*="max-width:780px"]{
     z-index:99 !important;
   }
 }
-/* ===== STEP 2b - AI BUTTON FIXED ABOVE MENU - PASTE HERE 👈 ===== */
-@media(max-width:768px){
-  #sannlasAIFloatBtn{
-    position:fixed !important;
-    top:auto !important;
-    left:auto !important;
-    /* Slightly above MENU button (☰) */
-    /* Bottom bar is at bottom:12px + ~52px height = 64px */
-    /* So AI sits at 76px = 12px gap above menu */
-    bottom:76px !important;
-    right:12px !important;
-    width:52px !important;
-    height:52px !important;
-    min-width:52px !important;
-    min-height:52px !important;
-    font-size:24px !important;
-    z-index:99999 !important;
-    transform:none !important;
-    /* Keep it round + visible */
-    border:2.5px solid #FFCC02 !important;
-    box-shadow:0 6px 20px rgba(0,0,0,0.5), 0 0 0 3px rgba(0,0,0,0.3) !important;
-  }
-
-  /* Make sure reel right buttons DON'T go under AI button */
-  .reel-actions{
-    bottom:145px !important; /* stops above AI button */
-    padding-bottom:0 !important;
-  }
-}
 </style>
 </head>
 <body>
@@ -2331,14 +2302,18 @@ document.getElementById('reelUploadInput')?.addEventListener('change', async fun
 </script>
 <!-- ===== SANNLAS AI - INDEX FLOATING - VOICE UPGRADED ===== -->
 <button id="sannlasAIFloatBtn" onclick="openSannlasAIIndex()" style="
- position:fixed;bottom:90px;right:16px;
+ position:fixed !important;
+ bottom:76px !important;
+ right:12px !important;
  background:linear-gradient(135deg,#000,#1a1a1a);
  color:#FFCC02;
  border:2.5px solid #FFCC02;
- width:62px;height:62px;border-radius:50%;
- font-size:28px;font-weight:900;
+ width:52px !important;
+ height:52px !important;
+ border-radius:50%;
+ font-size:24px;font-weight:900;
  z-index:99999;cursor:pointer;
- box-shadow:0 6px 25px rgba(255,204,2,0.5);
+ box-shadow:0 6px 20px rgba(0,0,0,0.5);
  display:flex;align-items:center;justify-content:center
 ">🧠</button>
 
