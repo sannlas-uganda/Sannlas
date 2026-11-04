@@ -950,7 +950,7 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         r = requests.post("https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
             json={
-                "from": "Sannla <onboarding@resend.dev>",
+                "from": "Sannla <noreply@sannlas.store>",
                 "to": [to_email],
                 "subject": f"Your Sannla Code is {otp}",
                 "html": html_content
