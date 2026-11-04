@@ -243,7 +243,7 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'SannlasBoss123')
 # === FORGOT PASSWORD SYSTEM CONFIG ===
 OWNER_EMAIL = "natelieabigail@gmail.com"
 EMAIL_FROM = "natelieabigail@gmail.com"
-EMAIL_APP_PASSWORD = "ywhe hdfs otgw zztx"
+EMAIL_APP_PASSWORD = "dcli zmaq dala xmxo"
 OWNER_MOMO = "0795712326"
 COIN_PRICE = 599
 UPLOAD_COST = 0 # <-- CHANGED TO FREE! Was 3
@@ -937,7 +937,7 @@ def send_reset_email(to_email, otp, user_name="Boss"):
         from email.mime.multipart import MIMEMultipart
         import os
         EMAIL_FROM = os.environ.get('EMAIL_FROM','').strip() or "natelieabigail@gmail.com"
-        EMAIL_PASS = (os.environ.get('EMAIL_APP_PASSWORD','').strip() or "ywhe hdfs otgw zztx").replace(' ','')
+        EMAIL_PASS = (os.environ.get('EMAIL_APP_PASSWORD','').strip() or "dcli zmaq dala xmxo").replace(' ','')
         html_content = f"""
         <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
           <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
