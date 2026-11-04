@@ -1324,6 +1324,20 @@ function openPopup(id){let el=document.getElementById(id);if(el)el.style.display
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
 function showGate(){document.getElementById('authGate').style.display='flex';}
 function hideGate(){document.getElementById('authGate').style.display='none';}
+function updateLoginUI(){
+  let u = null;
+  try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
+  let btn = document.getElementById('topLoginBtn');
+  if(btn){ btn.innerText = (u && u.email) ? '👤 ACCOUNT' : '👤 LOGIN'; }
+  // Also update desktop LOGIN button text if it exists
+  document.querySelectorAll('button').forEach(b=>{
+    if(b.innerText.includes('LOGIN') && u && u.email){
+      b.innerText = '👤 ACCOUNT';
+    }
+  });
+  if(typeof updateTopLoginUI === 'function') updateTopLoginUI();
+  if(typeof updateCartCount === 'function') updateCartCount();
+}
 function gateCheck(){let u=localStorage.getItem('sannlas_user');if(u){try{currentUser=JSON.parse(u);}catch(e){}if(currentUser){updateLoginUI();}}hideGate();loadCoinLive();loadBillboardBanner();doFilter();loadWantsLiveSafe();refreshMyBalanceHeader();}
 function gateDoRegister(){let email=document.getElementById('gateRegEmail').value.trim(),phone=document.getElementById('gateRegPhone').value.trim(),pass=document.getElementById('gateRegPass').value,biz=document.getElementById('gateRegBiz').value;if(!email||!phone||!pass){alert('Fill all');return;}switchGate('loading');fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone,password:pass,business:biz})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem('sannlas_user',JSON.stringify(d.user));currentUser=d.user;updateLoginUI();switchGate('otp');}else{alert(d.message);switchGate('register');}});}
 function gateVerifyOTP(){switchGate('nin');}
