@@ -932,43 +932,31 @@ def sitemap_xml():
     return Response(xml, mimetype='text/xml')
 def send_reset_email(to_email, otp, user_name="Boss"):
     try:
-        import socket, smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        import os
-        EMAIL_FROM = os.environ.get('EMAIL_FROM','').strip() or "natelieabigail@gmail.com"
-        EMAIL_PASS = (os.environ.get('EMAIL_APP_PASSWORD','').strip() or "dcli zmaq dala xmxo").replace(' ','')
+        import os, requests
+        RESEND_KEY = os.environ.get('RESEND_API_KEY','').strip()
+        if not RESEND_KEY:
+            print("❌ NO RESEND_API_KEY in Render Env!")
+            return False
         html_content = f"""
         <div style="font-family:Arial;max-width:420px;margin:auto;border:1px solid #eee;border-radius:15px;overflow:hidden">
           <div style="background:#000;color:#FFCC02;padding:18px;text-align:center"><h2>🏪 Sannla</h2></div>
           <div style="padding:22px">
             <h3>Hi {user_name},</h3>
             <h1 style="background:#000;color:#FFCC02;padding:16px;text-align:center;letter-spacing:8px;border-radius:12px;font-size:32px">{otp}</h1>
-            <p>Expires in 10 mins</p>
+            <p>Expires in 10 mins - 3 tries only!</p>
           </div>
         </div>
         """
-        msg = MIMEMultipart()
-        msg['From'] = f"Sannla <{EMAIL_FROM}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Your Sannla Code is {otp}"
-        msg.attach(MIMEText(html_content, 'html'))
-        infos = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET, socket.SOCK_STREAM)
-        af, socktype, proto, canonname, sa = infos[0]
-        sock = socket.socket(af, socktype, proto)
-        sock.settimeout(20)
-        sock.connect(sa)
-        server = smtplib.SMTP(timeout=20)
-        server.sock = sock
-        server._host = 'smtp.gmail.com'
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(EMAIL_FROM, EMAIL_PASS)
-        server.send_message(msg)
-        server.quit()
-        print(f"✅ Email sent to {to_email}")
-        return True
+        r = requests.post("https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
+            json={
+                "from": "Sannla <onboarding@resend.dev>",
+                "to": [to_email],
+                "subject": f"Your Sannla Code is {otp}",
+                "html": html_content
+            }, timeout=15)
+        print(f"Resend status: {r.status_code} - {r.text[:200]}")
+        return r.status_code in (200, 201)
     except Exception as e:
         print(f"Email error: {e}")
         import traceback; traceback.print_exc()
