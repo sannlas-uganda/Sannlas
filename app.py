@@ -947,16 +947,24 @@ def send_reset_email(to_email, otp, user_name="Boss"):
           </div>
         </div>
         """
-        r = requests.post("https://api.resend.com/emails",
-            headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
-            json={
-                "from": "Sannla <noreply@sannlas.store>",
-                "to": [to_email],
-                "subject": f"Your Sannla Code is {otp}",
-                "html": html_content
-            }, timeout=15)
-        print(f"Resend status: {r.status_code} - {r.text[:200]}")
-        return r.status_code in (200, 201)
+        payload = {
+            "from": "Sannla <noreply@sannlas.store>",
+            "to": [to_email],
+            "subject": f"Your Sannla Code is {otp}",
+            "html": html_content
+        }
+        headers = {"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"}
+        # TRY EU FIRST - Your domain is in Ireland!
+        for url in ["https://api.eu.resend.com/emails", "https://api.resend.com/emails"]:
+            try:
+                r = requests.post(url, headers=headers, json=payload, timeout=15)
+                print(f"Resend {url} status: {r.status_code} - {r.text[:300]}")
+                if r.status_code in (200, 201):
+                    return True
+            except Exception as e:
+                print(f"Resend {url} error: {e}")
+                continue
+        return False
     except Exception as e:
         print(f"Email error: {e}")
         import traceback; traceback.print_exc()
