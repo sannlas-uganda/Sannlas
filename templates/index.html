@@ -663,6 +663,62 @@ div[style*="max-width:780px"]{
     border:1px solid #000 !important;
   }
 }
+/* ===== STEP 2 - RIGHT SIDE BUTTONS FIX - PASTE HERE 👈 ===== */
+@media(max-width:768px){
+  .reel-actions{
+    right:8px !important;
+    bottom:150px !important; /* lifted above bottom bar + above product text */
+    gap:8px !important;
+    max-height:52vh !important;
+    overflow-y:auto !important;
+    scrollbar-width:none !important;
+    padding:2px !important;
+  }
+  .reel-actions::-webkit-scrollbar{ display:none !important; }
+
+  /* All right buttons smaller - 42px not 52px */
+  .reel-actions .reel-act,
+  .reel-actions a,
+  .reel-actions button{
+    width:42px !important;
+    height:42px !important;
+    min-width:42px !important;
+    min-height:42px !important;
+    font-size:16px !important;
+    border-radius:50% !important;
+  }
+
+  /* Shop avatar smaller */
+  .reel-actions div[style*="width:52px"]{
+    width:42px !important;
+    height:42px !important;
+    font-size:18px !important;
+  }
+
+  /* LIVE button text smaller */
+  .reel-actions a[href="/live"]{
+    font-size:9px !important;
+    font-weight:900 !important;
+  }
+
+  /* Follow + button smaller */
+  .reel-actions div[id^="follow-btn-"]{
+    width:20px !important;
+    height:20px !important;
+    font-size:11px !important;
+    bottom:-4px !important;
+  }
+
+  /* AI float button - move it UP so it doesn't cover reel buttons */
+  #sannlasAIFloatBtn{
+    bottom:150px !important;
+    right:8px !important;
+    width:50px !important;
+    height:50px !important;
+    font-size:22px !important;
+    z-index:99 !important;
+  }
+}
 </style>
 </head>
 <body>
