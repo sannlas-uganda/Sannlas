@@ -629,6 +629,40 @@ div[style*="max-width:780px"]{
     right: 14px !important;
   }
 }
+/* ===== STEP 1 - TOP BUTTONS FIX - PASTE HERE 👈 ===== */
+@media(max-width:768px){
+  .phone-top-row-overlay{
+    display:flex !important;
+    flex-wrap:nowrap !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    gap:7px !important;
+    left:10px !important;
+    right:10px !important;
+    padding-bottom:4px !important;
+    scrollbar-width:none !important;
+    -webkit-overflow-scrolling:touch !important;
+    scroll-snap-type:x mandatory !important;
+    /* hide the + button overlap */
+    max-width:calc(100vw - 20px) !important;
+  }
+  .phone-top-row-overlay::-webkit-scrollbar{ display:none !important; }
+  .phone-top-row-overlay a, .phone-top-row-overlay button{
+    flex:0 0 auto !important;
+    white-space:nowrap !important;
+    scroll-snap-align:start !important;
+    padding:9px 12px !important;
+    font-size:11px !important;
+    /* make them a bit smaller so 4 fit */
+    min-width:auto !important;
+  }
+  /* AGENCY - make it stand out but not cut */
+  .phone-top-row-overlay a[href="/agency"]{
+    background:#FFCC02 !important;
+    color:#000 !important;
+    border:1px solid #000 !important;
+  }
+}
 </style>
 </head>
 <body>
