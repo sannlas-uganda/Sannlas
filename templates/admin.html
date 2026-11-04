@@ -69,8 +69,27 @@ table{width:100%;border-collapse:collapse;color:white}th,td{border:1px solid #33
 <div class="t" style="background:#00FF00;color:#000" onclick="tab('billboard',this)">📢 Billboard</div>
 <div class="t" style="background:#00FF00;color:#000;border:3px solid #000;font-weight:900" onclick="tab('wants',this)">🎯 WANTS <span id="cWants" class="badge" style="background:#000;color:#00FF00">0</span></div>
 <div class="t" onclick="tab('contacts',this)">📧 Messages <span id="cContacts" class="badge">0</span></div>
-<a href="/admin/chats" style="background:#25D366;color:#000;padding:9px 12px;border-radius:20px;text-decoration:none;font-weight:900;font-size:12px;display:flex;align-items:center;border:2px solid #000">💬 Chat Preview</a></div>
+<a href="/admin/chats" style="background:#25D366;color:#000;padding:9px 12px;border-radius:20px;text-decoration:none;font-weight:900;font-size:12px;display:flex;align-items:center;border:2px solid #000">💬 Chat Preview</a>
+<div class="t" style="background:#FF6B00;color:#fff;border:2px solid #fff;font-weight:900" onclick="tab('ai',this)">🤖 Sannlas AI <span id="cAI" class="badge" style="background:#fff;color:#FF6B00">105</span></div>
+</div>
 <div id="overview" class="tabPane"><div class="card" style="border:2px solid #FFCC02"><h2>🏪 Option B System - SORTED</h2><div id="overviewData"></div></div></div>
+
+<!-- 🤖 SANNLAS AI ADMIN - INSIDE MAIN ADMIN -->
+<div id="ai" class="tabPane" style="display:none">
+  <div class="card" style="border:3px solid #FF6B00;padding:0;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:19px;font-weight:900">🤖 Sannlas AI Knowledge Admin</div>
+        <div style="font-size:12px;opacity:0.9">Total Q&A auto-loaded | Products auto-synced | Safe: No leaks ✅</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('aiFrame').src='/admin/ai-knowledge'" style="background:#fff;color:#111;padding:8px 14px;border-radius:20px;font-weight:900">🔄 Refresh AI</button>
+        <a href="/admin/ai-knowledge" target="_blank" style="background:#000;color:#FFCC02;padding:8px 14px;border-radius:20px;text-decoration:none;font-weight:900">↗ Open Full Page</a>
+      </div>
+    </div>
+    <iframe id="aiFrame" src="/admin/ai-knowledge" style="width:100%;height:calc(100vh - 140px);min-height:700px;border:none;background:#FFF8F0;display:block"></iframe>
+  </div>
+</div>
 
 <!-- PRO ANALYTICS TAB -->
 <div id="analytics" class="tabPane" style="display:none">
@@ -258,7 +277,7 @@ function showErrorTop(msg){
   el.style.display='block';
   el.innerText=msg;
 }
-function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='shares') renderShares(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics'){drawAnalyticsCharts(); setTimeout(drawCoinsEconomy,300);} if(id==='products') renderProductsSorted();}
+function tab(id,el){document.querySelectorAll('.tabPane').forEach(p=>p.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.t').forEach(t=>t.classList.remove('active'));if(el) el.classList.add('active'); if(id==='shops') renderShops(); if(id==='coins') loadCoinsTab(); if(id==='shares') renderShares(); if(id==='withdraws') loadWithdraws(); if(id==='billboard') loadBillboard(); if(id==='wants') renderWants(); if(id==='analytics'){drawAnalyticsCharts(); setTimeout(drawCoinsEconomy,300);} if(id==='products') renderProductsSorted(); if(id==='ai'){ let f=document.getElementById('aiFrame'); if(f) f.src='/admin/ai-knowledge'; fetch('/api/admin/ai-knowledge').then(r=>r.json()).then(d=>{ let b=document.getElementById('cAI'); if(b) b.innerText=d.length; }).catch(e=>{}); }}
 async function login(){
  let pwd=document.getElementById('pass').value.trim();
  if(!pwd){document.getElementById('msg').innerText='Enter password';return;}
