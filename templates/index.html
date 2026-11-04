@@ -725,6 +725,7 @@ div[style*="max-width:780px"]{
       <input id="gateLogEmail" type="email" placeholder="Email e.g. you@gmail.com" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
       <input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
       <button onclick="gateDoLogin()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🔓 LOGIN</button>
+      <p onclick="showForgot()" style="text-align:center;color:#FF6A00;font-size:12px;font-weight:800;cursor:pointer;margin:10px 0 0">Forgot Password? Reset →</p>
       <p style="text-align:center;font-size:12px;margin:12px 0 0">No account? <b onclick="switchGate('register')" style="color:#FF6A00;cursor:pointer">Register FREE →</b></p>
       <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
     </div>
@@ -761,6 +762,26 @@ div[style*="max-width:780px"]{
       <p style="text-align:center;color:#666;font-size:13px">You can now Sell, Buy, and Earn Coins!</p>
       <button onclick="gateUploadNIN()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900">Start Shopping →</button>
     </div>
+   <!-- FORGOT - STEP 1 : ENTER EMAIL -->
+<div class="gate-step" id="gateForgot">
+  <h2 style="text-align:center;font-weight:900;margin:0 0 4px">🔑 FORGOT PASSWORD</h2>
+  <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">We will send a 6-digit code to your email</p>
+  <input id="forgotEmail" type="email" placeholder="Your registered email" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+  <button onclick="sendForgotCode()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">📧 SEND CODE</button>
+  <p style="text-align:center;font-size:12px;margin:12px 0 0">Remember? <b onclick="switchGate('login')" style="color:#FF6A00;cursor:pointer">Back to Login →</b></p>
+  <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+</div>
+
+<!-- FORGOT - STEP 2 : OTP + NEW PASSWORD -->
+<div class="gate-step" id="gateForgotReset">
+  <h2 style="text-align:center;font-weight:900;margin:0 0 4px">📩 ENTER CODE</h2>
+  <p id="forgotMsg" style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Code sent! Check your email - Expires in 10 mins</p>
+  <input id="forgotOtp" placeholder="6-digit code e.g. 123456" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd;text-align:center;font-size:18px;letter-spacing:5px">
+  <input id="forgotNewPass" type="password" placeholder="New Password (min 4 chars)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+  <button onclick="doResetPassword()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">✅ RESET PASSWORD</button>
+  <p onclick="sendForgotCode()" style="text-align:center;color:#FF6A00;font-size:12px;font-weight:800;cursor:pointer;margin-top:10px">Resend Code →</p>
+  <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+</div> 
   </div>
 </div>
 
@@ -1076,7 +1097,52 @@ function openReelProduct(productId){
   if(window.viewProduct) viewProduct(productId);
   else location.href = '/product/' + productId;
 }
+function showForgot(){
+  // Hide all gate steps, show forgot
+  document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('gateForgot').classList.add('active');
+  // Pre-fill email from login box if user already typed it
+  let le = document.getElementById('gateLogEmail');
+  if(le && le.value) document.getElementById('forgotEmail').value = le.value;
+}
 
+async function sendForgotCode(){
+  let email = document.getElementById('forgotEmail').value.trim().toLowerCase();
+  if(!email || !email.includes('@')){ alert('Enter your registered email Boss!'); return; }
+  try{
+    let r = await fetch('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    let d = await r.json();
+    if(d.success){
+      alert(d.message);
+      document.getElementById('forgotMsg').innerText = 'Code sent to '+email+' - Expires in 10 mins - 3 tries only!';
+      document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));
+      document.getElementById('gateForgotReset').classList.add('active');
+    } else {
+      alert(d.message || 'Email not found - Check email Boss!');
+    }
+  }catch(e){ alert('Network error - Try again Boss!'); }
+}
+
+async function doResetPassword(){
+  let email = document.getElementById('forgotEmail').value.trim().toLowerCase();
+  let otp = document.getElementById('forgotOtp').value.trim();
+  let new_password = document.getElementById('forgotNewPass').value.trim();
+  if(!otp || otp.length!==6){ alert('Enter 6-digit code Boss!'); return; }
+  if(!new_password || new_password.length<4){ alert('Password min 4 chars Boss!'); return; }
+  try{
+    let r = await fetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email, otp, new_password})});
+    let d = await r.json();
+    if(d.success){
+      alert('✅ Password changed! Login now Boss!');
+      // Go back to login, pre-fill email
+      document.getElementById('gateLogEmail').value = email;
+      document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));
+      document.getElementById('gateLogin').classList.add('active');
+    } else {
+      alert(d.message || 'Wrong code!');
+    }
+  }catch(e){ alert('Network error - Try again!'); }
+}
 loadHomeReels();
 </script>
 <main>
