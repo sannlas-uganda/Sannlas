@@ -716,7 +716,53 @@ div[style*="max-width:780px"]{
 </style>
 </head>
 <body>
-<div id="authGate"> ... keep your authGate as is ... </div>
+<div id="authGate">
+  <div class="gate-box">
+    <!-- LOGIN -->
+    <div class="gate-step active" id="gateLogin">
+      <h2 style="text-align:center;font-weight:900;margin:0 0 4px">👤 LOGIN</h2>
+      <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Welcome back Boss!</p>
+      <input id="gateLogEmail" type="email" placeholder="Email e.g. you@gmail.com" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <button onclick="gateDoLogin()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🔓 LOGIN</button>
+      <p style="text-align:center;font-size:12px;margin:12px 0 0">No account? <b onclick="switchGate('register')" style="color:#FF6A00;cursor:pointer">Register FREE →</b></p>
+      <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="gate-step" id="gateRegister">
+      <h2 style="text-align:center;font-weight:900;margin:0 0 4px">📝 REGISTER FREE</h2>
+      <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Join Sannlas Uganda</p>
+      <input id="gateRegEmail" type="email" placeholder="Email" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateRegPhone" placeholder="Phone e.g. 0755..." style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateRegBiz" placeholder="Business Name (optional)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateRegPass" type="password" placeholder="Password (min 4 chars)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <button onclick="gateDoRegister()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🚀 REGISTER</button>
+      <p style="text-align:center;font-size:12px;margin:12px 0 0">Have account? <b onclick="switchGate('login')" style="color:#FF6A00;cursor:pointer">Login →</b></p>
+      <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+    </div>
+
+    <!-- LOADING -->
+    <div class="gate-step" id="gateLoading">
+      <h2 style="text-align:center">⏳ Please wait Boss...</h2>
+      <p style="text-align:center;color:#666">Creating your account...</p>
+    </div>
+
+    <!-- OTP -->
+    <div class="gate-step" id="gateOtp">
+      <h2 style="text-align:center">✅ Account Created!</h2>
+      <p style="text-align:center;color:#666;font-size:13px">You are registered Boss! Tap below to continue.</p>
+      <button onclick="gateVerifyOTP()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900">Continue →</button>
+    </div>
+
+    <!-- NIN -->
+    <div class="gate-step" id="gateNin">
+      <h2 style="text-align:center">🎉 Welcome to SANNLAS!</h2>
+      <p style="text-align:center;color:#666;font-size:13px">You can now Sell, Buy, and Earn Coins!</p>
+      <button onclick="gateUploadNIN()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900">Start Shopping →</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== NEW TIKTOK LAYOUT WITH LEFT + RIGHT COLUMNS - DESKTOP ONLY ===== -->
 <style>
