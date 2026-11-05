@@ -24,7 +24,53 @@ def ensure_reels_table():
       caption TEXT, description TEXT, price TEXT, promo_link TEXT,
       location TEXT, hashtags TEXT, video_url TEXT, product_link TEXT,
       product_id TEXT, likes INT DEFAULT 0, created TIMESTAMP DEFAULT NOW())""")
+    # --- NEW: ALGORITHM COLUMNS ---
+    # Add if table already exists (old reels)
+    for col, dtype in [
+        ('views', 'INT DEFAULT 0'),
+        ('shares', 'INT DEFAULT 0'),
+        ('comments_count', 'INT DEFAULT 0'),
+        ('saves', 'INT DEFAULT 0'),
+        ('category', 'TEXT DEFAULT \'\''),
+        ('duration', 'FLOAT DEFAULT 0'),
+        ('score', 'FLOAT DEFAULT 0'),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE sannlas_reels ADD COLUMN IF NOT EXISTS {col} {dtype}")
+        except: pass
+    # --- NEW: INTERACTIONS TABLES FOR ALGORITHM ---
+    cur.execute("""CREATE TABLE IF NOT EXISTS sannlas_reel_interactions (
+        id BIGSERIAL PRIMARY KEY,
+        reel_id BIGINT,
+        user_email TEXT,
+        action TEXT,
+        watch_time FLOAT DEFAULT 0,
+        created TIMESTAMP DEFAULT NOW()
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS sannlas_follows (
+        id BIGSERIAL PRIMARY KEY,
+        follower_email TEXT,
+        following_email TEXT,
+        created TIMESTAMP DEFAULT NOW(),
+        UNIQUE(follower_email, following_email)
+    )""")
     conn.commit(); cur.close(); conn.close()
+
+# --- NEW HELPER: Extract hashtags + category ---
+import re as _re
+def extract_hashtags(text):
+    if not text: return ''
+    tags = _re.findall(r'#(\w+)', str(text))
+    return ','.join([t.lower() for t in tags])
+
+def get_product_category(product_id):
+    try:
+        products = load_db('products.json', [])
+        for p in products:
+            if str(p.get('id')) == str(product_id):
+                return (p.get('category') or p.get('type') or p.get('product_category') or '').lower().strip()
+    except: pass
+    return ''
 
 def load_db(file, default):
     try:
@@ -88,20 +134,45 @@ def upload_reel_post():
         promo_link = request.form.get('promo_link', '') or f"/product/{product_id}"
         product_link = promo_link
         location = request.form.get('location', 'Uganda')
-        hashtags = request.form.get('hashtags', '')
         user_email = request.form.get('user_email','anon')
         user_name = shop_name
+
+        # ===== NEW: ALGORITHM DATA COLLECTION =====
+        # 1. Hashtags: from caption + description + manual field
+        manual_tags = request.form.get('hashtags', '')
+        combined_text = f"{caption} {description} {manual_tags}"
+        hashtags = extract_hashtags(combined_text)
+        # If no hashtags, auto-create from shop + category
+        if not hashtags:
+            hashtags = shop_slug.replace('-',',')
+
+        # 2. Category: from product OR from caption keywords
+        category = get_product_category(product_id)
+        if not category:
+            low = combined_text.lower()
+            if any(w in low for w in ['dress','shirt','shoe','fashion','cloth','abaya','bag']): category = 'fashion'
+            elif any(w in low for w in ['phone','iphone','samsung','laptop','charger','electronic']): category = 'electronics'
+            elif any(w in low for w in ['hair','makeup','beauty','skin','perfume','nail']): category = 'beauty'
+            elif any(w in low for w in ['food','cake','restaurant','pizza']): category = 'food'
+            elif any(w in low for w in ['furniture','sofa','bed','home','decor']): category = 'home'
+            else: category = 'general'
+
+        # 3. Upload to Cloudinary
         result = cloudinary.uploader.upload(video, resource_type="video", folder="sannlas_reels", chunk_size=6000000, timeout=120)
         video_url = result.get('secure_url')
+        duration = result.get('duration') or 0
         if not video_url:
             return jsonify({'success':False, 'error':'Cloudinary no URL'}),500
+
         ensure_reels_table()
         conn = get_conn(); cur = conn.cursor()
-        # FIXED: 13 placeholders for 13 values
-        cur.execute("""INSERT INTO sannlas_reels (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id))
+        cur.execute("""INSERT INTO sannlas_reels 
+            (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id, category, duration, views, shares, comments_count, saves, likes) 
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,0,0,0,0,0) RETURNING id""",
+            (user_email, user_name, shop_name, shop_slug, caption, description, price, promo_link, location, hashtags, video_url, product_link, product_id, category, duration))
         new_id = cur.fetchone()[0]
         conn.commit(); cur.close(); conn.close()
-        return jsonify({'success':True, 'url': video_url, 'id': new_id})
+        return jsonify({'success':True, 'url': video_url, 'id': new_id, 'category': category, 'hashtags': hashtags})
     except Exception as e:
         traceback.print_exc()
         return jsonify({'success':False, 'error': str(e)}), 500
