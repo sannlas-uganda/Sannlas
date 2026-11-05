@@ -987,19 +987,45 @@ async function checkFollowStatus(){
     }catch(e){}
   });
 }
+let homePage = 1;
+let homeSeenIds = new Set();
+let homeIsLoading = false;
+let homeWatchStart = 0;
+let homeCurrentReel = null;
+
+function getHomeViewerEmail(){
+  try{
+    let u = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+    if(u.user) u = u.user;
+    return (u.email||'').toLowerCase();
+  }catch(e){ return ''; }
+}
+
 async function loadHomeReels(){
+  if(homeIsLoading) return; homeIsLoading = true;
   let c=document.getElementById('reelsFeedContainer');
   if(!c) return;
-  c.innerHTML='<div style="height:85vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
-  
+  if(homePage===1) c.innerHTML='<div style="height:85vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
   try{
-    let r=await fetch('/api/sannlas/reels/feed');
+    let email = getHomeViewerEmail();
+    let seen = [...homeSeenIds].join(',');
+    let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`);
     let reels=await r.json();
     if(!reels || !reels.length){
       c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
       return;
     }
-    renderReels(reels);
+        reels.forEach(rr=> homeSeenIds.add(String(rr.id)));
+    renderReels(reels, homePage===1);
+    homeIsLoading = false;
+    // Infinite scroll for home feed
+    if(homePage===1){
+      c.addEventListener('scroll', ()=>{
+        if(c.scrollTop + c.clientHeight > c.scrollHeight - 400 && !homeIsLoading){
+          homePage++; loadHomeReels();
+        }
+      });
+    }
   }catch(e){
     console.error(e);
     let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
@@ -1007,15 +1033,14 @@ async function loadHomeReels(){
   }
 }
 
-function renderReels(reels){
-    let c=document.getElementById('reelsFeedContainer'); // ✅ FIX: GET c INSIDE!
+function renderReels(reels, isFirst=true){
+    let c=document.getElementById('reelsFeedContainer');
     if(!c) return;
-    let feed=reels.length<4?[...reels,...reels,...reels].slice(0,15):reels;
-    c.innerHTML=feed.map((reel,i)=>{
+    let feed=reels; // NO MORE DUPLICATE REELS - use seen IDs instead!
+    let html = feed.map((reel,i)=>{
       let media=reel.video_url||reel.image_url||reel.media_url||'';
       let isVideo=media.includes('.mp4') || media.includes('video') || media.includes('cloudinary');
-      let tag=isVideo?`<video src="${media}" loop playsinline muted onclick="toggleHomeVol(this)" style="width:100%;height:100%;object-fit:cover;cursor:pointer"></video>`:`<img src="${media}" style="width:100%;height:100%;object-fit:cover">`;
-      
+      let tag=isVideo?`<video data-reel-id="${reel.id}" src="${media}" loop playsinline muted onclick="toggleHomeVol(this)" style="width:100%;height:100%;object-fit:cover;cursor:pointer"></video>`:`<img src="${media}" style="width:100%;height:100%;object-fit:cover">`;      
       let shopName = reel.shop_name || reel.user_name || 'SANNLAS SHOP';
       let productName = reel.product_name || reel.title || reel.caption || 'Product';
       let productId = reel.product_id || reel.id || '';
@@ -1027,7 +1052,7 @@ function renderReels(reels){
       let slug = cleanSlug(reel.shop_slug||shopName||'shop');
       let likes = reel.likes||0;
 
-      return `<div class="reel-item" style="position:relative;height:85vh;scroll-snap-align:start;background:#000;overflow:hidden">
+      return `<div class="reel-item" data-reel-id="${reel.id}" style="position:relative;height:85vh;scroll-snap-align:start;background:#000;overflow:hidden">
         ${tag}
         <button onclick="toggleHomeVolBtn(this)" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;font-size:18px;cursor:pointer;z-index:10">🔊</button>
           
@@ -1038,8 +1063,8 @@ function renderReels(reels){
             </div>
           <div id="follow-btn-${reel.id}" data-email="${email}" data-slug="${slug}" data-shop="${shopName}" onclick="event.stopPropagation(); toggleFollowReal(this)" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer">+</div>          </div>
           <button class="reel-act" onclick="likeHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px">❤️<br><span style="font-size:9px">${likes}</span></button>
-          <button class="reel-act" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px">💬</button>
-          <button class="reel-act" onclick="shareHomeReel('${media}')" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px">↗️</button>
+          <button class="reel-act" onclick="shareHomeReel(${reel.id}, '${media}', this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px">↗️<br><span style="font-size:9px">${reel.shares||0}</span></button>
+          <button class="reel-act" onclick="saveHomeReel(${reel.id}, this)" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px">🔖<br><span style="font-size:9px">${reel.saves||0}</span></button>
           <a href="/transport" style="width:48px;height:48px;border-radius:50%;background:#00FF88;border:2px solid #000;color:#000;font-size:18px;display:flex;align-items:center;justify-content:center;text-decoration:none">🚚</a>
           <a href="/manufacturers" style="width:48px;height:48px;border-radius:50%;background:#FFCC02;border:2px solid #000;color:#000;font-size:18px;display:flex;align-items:center;justify-content:center;text-decoration:none">🏭</a>
           <a href="/delivery" style="width:48px;height:48px;border-radius:50%;background:#fff;border:2px solid #000;color:#000;font-size:18px;display:flex;align-items:center;justify-content:center;text-decoration:none">📦</a>
@@ -1051,15 +1076,38 @@ function renderReels(reels){
           <div style="color:#FFCC02;font-weight:900;font-size:12px">🏪 ${shopName}</div>
           <div style="color:#fff;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${productName}</div>
           <div style="color:#ccc;font-size:11px;margin:4px 0">${desc.slice(0,70)}</div>
+          <div style="color:#FFCC02;font-size:10px;margin:2px 0">👁️ ${reel.views||0} views • ${reel.category||''} • ${reel.hashtags||''}</div>
           <div style="background:rgba(0,0,0,0.6);border:1px solid #00FF88;color:#00FF88;padding:4px 10px;border-radius:20px;display:inline-block;font-weight:900;font-size:12px">${price} - BUY NOW</div>
         </div>
       </div>`;
-    }).join('');
+       }).join('');
+    if(isFirst) c.innerHTML = html;
+    else c.insertAdjacentHTML('beforeend', html);
     
-    let obs=new IntersectionObserver(es=>{es.forEach(e=>{let v=e.target.querySelector('video'); if(e.isIntersecting&&v){c.querySelectorAll('video').forEach(x=>{if(x!==v)x.pause()}); v.muted=true; v.play().catch(()=>{})}else if(v)v.pause()})},{threshold:0.6,root:c});
-    c.querySelectorAll('.reel-item').forEach(el=>obs.observe(el));
+    // NEW: TRACK VIEW + WATCH TIME
+    let obs=new IntersectionObserver(es=>{es.forEach(e=>{
+      let v=e.target.querySelector('video');
+      let reelId = e.target.getAttribute('data-reel-id') || v?.getAttribute('data-reel-id');
+      if(e.isIntersecting&&v){
+        c.querySelectorAll('video').forEach(x=>{if(x!==v)x.pause()}); v.muted=true; v.play().catch(()=>{});
+        if(homeCurrentReel && homeCurrentReel!==reelId) sendHomeWatchTime(homeCurrentReel);
+        homeCurrentReel = reelId; homeWatchStart = Date.now();
+        sendHomeView(reelId);
+      } else if(v){ v.pause(); if(homeCurrentReel===reelId){ sendHomeWatchTime(reelId); homeCurrentReel=null; } }
+    })},{threshold:0.6,root:c});
+    c.querySelectorAll('.reel-item:not([data-obs])').forEach(el=>{ el.setAttribute('data-obs','1'); obs.observe(el); });
     setTimeout(checkFollowStatus, 500);
   }
+async function sendHomeView(reelId){
+  try{ await fetch('/api/sannlas/reels/view/'+reelId,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:getHomeViewerEmail(),watch_time:0})}); }catch(e){}
+}
+async function sendHomeWatchTime(reelId){
+  if(!homeWatchStart) return;
+  let sec = (Date.now()-homeWatchStart)/1000;
+  if(sec<0.5) return;
+  try{ await fetch('/api/sannlas/reels/view/'+reelId,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:getHomeViewerEmail(),watch_time:sec})}); }catch(e){}
+  homeWatchStart=0;
+}
 function toggleHomeVol(video){
   let btn = video.parentElement.querySelector('button');
   if(video.muted){ video.muted=false; video.volume=1; btn.innerHTML='🔊'; video.play(); }
@@ -1073,11 +1121,15 @@ function toggleHomeVolBtn(btn){
   if(!video.muted){ video.volume=1; video.play(); }
 }
 async function likeHomeReel(id, btn){
-  try{ await fetch('/api/sannlas/reels/like/'+id,{method:'POST'}); btn.innerHTML='❤️<div style="font-size:9px">+1</div>'; }catch(e){}
+  try{ await fetch('/api/sannlas/reels/like/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:getHomeViewerEmail()})}); btn.innerHTML='❤️<div style="font-size:9px">+1</div>'; }catch(e){}
 }
-function shareHomeReel(url){
+async function shareHomeReel(id, url, btn){
+  try{ await fetch('/api/sannlas/reels/share/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:getHomeViewerEmail()})}); }catch(e){}
   if(navigator.share) navigator.share({title:'Sannlas Reel', url});
   else window.open('https://wa.me/?text='+encodeURIComponent(url),'_blank');
+}
+async function saveHomeReel(id, btn){
+  try{ await fetch('/api/sannlas/reels/save/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:getHomeViewerEmail()})}); btn.innerHTML='✅<div style="font-size:9px">Saved</div>'; }catch(e){}
 }
 
 // OPEN USER SHOP DIRECTLY - STYLE 1 - ANY SHOP
