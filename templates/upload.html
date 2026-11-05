@@ -70,6 +70,25 @@ input:focus,textarea:focus,select:focus{border-color:#000}
     <textarea id="description" rows="3" placeholder="Auto-filled from product"></textarea>
     <label>💬 CAPTION</label>
     <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! 🔥"></textarea>
+
+    <!-- ===== NEW: ALGORITHM FIELDS - PASTE HERE ===== -->
+    <label>🏷️ HASHTAGS</label>
+    <input type="text" id="hashtags" placeholder="e.g. #dress #kampala #fashion">
+    <div class="hint">Use # - Helps algorithm show your reel to right people! 🔥</div>
+
+    <label>📂 CATEGORY *</label>
+    <select id="category">
+      <option value="">✨ Auto-Detect from Product</option>
+      <option value="fashion">👗 Fashion - Clothes, Shoes, Bags</option>
+      <option value="electronics">📱 Electronics - Phones, Laptops</option>
+      <option value="beauty">💄 Beauty - Hair, Makeup, Perfume</option>
+      <option value="food">🍕 Food - Cakes, Restaurant</option>
+      <option value="home">🛋️ Home - Furniture, Decor</option>
+      <option value="general">📦 General / Other</option>
+    </select>
+    <div class="hint">Pick this = Your reel shows to people who LOVE this category!</div>
+    <!-- ===== END NEW ===== -->
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><label>📍 LOCATION</label><input type="text" id="location" placeholder="Kampala"></div>
       <div><label>💰 PRICE (Auto)</label><input type="number" id="price" placeholder="Auto" readonly style="background:#f1f5f9"></div>
@@ -185,6 +204,14 @@ async function uploadReel(){
   let price = document.getElementById('price').value.trim();
   let productId = document.getElementById('productId').value.trim();
   let promoLink = document.getElementById('promoLink').value.trim();
+  // ===== NEW: GET HASHTAGS + CATEGORY =====
+  let hashtags = document.getElementById('hashtags').value.trim();
+  let category = document.getElementById('category').value.trim();
+  if(!hashtags){
+    let found = (caption + ' ' + description).match(/#\w+/g);
+    if(found) hashtags = found.join(' ');
+  }
+  // ===== END NEW =====
   if(!videoFile){ alert('Select video first Boss!'); return; }
   if(!productId){ alert('SELECT PRODUCT FROM YOUR SHOP FIRST!'); return; }
   if(!shopName){ alert('Shop name missing'); return; }
@@ -203,6 +230,10 @@ async function uploadReel(){
     fd.append('product_id', productId);
     fd.append('promo_link', promoLink);
     fd.append('product_link', promoLink);
+    // ===== NEW: SEND TO ALGORITHM =====
+    fd.append('hashtags', hashtags);
+    fd.append('category', category);
+    // ===== END NEW =====
     fd.append('user_email', user.email||'');
     fd.append('user_name', shopName);
     fd.append('user_id', user.email||shopName);
