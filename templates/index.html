@@ -1145,6 +1145,34 @@ async function doResetPassword(){
 }
 loadHomeReels();
 </script>
+<script>
+function updateSideMenuLogin(){
+  try{
+    var u = JSON.parse(localStorage.getItem('sannlas_user')||'null');
+    var btn = document.getElementById('sideMenuLoginBtn');
+    var box = document.getElementById('sideMenuUserBox');
+    // There are 2 menus with same ID - update ALL
+    var allBtns = document.querySelectorAll('#sideMenuLoginBtn');
+    var allBoxes = document.querySelectorAll('#sideMenuUserBox');
+    if(u && u.email){
+      allBtns.forEach(b=>b.style.display='none');
+      allBoxes.forEach(b=>b.style.display='block');
+      document.querySelectorAll('#sideMenuUserName').forEach(e=>e.textContent = u.business || u.email.split('@')[0]);
+      document.querySelectorAll('#sideMenuUserEmail').forEach(e=>e.textContent = u.email);
+    } else {
+      allBtns.forEach(b=>b.style.display='block');
+      allBoxes.forEach(b=>b.style.display='none');
+    }
+  }catch(e){}
+}
+// Run on load + when menu opens
+document.addEventListener('DOMContentLoaded', updateSideMenuLogin);
+var _oldToggle = window.toggleSideMenu;
+window.toggleSideMenu = function(){
+  if(_oldToggle) _oldToggle();
+  updateSideMenuLogin();
+}
+</script>
 <main>
 
 <div id="sideOverlay" onclick="closeSideMenu()"></div>
@@ -1153,7 +1181,18 @@ loadHomeReels();
     <b style="font-size:18px">◆ SANNLAS UGANDA</b>
     <button style="background:white;color:black;padding:6px 12px;border:none;border-radius:20px;font-weight:900" onclick="closeSideMenu()">✕</button>
   </div>
-  
+    <!-- 🔑 LOGIN BUTTON - TOP OF SIDE MENU -->
+  <div id="sideMenuLoginBox" style="padding:14px 16px 0 16px;">
+    <button id="sideMenuLoginBtn" onclick="closeSideMenu(); handleTopLogin()" style="width:100%;background:#000;color:#FFCC02;padding:15px;border:none;border-radius:14px;font-weight:900;font-size:15px;cursor:pointer;border:2px solid #000;">
+      🔑 LOGIN / SIGN UP
+    </button>
+    <div id="sideMenuUserBox" style="display:none;background:#E9EFF7;padding:12px;border-radius:14px;text-align:center;border:1px solid #ddd;">
+      <div style="font-weight:900;font-size:14px;color:#111;">👋 Hi <span id="sideMenuUserName">Boss</span>!</div>
+      <div id="sideMenuUserEmail" style="font-size:11px;color:#666;margin:2px 0 8px;"></div>
+      <button onclick="closeSideMenu(); openMyAccountInfo()" style="width:100%;background:#FFCC02;color:#000;padding:11px;border:none;border-radius:10px;font-weight:900;cursor:pointer;">👤 My Account</button>
+    </div>
+  </div>
+  <!-- END LOGIN BUTTON -->
   <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
     <button onclick="closeSideMenu();showAllShops()" style="background:#111;color:#fff;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:14px;text-align:left">🏪 All Shops</button>    
     <div style="height:1px;background:#eee;margin:6px 0"></div>
@@ -1190,7 +1229,18 @@ loadHomeReels();
     </div>
     <button onclick="closeSideMenu()" style="background:rgba(255,255,255,0.9);border:1px solid #eee;width:36px;height:36px;border-radius:50%;font-weight:900;cursor:pointer">✕</button>
   </div>
-  
+    <!-- 🔑 LOGIN BUTTON - TOP OF SIDE MENU -->
+  <div id="sideMenuLoginBox" style="padding:14px 16px 0 16px;">
+    <button id="sideMenuLoginBtn" onclick="closeSideMenu(); handleTopLogin()" style="width:100%;background:#000;color:#FFCC02;padding:15px;border:none;border-radius:14px;font-weight:900;font-size:15px;cursor:pointer;border:2px solid #000;">
+      🔑 LOGIN / SIGN UP
+    </button>
+    <div id="sideMenuUserBox" style="display:none;background:#E9EFF7;padding:12px;border-radius:14px;text-align:center;border:1px solid #ddd;">
+      <div style="font-weight:900;font-size:14px;color:#111;">👋 Hi <span id="sideMenuUserName">Boss</span>!</div>
+      <div id="sideMenuUserEmail" style="font-size:11px;color:#666;margin:2px 0 8px;"></div>
+      <button onclick="closeSideMenu(); openMyAccountInfo()" style="width:100%;background:#FFCC02;color:#000;padding:11px;border:none;border-radius:10px;font-weight:900;cursor:pointer;">👤 My Account</button>
+    </div>
+  </div>
+  <!-- END LOGIN BUTTON -->
   <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
     <button class="liquid-btn" onclick="closeSideMenu();showAllShops()">🏪 All Shops <span>→</span></button>
     
