@@ -1701,8 +1701,20 @@ function compressImage(file){
     img.src=URL.createObjectURL(file);
   });
 }
+let isFrontUploading = false; // STOP DOUBLE
 async function frontUploadAll(){
+  if(isFrontUploading){ alert('⏳ Already uploading Boss! Wait...'); return; }
   if(frontFiles.length==0){alert('Select photos Boss! (up to 4)');return;}
+  if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}
+  let phone=document.getElementById('frontPhoneReal').value.trim();
+  if(!phone){alert('Enter Business Phone Boss!');return;}
+  isFrontUploading = true;
+  let btn = document.querySelector('button[onclick="frontUploadAll()"]');
+  if(btn){ btn.disabled=true; btn.innerText='⏳ UPLOADING... WAIT...'; }
+  await frontUploadAllProceed();
+  isFrontUploading = false;
+  if(btn){ btn.disabled=false; btn.innerText='🚀 UPLOAD PRODUCTS LIVE'; }
+}
   if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}
   let phone=document.getElementById('frontPhoneReal').value.trim();
   if(!phone){alert('Enter Business Phone Boss!');return;}
@@ -1766,9 +1778,12 @@ async function frontUploadAllProceed(){
     status.style.background='#00FF00'; status.style.color='#000';
     doFilter();
     setTimeout(()=>closeSellModal(),1500);
-  }catch(e){
+   }catch(e){
     status.innerHTML='❌ Network error: '+e.message;
     status.style.background='#ff0000';
+    isFrontUploading = false; // <-- ADD THIS LINE ONLY!
+    let btn = document.querySelector('button[onclick="frontUploadAll()"]');
+    if(btn){ btn.disabled=false; btn.innerText='🚀 UPLOAD PRODUCTS LIVE'; }
   }
 }
 function doLogout(){localStorage.clear();location.reload();}
@@ -2188,18 +2203,37 @@ function closeSellModal(){
   let modal = document.getElementById('frontUpload');
   if(modal) modal.style.display='none';
 }
+// === AUTO-FILL BUSINESS NAME + PHONE - FIXED FOR YOUR CODE ===
+function autoFillFrontBiz(){
+  let u = {};
+  try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
+  // YOUR REAL KEY IS u.business - from gateDoRegister!
+  let biz = u.business || u.business_name || u.businessName || u.shop_name || u.name || u.username || '';
+  let phone = u.phone || u.phone_number || '';
+  let loc = u.location || '';
+
+  let bizInput = document.getElementById('frontBiz');
+  let phoneInput = document.getElementById('frontPhoneReal');
+  let locInput = document.getElementById('frontLocation');
+
+  if(bizInput && biz){ bizInput.value = biz; bizInput.readOnly = true; bizInput.style.background = '#FFF9C4'; bizInput.style.fontWeight = '900'; }
+  if(phoneInput && phone){ phoneInput.value = phone; phoneInput.readOnly = true; }
+  if(locInput && loc && !locInput.value){ locInput.value = loc; }
+}
+
+// Hook into openSellModal - so it fills WHEN you open modal!
+let _oldOpenSell = window.openSellModal;
+window.openSellModal = function(){
+  if(_oldOpenSell) _oldOpenSell();
+  setTimeout(autoFillFrontBiz, 100);
+};
 gateCheck();
 loadWantsLiveSafe(); 
 refreshWantsBadge();
 loadCoinLive();
 // FIXED: poll only every 2 minutes, not 10 sec - prevent hang
-setInterval(async()=>{
-  try{
-    await loadCoinLive();
-    updateCartCount();
-setInterval(()=>{ updateCartCount(); }, 5000);
-  }catch(e){}
-},120000); // 2 mins
+setInterval(async()=>{ try{ await loadCoinLive(); updateCartCount(); }catch(e){} },120000);
+setInterval(()=>{ updateCartCount(); }, 30000); // Once, outside! // 2 mins
   
 // Don't auto-poll wants & balance every time - only on load
   
