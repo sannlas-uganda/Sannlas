@@ -1701,20 +1701,8 @@ function compressImage(file){
     img.src=URL.createObjectURL(file);
   });
 }
-let isFrontUploading = false; // STOP DOUBLE
 async function frontUploadAll(){
-  if(isFrontUploading){ alert('⏳ Already uploading Boss! Wait...'); return; }
   if(frontFiles.length==0){alert('Select photos Boss! (up to 4)');return;}
-  if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}
-  let phone=document.getElementById('frontPhoneReal').value.trim();
-  if(!phone){alert('Enter Business Phone Boss!');return;}
-  isFrontUploading = true;
-  let btn = document.querySelector('button[onclick="frontUploadAll()"]');
-  if(btn){ btn.disabled=true; btn.innerText='⏳ UPLOADING... WAIT...'; }
-  await frontUploadAllProceed();
-  isFrontUploading = false;
-  if(btn){ btn.disabled=false; btn.innerText='🚀 UPLOAD PRODUCTS LIVE'; }
-}
   if(!currentUser){if(confirm('Login to sell Boss!')){showGate();switchGate('login');}return;}
   let phone=document.getElementById('frontPhoneReal').value.trim();
   if(!phone){alert('Enter Business Phone Boss!');return;}
@@ -1781,7 +1769,6 @@ async function frontUploadAllProceed(){
    }catch(e){
     status.innerHTML='❌ Network error: '+e.message;
     status.style.background='#ff0000';
-    isFrontUploading = false; // <-- ADD THIS LINE ONLY!
     let btn = document.querySelector('button[onclick="frontUploadAll()"]');
     if(btn){ btn.disabled=false; btn.innerText='🚀 UPLOAD PRODUCTS LIVE'; }
   }
