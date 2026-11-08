@@ -30,6 +30,7 @@ COMBINED_SELL_HTML = """<!DOCTYPE html>
 
 <div id="formView" class="hidden"><div class="sell-form"><h2 style="text-align:center">Sell Product (FREE)</h2>
 <input id="pName" placeholder="Product Name *">
+<input id="pBiz" placeholder="Business Name *" style="background:#FFF9C4;font-weight:900;border:2px solid #FFCC02">
 <textarea id="pDesc" placeholder="Description..." rows="3"></textarea>
 <input id="pPrice" type="number" placeholder="Price UGX *">
 <input id="pQty" type="number" value="1">
@@ -59,13 +60,19 @@ COMBINED_SELL_HTML = """<!DOCTYPE html>
 <div id="detailView" class="hidden"><div style="background:#000;padding:8px"><a href="javascript:showView('list')" style="color:#FFCC02;text-decoration:none">← Back</a></div><div id="productBox" style="background:#fff;border-radius:12px;margin:10px;overflow:hidden">Loading...</div></div>
 <script>
 let currentUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+// AUTO-FILL BUSINESS NAME
+setTimeout(()=>{
+  let biz = currentUser.business || currentUser.business_name || currentUser.name || '';
+  let b = document.getElementById('pBiz');
+  if(b && biz){ b.value = biz; b.readOnly = true; }
+}, 200);
 function showView(v){document.getElementById('listView').classList.toggle('hidden',v!=='list');document.getElementById('formView').classList.toggle('hidden',v!=='form');document.getElementById('detailView').classList.toggle('hidden',v!=='detail');if(v=='list')loadProducts();}
 let parts=location.pathname.split('/').filter(Boolean);
 if(parts[0]=='sell'&&parts[1]){loadDetail(parts[1]);}else{showView('list');}
 async function loadProducts(){let q=document.getElementById('q').value;let cat=document.getElementById('cat').value;let sort=document.getElementById('sort').value;let url=`/api/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&sort=${sort}`;try{let r=await fetch(url);let prods=await r.json();if(!Array.isArray(prods))prods=[];if(sort=='price_low')prods.sort((a,b)=>(a.price||0)-(b.price||0));else if(sort=='price_high')prods.sort((a,b)=>(b.price||0)-(a.price||0));else prods.sort((a,b)=>(b.created||0)-(a.created||0));document.getElementById('totalProducts').innerText=prods.length;if(prods.length==0){document.getElementById('productsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No products</p>';return;}document.getElementById('productsGrid').innerHTML=prods.map(p=>`<div class="card" onclick="location.href='/sell/${p.id}'"><img src="${p.image||'https://via.placeholder.com/200'}"><div class="card-body"><b>${(p.name||'').slice(0,25)}</b><br><small>${p.location||''}</small><br><b style="color:#c0392b">UGX ${Number(p.price||0).toLocaleString()}</b><br><small style="color:#00aa00">${p.promo_coins?`💰 ${p.promo_coins} coins promo`:''}</small></div></div>`).join('');}catch(e){document.getElementById('productsGrid').innerHTML='Error: '+e.message;}}
 async function loadDetail(id){showView('detail');let r=await fetch(`/api/products/${id}`);let p=await r.json();if(!p.id){document.getElementById('productBox').innerHTML='Not found';return;}document.getElementById('productBox').innerHTML=`<img src="${p.image||''}" style="width:100%;height:300px;object-fit:cover"><div style="padding:15px"><h2>${p.name}</h2><p>${p.description||''}</p><h3>UGX ${Number(p.price||0).toLocaleString()}</h3><p>${p.location} | Qty: ${p.quantity}</p><p style="color:green;font-weight:900">${p.promo_coins?`💰 Promo: ${p.promo_coins} coins = ${(p.promo_coins*599).toLocaleString()} UGX`:''}</p><button class="btn btn-yellow" onclick="window.open('https://wa.me/${(p.phone||'').replace(/[^0-9]/g,'')}')">Contact ${p.phone||''}</button></div>`;}
 async function createProduct(){let name=document.getElementById('pName').value;let price=document.getElementById('pPrice').value;if(!name||!price){alert('Name and Price required');return;}if(!currentUser.phone){alert('Login first');return;}document.getElementById('status').innerText='⏳ Uploading...';let fd=new FormData();fd.append('name',name);fd.append('description',document.getElementById('pDesc').value);fd.append('price',price);fd.append('quantity',document.getElementById('pQty').value);fd.append('category',document.getElementById('pCategory').value);fd.append('location',document.getElementById('pLocation').value);fd.append('phone',currentUser.phone);fd.append('email',currentUser.email);
-let promoCoins=document.getElementById('pPromoCoins').value;
+fd.append('business', document.getElementById('pBiz').value);
 fd.append('promo_coins',promoCoins);
 fd.append('promo_commission',promoCoins);
 fd.append('commission_percent',(promoCoins*1.2).toFixed(1)+'%');
@@ -122,6 +129,7 @@ def api_create():
     location = request.form.get('location','Kampala')
     phone = request.form.get('phone','')
     email = request.form.get('email','')
+    business = request.form.get('business','')
     if not name or not price:
         return jsonify({'success':False,'message':'Name and price required'}),400
     image_url = ""
@@ -149,6 +157,8 @@ def api_create():
     prod['location'] = location
     prod['phone'] = phone
     prod['seller_email'] = email.lower() if email else ''
+    prod['business'] = business
+    prod['business_name'] = business
     prod['image'] = image_url
     prod['promo_coins'] = int(request.form.get('promo_coins', 0) or 0)
     prod['promo_commission'] = int(request.form.get('promo_commission', 0) or 0)
