@@ -1004,7 +1004,25 @@ def compress_neon_now():
 
 @app.route('/manifest.json')
 def manifest():
-    return app.send_static_file('manifest.json') if False else ('{"name":"Sannlas","short_name":"Sannlas","start_url":"/","display":"standalone","icons":[]}', 200, {'Content-Type': 'application/manifest+json'})
+    # SUPER INSTANT PWA - Real icons so phone knows it's installable!
+    data = {
+        "name": "Sannlas - Shop Smart, Sell Faster",
+        "short_name": "Sannlas",
+        "description": "Uganda's Marketplace - Buy & Sell Anything",
+        "start_url": "/?source=pwa",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#000000",
+        "theme_color": "#FFCC02",
+        "icons": [
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+        ]
+    }
+    return jsonify(data)
 
 @app.route('/favicon.ico')
 def serve_favicon():
