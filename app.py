@@ -1039,6 +1039,14 @@ def serve_icon2():
 @app.route('/sw.js')
 def serve_sw():
     return send_from_directory(app.root_path, 'sw.js')
+
+@app.route('/OneSignalSDKWorker.js')
+def serve_onesignal_worker():
+    return send_from_directory(app.root_path, 'OneSignalSDKWorker.js', mimetype='application/javascript')
+
+@app.route('/OneSignalSDKUpdaterWorker.js')
+def serve_onesignal_updater():
+    return send_from_directory(app.root_path, 'OneSignalSDKUpdaterWorker.js', mimetype='application/javascript')
     
 @app.after_request
 def add_cache_headers(response):
