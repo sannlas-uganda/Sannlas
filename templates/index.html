@@ -808,75 +808,6 @@ window.addEventListener('appinstalled', ()=>{
   document.getElementById('downloadBanner').style.display = 'none';
 });
 </script>
-<div id="authGate">
-  <div class="gate-box">
-    <!-- LOGIN -->
-    <div class="gate-step active" id="gateLogin">
-      <h2 style="text-align:center;font-weight:900;margin:0 0 4px">👤 LOGIN</h2>
-      <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Welcome back Boss!</p>
-      <input id="gateLogEmail" type="email" placeholder="Email e.g. you@gmail.com" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-      <input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-      <button onclick="gateDoLogin()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🔓 LOGIN</button>
-      <p onclick="showForgot()" style="text-align:center;color:#FF6A00;font-size:12px;font-weight:800;cursor:pointer;margin:10px 0 0">Forgot Password? Reset →</p>
-      <p style="text-align:center;font-size:12px;margin:12px 0 0">No account? <b onclick="switchGate('register')" style="color:#FF6A00;cursor:pointer">Register FREE →</b></p>
-      <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
-    </div>
-
-    <!-- REGISTER -->
-    <div class="gate-step" id="gateRegister">
-      <h2 style="text-align:center;font-weight:900;margin:0 0 4px">📝 REGISTER FREE</h2>
-      <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Join Sannlas Uganda</p>
-      <input id="gateRegEmail" type="email" placeholder="Email" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-      <input id="gateRegPhone" placeholder="Phone e.g. 0755..." style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-      <input id="gateRegBiz" placeholder="Business Name (optional)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-      <input id="gateRegPass" type="password" placeholder="Password (min 4 chars)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-      <button onclick="gateDoRegister()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🚀 REGISTER</button>
-      <p style="text-align:center;font-size:12px;margin:12px 0 0">Have account? <b onclick="switchGate('login')" style="color:#FF6A00;cursor:pointer">Login →</b></p>
-      <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
-    </div>
-
-    <!-- LOADING -->
-    <div class="gate-step" id="gateLoading">
-      <h2 style="text-align:center">⏳ Please wait Boss...</h2>
-      <p style="text-align:center;color:#666">Creating your account...</p>
-    </div>
-
-    <!-- OTP -->
-    <div class="gate-step" id="gateOtp">
-      <h2 style="text-align:center">✅ Account Created!</h2>
-      <p style="text-align:center;color:#666;font-size:13px">You are registered Boss! Tap below to continue.</p>
-      <button onclick="gateVerifyOTP()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900">Continue →</button>
-    </div>
-
-    <!-- NIN -->
-    <div class="gate-step" id="gateNin">
-      <h2 style="text-align:center">🎉 Welcome to SANNLAS!</h2>
-      <p style="text-align:center;color:#666;font-size:13px">You can now Sell, Buy, and Earn Coins!</p>
-      <button onclick="gateUploadNIN()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900">Start Shopping →</button>
-    </div>
-   <!-- FORGOT - STEP 1 : ENTER EMAIL -->
-<div class="gate-step" id="gateForgot">
-  <h2 style="text-align:center;font-weight:900;margin:0 0 4px">🔑 FORGOT PASSWORD</h2>
-  <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">We will send a 6-digit code to your email</p>
-  <input id="forgotEmail" type="email" placeholder="Your registered email" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-  <button onclick="sendForgotCode()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">📧 SEND CODE</button>
-  <p style="text-align:center;font-size:12px;margin:12px 0 0">Remember? <b onclick="switchGate('login')" style="color:#FF6A00;cursor:pointer">Back to Login →</b></p>
-  <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
-</div>
-
-<!-- FORGOT - STEP 2 : OTP + NEW PASSWORD -->
-<div class="gate-step" id="gateForgotReset">
-  <h2 style="text-align:center;font-weight:900;margin:0 0 4px">📩 ENTER CODE</h2>
-  <p id="forgotMsg" style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Code sent! Check your email - Expires in 10 mins</p>
-  <input id="forgotOtp" placeholder="6-digit code e.g. 123456" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd;text-align:center;font-size:18px;letter-spacing:5px">
-  <input id="forgotNewPass" type="password" placeholder="New Password (min 4 chars)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
-  <button onclick="doResetPassword()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">✅ RESET PASSWORD</button>
-  <p onclick="sendForgotCode()" style="text-align:center;color:#FF6A00;font-size:12px;font-weight:800;cursor:pointer;margin-top:10px">Resend Code →</p>
-  <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
-</div> 
-  </div>
-</div>
-
 <!-- ===== NEW TIKTOK LAYOUT WITH LEFT + RIGHT COLUMNS - DESKTOP ONLY ===== -->
 <style>
 .desktop-only{display:none !important}
@@ -1364,48 +1295,6 @@ window.toggleSideMenu = function(){
 <button onclick="location.href='/wants'" style="width:100%;background:#111;color:#00FF00;border:2px solid #00FF00;padding:10px;border-radius:10px;margin-top:10px;font-weight:bold">View All Wants →</button>
 </div>
 </div>
-<div id="sideOverlay" onclick="closeSideMenu()"></div>
-<div id="sideMenu">
-  <div class="liquid-glass-header">
-    <div>
-      <b style="font-size:18px;color:#111;letter-spacing:1px">◆ SANNLAS</b>
-      <small style="display:block;font-size:9px;letter-spacing:2px;color:#666;margin-top:2px">UGANDA • MARKETPLACE</small>
-    </div>
-    <button onclick="closeSideMenu()" style="background:rgba(255,255,255,0.9);border:1px solid #eee;width:36px;height:36px;border-radius:50%;font-weight:900;cursor:pointer">✕</button>
-  </div>
-    <!-- 🔑 LOGIN BUTTON - TOP OF SIDE MENU -->
-  <div id="sideMenuLoginBox" style="padding:14px 16px 0 16px;">
-    <button id="sideMenuLoginBtn" onclick="closeSideMenu(); handleTopLogin()" style="width:100%;background:#000;color:#FFCC02;padding:15px;border:none;border-radius:14px;font-weight:900;font-size:15px;cursor:pointer;border:2px solid #000;">
-      🔑 LOGIN / SIGN UP
-    </button>
-    <div id="sideMenuUserBox" style="display:none;background:#E9EFF7;padding:12px;border-radius:14px;text-align:center;border:1px solid #ddd;">
-      <div style="font-weight:900;font-size:14px;color:#111;">👋 Hi <span id="sideMenuUserName">Boss</span>!</div>
-      <div id="sideMenuUserEmail" style="font-size:11px;color:#666;margin:2px 0 8px;"></div>
-      <button onclick="closeSideMenu(); openMyAccountInfo()" style="width:100%;background:#FFCC02;color:#000;padding:11px;border:none;border-radius:10px;font-weight:900;cursor:pointer;">👤 My Account</button>
-    </div>
-  </div>
-  <!-- END LOGIN BUTTON -->
-  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-    <button class="liquid-btn" onclick="closeSideMenu();showAllShops()">🏪 All Shops <span>→</span></button>
-    
-    <div style="height:1px;background:rgba(0,0,0,0.06);margin:4px 0"></div>
-    
-    <button class="liquid-btn" onclick="closeSideMenu();openMyAccountInfo()">👤 My Account Information</button>
-    
-    <button class="liquid-btn" onclick="closeSideMenu();openBalancePage()">
-      💰 My Balance <span class="liquid-btn-gold-badge" id="myCoinsNav">0</span>
-    </button>
-    
-    <button class="liquid-btn" onclick="closeSideMenu();openMySales()">📦 My Sales Orders</button>
-    <button class="liquid-btn" onclick="closeSideMenu();openSecurity()">🔒 Security</button>
-    
-    <button class="liquid-btn liquid-btn-invite" onclick="closeSideMenu();location.href='/invite'">👥 Invite & Earn Coins <span>✨</span></button>
-  </div>
-  
-  <div style="padding:16px;text-align:center;color:#999;font-size:10px;margin-top:20px">
-    Liquid Glass • iOS 26 • Sannlas Uganda 2026
-  </div>
-</div>
 <div id="frontUpload" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:99999;overflow-y:auto;padding:15px;justify-content:center;align-items:flex-start;">
 <div style="background:white;max-width:1200px;width:100%;padding:16px;border-radius:16px;margin:20px auto;">
 <button onclick="closeSellModal()" style="float:right;background:#111;color:white;border:none;padding:8px 14px;border-radius:20px;font-weight:bold;cursor:pointer">✕</button>
@@ -1527,16 +1416,6 @@ let products=[],cart=[],frontFiles=[],visibleCount=10000,allProducts=[],currentU
 async function loadCoinLive(){if(isLoadingCoins)return;isLoadingCoins=true;try{let r=await fetch('/api/coins/config',{signal:AbortSignal.timeout(5000)});let cfg=await r.json();document.getElementById('coinsRemaining').innerText=Number(cfg.remaining||1000000000).toLocaleString();let fill=document.getElementById('coinProgressFill');if(fill)fill.style.width=(cfg.remaining/1000000000*100)+'%';}catch(e){}isLoadingCoins=false;}
 async function loadBillboardBanner(){try{let r=await fetch('/api/billboard',{signal:AbortSignal.timeout(5000)});let bb=await r.json();let banner=document.getElementById('billboardBanner');let wrap=document.getElementById('billboardMediaWrap');let txt=document.getElementById('billboardText');if(!bb||!bb.active||!bb.media_url){banner.classList.remove('active');return;}banner.classList.add('active');if(bb.type=='image'){wrap.innerHTML=`<img src="${bb.media_url}" style="max-width:100%;max-height:400px;display:block;margin:0 auto">`;txt.innerText=bb.text||'';}else if(bb.type=='video'){wrap.innerHTML=`<video src="${bb.media_url}" autoplay muted loop playsinline controls style="max-height:400px;width:100%"></video>`;txt.innerText=bb.text||'';}}catch(e){}}
 function toggleSideMenu(){let m=document.getElementById('sideMenu'),ov=document.getElementById('sideOverlay');m.classList.toggle('open');ov.style.display=m.classList.contains('open')?'block':'none';}
-function openMyShop(){
-  let u = localStorage.getItem('sannlas_user');
-  if(!u){
-    alert('Login first Boss to see your shop!');
-    showGate();
-    if(typeof switchGate==='function') switchGate('login');
-    return;
-  }
-  location.href = '/my-shop';
-}
 async function uploadReel(file){
   if(!file) return;
   let u = localStorage.getItem('sannlas_user');
@@ -1566,18 +1445,7 @@ async function uploadReel(file){
     alert('Upload error: ' + e.message); 
   }
 }
-function openMySales(){
-  let u = localStorage.getItem('sannlas_user');
-  if(!u){ alert('Login first!'); return; }
-  location.href = '/my-shop';
-}
 function openBalancePage(){ location.href='/balance'; }
-function openMyAccountInfo(){ 
-  let p=document.getElementById('authPop');
-  if(p) p.style.display='flex';
-  else location.href='/balance';
-}
-function openSecurity(){ location.href='/balance'; }
 function closeSideMenu(){document.getElementById('sideMenu').classList.remove('open');document.getElementById('sideOverlay').style.display='none';}
 function closePop(id){let el=document.getElementById(id);if(el)el.style.display='none';}
 function openPopup(id){let el=document.getElementById(id);if(el)el.style.display='flex';}
@@ -2252,7 +2120,6 @@ function toggleAccountMenu(){let dd=document.getElementById('accountDropdown');i
 document.addEventListener('click',function(e){let btn=document.getElementById('accountTopBtn');let dd=document.getElementById('accountDropdown');if(!btn||!dd)return;if(!btn.contains(e.target)&&!dd.contains(e.target)){dd.style.display='none';}});
 function openMyAccountInfo(){document.getElementById('authPop').style.display='flex';loadAccountDetails();}
 async function loadAccountDetails(){try{let u=currentUser||JSON.parse(localStorage.getItem('sannlas_user')||'{}');let r=await fetch(`/api/coins/balance?email=${encodeURIComponent(u.email||'')}&phone=${encodeURIComponent(u.phone||'')}`);let d=await r.json();if(d.success){document.getElementById('accBought').innerText=d.bought;document.getElementById('accEarned').innerText=d.earned;document.getElementById('accSpent').innerText=d.spent;document.getElementById('accTotal').innerText=d.total;document.getElementById('accWithdrawable').innerText=d.withdrawable;document.getElementById('accWithdrawableUgx').innerText='UGX '+(d.withdrawable_value||0).toLocaleString();}}catch(e){}}
-function openBalancePage(){location.href='/balance';}
 async function openMyShop(){
   let u = null;
   try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
@@ -2800,5 +2667,73 @@ document.addEventListener('DOMContentLoaded', function(){
   }catch(e){}
 });
 </script>
+<div id="authGate">
+  <div class="gate-box">
+    <!-- LOGIN -->
+    <div class="gate-step active" id="gateLogin">
+      <h2 style="text-align:center;font-weight:900;margin:0 0 4px">👤 LOGIN</h2>
+      <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Welcome back Boss!</p>
+      <input id="gateLogEmail" type="email" placeholder="Email e.g. you@gmail.com" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateLogPass" type="password" placeholder="Password" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <button onclick="gateDoLogin()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🔓 LOGIN</button>
+      <p onclick="showForgot()" style="text-align:center;color:#FF6A00;font-size:12px;font-weight:800;cursor:pointer;margin:10px 0 0">Forgot Password? Reset →</p>
+      <p style="text-align:center;font-size:12px;margin:12px 0 0">No account? <b onclick="switchGate('register')" style="color:#FF6A00;cursor:pointer">Register FREE →</b></p>
+      <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="gate-step" id="gateRegister">
+      <h2 style="text-align:center;font-weight:900;margin:0 0 4px">📝 REGISTER FREE</h2>
+      <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Join Sannlas Uganda</p>
+      <input id="gateRegEmail" type="email" placeholder="Email" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateRegPhone" placeholder="Phone e.g. 0755..." style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateRegBiz" placeholder="Business Name (optional)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <input id="gateRegPass" type="password" placeholder="Password (min 4 chars)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+      <button onclick="gateDoRegister()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">🚀 REGISTER</button>
+      <p style="text-align:center;font-size:12px;margin:12px 0 0">Have account? <b onclick="switchGate('login')" style="color:#FF6A00;cursor:pointer">Login →</b></p>
+      <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+    </div>
+
+    <!-- LOADING -->
+    <div class="gate-step" id="gateLoading">
+      <h2 style="text-align:center">⏳ Please wait Boss...</h2>
+      <p style="text-align:center;color:#666">Creating your account...</p>
+    </div>
+
+    <!-- OTP -->
+    <div class="gate-step" id="gateOtp">
+      <h2 style="text-align:center">✅ Account Created!</h2>
+      <p style="text-align:center;color:#666;font-size:13px">You are registered Boss! Tap below to continue.</p>
+      <button onclick="gateVerifyOTP()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900">Continue →</button>
+    </div>
+
+    <!-- NIN -->
+    <div class="gate-step" id="gateNin">
+      <h2 style="text-align:center">🎉 Welcome to SANNLAS!</h2>
+      <p style="text-align:center;color:#666;font-size:13px">You can now Sell, Buy, and Earn Coins!</p>
+      <button onclick="gateUploadNIN()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900">Start Shopping →</button>
+    </div>
+   <!-- FORGOT - STEP 1 : ENTER EMAIL -->
+<div class="gate-step" id="gateForgot">
+  <h2 style="text-align:center;font-weight:900;margin:0 0 4px">🔑 FORGOT PASSWORD</h2>
+  <p style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">We will send a 6-digit code to your email</p>
+  <input id="forgotEmail" type="email" placeholder="Your registered email" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+  <button onclick="sendForgotCode()" style="width:100%;background:#000;color:#FFCC02;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">📧 SEND CODE</button>
+  <p style="text-align:center;font-size:12px;margin:12px 0 0">Remember? <b onclick="switchGate('login')" style="color:#FF6A00;cursor:pointer">Back to Login →</b></p>
+  <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+</div>
+
+<!-- FORGOT - STEP 2 : OTP + NEW PASSWORD -->
+<div class="gate-step" id="gateForgotReset">
+  <h2 style="text-align:center;font-weight:900;margin:0 0 4px">📩 ENTER CODE</h2>
+  <p id="forgotMsg" style="text-align:center;color:#666;font-size:12px;margin:0 0 12px">Code sent! Check your email - Expires in 10 mins</p>
+  <input id="forgotOtp" placeholder="6-digit code e.g. 123456" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd;text-align:center;font-size:18px;letter-spacing:5px">
+  <input id="forgotNewPass" type="password" placeholder="New Password (min 4 chars)" style="width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd">
+  <button onclick="doResetPassword()" style="width:100%;background:#FFCC02;color:#000;padding:14px;border:none;border-radius:10px;font-weight:900;margin-top:8px;cursor:pointer">✅ RESET PASSWORD</button>
+  <p onclick="sendForgotCode()" style="text-align:center;color:#FF6A00;font-size:12px;font-weight:800;cursor:pointer;margin-top:10px">Resend Code →</p>
+  <button onclick="hideGate()" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;cursor:pointer">Close ✕</button>
+</div> 
+  </div>
+</div>
 </body>
 </html>
