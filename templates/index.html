@@ -2194,6 +2194,7 @@ function openSellModal(){
   if(modal){
     modal.style.display='flex';
     window.scrollTo(0,0);
+    setTimeout(autoFillFrontBiz, 100); // <-- ADD THIS LINE ONLY!
   } else {
     alert('Upload modal not found!');
   }
@@ -2220,13 +2221,6 @@ function autoFillFrontBiz(){
   if(phoneInput && phone){ phoneInput.value = phone; phoneInput.readOnly = true; }
   if(locInput && loc && !locInput.value){ locInput.value = loc; }
 }
-
-// Hook into openSellModal - so it fills WHEN you open modal!
-let _oldOpenSell = window.openSellModal;
-window.openSellModal = function(){
-  if(_oldOpenSell) _oldOpenSell();
-  setTimeout(autoFillFrontBiz, 100);
-};
 gateCheck();
 loadWantsLiveSafe(); 
 refreshWantsBadge();
