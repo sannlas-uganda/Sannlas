@@ -714,6 +714,26 @@ div[style*="max-width:780px"]{
   }
 }
 </style>
+  <!-- 🔔 SANNLAS PUSH NOTIFICATIONS - ONESIGNAL -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "f6bd89f5-733f-4b2c-8dd8-eecc2376fa8e",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+    setTimeout(async () => {
+      if(localStorage.getItem('sannlas_has_app') !== 'yes'){
+        let permission = await OneSignal.Notifications.permission;
+        if(permission === 'default'){
+          await OneSignal.Notifications.requestPermission();
+        }
+      }
+    }, 3000);
+  });
+</script>
 </head>
 <body>
   <!-- 📲 SANNLAS SUPER INSTANT DOWNLOAD - ONLY FOR NEW USERS -->
