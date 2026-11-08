@@ -64,8 +64,8 @@ body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow
 .cart-btn{background:#FFCC02;color:#000;border:none;padding:7px;border-radius:20px;cursor:pointer;font-weight:800;font-size:11px;flex:1}
 .popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);display:none;align-items:flex-start;justify-content:center;z-index:9999;padding:10px;overflow-y:auto}
 .popup-content{background:white;padding:16px;border-radius:16px;max-width:700px;width:98%;max-height:96vh;overflow:auto;margin:15px auto;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
-#authGate{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);z-index:99999;display:none;align-items:center;justify-content:center;padding:15px}
-.gate-box{background:white;padding:20px;border-radius:16px;max-width:440px;width:100%} .gate-step{display:none}.gate-step.active{display:block}
+#authGate{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);z-index:99999;display:none !important;align-items:center;justify-content:center;padding:15px}
+#authGate.show-gate{display:flex !important;}.gate-box{background:white;padding:20px;border-radius:16px;max-width:440px;width:100%} .gate-step{display:none}.gate-step.active{display:block}
 #sideOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:20;display:none}
 #sideMenu{position:fixed;top:0;left:-320px;width:300px;height:100%;background:white;z-index:21;overflow-y:auto;transition:0.3s}#sideMenu.open{left:0}
 .fixed-bottom{position:fixed;bottom:0;left:0;right:0;background:#000;color:white;display:flex;justify-content:space-around;padding:14px;z-index:9999999;border-top:3px solid #FFCC02}
@@ -1582,8 +1582,8 @@ function closeSideMenu(){document.getElementById('sideMenu').classList.remove('o
 function closePop(id){let el=document.getElementById(id);if(el)el.style.display='none';}
 function openPopup(id){let el=document.getElementById(id);if(el)el.style.display='flex';}
 function switchGate(step){document.querySelectorAll('.gate-step').forEach(s=>s.classList.remove('active'));let el=document.getElementById('gate'+step.charAt(0).toUpperCase()+step.slice(1));if(el)el.classList.add('active');}
-function showGate(){document.getElementById('authGate').style.display='flex';}
-function hideGate(){document.getElementById('authGate').style.display='none';}
+function showGate(){document.getElementById('authGate').classList.add('show-gate');}
+function hideGate(){document.getElementById('authGate').classList.remove('show-gate');}
 function updateLoginUI(){
   let u = null;
   try{ u = JSON.parse(localStorage.getItem('sannlas_user')||'{}'); }catch(e){}
