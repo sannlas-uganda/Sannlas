@@ -716,6 +716,68 @@ div[style*="max-width:780px"]{
 </style>
 </head>
 <body>
+  <!-- 📲 SANNLAS SUPER INSTANT DOWNLOAD - ONLY FOR NEW USERS -->
+<div id="downloadBanner" style="background:#000;color:#fff;padding:10px 12px;text-align:center;position:sticky;top:0;z-index:9999;border-bottom:3px solid #FFCC02;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+  <b style="color:#FFCC02;font-size:14px">📲 SANNLAS APP</b>
+  <span style="font-size:12px">Faster + Notifications!</span>
+  <button onclick="installApp()" style="background:#FFCC02;color:#000;border:none;padding:8px 16px;border-radius:20px;font-weight:900;cursor:pointer;font-size:13px">DOWNLOAD APP</button>
+  <button onclick="closeBanner()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px">✕</button>
+</div>
+
+<script>
+// SUPER INSTANT LOGIC - Runs immediately, no waiting!
+(function(){
+  // 1. If opened INSIDE the installed App -> HIDE instantly, never show!
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    document.getElementById('downloadBanner').style.display = 'none';
+    localStorage.setItem('sannlas_has_app', 'yes');
+    return;
+  }
+  // 2. If user already installed before -> HIDE
+  if (localStorage.getItem('sannlas_has_app') === 'yes') {
+    document.getElementById('downloadBanner').style.display = 'none';
+    return;
+  }
+  // 3. If user closed it before -> HIDE for 7 days (don't annoy)
+  var closed = localStorage.getItem('sannlas_banner_closed');
+  if (closed && (Date.now() - parseInt(closed) < 7*24*60*60*1000)) {
+    document.getElementById('downloadBanner').style.display = 'none';
+    return;
+  }
+  // 4. NEW USER -> KEEP IT VISIBLE! It's already in HTML = 0 seconds! ✅
+  document.getElementById('downloadBanner').style.display = 'flex';
+})();
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  // Keep banner visible - user can install
+});
+
+async function installApp(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    let choice = await deferredPrompt.userChoice;
+    if(choice.outcome === 'accepted'){
+      localStorage.setItem('sannlas_has_app', 'yes');
+      document.getElementById('downloadBanner').style.display = 'none';
+    }
+    deferredPrompt = null;
+  } else {
+    alert('📲 To Install SANNLAS:\n\nAndroid: Tap ⋮ (top right) → Add to Home Screen / Install App\n\niPhone: Tap Share → Add to Home Screen');
+  }
+}
+function closeBanner(){
+  document.getElementById('downloadBanner').style.display = 'none';
+  localStorage.setItem('sannlas_banner_closed', Date.now().toString());
+}
+// If user installs, remember forever!
+window.addEventListener('appinstalled', ()=>{
+  localStorage.setItem('sannlas_has_app', 'yes');
+  document.getElementById('downloadBanner').style.display = 'none';
+});
+</script>
 <div id="authGate">
   <div class="gate-box">
     <!-- LOGIN -->
