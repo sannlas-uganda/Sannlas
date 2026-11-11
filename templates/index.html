@@ -15,8 +15,8 @@
 <meta property="og:url" content="https://sannlas.store/">
 <meta name="keywords" content="Sannlas, Uganda marketplace, buy sell Uganda, Kampala shopping, watches Uganda, bags Uganda">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-<style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',Arial,sans-serif;background:#f8f9fb;color:#111;overflow-x:hidden;padding-bottom:80px}
 .navbar{background:#000;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20;border-bottom:3px solid #FFCC02}
@@ -1028,12 +1028,13 @@ async function loadHomeReels(){
   if(homeIsLoading) return; homeIsLoading = true;
   let c=document.getElementById('reelsFeedContainer');
   if(!c) return;
-  if(homePage===1) c.innerHTML='<div style="height:85vh;display:flex;align-items:center;justify-content:center;color:#FFCC02;font-weight:900">◆ SANNLAS</div>';
-  try{
+if(homePage===1) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡<br><br><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div></div>';  try{
     let email = getHomeViewerEmail();
     let seen = [...homeSeenIds].join(',');
-    let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`);
-    let reels=await r.json();
+let controller = new AbortController();
+setTimeout(()=>controller.abort(), 5000);
+let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
+let reels=await r.json();
     if(!reels || !reels.length){
       c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
       return;
