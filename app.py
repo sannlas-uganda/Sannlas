@@ -895,7 +895,7 @@ def llms_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    return Response("User-agent: *\nAllow: /\n\nSitemap: https://sannlas.store/sitemap.xml", mimetype="text/plain")
+    return send_from_directory('.', 'robots.txt', mimetype='text/plain')
 
 @app.route('/sitemap.xml')
 def sitemap_xml():
