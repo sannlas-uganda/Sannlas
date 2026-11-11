@@ -14,8 +14,10 @@ from flask_compress import Compress
 import cloudinary
 import cloudinary.uploader
 import cloudinary_config
+from seo import register_seo
 
 app = Flask(__name__)
+register_seo(app)
 
 @app.route('/ping')
 def ping():
