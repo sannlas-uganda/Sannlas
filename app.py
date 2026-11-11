@@ -16,6 +16,14 @@ import cloudinary.uploader
 import cloudinary_config
 
 app = Flask(__name__)
+
+@app.route('/ping')
+def ping():
+    return "OK", 200
+
+@app.route('/health')
+def health():
+    return "OK", 200
 app.secret_key = os.environ.get('SECRET_KEY', 'sannlas-secret-2026-boss-key')
 # ===== STEP 2 SPEED BOOST =====
 Compress(app)
@@ -311,7 +319,7 @@ def get_all_tokens_for_user(email):
 def load_db(file, default):
     try:
         if DATABASE_URL:
-            ensure_tables(); conn = get_conn()
+            conn = get_conn()
             try:
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
@@ -435,12 +443,6 @@ def kassag_admin_login():
 def kassag_admin_logout():
     session.pop('is_kassag_admin', None)
     return redirect('/kassag/admin/login')
-
-@app.after_request
-def clarity_headers(response):
-    response.headers['X-Clarity'] = 'HD-Enabled'
-    response.headers['Cache-Control'] = 'public, max-age=0'
-    return response
 
 def get_coin_config():
     cfg = load_db('coin_config.json', None)
@@ -1048,12 +1050,6 @@ def serve_onesignal_worker():
 def serve_onesignal_updater():
     return send_from_directory(app.root_path, 'OneSignalSDKUpdaterWorker.js', mimetype='application/javascript')
     
-@app.after_request
-def add_cache_headers(response):
-    if request.path.startswith('/static') or 'icon' in request.path:
-        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-    return response
-    
 # ============================================================
 # 🔒 KASSAG - PRIVATE SAVINGS GROUP - HIDDEN FROM MAIN SITE
 # Link: /kassag - Not in menu, not indexed
@@ -1461,7 +1457,10 @@ def profile():
     name = data.get('display_name','TikTok User')
     avatar = data.get('avatar_url','')
     return f"<div style='text-align:center;padding:30px;font-family:sans-serif'><h1>Welcome {name}!</h1><img src='{avatar}' width='120' style='border-radius:50%'><p>Your TikTok is linked to Sannlas!</p><a href='/' style='background:#000;color:#fff;padding:12px 20px;border-radius:20px;text-decoration:none;'>Go Home</a><br><br><pre>{user}</pre></div>"
-    
+    try:
+    ensure_tables()
+    print("Tables ready")
+except: pass
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
