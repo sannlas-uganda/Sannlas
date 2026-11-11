@@ -900,25 +900,84 @@ def robots_txt():
 @app.route('/sitemap.xml')
 def sitemap_xml():
     from flask import Response
-    # Load products for dynamic sitemap
+    # Load data for dynamic sitemap
     try:
-        products = load_db('products.json', [])[:200] # limit 200 for speed
+        products = load_db('products.json', [])[:500]
     except:
         products = []
-    
+    try:
+        shops = load_db('shops.json', [])[:500]
+    except:
+        shops = []
+    try:
+        wants = load_db('wants.json', [])[:500]
+    except:
+        wants = []
+    try:
+        reels = load_db('reels.json', [])[:200]
+    except:
+        reels = []
+
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    xml += '  <url><loc>https://sannlas.store/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>\n'
-    xml += '  <url><loc>https://sannlas.store/shops</loc><priority>0.9</priority></url>\n'
-    
+
+    # STATIC MAIN PAGES - Your best pages for Google
+    static_pages = [
+        ("https://sannlas.store/", 1.0, "daily"),
+        ("https://sannlas.store/reels", 0.9, "daily"),
+        ("https://sannlas.store/shop", 0.9, "daily"),
+        ("https://sannlas.store/shops", 0.9, "daily"),
+        ("https://sannlas.store/wants", 0.9, "hourly"),
+        ("https://sannlas.store/sell", 0.8, "weekly"),
+        ("https://sannlas.store/upload", 0.8, "weekly"),
+        ("https://sannlas.store/transport", 0.8, "weekly"),
+        ("https://sannlas.store/manufacturers", 0.8, "weekly"),
+        ("https://sannlas.store/live", 0.8, "daily"),
+        ("https://sannlas.store/delivery", 0.7, "weekly"),
+        ("https://sannlas.store/invite", 0.7, "weekly"),
+        ("https://sannlas.store/agency", 0.6, "weekly"),
+        ("https://sannlas.store/terms", 0.5, "monthly"),
+        ("https://sannlas.store/privacy", 0.5, "monthly"),
+    ]
+    for loc, prio, freq in static_pages:
+        xml += f'  <url><loc>{loc}</loc><priority>{prio}</priority><changefreq>{freq}</changefreq></url>\n'
+
+    # DYNAMIC PRODUCTS
     for p in products:
         try:
             pid = p.get('id')
             slug = p.get('slug') or pid
             if pid:
-                xml += f'  <url><loc>https://sannlas.store/product/{slug}</loc><priority>0.8</priority></url>\n'
+                xml += f'  <url><loc>https://sannlas.store/product/{slug}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n'
         except:
             continue
-            
+
+    # DYNAMIC SHOPS
+    for s in shops:
+        try:
+            slug = s.get('slug') or s.get('id') or s.get('shop_id')
+            if slug:
+                xml += f'  <url><loc>https://sannlas.store/shop/{slug}</loc><priority>0.7</priority><changefreq>weekly</changefreq></url>\n'
+        except:
+            continue
+
+    # DYNAMIC WANTS
+    for w in wants:
+        try:
+            wid = w.get('id')
+            if wid:
+                xml += f'  <url><loc>https://sannlas.store/wants/{wid}</loc><priority>0.7</priority><changefreq>hourly</changefreq></url>\n'
+        except:
+            continue
+
+    # DYNAMIC REELS
+    for r in reels:
+        try:
+            rid = r.get('id')
+            if rid:
+                xml += f'  <url><loc>https://sannlas.store/reels/{rid}</loc><priority>0.7</priority><changefreq>daily</changefreq></url>\n'
+        except:
+            continue
+
     xml += '</urlset>'
     return Response(xml, mimetype='text/xml')
 def send_reset_email(to_email, otp, user_name="Boss"):
