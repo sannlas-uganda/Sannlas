@@ -562,34 +562,23 @@ def home():
     ref = request.args.get('ref')
     promo = request.args.get('promo','')
     product = request.args.get('product','')
-    
-    # --- FAST PRODUCTS FIX ---
-    try:
-        now = time.time()
-        if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
-            products = PRODUCTS_CACHE["data"]
-        else:
-            products = load_db('products.json', [])
-            products = sorted(products, key=lambda x: x.get('created', 0), reverse=True)
-            PRODUCTS_CACHE["data"] = products
-            PRODUCTS_CACHE["time"] = now
-        # ALSO sort cached ones (in case cache was old)
-        products = sorted(products, key=lambda x: x.get('created', 0), reverse=True)
-        first_12 = products[:12]
-    except:
-        first_12 = []
-    # --- END FAST FIX ---
-    
-    resp = make_response(render_template('index.html', first_products=first_12))
+
+    # ⚡ INSTANT FIX - Don't wait for DB! Send HTML immediately!
+    # Products load via JavaScript after page shows
+    resp = make_response(render_template('index.html', first_products=[]))
     if ref:
         resp.set_cookie('ref_code', ref, max_age=30*24*60*60, httponly=False, samesite='Lax')
+
+    # Promo click - do in background so it doesn't slow homepage!
     if promo and product:
-        try:
-            clicks = load_db('promo_clicks.json',[])
-            clicks.append({'product_id':product,'promo':promo,'ref':ref,'time':time.time(),'ip':request.remote_addr})
-            save_db('promo_clicks.json', clicks)
-        except:
-            pass
+        def save_click():
+            try:
+                clicks = load_db('promo_clicks.json',[])
+                clicks.append({'product_id':product,'promo':promo,'ref':ref,'time':time.time(),'ip':request.remote_addr})
+                save_db('promo_clicks.json', clicks)
+            except:
+                pass
+        threading.Thread(target=save_click, daemon=True).start()
     return resp
     
 @app.route('/api/billboard')
