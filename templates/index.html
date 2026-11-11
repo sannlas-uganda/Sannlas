@@ -1030,42 +1030,29 @@ function getHomeViewerEmail(){
 
 async function loadHomeReels(){
   if(homeIsLoading) return; homeIsLoading = true;
-  let c=document.getElementById('reelsFeedContainer');
-  if(!c) return;
-
   // ⚡ INSTANT - Show last reels from phone memory, 0 seconds!
-  let hasCache = false;
   try{
     let instantCached = JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
     if(instantCached.length>0 && homePage===1){
       renderReels(instantCached, true);
-      hasCache = true;
       // Don't block - let user watch old reels while new ones load
       homeIsLoading = false;
     }
   }catch(e){}
-
-  // ✅ FIXED - If we already showed cached reels, DON'T wipe them with "Loading reels..."
-  // If NO cache, show NOTHING - just empty black, reels will pop in
-  if(homePage===1 && !hasCache){
-    c.innerHTML='';
-  }
-
-  try{
+  let c=document.getElementById('reelsFeedContainer');
+  if(!c) return;
+if(homePage===1) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡<br><br><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div></div>';  try{
     let email = getHomeViewerEmail();
     let seen = [...homeSeenIds].join(',');
-    let controller = new AbortController();
-    setTimeout(()=>controller.abort(), 5000);
-    let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
-    let reels=await r.json();
+let controller = new AbortController();
+setTimeout(()=>controller.abort(), 5000);
+let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
+let reels=await r.json();
     if(!reels || !reels.length){
-      // Only show "No reels" if we have NO cache either
-      if(!hasCache){
-        c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
-      }
+      c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
       return;
     }
-    try{ localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,6))); }catch(e){}
+      try{ localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,6))); }catch(e){}
     renderReels(reels, homePage===1);
     homeIsLoading = false;
     // Infinite scroll for home feed
