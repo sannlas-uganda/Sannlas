@@ -905,6 +905,21 @@ function cleanSlug(s){
   return (s||'shop').toString().trim().toLowerCase()
     .replace(/%20|%2520/gi,'-').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';
 }
+// ===== INSTANT: Save shop BEFORE leaving Reels, so shop.html opens in 0ms! =====
+let _reelsBySlug = {};
+function openShopInstantFromReel(reel){
+  if(!reel) return;
+  try{
+    let slugKey = cleanSlug(reel.shop_slug || reel.slug || reel.shop_name || 'shop');
+    let shopData = {
+      shop: { business_name: reel.shop_name || reel.user_name || reel.business || 'Shop', location: reel.location||'Uganda', phone: reel.phone||'', description: reel.shop_bio||reel.description||'Quality products!', shop_slug: slugKey, logo: reel.shop_logo||'', owner_email: reel.shop_email||reel.user_email||reel.email||'' },
+      products: reel.products || []
+    };
+    sessionStorage.setItem('sannlas_shop_'+slugKey, JSON.stringify(shopData));
+  }catch(e){}
+  // Go NOW - no fetch, no wait!
+  window.location.href = '/shop/' + cleanSlug(reel.shop_slug || reel.slug || reel.shop_name);
+}
 async function toggleFollowReal(btn){
   let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
   if(!user.email){ alert('Login first Boss!'); return; }
@@ -1042,6 +1057,8 @@ async function loadHomeReels(){
     }
   }catch(e){}
   let c=document.getElementById('reelsFeedContainer');
+      // Save reels for instant S open
+    reels.forEach(r=>{ _reelsBySlug[cleanSlug(r.shop_slug||r.shop_name||'shop')] = r; });
   if(!c) return;
 if(homePage===1) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡<br><br><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div></div>';  try{
     let email = getHomeViewerEmail();
@@ -1096,7 +1113,7 @@ function renderReels(reels, isFirst=true){
           
         <div class="reel-actions" style="position:absolute;right:10px;bottom:110px;display:flex;flex-direction:column;gap:10px;z-index:6;align-items:center">
           <div style="position:relative;text-align:center">
-            <div onclick="location.href='/shop/${slug}'" style="width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;cursor:pointer">
+            <div onclick="openShopInstantFromReel(_reelsBySlug['${slug}']||{shop_slug:'${slug}',shop_name:'${shopName}'})" style="width:52px;height:52px;border-radius:50%;border:2px solid #FFCC02;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;cursor:pointer">
               ${logo ? `<img src="${logo}" style="width:100%;height:100%;object-fit:cover">` : initial}
             </div>
           <div id="follow-btn-${reel.id}" data-email="${email}" data-slug="${slug}" data-shop="${shopName}" onclick="event.stopPropagation(); toggleFollowReal(this)" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer">+</div>          </div>
