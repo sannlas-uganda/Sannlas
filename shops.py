@@ -223,35 +223,34 @@ function cleanSlug(s){return (s||'shop').toString().toLowerCase().replace(/%20|%
 async function loadShop(){
  let raw=decodeURIComponent(location.pathname.split('/shop/')[1].split('?')[0].split('/')[0]);
  let slug=cleanSlug(raw);
+ // ⚡ INSTANT 0ms - From Reels S-door! Don't wait for API!
  try{
-  const r=await fetch('/api/shop/'+encodeURIComponent(slug));
-  const d=await r.json();
-  if(!d.shop){ document.getElementById('loading').innerHTML='❌ Shop not found: '+raw+' (tried '+slug+')<br><a href=/all-shops style=color:#FFCC02>All Shops</a>'; return;}
+   let instant = JSON.parse(sessionStorage.getItem('sannlas_instant_shop')||'null') || JSON.parse(localStorage.getItem('sannlas_last_shop_'+slug)||'null');
+   if(instant && cleanSlug(instant.shop_slug||instant.shop_name||'')===slug){
+     document.getElementById('loading').style.display='none';
+     document.getElementById('shop-header').style.display='block';
+     let ab=document.getElementById('shopAvatarBox');
+     let lg = instant.shop_logo||instant.logo||instant.logo_url||'';
+     if(lg) ab.innerHTML=`<img src="${lg}">`;
+     else ab.innerText=(instant.shop_name||'S')[0].toUpperCase();
+     document.getElementById('shopNameBig').innerText='🏪 '+(instant.shop_name||instant.business_name||slug);
+     document.getElementById('shopBioText').innerHTML=`📍 ${instant.shop_location||instant.location||'Kampala'} | 📞 ${instant.shop_phone||instant.phone||''}<br>Quality products!`;
+   }
+ }catch(e){}
+ try{
+  // ⚡ PARALLEL - Shop + Stats at SAME time, not one after other!
+  let shopP = fetch('/api/shop/'+encodeURIComponent(slug)).then(r=>r.json());
+  let statsP = fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).catch(()=>null);
+  const d = await shopP;
+  if(!d.shop){ document.getElementById('loading').innerHTML='❌ Shop not found: '+raw+'<br><a href=/all-shops style=color:#FFCC02>All Shops</a>'; return;}
   const shop=d.shop, prods=d.products||[];
   document.getElementById('loading').style.display='none';
   document.getElementById('shop-header').style.display='block';
-  
-  // Profile picture
   let avatarBox=document.getElementById('shopAvatarBox');
-  if(shop.logo){avatarBox.innerHTML=`<img src="${shop.logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
-  
+  let logo = shop.logo||shop.logo_url||'';
+  if(logo){avatarBox.innerHTML=`<img src="${logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
   document.getElementById('shopNameBig').innerText='🏪 '+(shop.business_name||shop.name||slug);
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Quality products!'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
-  
-  // Load stats
-  try{
-    let rs=await fetch('/api/shop/'+encodeURIComponent(slug)+'/stats');
-    let stats=await rs.json();
-    document.getElementById('statFollowers').innerText=(stats.followers||0).toLocaleString();
-    document.getElementById('statFollowing').innerText=(stats.following||0).toLocaleString();
-    document.getElementById('statLikes').innerText=(stats.total_likes||0).toLocaleString();
-    document.getElementById('statViews').innerText=(stats.total_views||0).toLocaleString();
-  }catch(e){
-    document.getElementById('statLikes').innerText=prods.length*5;
-    document.getElementById('statViews').innerText=prods.length*124;
-  }
-  
-  // Buttons - INCLUDING My Shop
   document.getElementById('shopActions').innerHTML=`
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
       <button style="background:#25D366;color:#fff;padding:10px 14px;border-radius:20px;border:none;font-weight:800" onclick="location.href='https://wa.me/${(shop.phone||'').toString().replace(/[^0-9]/g,'')}'">💬 WhatsApp</button>
@@ -263,13 +262,20 @@ async function loadShop(){
       <a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px">🎬 View Reels Profile</a>
       <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02">🏪 My Shop</a>
     </div>
-    <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>
-  `;
-  
+    <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
+  // ⚡ PRODUCTS FIRST - Don't wait for stats!
   let h='';
-  prods.forEach(p=>{h+=`<div class="card"><img src="${p.image||'https://via.placeholder.com/300'}"><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;});
+  prods.forEach(p=>{h+=`<div class="card"><img loading="lazy" src="${p.image||'https://via.placeholder.com/300'}"><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;});
   if(!prods.length) h='<p style="padding:20px">No products yet</p>';
   document.getElementById('products').innerHTML=h;
+  // Stats in background - fill when ready, don't block!
+  statsP.then(stats=>{
+    if(!stats) return;
+    document.getElementById('statFollowers').innerText=(stats.followers||0).toLocaleString();
+    document.getElementById('statFollowing').innerText=(stats.following||0).toLocaleString();
+    document.getElementById('statLikes').innerText=(stats.total_likes||0).toLocaleString();
+    document.getElementById('statViews').innerText=(stats.total_views||0).toLocaleString();
+  }).catch(()=>{ document.getElementById('statLikes').innerText=prods.length*5; document.getElementById('statViews').innerText=prods.length*124; });
  }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
 loadShop();
