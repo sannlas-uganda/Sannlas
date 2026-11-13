@@ -204,67 +204,74 @@ def user_profile_page(shop_slug):
 # 4. FEED - SORTED BY ALGORITHM
 # ============================================================
 
+# ✅ ADD THIS AT TOP, after imports - CACHE!
+_feed_cache = {'data': [], 'time': 0, 'followed': {}, 'liked': {}}
+
 @reels_bp.route('/api/sannlas/reels/feed')
 def reels_feed():
     try:
-        ensure_reels_table()
         products_map = load_products_json()
         shops_map = load_shops_map()
-
         viewer_email = (request.args.get('user_email') or request.args.get('email') or '').lower().strip()
-        # ✅ REMOVED seen filter - it was hiding old reels!
         page = int(request.args.get('page') or 1)
         limit = int(request.args.get('limit') or 20)
 
-        conn = get_conn(); cur = conn.cursor()
+        # ✅ 1. USE CACHE - Don't hit DB every scroll! Only every 60s
+        now = time.time()
+        cache_key = viewer_email or 'guest'
+        use_cache = (now - _feed_cache.get('time', 0) < 60 and _feed_cache.get('key') == cache_key and _feed_cache.get('data'))
 
-        followed_set = set()
-        liked_categories = set()
-        if viewer_email:
-            try:
-                cur.execute("SELECT following_email FROM sannlas_follows WHERE follower_email=%s", (viewer_email,))
-                followed_set = set([r[0].lower() for r in cur.fetchall() if r[0]])
-                cur.execute("""SELECT r.category FROM sannlas_reel_interactions i
-                               JOIN sannlas_reels r ON r.id=i.reel_id
-                               WHERE i.user_email=%s AND i.action IN ('like','save','share')
-                               GROUP BY r.category ORDER BY COUNT(*) DESC LIMIT 3""", (viewer_email,))
-                liked_categories = set([r[0].lower() for r in cur.fetchall() if r[0]])
-            except Exception as e:
-                print("Personalize fail:", e)
+        if use_cache:
+            final = _feed_cache['data']
+            followed_set = _feed_cache.get('followed', set())
+        else:
+            conn = get_conn(); cur = conn.cursor()
+            followed_set = set()
+            liked_categories = set()
+            if viewer_email:
+                try:
+                    cur.execute("SELECT following_email FROM sannlas_follows WHERE follower_email=%s", (viewer_email,))
+                    followed_set = set([r[0].lower() for r in cur.fetchall() if r[0]])
+                    cur.execute("""SELECT r.category FROM sannlas_reel_interactions i
+                                   JOIN sannlas_reels r ON r.id=i.reel_id
+                                   WHERE i.user_email=%s AND i.action IN ('like','save','share')
+                                   GROUP BY r.category ORDER BY COUNT(*) DESC LIMIT 3""", (viewer_email,))
+                    liked_categories = set([r[0].lower() for r in cur.fetchall() if r[0]])
+                except: pass
 
-        # ✅ FIX 1: Fetch ALL reels - 2000 not 300!
-        cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 2000")
-        rows = cur.fetchall()
-        cols = [d[0] for d in cur.description]
-        data = [dict(zip(cols, r)) for r in rows]
+            # ✅ 2. Fetch ONLY 300 - Enough for 15 pages! Not 2000!
+            cur.execute("SELECT id, user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, views, shares, comments_count, saves, category, created FROM sannlas_reels ORDER BY id DESC LIMIT 300")
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+            data = [dict(zip(cols, r)) for r in rows]
+            cur.close(); conn.close()
 
-        scored = []
-        for reel in data:
-            # ✅ FIX 2: NO seen skip - show all!
-            reel['algo_score'] = calc_reel_score(reel, viewer_email, followed_set, liked_categories)
-            scored.append(reel)
+            scored = []
+            for reel in data:
+                reel['algo_score'] = calc_reel_score(reel, viewer_email, followed_set, liked_categories)
+                scored.append(reel)
+            scored.sort(key=lambda x: x['algo_score'], reverse=True)
 
-        scored.sort(key=lambda x: x['algo_score'], reverse=True)
+            # Diversity
+            final = []
+            last_shop = ''
+            skipped = []
+            for r in scored:
+                shop = r.get('shop_slug') or ''
+                if shop == last_shop and len(final) < 20:
+                    skipped.append(r); continue
+                final.append(r); last_shop = shop
+            final.extend(skipped)
 
-        # DIVERSITY: Don't show same shop 2x in a row
-        final = []
-        last_shop = ''
-        skipped = []
-        for r in scored:
-            shop = r.get('shop_slug') or ''
-            if shop == last_shop and len(final) < 20:
-                skipped.append(r)
-                continue
-            final.append(r)
-            last_shop = shop
-        final.extend(skipped)
+            # ✅ SAVE TO CACHE
+            _feed_cache['data'] = final
+            _feed_cache['time'] = now
+            _feed_cache['key'] = cache_key
+            _feed_cache['followed'] = followed_set
 
-        # ✅ FIX 3: Correct pagination - always from full sorted list
+        # ✅ 3. Paginate from CACHE - Super fast, no DB!
         start = (page-1)*limit
         page_data = final[start:start+limit]
-
-        # ✅ FIX 4: Tell frontend if there are more!
-        has_more = (start + limit) < len(final)
 
         for reel in page_data:
             try:
@@ -289,9 +296,7 @@ def reels_feed():
                 reel['views'] = int(reel.get('views') or 0)
                 reel['shares'] = int(reel.get('shares') or 0)
                 reel['comments_count'] = int(reel.get('comments_count') or 0)
-                product_data = None
-                if pid and pid in products_map:
-                    product_data = products_map[pid]
+                product_data = products_map.get(pid) if pid else None
                 if product_data:
                     raw_coins = product_data.get('promo_coins') or product_data.get('promo_commission') or 3
                     try: promo_coins = int(float(str(raw_coins).strip()))
@@ -314,10 +319,6 @@ def reels_feed():
             except Exception as e:
                 print(f"Reel fail {reel.get('id')}: {e}")
 
-        cur.close(); conn.close()
-        # ✅ Return with has_more so frontend knows to keep loading!
-        # If your frontend expects just a list, it will still work because we return list
-        # But if you want has_more, change frontend to handle dict - see below
         return jsonify(page_data)
     except Exception as e:
         print("FEED ERROR:", e)
