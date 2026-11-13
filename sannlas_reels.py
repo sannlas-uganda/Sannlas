@@ -388,7 +388,6 @@ def cloudinary_signature():
 
 @reels_bp.route('/api/sannlas/reels/save-url', methods=['POST'])
 def save_reel_url():
-    """Frontend already uploaded to Cloudinary, we just save URL - SUPER FAST!"""
     try:
         ensure_reels_table()
         d = request.get_json(silent=True) or {}
@@ -404,17 +403,18 @@ def save_reel_url():
         caption = d.get('caption') or d.get('product_name') or 'New Reel 🔥'
         product_id = d.get('product_id') or ''
         category = d.get('category') or ''
-
+        hashtags = d.get('hashtags') or ''
+        location = d.get('location') or ''
+        price = str(d.get('price') or '')
+        promo_link = d.get('promo_link') or ''
         conn = get_conn(); cur = conn.cursor()
         cur.execute("""
             INSERT INTO sannlas_reels 
-            (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, category)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s) RETURNING id
-        """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url, category))
+            (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, category, hashtags, location, price, promo_link)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,%s,%s) RETURNING id
+        """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url, category, hashtags, location, price, promo_link))
         new_id = cur.fetchone()[0]
         conn.commit(); cur.close(); conn.close()
-
-        # ✅ Clear cache - New reel at TOP instantly!
         _feed_cache['data'] = []
         _feed_cache['time'] = 0
         return jsonify({'success': True, 'id': new_id, 'video_url': video_url})
@@ -422,7 +422,7 @@ def save_reel_url():
         print("SAVE-URL ERROR:", e)
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
+        
 # OLD upload kept as FALLBACK if direct fails - but NOT used by new frontend
 @reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
 def upload_reel_old():
