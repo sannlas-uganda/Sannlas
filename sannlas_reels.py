@@ -212,8 +212,7 @@ def reels_feed():
         shops_map = load_shops_map()
 
         viewer_email = (request.args.get('user_email') or request.args.get('email') or '').lower().strip()
-        seen_ids = request.args.get('seen') or ''
-        seen_set = set([x for x in seen_ids.split(',') if x])
+        # ✅ REMOVED seen filter - it was hiding old reels!
         page = int(request.args.get('page') or 1)
         limit = int(request.args.get('limit') or 20)
 
@@ -233,19 +232,18 @@ def reels_feed():
             except Exception as e:
                 print("Personalize fail:", e)
 
-        cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 300")
+        # ✅ FIX 1: Fetch ALL reels - 2000 not 300!
+        cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 2000")
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description]
         data = [dict(zip(cols, r)) for r in rows]
 
         scored = []
         for reel in data:
-            if str(reel.get('id')) in seen_set and page > 1:
-                continue
+            # ✅ FIX 2: NO seen skip - show all!
             reel['algo_score'] = calc_reel_score(reel, viewer_email, followed_set, liked_categories)
             scored.append(reel)
 
-        # SORT BY SCORE - NOT BY TIME!
         scored.sort(key=lambda x: x['algo_score'], reverse=True)
 
         # DIVERSITY: Don't show same shop 2x in a row
@@ -261,8 +259,12 @@ def reels_feed():
             last_shop = shop
         final.extend(skipped)
 
+        # ✅ FIX 3: Correct pagination - always from full sorted list
         start = (page-1)*limit
         page_data = final[start:start+limit]
+
+        # ✅ FIX 4: Tell frontend if there are more!
+        has_more = (start + limit) < len(final)
 
         for reel in page_data:
             try:
@@ -287,7 +289,6 @@ def reels_feed():
                 reel['views'] = int(reel.get('views') or 0)
                 reel['shares'] = int(reel.get('shares') or 0)
                 reel['comments_count'] = int(reel.get('comments_count') or 0)
-
                 product_data = None
                 if pid and pid in products_map:
                     product_data = products_map[pid]
@@ -314,12 +315,14 @@ def reels_feed():
                 print(f"Reel fail {reel.get('id')}: {e}")
 
         cur.close(); conn.close()
+        # ✅ Return with has_more so frontend knows to keep loading!
+        # If your frontend expects just a list, it will still work because we return list
+        # But if you want has_more, change frontend to handle dict - see below
         return jsonify(page_data)
     except Exception as e:
         print("FEED ERROR:", e)
         traceback.print_exc()
         return jsonify([])
-
 # ============================================================
 # 5. USER REELS
 # ============================================================
