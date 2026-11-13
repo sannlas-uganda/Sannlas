@@ -1062,7 +1062,9 @@ async function loadHomeReels(){
   }catch(e){}
   let c=document.getElementById('reelsFeedContainer');
   if(!c) return;
-if(homePage===1) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡<br><br><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div></div>';  try{
+  // ⚡ DON'T overwrite instant reels! Only show Loading if NO cache!
+  if(homePage===1 && !localStorage.getItem('sannlas_reels_cache')) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡</div>';
+  try{
     let email = getHomeViewerEmail();
     let seen = [...homeSeenIds].join(',');
 let controller = new AbortController();
@@ -1095,6 +1097,7 @@ function renderReels(reels, isFirst=true){
     if(!c) return;
     let feed=reels; // NO MORE DUPLICATE REELS - use seen IDs instead!
     let html = feed.map((reel,i)=>{
+    _reelsBySlug[cleanSlug(reel.shop_slug||reel.shop_name||'shop')] = reel;
       let media=reel.video_url||reel.image_url||reel.media_url||'';
       let isVideo=media.includes('.mp4') || media.includes('video') || media.includes('cloudinary');
       let tag=isVideo?`<video data-reel-id="${reel.id}" src="${media}" loop playsinline muted onclick="toggleHomeVol(this)" style="width:100%;height:100%;object-fit:cover;cursor:pointer"></video>`:`<img src="${media}" style="width:100%;height:100%;object-fit:cover">`;      
@@ -1776,48 +1779,8 @@ function updateTopLoginUI(){
 }
 
 function goToBalance(){let u=localStorage.getItem('sannlas_user');if(!u&&!currentUser){showGate();switchGate('register');return;}location.href='/balance';}
-async function showAllShops(){
-  document.getElementById('shopsContent').innerHTML = '<h3>⏳ Loading Shops... Render waking (15 sec)...</h3><p style="font-size:12px;color:#888">Free server sleeps, first load is slow. Please wait Boss.</p>';
-  document.getElementById('shopsPop').style.display='flex';
-  
-  // NO TIMEOUT - let Render wake up slowly
-  for(let attempt=1; attempt<=3; attempt++){
-    try{
-      let r = await fetch('/api/shops'); // NO signal timeout!
-      if(!r.ok) throw new Error('Server '+r.status);
-      let text = await r.text();
-      if(!text) throw new Error('Empty response, retrying...');
-      let shops = JSON.parse(text);
-      
-      shops = shops.filter(s=> (s.total_products||s.product_count||s.count||0) > 0);
-      
-      if(!shops || shops.length==0){
-        document.getElementById('shopsContent').innerHTML='<h2>🏪 No Shops Yet</h2><p>Upload first product FREE to create shop</p><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px">Close</button>';
-        return;
-      }
-      
-      let html='<h2 style="font-weight:800">🏪 All Shops ('+shops.length+')</h2><div style="display:grid;gap:10px;margin-top:10px">';
-      shops.forEach(s=>{
-        let count=s.total_products||s.product_count||s.count||0;
-        let slug=s.slug||s.shop_slug||'';
-        let name=s.business_name||s.name||'Shop';
-        let loc=s.location||'Uganda';
-        html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count} products</span></div><button onclick="openShopInstantFromReel({shop_slug:'${slug}',shop_name:'${name}'})" style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></div>`;
-      });
-      html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';
-      document.getElementById('shopsContent').innerHTML=html;
-      return; // success, stop retrying
-      
-    }catch(e){
-      console.log('Shops attempt '+attempt+' failed: '+e.message);
-      if(attempt < 3){
-        document.getElementById('shopsContent').innerHTML = `<h3>⏳ Waking server... Attempt ${attempt}/3</h3><p style="color:#666;font-size:12px">${e.message}<br>Retrying in 3 sec...</p>`;
-        await new Promise(res=>setTimeout(res,3000));
-      } else {
-        document.getElementById('shopsContent').innerHTML = `<div style="text-align:center;padding:20px"><h3 style="color:red">⚠️ Server sleeping</h3><p style="font-size:13px">Render free sleeps after 15min.<br>Click reload to wake it.</p><button onclick="showAllShops()" style="background:#FFCC02;color:#000;padding:12px 20px;border:none;border-radius:10px;font-weight:900;margin-top:10px">🔄 TRY AGAIN</button><button onclick="closePop('shopsPop')" style="background:#eee;padding:10px;border:none;border-radius:10px;margin-top:10px;width:100%">Close</button></div>`;
-      }
-    }
-  }
+function showAllShops(){
+  location.href = '/shops';
 }
 function goToMyShop(){
   let u = null;
