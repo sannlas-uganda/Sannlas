@@ -141,6 +141,9 @@ app.register_blueprint(admin_ai_bp)
 from sannlas_ai_crawler import crawler_bp
 app.register_blueprint(crawler_bp)
 
+from shop import shop_bp
+app.register_blueprint(shop_bp)
+
 # === AUTO-ADD PRODUCTS DAILY - B) - ADDED BY BOSS ===
 import threading
 import time
@@ -510,55 +513,6 @@ def save_hero_stories(stories):
 
 os.makedirs('static/uploads/hero', exist_ok=True)
 
-def make_shop_slug(business):
-    if not business: return 'shop'
-    base = re.sub(r'[^a-z0-9]+', '-', business.lower()).strip('-')
-    if not base: base = 'shop'
-    return base[:50]
-
-def get_biz_key(name):
-    if not name: return ''
-    return re.sub(r'[^a-z0-9]+', '', name.lower())
-
-def ensure_shop_for_user(user):
-    shops = load_db('shops.json', [])
-    biz = (user.get('business') or '').strip()
-    if not biz: biz = 'Shop'
-    biz_key = get_biz_key(biz)
-    slug = make_shop_slug(biz)
-    email = (user.get('email') or '').lower()
-    for s in shops:
-        s_biz = s.get('business_name') or s.get('name') or ''
-        if get_biz_key(s_biz) == biz_key and biz_key:
-            s['shop_slug'] = slug
-            s['slug'] = slug
-            s['business_name'] = biz
-            s['name'] = biz
-            if email: s['owner_email'] = email
-            if user.get('phone'): s['phone'] = user.get('phone')
-            save_db('shops.json', shops)
-            return s
-    existing = next((s for s in shops if (s.get('shop_slug')==slug or s.get('slug')==slug)), None)
-    if existing:
-        existing['business_name'] = biz
-        existing['name'] = biz
-        existing['shop_slug'] = slug
-        existing['slug'] = slug
-        save_db('shops.json', shops)
-        return existing
-    existing2 = next((s for s in shops if s.get('user_id')==user.get('id')), None)
-    if existing2:
-        existing2['business_name'] = biz
-        existing2['name'] = biz
-        existing2['shop_slug'] = slug
-        existing2['slug'] = slug
-        save_db('shops.json', shops)
-        return existing2
-    shop = {"id": int(time.time()*1000),"user_id": user.get('id'),"business_name": biz,"name": biz,"shop_slug": slug,"slug": slug,"phone": user.get('phone',''),"owner_email": email,"location": "Kampala","description": "Welcome to " + biz + " shop!","logo_url": "","banner_url": "","verified": False,"total_products": 0,"product_count": 0,"created_at": time.time()}
-    shops.append(shop)
-    save_db('shops.json', shops)
-    return shop
-
 @app.route('/')
 def home():
     ref = request.args.get('ref')
@@ -656,6 +610,7 @@ def register():
     save_db("coin_config.json", coin_cfg)
     save_db('users.json',users)
     try:
+        from shop import ensure_shop_for_user
         shop = ensure_shop_for_user(user)
     except:
         shop = None
@@ -823,71 +778,15 @@ def login():
     u['coins'] = int(u.get('bought',0)) + int(u.get('earned',0)) - int(u.get('spent',0))
     if u['coins']<0: u['coins']=0
     save_db('users.json', users)
-    try: ensure_shop_for_user(u)
+    try:
+        from shop import ensure_shop_for_user
+        ensure_shop_for_user(u)
     except: pass
     safe={k:v for k,v in u.items() if k!='password'}
     safe['subscription_active']=safe.get('subscription_expires',0)>time.time()
     session['phone']=u.get('phone'); session['email']=u.get('email')
     return jsonify({'success':True,'user':safe})
-
-@app.route('/api/shops')
-def list_shops():
-    try:
-        shops = load_db('shops.json', [])
-        # FAST COUNT - Don't load full products if using Postgres
-        if DATABASE_URL:
-            try:
-                conn = get_conn()
-                cur = conn.cursor()
-                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY slug")
-                rows = cur.fetchall()
-                counts = {}
-                for r in rows:
-                    # r can be tuple or dict
-                    if isinstance(r, dict):
-                        counts[r['slug']] = int(r['cnt'])
-                    else:
-                        counts[str(r[0])] = int(r[1])
-                cur.close()
-                conn.close()
-            except Exception as e:
-                print("shops fast count error:", e)
-                counts = {}
-                try: conn.close()
-                except: pass
-        else:
-            # Local file - still fast, only read slugs
-            try:
-                path = 'data/products.json'
-                if os.path.exists(path):
-                    data = json.load(open(path))
-                    counts = {}
-                    for p in data:
-                        slug = p.get('shop_slug')
-                        if slug:
-                            counts[slug] = counts.get(slug, 0) + 1
-                else:
-                    counts = {}
-            except:
-                counts = {}
-
-        for s in shops:
-            slug = s.get('shop_slug')
-            s['total_products'] = counts.get(slug, 0)
-
-        filtered = [s for s in shops if s.get('total_products',0)>0]
-        if not filtered:
-            filtered = shops[:50] # Show at least 50 if counts fail
-
-        return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
-    except Exception as e:
-        print("SHOPS ERROR:", e)
-        try:
-            shops = load_db('shops.json', [])[:50]
-            return jsonify(shops)
-        except:
-            return jsonify([])
-            
+          
 @app.route('/api/contact', methods=['POST'])
 def contact_owner(): data=request.json; contacts=load_db('contacts.json', []); contacts.append({**data,'time':time.time(),'id':int(time.time())}); save_db('contacts.json', contacts); return jsonify({'success':True})
     
