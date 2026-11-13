@@ -123,8 +123,13 @@ def shop_stats(slug):
         total_products = 0
         total_likes = 0
         total_views = 0
+        owner_email = str(shop.get('owner_email','')).lower() if shop else ''
+        real_name_clean = clean_slug_fix(shop.get('business_name','')) if shop else ''
         for p in products:
-            if clean_slug_fix(p.get('shop_slug','') or p.get('business','')) == cleaned:
+            ps_clean = clean_slug_fix(p.get('shop_slug',''))
+            pb_clean = clean_slug_fix(p.get('business',''))
+            p_email = str(p.get('seller_email','')).lower()
+            if ps_clean==cleaned or pb_clean==cleaned or pb_clean==real_name_clean or (owner_email and p_email==owner_email):
                 total_products += 1
                 total_likes += int(p.get('likes',0) or 0)
                 total_views += int(p.get('views',0) or 0)
