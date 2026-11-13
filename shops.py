@@ -381,60 +381,48 @@ def get_shop_by_slug(slug):
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
         
-# ===== /api/shops - Moved from app.py =====
-@shop_bp.route('/api/shops')
-def list_shops():
-    from app import load_db, get_conn, DATABASE_URL
-    import json, os
+@shops_bp.route('/api/shops')
+def get_all_shops():
     try:
-        shops = load_db('shops.json', [])
-        if DATABASE_URL:
-            try:
-                conn = get_conn()
-                cur = conn.cursor()
-                cur.execute("SELECT data->>'shop_slug' as slug, COUNT(*) as cnt FROM products WHERE data->>'shop_slug' IS NOT NULL GROUP BY slug")
-                rows = cur.fetchall()
-                counts = {}
-                for r in rows:
-                    if isinstance(r, dict):
-                        counts[r['slug']] = int(r['cnt'])
-                    else:
-                        counts[str(r[0])] = int(r[1])
-                cur.close()
-                conn.close()
-            except Exception as e:
-                print("shops fast count error:", e)
-                counts = {}
-                try: conn.close()
-                except: pass
+        shops = load_db('shops.json', []) or []
+        products = load_db('products.json', []) or []
+        if not shops:
+            seen = {}
+            for p in products:
+                b = str(p.get('business','') or '').strip()
+                if not b: continue
+                key = clean_slug_fix(b)
+                if key not in seen:
+                    seen[key] = {
+                        "shop_slug": key,
+                        "slug": key,
+                        "business_name": b,
+                        "name": b,
+                        "location": p.get('location','Kampala'),
+                        "logo": "",
+                        "total_products": 0
+                    }
+                seen[key]["total_products"] += 1
+            shops = list(seen.values())
         else:
-            try:
-                path = 'data/products.json'
-                if os.path.exists(path):
-                    data = json.load(open(path))
-                    counts = {}
-                    for p in data:
-                        slug = p.get('shop_slug')
-                        if slug:
-                            counts[slug] = counts.get(slug, 0) + 1
-                else:
-                    counts = {}
-            except:
-                counts = {}
-        for s in shops:
-            slug = s.get('shop_slug')
-            s['total_products'] = counts.get(slug, 0)
-        filtered = [s for s in shops if s.get('total_products',0)>0]
-        if not filtered:
-            filtered = shops[:50]
-        return jsonify(sorted(filtered, key=lambda x: x.get('total_products',0), reverse=True)[:100])
+            count_map = {}
+            for p in products:
+                key = clean_slug_fix(p.get('shop_slug','') or p.get('business',''))
+                count_map[key] = count_map.get(key,0)+1
+                em = str(p.get('seller_email','')).lower()
+                count_map[em] = count_map.get(em,0)+1
+            result=[]
+            for s in shops:
+                slug = clean_slug_fix(s.get('shop_slug') or s.get('business_name') or 'shop')
+                s_copy = dict(s)
+                s_copy['shop_slug'] = slug
+                s_copy['total_products'] = count_map.get(slug,0) or count_map.get(str(s.get('owner_email','')).lower(),0)
+                result.append(s_copy)
+            shops = sorted(result, key=lambda x: x.get('total_products',0), reverse=True)
+        shops = sorted(shops, key=lambda x: x.get('total_products',0), reverse=True)
+        return jsonify(shops)
     except Exception as e:
-        print("SHOPS ERROR:", e)
-        try:
-            shops = load_db('shops.json', [])[:50]
-            return jsonify(shops)
-        except:
-            return jsonify([])
+        return jsonify([])
 
 @shops_bp.route('/@/<path:slug>')
 @shops_bp.route('/@/<path:slug>/reels')
