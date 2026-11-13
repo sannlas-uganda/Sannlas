@@ -23,6 +23,11 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 .shop-name{font-weight:900;font-size:18px;margin-top:12px}
 .shop-bio{font-size:12px;color:#666;margin:4px 0;line-height:1.4}
 .action-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+/* FIXED: S Avatar clickable + Green Tick = Following */
+.avatar-wrap{position:relative;width:86px;height:86px;cursor:pointer;flex-shrink:0}
+.avatar-wrap:active{transform:scale(0.95)}
+.follow-tick{position:absolute;bottom:0px;right:0px;width:26px;height:26px;background:#00C853;color:#fff;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);z-index:5}
+.follow-tick.show{display:flex}
 </style></head><body>
 
 <div id="topNav" style="background:#000;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999">
@@ -33,7 +38,10 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 
 <div class="shop-profile-header" id="h">
   <div class="profile-top">
-    <div class="avatar-box" id="shopAvatarBox">S</div>
+    <div class="avatar-wrap" onclick="goToReelsProfile()">
+      <div class="avatar-box" id="shopAvatarBox">S</div>
+      <div class="follow-tick" id="followTick">✓</div>
+    </div>
     <div class="stats-row">
       <div class="stat"><b id="statFollowing">0</b><span>Following</span></div>
       <div class="stat"><b id="statFollowers">0</b><span>Followers</span></div>
@@ -73,9 +81,14 @@ let raw_slug=(location.pathname.split('/shop/')[1]||new URLSearchParams(location
 let shopOwnerEmail=''; let isFollowingShop=false;
 history.pushState(null,'',location.href);window.addEventListener('popstate',function(){location.href='/';});
 
+// FIXED: S Avatar opens Seller Reels Profile
+function goToReelsProfile(){
+  let target = slug || cleanSlug(currentShop?.shop_slug || currentShop?.business_name || originalSlug);
+  window.location.href = '/@/' + target;
+}
+
 async function loadShopFollowStats(){
   try{
-    // Use new follow-count API that reads follows.json
     let r = await fetch('/api/user/follow-count/' + encodeURIComponent(slug));
     let s = await r.json();
     document.getElementById('statFollowers').innerText = (s.followers||0).toLocaleString();
@@ -100,13 +113,20 @@ async function checkFollowStatus(){
 
 function updateFollowBtn(){
   let btn=document.getElementById('followShopBtn');
-  if(!btn) return;
-  if(isFollowingShop){
-    btn.innerText='✓ FOLLOWING';
-    btn.style.background='#000'; btn.style.color='#fff'; btn.style.border='2px solid #000';
-  }else{
-    btn.innerText='+ FOLLOW';
-    btn.style.background='#FFCC02'; btn.style.color='#000'; btn.style.border='2px solid #000';
+  if(btn){
+    if(isFollowingShop){
+      btn.innerText='✓ FOLLOWING';
+      btn.style.background='#000'; btn.style.color='#fff'; btn.style.border='2px solid #000';
+    }else{
+      btn.innerText='+ FOLLOW';
+      btn.style.background='#FFCC02'; btn.style.color='#000'; btn.style.border='2px solid #000';
+    }
+  }
+  // FIXED: Green Tick on S = Following
+  let tick=document.getElementById('followTick');
+  if(tick){
+    if(isFollowingShop) tick.classList.add('show');
+    else tick.classList.remove('show');
   }
 }
 
@@ -121,7 +141,6 @@ async function toggleFollowShop(){
     let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:buyerEmail, phone:buyerUser.phone||'', target_email:shopOwnerEmail, target_shop:slug})});
     let j=await r.json();
     if(!r.ok || !j.success){ alert(j.message); btn.innerText=original; return; }
-    // AUTO INCREASE / REDUCE MAGIC!
     let fEl=document.getElementById('statFollowers');
     let cur=parseInt((fEl.innerText||'0').toString().replace(/,/g,''))||0;
     if(isFollowingShop){
@@ -147,12 +166,8 @@ async function load(){
   if(shop.logo){avatarBox.innerHTML=`<img src="${shop.logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
   document.getElementById('shopNameBig').innerText=`🏪 ${shop.business_name}`;
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Quality products!'}<br><span style="color:#FF6A00;font-weight:800">${products.length} Products • Kampala</span>`;
-  
-  // Load FOLLOW stats now
   loadShopFollowStats();
-  
-  // Also load old shop stats for likes/views
-  try{let r=await fetch('/api/shop/'+encodeURIComponent(slug)+'/stats');let s=await r.json(); if(!s.followers){ /* keep our follow count */ } document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString();document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString();}catch(e){document.getElementById('statLikes').innerText=products.length*5;document.getElementById('statViews').innerText=products.length*120;}
+  try{let r=await fetch('/api/shop/'+encodeURIComponent(slug)+'/stats');let s=await r.json(); document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString();document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString();}catch(e){document.getElementById('statLikes').innerText=products.length*5;document.getElementById('statViews').innerText=products.length*120;}
 
   document.getElementById('shopActions').innerHTML=`
 <div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px">
@@ -163,11 +178,10 @@ async function load(){
   <button style="background:#fff;color:#000;border:2px solid #000;padding:10px 14px;border-radius:20px" onclick="shareShop()">🔗 Share</button>
 </div>
 <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
-  <a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;box-shadow:0 2px 8px rgba(255,204,2,0.3)">🎬 View Reels Profile</a>
+  <a href="/@/${cleanSlug(shop.shop_slug||slug)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;box-shadow:0 2px 8px rgba(255,204,2,0.3)">🎬 View Reels Profile</a>
   <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏪 My Shop</a>
 </div>
 <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
-  
   setTimeout(()=>{ checkFollowStatus(); }, 500);
 
   let pEl=document.getElementById('p');
