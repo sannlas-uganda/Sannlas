@@ -1043,8 +1043,6 @@ async function checkFollowStatus(){
   try{ me=JSON.parse(u);}catch(e){return;}
   if(!me.email) return;
   document.querySelectorAll('[id^="follow-btn-"]').forEach(async (btn)=>{
-    if(btn.dataset.checked) return; // ⚡ Already checked this + button, skip!
-    btn.dataset.checked = '1';
     let target = btn.getAttribute('data-email');
     if(!target) return;
     try{
