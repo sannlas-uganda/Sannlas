@@ -54,7 +54,8 @@
 <input id="pQty" type="number" value="1" placeholder="Quantity">
 <select id="pCategory"><option>Electronics</option><option>Fashion</option><option>Home & Living</option><option>Vehicles</option><option>Property</option><option>Other</option></select>
 <input id="pLocation" placeholder="Location e.g. Kampala">
-<input id="pImage" type="file" accept="image/*"><br><br>
+<input id="pImage" type="file" accept="image/*" multiple>
+<small style="color:#666">Upload up to 4 photos - first photo is main photo</small><br><br>
 <button id="postBtn" class="btn btn-yellow" onclick="createProduct()">🚀 Post Product</button>
 <p id="status" style="text-align:center;margin-top:8px;font-weight:bold"></p>
 </div>
@@ -74,7 +75,15 @@ async function loadProducts(){let q=document.getElementById('q').value;let cat=d
 let seen = new Set();
 prods = prods.filter(p => { if(seen.has(p.id)) return false; seen.add(p.id); return true; });
 if(!Array.isArray(prods))prods=[];if(sort=='price_low')prods.sort((a,b)=>(a.price||0)-(b.price||0));else if(sort=='price_high')prods.sort((a,b)=>(b.price||0)-(a.price||0));else prods.sort((a,b)=>(b.created||0)-(a.created||0));document.getElementById('totalProducts').innerText=prods.length;if(prods.length==0){document.getElementById('productsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No products - be first!</p>';return;}document.getElementById('productsGrid').innerHTML=prods.map(p=>`<div class="card" onclick="location.href='/sell/${p.id}'"><img src="${p.image||'https://via.placeholder.com/200'}"><div class="card-body"><b>${(p.name||'').slice(0,25)}</b><br><small>${p.location||''}</small><br><b style="color:#c0392b">UGX ${Number(p.price||0).toLocaleString()}</b></div></div>`).join('');}catch(e){document.getElementById('productsGrid').innerHTML='Error: '+e.message;}}
-async function loadDetail(id){showView('detail');let r=await fetch(`/api/products/${id}`);let p=await r.json();if(!p.id){document.getElementById('productBox').innerHTML='Not found';return;}document.getElementById('productBox').innerHTML=`<img src="${p.image||''}" style="width:100%;height:300px;object-fit:cover"><div style="padding:15px"><h2>${p.name}</h2><p>${p.description||''}</p><h3>UGX ${Number(p.price||0).toLocaleString()}</h3><p>📍 ${p.location} | 📦 ${p.quantity}</p><button class="btn btn-yellow" onclick="window.open('https://wa.me/${(p.phone||'').replace(/[^0-9]/g,'')}')">📞 Contact Seller ${p.phone||''}</button></div>`;}
+async function loadDetail(id){showView('detail');let r=await fetch(`/api/products/${id}`);let p=await r.json();if(!p.id){document.getElementById('productBox').innerHTML='Not found';return;}document.getElementById('productBox').innerHTML=// Build gallery: use p.images array if exists, else fallback to p.image
+let allImages = p.images && p.images.length ? p.images : (p.image ? [p.image] : []);
+let mainImg = allImages[0] || '';
+let thumbs = allImages.map((img, i) => 
+  `<img src="${img}" onclick="document.getElementById('mainImg').src='${img}'" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:${i==0?'3px solid #FFCC02':'1px solid #ddd'};cursor:pointer">`
+).join('');
+
+`<img id="mainImg" src="${mainImg}" style="width:100%;height:300px;object-fit:cover">
+<div style="display:flex;gap:8px;padding:10px;overflow-x:auto">${thumbs}</div>`<div style="padding:15px"><h2>${p.name}</h2><p>${p.description||''}</p><h3>UGX ${Number(p.price||0).toLocaleString()}</h3><p>📍 ${p.location} | 📦 ${p.quantity}</p><button class="btn btn-yellow" onclick="window.open('https://wa.me/${(p.phone||'').replace(/[^0-9]/g,'')}')">📞 Contact Seller ${p.phone||''}</button></div>`;}
 let isUploading = false; // PREVENT DOUBLE
 
 async function createProduct(){
@@ -101,8 +110,10 @@ async function createProduct(){
   fd.append('promo_coins', promoCoins);
   fd.append('promo_commission', promoCoins);
   fd.append('frontPromoComm', promoCoins);
-  let file=document.getElementById('pImage').files[0];
-  if(file)fd.append('images',file);
+  let files=document.getElementById('pImage').files;
+  for(let i=0; i<Math.min(files.length, 4); i++){
+  fd.append('images', files[i]);
+}
   
   try{
     let r=await fetch('/api/products/create',{method:'POST',body:fd});
