@@ -23,10 +23,12 @@
 .follow-plus{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#FFCC02;color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #000;cursor:pointer;transition:0.2s;z-index:7}
 .volume-btn{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.6);border:none;color:#fff;padding:8px 12px;border-radius:20px;z-index:6}
 .unmute-hint{position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);padding:6px 10px;border-radius:10px;font-size:12px;z-index:6}
+#end-msg{display:none;text-align:center;padding:40px;color:#FFCC02;height:100vh;align-items:center;justify-content:center;flex-direction:column}
 </style>
 </head>
 <body>
 <div id="reels-container"></div>
+<div id="end-msg"><div style="font-size:40px">🎉</div><div style="font-weight:900;margin:10px">You watched ALL reels!</div><div style="opacity:.7">Pull to refresh for new ones</div><button onclick="location.reload()" style="margin-top:15px;background:#FFCC02;border:none;padding:12px 24px;border-radius:25px;font-weight:900">🔄 RELOAD</button></div>
 
 <!-- SANNLAS AI CHAT MODAL - NEW -->
 <div id="sannlasAIModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:100000;flex-direction:column">
@@ -58,8 +60,8 @@ function cleanSlug(s){
 }
 let reels=[]; let observer;
 let currentPage = 1;
-let seenIds = new Set();
 let isLoading = false;
+let hasMore = true;
 let watchStartTime = 0;
 let currentReelId = null;
 
@@ -72,86 +74,103 @@ function getViewerEmail(){
 }
 
 async function loadReels(){
- if(isLoading) return; isLoading = true;
+ if(isLoading || !hasMore) return; isLoading = true;
  const viewerEmail = getViewerEmail();
- const seenStr = [...seenIds].join(',');
- const url = `/api/sannlas/reels/feed?user_email=${encodeURIComponent(viewerEmail)}&page=${currentPage}&limit=20&seen=${encodeURIComponent(seenStr)}`;
- const r=await fetch(url); let newReels=await r.json();
- const c=document.getElementById('reels-container');
- if(currentPage===1 && (!newReels || newReels.length==0)){
-   c.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#FFCC02">No reels yet! Upload one.</div>';
-   isLoading=false; return;
- }
- if(!newReels || newReels.length==0){ isLoading=false; return; }
+ // ✅ FIX: NO seen param! Backend now returns ALL reels by page, no skipping!
+ const url = `/api/sannlas/reels/feed?user_email=${encodeURIComponent(viewerEmail)}&page=${currentPage}&limit=20`;
+ try{
+  const r=await fetch(url); let newReels=await r.json();
+  const c=document.getElementById('reels-container');
+  if(currentPage===1 && (!newReels || newReels.length==0)){
+    c.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#FFCC02">No reels yet! Upload one.</div>';
+    isLoading=false; return;
+  }
+  if(!newReels || newReels.length==0){
+    // ✅ REAL END - Show end message, don't keep trying
+    hasMore = false;
+    document.getElementById('end-msg').style.display='flex';
+    isLoading=false; return;
+  }
+  // ✅ If we got less than 20, this was the last page - but still show them!
+  if(newReels.length < 20) hasMore = false;
 
- // Append (not replace) for infinite scroll
- newReels.forEach(reel=> seenIds.add(String(reel.id)));
- if(currentPage===1) reels = newReels; else reels = [...reels, ...newReels];
+  if(currentPage===1) reels = newReels; else reels = [...reels, ...newReels];
 
- const html = newReels.map((reel,i)=>{
-  const slug = cleanSlug(reel.shop_slug||reel.shop_name||'shop');
-  const logo = reel.shop_logo || '';
-  const shopInitial = (reel.shop_name||'S')[0].toUpperCase();
-  const email = (reel.user_email||reel.shop_email||reel.email||'').toLowerCase();
-  const isFollowing = reel.is_following ? '✓' : '+';
-  const followStyle = reel.is_following ? "background:#fff;color:#00CC00;border-color:#00CC00" : "";
+  const html = newReels.map((reel,i)=>{
+   const slug = cleanSlug(reel.shop_slug||reel.shop_name||'shop');
+   const logo = reel.shop_logo || '';
+   const shopInitial = (reel.shop_name||'S')[0].toUpperCase();
+   const email = (reel.user_email||reel.shop_email||reel.email||'').toLowerCase();
+   const isFollowing = reel.is_following ? '✓' : '+';
+   const followStyle = reel.is_following ? "background:#fff;color:#00CC00;border-color:#00CC00" : "";
+   const profileHtml = `
+     <div class="profile-btn-wrap">
+       <div class="profile-avatar" onclick="event.stopPropagation(); location.href='/shop/${slug}'">
+         ${logo ? `<img src="${logo}">` : shopInitial}
+       </div>
+       <div class="follow-plus" data-email="${email}" data-slug="${slug}" style="${followStyle}" id="follow-btn-${reel.id}" onclick="event.stopPropagation(); toggleFollowReal(this)">${isFollowing}</div>
+     </div>`;
+   return `
+  <div class="reel" data-id="${reel.id}">
+   <video src="${reel.video_url}" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
+   <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
+   <div class="unmute-hint">Tap 🔊 for sound</div>
+   <div class="right-actions">
+     ${profileHtml}
+     <button class="action-btn" onclick="likeReel(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes||0}</span></button>
+     <button class="action-btn" onclick="shareReel(${reel.id}, this)">↗️<br><span style="font-size:10px">${reel.shares||0}</span></button>
+     <button class="action-btn" onclick="saveReel(${reel.id}, this)">🔖<br><span style="font-size:10px">${reel.saves||0}</span></button>
+   </div>
+   <div class="overlay">
+     <a class="shop-name" href="/@/${slug}">🏪 @${(reel.shop_name||'SHOP').toUpperCase()} ➔ PROFILE</a>
+     <a class="product-title" href="/@/${slug}">${reel.product_name||reel.caption||'New Collection'}</a>
+     <div class="product-desc">${(reel.description||'').slice(0,80)}</div>
+     <div style="font-size:11px;color:#aaa;margin:4px 0">👁️ ${reel.views||0} views • ${reel.category||''}</div>
+     <div class="action-col">
+       <a href="/shop/${slug}" class="promote-btn">🏪 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
+       <button class="shop-btn" onclick="location.href='/shop/${slug}'">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW SHOP</button>
+       <button onclick="openSannlasAI('${slug}')" style="background:linear-gradient(135deg,#000,#1a1a1a);color:#FFCC02;padding:12px 20px;border-radius:25px;font-weight:900;border:2px solid #FFCC02;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 10px rgba(255,204,2,0.3)">🧠 SANNLAS AI - ASK ANYTHING</button>
+     </div>
+     <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="/shop/${slug}">@${slug} • ${reel.location||'Uganda'} ➔ Tap profile pic to View Shop</a></div>
+   </div>
+  </div>`}).join('');
 
-  const profileHtml = `
-    <div class="profile-btn-wrap">
-      <div class="profile-avatar" onclick="event.stopPropagation(); location.href='/shop/${slug}'">
-        ${logo ? `<img src="${logo}">` : shopInitial}
-      </div>
-      <div class="follow-plus" data-email="${email}" data-slug="${slug}" style="${followStyle}" id="follow-btn-${reel.id}" onclick="event.stopPropagation(); toggleFollowReal(this)">${isFollowing}</div>
-    </div>`;
+  if(currentPage===1) c.innerHTML = html;
+  else c.insertAdjacentHTML('beforeend', html);
 
-  return `
- <div class="reel" data-id="${reel.id}">
-  <video src="${reel.video_url}" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
-  <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
-  <div class="unmute-hint">Tap 🔊 for sound</div>
-  <div class="right-actions">
-    ${profileHtml}
-    <button class="action-btn" onclick="likeReel(${reel.id}, this)">❤️<br><span style="font-size:10px">${reel.likes||0}</span></button>
-    <button class="action-btn" onclick="shareReel(${reel.id}, this)">↗️<br><span style="font-size:10px">${reel.shares||0}</span></button>
-    <button class="action-btn" onclick="saveReel(${reel.id}, this)">🔖<br><span style="font-size:10px">${reel.saves||0}</span></button>
-  </div>
-  <div class="overlay">
-    <a class="shop-name" href="/@/${slug}">🏪 @${(reel.shop_name||'SHOP').toUpperCase()} ➔ PROFILE</a>
-    <a class="product-title" href="/@/${slug}">${reel.product_name||reel.caption||'New Collection'}</a>
-    <div class="product-desc">${(reel.description||'').slice(0,80)}</div>
-    <div style="font-size:11px;color:#aaa;margin:4px 0">👁️ ${reel.views||0} views • ${reel.category||''}</div>
-    <div class="action-col">
-      <a href="/shop/${slug}" class="promote-btn">🏪 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
-      <button class="shop-btn" onclick="location.href='/shop/${slug}'">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW SHOP</button>
-      <button onclick="openSannlasAI('${slug}')" style="background:linear-gradient(135deg,#000,#1a1a1a);color:#FFCC02;padding:12px 20px;border-radius:25px;font-weight:900;border:2px solid #FFCC02;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 10px rgba(255,204,2,0.3)">🧠 SANNLAS AI - ASK ANYTHING</button>
-    </div>
-    <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="/shop/${slug}">@${slug} • ${reel.location||'Uganda'} ➔ Tap profile pic to View Shop</a></div>
-  </div>
- </div>`}).join('');
+  observeVideos();
+  addVideoClickHandlers();
+  checkFollowStatus();
+ }catch(e){ console.log("Load reels fail", e); }
+ isLoading=false;
+}
 
- if(currentPage===1) c.innerHTML = html;
- else c.insertAdjacentHTML('beforeend', html);
+// ✅ FIX: INFINITE SCROLL - Load next page when 3 reels from bottom!
+document.getElementById('reels-container').addEventListener('scroll', function(){
+  if(!hasMore || isLoading) return;
+  const c = this;
+  const remaining = c.scrollHeight - c.scrollTop - c.clientHeight;
+  // If within 2 screens from bottom, load more
+  if(remaining < c.clientHeight * 2){
+    currentPage++;
+    loadReels();
+  }
+});
 
- function observeVideos(){
+function observeVideos(){
  const videos=document.querySelectorAll('video:not([data-observed])');
  observer = observer || new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
    const reelId = e.target.getAttribute('data-reel-id');
    if(e.isIntersecting){
      e.target.play().catch(()=>{});
-     // START WATCH TIMER + SEND VIEW
-     if(currentReelId && currentReelId !== reelId){
-       sendWatchTime(currentReelId); // send previous reel watch time
-     }
+     if(currentReelId && currentReelId !== reelId){ sendWatchTime(currentReelId); }
      currentReelId = reelId;
      watchStartTime = Date.now();
      sendView(reelId);
    } else {
      e.target.pause();
-     if(currentReelId === reelId){
-       sendWatchTime(reelId);
-       currentReelId = null;
-     }
+     if(currentReelId === reelId){ sendWatchTime(reelId); currentReelId = null; }
    }
   });
  },{threshold:0.7});
@@ -159,37 +178,24 @@ async function loadReels(){
 }
 
 async function sendView(reelId){
-  try{
-    await fetch('/api/sannlas/reels/view/'+reelId, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({user_email: getViewerEmail(), watch_time: 0})
-    });
-  }catch(e){}
+  try{ await fetch('/api/sannlas/reels/view/'+reelId, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_email: getViewerEmail(), watch_time: 0})}); }catch(e){}
 }
 async function sendWatchTime(reelId){
   if(!watchStartTime) return;
   const seconds = (Date.now() - watchStartTime)/1000;
-  if(seconds < 0.5) return; // ignore quick swipe
-  try{
-    await fetch('/api/sannlas/reels/view/'+reelId, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({user_email: getViewerEmail(), watch_time: seconds})
-    });
-  }catch(e){}
+  if(seconds < 0.5) return;
+  try{ await fetch('/api/sannlas/reels/view/'+reelId, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_email: getViewerEmail(), watch_time: seconds})}); }catch(e){}
   watchStartTime = 0;
 }
-
 async function likeReel(id,btn){
  await fetch('/api/sannlas/reels/like/'+id,{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_email: getViewerEmail()})});
  let span=btn.querySelector('span'); if(span){span.innerText=parseInt(span.innerText||0)+1;}
- // Visual feedback
  btn.style.transform='scale(1.3)'; setTimeout(()=> btn.style.transform='scale(1)', 200);
 }
 async function shareReel(id, btn){
   try{
     await fetch('/api/sannlas/reels/share/'+id, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_email: getViewerEmail()})});
     let span=btn.querySelector('span'); if(span){span.innerText=parseInt(span.innerText||0)+1;}
-    // Native share if available
     const reel = reels.find(r=> String(r.id)===String(id));
     const shareUrl = location.origin + '/reels';
     if(navigator.share && reel){ navigator.share({title: reel.caption||'Sannlas Reel', text: reel.caption||'', url: shareUrl}); }
@@ -202,7 +208,7 @@ async function saveReel(id, btn){
   btn.innerText = '✅'; setTimeout(()=> btn.innerHTML='🔖<br><span style="font-size:10px">'+span.innerText+'</span>', 1000);
 }
 function addVideoClickHandlers(){
- document.querySelectorAll('.reel video').forEach(v=>v.addEventListener('click',function(){this.muted=!this.muted;document.querySelectorAll('.volume-btn').forEach(b=>b.innerText=this.muted?'🔇':'🔊');}));
+ document.querySelectorAll('.reel video:not([data-click])').forEach(v=>{ v.setAttribute('data-click','1'); v.addEventListener('click',function(){this.muted=!this.muted;document.querySelectorAll('.volume-btn').forEach(b=>b.innerText=this.muted?'🔇':'🔊');}); });
 }
 function toggleVolume(btn){
  const video=btn.parentElement.querySelector('video');
@@ -210,20 +216,16 @@ function toggleVolume(btn){
  btn.innerText=video.muted?'🔇':'🔊';
 }
 
-// ===== SANNLAS AI FUNCTIONS - NEW =====
+// ===== SANNLAS AI =====
 let aiHistory = [];
 let currentShopSlug = '';
 function openSannlasAI(shopSlug=''){
   currentShopSlug = shopSlug;
   document.getElementById('sannlasAIModal').style.display='flex';
   document.getElementById('aiInput').focus();
-  if(shopSlug){
-    document.getElementById('aiInput').placeholder = `Ask about @${shopSlug} or anything...`;
-  }
+  if(shopSlug){ document.getElementById('aiInput').placeholder = `Ask about @${shopSlug} or anything...`; }
 }
-function closeSannlasAI(){
-  document.getElementById('sannlasAIModal').style.display='none';
-}
+function closeSannlasAI(){ document.getElementById('sannlasAIModal').style.display='none'; }
 async function sendToAI(){
   let input=document.getElementById('aiInput'); let msg=input.value.trim(); if(!msg) return;
   let box=document.getElementById('aiMessages');
@@ -257,7 +259,6 @@ async function toggleFollowReal(btn){
   try{
     let r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({email: user.email,phone: user.phone||'',target_email: targetEmail,target_shop: targetShop})});
     let j = await r.json();
-    // Also notify algorithm (so For You boosts this shop)
     try{ await fetch('/api/sannlas/reels/follow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({follower_email:user.email, following_email:targetEmail})}); }catch(e){}
     if(!r.ok || !j.success){ alert(j.message || 'Failed'); btn.innerHTML = originalHTML; btn.disabled = false; return; }
     if(isFollowing){ btn.innerHTML = '+'; btn.classList.remove('following'); btn.style.background = '#FFCC02'; btn.style.color = '#000'; }
