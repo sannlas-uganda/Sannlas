@@ -14,15 +14,17 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
 .product-card img{width:100%;height:180px;object-fit:cover;background:#f6f7f8;display:block}
 .p-info{padding:10px}
 .off{background:#FF0000;color:white;padding:4px 8px;border-radius:8px;font-size:10px;font-weight:900;position:absolute;top:8px;left:8px;z-index:2}
+.photo-count{background:rgba(0,0,0,0.7);color:white;padding:4px 8px;border-radius:8px;font-size:10px;font-weight:900;position:absolute;bottom:8px;right:8px;z-index:2}
 .search-bar{margin:12px auto;max-width:780px;background:white;padding:8px 14px;border-radius:28px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.05)}
 .search-bar input{border:none;outline:none;flex:1;padding:8px}
-/* MODAL - SAME AS HOME PAGE */
 .popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);backdrop-filter:blur(18px);display:none;align-items:center;justify-content:center;z-index:9999;padding:12px}
 .popup-content{background:rgba(255,255,255,0.9);backdrop-filter:blur(30px);border-radius:28px;max-width:900px;width:98%;max-height:95vh;overflow:auto;border:2px solid rgba(255,255,255,0.8);box-shadow:0 25px 80px rgba(0,0,0,0.4)}
 .pro-top{display:flex;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,0,0,0.06)}
 .pro-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}
 @media(max-width:700px){.pro-body{grid-template-columns:1fr}}
 .pro-img{width:100%;height:320px;object-fit:cover;border-radius:20px;background:#fff;border:2px solid rgba(255,255,255,0.8)}
+.thumb{width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid #ddd;cursor:pointer;background:#fff}
+.thumb.active{border:3px solid #FF6600}
 .btn{border:none;padding:12px 18px;border-radius:20px;font-weight:900;cursor:pointer}
 .btn-black{background:#000;color:#FFCC02;width:100%}
 .btn-orange{background:#FF6600;color:white;width:100%;margin-top:8px}
@@ -42,7 +44,6 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
 
 <div id="products" class="products-grid">Loading Boss...</div>
 
-<!-- DETAILS MODAL - THIS WAS MISSING -->
 <div class="popup" id="viewPop" onclick="closePop()">
   <div class="popup-content" id="viewContent" onclick="event.stopPropagation()">
   </div>
@@ -57,15 +58,31 @@ async function load(){
   render(allProducts);
 }
 
+// FIXED: Get all images, not just p.image
+function getAllImages(p){
+  if(p.images && Array.isArray(p.images) && p.images.length>0) return p.images;
+  if(typeof p.images === 'string' && p.images.length>0){
+    try { let parsed = JSON.parse(p.images); if(Array.isArray(parsed)) return parsed; } catch(e){}
+    if(p.images.includes(',')) return p.images.split(',');
+    return [p.images];
+  }
+  if(p.image) return [p.image];
+  if(p.image_url) return [p.image_url];
+  return ['/icon-192.png'];
+}
+
 function render(list){
   document.getElementById('products').innerHTML = list.map(p=>{
     let name = p.name || p.product_name || 'Product';
-    let img = p.image || p.image_url || '/icon-192.png';
+    let img = getAllImages(p)[0];
     let price = p.price || 0;
     let discount = p.original_price && p.original_price > price ? Math.round((p.original_price - price)*100/p.original_price) + '% OFF' : '10% OFF';
+    let count = getAllImages(p).length;
+    let badge = count > 1 ? `<span class="photo-count">📸 ${count} photos</span>` : '';
     return `
     <div class="product-card" onclick="openProduct('${p.id}')">
       <span class="off">${discount}</span>
+      ${badge}
       <img src="${img}" onerror="this.src='/icon-192.png'" loading="lazy">
       <div class="p-info">
         <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
@@ -76,16 +93,25 @@ function render(list){
   }).join('');
 }
 
+// FIXED: Gallery with thumbnails
 function openProduct(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
   if(!p) return;
   let name = p.name || p.product_name || 'Product';
-  let img = p.image || p.image_url || '/icon-192.png';
+  let allImgs = getAllImages(p);
+  let img = allImgs[0];
   let price = p.price || 0;
   let orig = p.original_price || price;
   let desc = p.description || p.desc || 'No description. Contact seller for details.';
   let phone = p.phone || p.business_phone || 'Contact via Shop';
   let biz = p.business || p.business_name || 'SANNLAS Seller';
+
+  let thumbsHtml = '';
+  if(allImgs.length > 1){
+    thumbsHtml = `<div style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px">` +
+      allImgs.map((im,i)=>`<img src="${im}" class="thumb ${i==0?'active':''}" onclick="changeMainImg(this,'${im}')" onerror="this.style.display='none'">`).join('') +
+      `</div><p style="text-align:center;color:#888;font-size:11px;margin-top:4px">📸 ${allImgs.length} photos - Tap to view</p>`;
+  }
 
   document.getElementById('viewContent').innerHTML = `
     <div class="pro-top">
@@ -94,7 +120,8 @@ function openProduct(id){
     </div>
     <div class="pro-body">
       <div>
-        <img src="${img}" class="pro-img">
+        <img id="mainImg" src="${img}" class="pro-img" onerror="this.src='/icon-192.png'">
+        ${thumbsHtml}
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <span style="background:#f0f0f0;padding:6px 10px;border-radius:12px;font-size:11px">📍 ${p.location||'Kampala'}</span>
           <span style="background:#FF0000;color:white;padding:6px 10px;border-radius:12px;font-size:11px;font-weight:900">${orig>price?Math.round((orig-price)*100/orig)+'% OFF':'10% OFF'}</span>
@@ -118,6 +145,12 @@ function openProduct(id){
     </div>
   `;
   document.getElementById('viewPop').style.display='flex';
+}
+
+function changeMainImg(el, src){
+  document.getElementById('mainImg').src = src;
+  document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
 }
 
 function closePop(){ document.getElementById('viewPop').style.display='none'; }
@@ -157,25 +190,22 @@ async function addToCart(id){
   let user = getUser();
   let email = (user.email || '').toLowerCase().trim();
   let phone = (user.phone || '').trim();
-
   if(!email && !phone){
     alert('⚠️ Please login first Boss! Go to Home and login.');
     window.location.href = '/';
     return;
   }
-
   let payload = {
     email: email,
     phone: phone,
     product_id: String(p.id),
     name: p.name || p.product_name || 'Product',
     price: Number(p.price || 0),
-    image: p.image || p.image_url || '/icon-192.png',
+    image: getAllImages(p)[0],
     shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS',
     shop_slug: p.shop_slug || p.slug || '',
     qty: 1
   };
-
   try {
     let r = await fetch('/api/cart/add', {
       method: 'POST',
@@ -184,11 +214,9 @@ async function addToCart(id){
     });
     let res = await r.json();
     if(res.success){
-      // Also save to local for backup
       let cart = JSON.parse(localStorage.getItem('sannlas_cart')||'[]');
       if(!cart.includes(id)) cart.push(id);
       localStorage.setItem('sannlas_cart', JSON.stringify(cart));
-      
       alert('✅ ' + res.message + ' Go to Cart to view!');
       closePop();
     } else {
