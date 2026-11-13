@@ -952,90 +952,6 @@ async function toggleFollowReal(btn){
     btn.classList.toggle('following', isFollowing);
   }
 }
-  
-  let targetEmail = btn.getAttribute('data-email') || btn.getAttribute('data-user-email') || '';
-  let targetShop = btn.getAttribute('data-slug') || btn.getAttribute('data-shop') || '';
-  
-  if(!targetEmail && targetShop){
-    // Try get email from data
-    targetEmail = '';
-  }
-  
-  // Prevent self follow
-  if(targetEmail && user.email.toLowerCase() === targetEmail.toLowerCase()){
-    alert("Can't follow yourself Boss!"); return;
-  }
-
-  let isFollowing = btn.innerText.includes('✓') || btn.classList.contains('following');
-  let url = isFollowing ? '/api/unfollow' : '/api/follow';
-  
-  let originalHTML = btn.innerHTML;
-  btn.innerHTML = '...';
-  btn.disabled = true;
-
-  try{
-    let r = await fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        email: user.email,
-        phone: user.phone||'',
-        target_email: targetEmail,
-        target_shop: targetShop
-      })
-    });
-    let j = await r.json();
-    
-    if(!r.ok || !j.success){
-      alert(j.message || 'Failed');
-      btn.innerHTML = originalHTML;
-      btn.disabled = false;
-      return;
-    }
-
-    // ✅ AUTO INCREASE / REDUCE - MAGIC!
-    if(isFollowing){
-      btn.innerHTML = '+';
-      btn.classList.remove('following');
-      btn.style.background = '#FFCC02';
-      btn.style.color = '#000';
-    } else {
-      btn.innerHTML = '✓';
-      btn.classList.add('following');
-      btn.style.background = '#fff';
-      btn.style.color = '#00CC00';
-      btn.style.borderColor = '#00CC00';
-    }
-
-    // ✅ Update ALL follower counts on page if same shop
-    if(targetShop){
-      try{
-        let rr = await fetch('/api/user/follow-count/' + encodeURIComponent(targetShop));
-        let dd = await rr.json();
-   // Update all same shop buttons
-        document.querySelectorAll(`[data-slug="${targetShop}"]`).forEach(b=>{
-          if(b !== btn){
-            b.innerHTML = isFollowing ? '+' : '✓';
-            if(isFollowing){
-              b.classList.remove('following');
-              b.style.background='#FFCC02'; b.style.color='#000';
-            } else {
-              b.classList.add('following');
-              b.style.background='#fff'; b.style.color='#00CC00';
-            }
-          }
-        });
-      }catch(e){ console.log(e); }
-    }
-
-    btn.disabled = false;
-    
-  }catch(e){
-    btn.innerHTML = originalHTML;
-    btn.disabled = false;
-    alert(e.message);
-  }
-}
 async function checkFollowStatus(){
   let u = localStorage.getItem('sannlas_user');
   if(!u) return;
@@ -1043,6 +959,8 @@ async function checkFollowStatus(){
   try{ me=JSON.parse(u);}catch(e){return;}
   if(!me.email) return;
   document.querySelectorAll('[id^="follow-btn-"]').forEach(async (btn)=>{
+    if(btn.dataset.checked) return;
+    btn.dataset.checked = '1';
     let target = btn.getAttribute('data-email');
     if(!target) return;
     try{
@@ -1054,50 +972,33 @@ async function checkFollowStatus(){
     }catch(e){}
   });
 }
-let homePage = 1;
-let homeSeenIds = new Set();
-let homeIsLoading = false;
-let homeWatchStart = 0;
-let homeCurrentReel = null;
-
-function getHomeViewerEmail(){
-  try{
-    let u = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
-    if(u.user) u = u.user;
-    return (u.email||'').toLowerCase();
-  }catch(e){ return ''; }
-}
 
 async function loadHomeReels(){
   if(homeIsLoading) return; homeIsLoading = true;
-  // ⚡ INSTANT - Show last reels from phone memory, 0 seconds!
   try{
     let instantCached = JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
     if(instantCached.length>0 && homePage===1){
       renderReels(instantCached, true);
-      // Don't block - let user watch old reels while new ones load
       homeIsLoading = false;
     }
   }catch(e){}
   let c=document.getElementById('reelsFeedContainer');
-  if(!c) return;
-  // ⚡ DON'T overwrite instant reels! Only show Loading if NO cache!
+  if(!c){ homeIsLoading=false; return; }
   if(homePage===1 && !localStorage.getItem('sannlas_reels_cache')) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡</div>';
   try{
     let email = getHomeViewerEmail();
     let seen = [...homeSeenIds].join(',');
-let controller = new AbortController();
-setTimeout(()=>controller.abort(), 5000);
-let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
-let reels=await r.json();
+    let controller = new AbortController();
+    setTimeout(()=>controller.abort(), 30000);
+    let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
+    let reels=await r.json();
+    homeIsLoading = false;
     if(!reels || !reels.length){
-      c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
+      if(homePage===1) c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
       return;
     }
-      try{ localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,6))); }catch(e){}
+    try{ localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,6))); }catch(e){}
     renderReels(reels, homePage===1);
-    homeIsLoading = false;
-    // Infinite scroll for home feed
     if(homePage===1){
       c.addEventListener('scroll', ()=>{
         if(c.scrollTop + c.clientHeight > c.scrollHeight - 400 && !homeIsLoading){
@@ -1107,8 +1008,10 @@ let reels=await r.json();
     }
   }catch(e){
     console.error(e);
+    homeIsLoading = false;
     let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
     if(cached.length>0) renderReels(cached);
+    else if(homePage===1) c.innerHTML='<p style="padding:20px;color:#fff;text-align:center">Tap to retry<br><button onclick="homePage=1;loadHomeReels()" style="background:#FFCC02;padding:10px 20px;border:none;border-radius:20px;font-weight:900">RETRY</button></p>';
   }
 }
 function renderReels(reels, isFirst=true){
@@ -1623,6 +1526,7 @@ function doFilter(){
 }
 function render(){
   const container=document.getElementById('products');
+  if(!container) return;
   if(!products || products.length==0){
     container.innerHTML='<p style="text-align:center;padding:40px;color:#999">No products found Boss 😔</p>';
     return;
