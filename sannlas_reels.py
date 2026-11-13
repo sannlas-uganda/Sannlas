@@ -409,10 +409,10 @@ def save_reel_url():
         promo_link = d.get('promo_link') or ''
         conn = get_conn(); cur = conn.cursor()
        cur.execute("""
-       INSERT INTO sannlas_reels 
-       (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, category, hashtags, location, price, promo_link, product_link)
-       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,%s,%s,%s) RETURNING id
-       """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url, category, hashtags, location, price, promo_link, promo_link))
+           INSERT INTO sannlas_reels 
+           (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, category, hashtags, location, price, promo_link, product_link)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,%s,%s,%s) RETURNING id
+       """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url, category, hashtags, location, price, promo_link)
         new_id = cur.fetchone()[0]
         conn.commit(); cur.close(); conn.close()
         _feed_cache['data'] = []
