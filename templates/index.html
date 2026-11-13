@@ -908,9 +908,15 @@ function cleanSlug(s){
 // ===== INSTANT: Save shop BEFORE leaving Reels, so shop.html opens in 0ms! =====
 let _reelsBySlug = {};
 function openShopInstantFromReel(r){
-  // ⚡ GO FIRST - Don't wait for storage writes!
   let slug = cleanSlug(r.shop_slug||r.shop_name||'shop');
+  // ⚡ REMEMBER: Came from REELS, not from All Shops!
+  try{
+    sessionStorage.setItem('sannlas_back_to', '/');
+    sessionStorage.setItem('sannlas_back_label', 'Back to Reels');
+    sessionStorage.setItem('sannlas_shop_from', 'reels');
+  }catch(e){}
   window.location.href = '/shop/' + encodeURIComponent(slug);
+}
   // Save in background AFTER navigation starts
   try{
     let shopData = {shop_slug:slug, shop_name:r.shop_name||r.business||r.shop_slug||'Shop', shop_logo:r.shop_logo||r.logo||r.avatar||'', shop_phone:r.shop_phone||r.phone||'', shop_location:r.location||'Kampala', products:[], fromReel:true, savedAt:Date.now()};
