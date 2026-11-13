@@ -17,31 +17,45 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
 .photo-count{background:rgba(0,0,0,0.7);color:white;padding:4px 8px;border-radius:8px;font-size:10px;font-weight:900;position:absolute;bottom:8px;right:8px;z-index:2}
 .search-bar{margin:12px auto;max-width:780px;background:white;padding:8px 14px;border-radius:28px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.05)}
 .search-bar input{border:none;outline:none;flex:1;padding:8px}
-.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);backdrop-filter:blur(18px);display:none;align-items:center;justify-content:center;z-index:9999;padding:12px}
-.popup-content{border-radius:28px;max-width:950px;width:98%;max-height:95vh;overflow:hidden;border:2px solid rgba(255,255,255,0.8);box-shadow:0 25px 80px rgba(0,0,0,0.4);transition:background 0.5s ease}
-.pro-top{display:flex;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(0,0,0,0.06);background:rgba(255,255,255,0.6);backdrop-filter:blur(10px)}
-.pro-body{display:grid;grid-template-columns:1.2fr 1fr;gap:0;min-height:480px}
-@media(max-width:700px){.pro-body{grid-template-columns:1fr;overflow-y:auto;max-height:calc(95vh - 60px)}}
-.pro-left{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden}
-.slider-viewport{width:100%;max-width:380px;height:340px;overflow:hidden;border-radius:20px;position:relative;cursor:grab;touch-action:pan-y}
-.slider-viewport:active{cursor:grabbing}
-.slider-track{display:flex;width:100%;height:100%;transition:transform 0.45s cubic-bezier(0.25,0.8,0.25,1);will-change:transform}
-.slider-track.no-anim{transition:none}
-.slider-track img{width:100%;height:100%;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 25px 30px rgba(0,0,0,0.35));background:transparent;pointer-events:none;user-select:none;-webkit-user-drag:none}
+
+/* ===== TIKTOK EXACT LAYOUT ===== */
+.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9999;padding:0}
+.popup-content{width:100%;height:100%;max-width:1200px;max-height:100vh;overflow:hidden;position:relative;transition:background 0.6s ease;display:flex;flex-direction:column}
+@media(min-width:700px){.popup-content{border-radius:28px;width:98%;height:92vh;max-height:720px}}
+.tik-top{display:flex;justify-content:space-between;align-items:center;padding:16px 28px}
+.tik-top .logo{font-family:Georgia,serif;font-size:22px;font-weight:900;letter-spacing:1px}
+.tik-top .nav{display:flex;gap:18px;font-size:13px;font-weight:600}
+.tik-top .nav span{cursor:pointer;opacity:0.7}
+.tik-top .nav span.active{background:white;padding:4px 10px;border-radius:20px;opacity:1}
+.tik-main{flex:1;display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;gap:10px;padding:0 28px;position:relative}
+@media(max-width:700px){.tik-main{grid-template-columns:1fr;padding:10px 18px;overflow-y:auto}.tik-left{display:none}.tik-right{order:3}.tik-center{order:1}}
+.tik-left h1{font-family:Georgia,serif;font-size:38px;line-height:1.1;font-weight:900}
+@media(max-width:900px){.tik-left h1{font-size:28px}}
+.tik-left p{font-size:12px;line-height:1.5;color:#333;margin:14px 0;opacity:0.8}
+.get-look{background:#000;color:white;border:none;padding:10px 20px;border-radius:20px;font-weight:700;font-size:12px;cursor:pointer}
+.tik-center{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hanger{font-size:28px;margin-bottom:-8px;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2))}
+.slider-viewport{width:100%;max-width:360px;height:360px;overflow:hidden;border-radius:20px;cursor:grab;touch-action:pan-y}
 @media(max-width:700px){.slider-viewport{height:280px}}
-.pro-right{padding:20px;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);display:flex;flex-direction:column;justify-content:center}
-.arrow-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.7);color:white;border:none;width:42px;height:42px;border-radius:50%;font-size:22px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center}
-.arrow-btn:active{transform:translateY(-50%) scale(0.9)}
-.arrow-left{left:12px}
-.arrow-right{right:12px}
-.thumb{width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.9);cursor:pointer;background:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
-.thumb.active{border:3px solid #FF6600;transform:scale(1.1)}
-.dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.25);cursor:pointer;transition:all 0.3s}
-.dot.active{background:#FF6600;width:22px;border-radius:10px}
-.size-btn{padding:8px 14px;border-radius:50%;border:2px solid #000;background:white;color:#000;font-weight:800;font-size:12px;cursor:pointer;min-width:42px}
-.size-btn.active{background:#000;color:white}
-.next-preview{position:absolute;bottom:12px;right:12px;text-align:center;z-index:4}
-.next-preview img{width:60px;height:70px;object-fit:cover;border-radius:10px;border:2px solid white;box-shadow:0 8px 20px rgba(0,0,0,0.3)}
+.slider-track{display:flex;width:100%;height:100%;transition:transform 0.55s cubic-bezier(0.25,0.8,0.25,1)}
+.slider-track.no-anim{transition:none}
+.slider-track img{width:100%;height:100%;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 25px 25px rgba(0,0,0,0.35));pointer-events:none;user-select:none;-webkit-user-drag:none}
+.shadow-ellipse{width:160px;height:18px;background:radial-gradient(ellipse,rgba(0,0,0,0.35),transparent);border-radius:50%;margin-top:6px}
+.tik-right{text-align:right}
+.tik-right .price{font-size:30px;font-weight:900}
+.tik-right .old-price{font-size:18px;color:#555;text-decoration:line-through;margin-top:2px}
+.tik-right .size-label{font-size:12px;margin:14px 0 8px}
+.size-btn{width:42px;height:42px;border-radius:50%;border:2px solid #000;background:#000;color:white;font-weight:800;font-size:11px;cursor:pointer}
+.size-btn.active{background:white;color:#000}
+.tik-bottom{display:flex;justify-content:space-between;align-items:flex-end;padding:14px 28px 20px}
+.tik-bottom .socials{font-size:16px;letter-spacing:8px}
+.arrow-btn{width:46px;height:46px;border-radius:50%;border:2px solid #000;background:transparent;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.arrow-btn:active{transform:scale(0.9)}
+.next-preview{text-align:center}
+.next-preview img{width:70px;height:80px;object-fit:cover;border-radius:12px;border:2px solid white;box-shadow:0 8px 20px rgba(0,0,0,0.3);background:white}
+.counter{font-size:12px;font-weight:800;background:rgba(0,0,0,0.6);color:white;padding:4px 10px;border-radius:20px;display:inline-block;margin-top:8px}
+.thumb{width:48px;height:48px;object-fit:cover;border-radius:8px;border:2px solid white;cursor:pointer;background:white}
+.thumb.active{border:3px solid #FF6600}
 .btn{border:none;padding:12px 18px;border-radius:20px;font-weight:900;cursor:pointer}
 .btn-black{background:#000;color:#FFCC02;width:100%}
 .btn-orange{background:#FF6600;color:white;width:100%;margin-top:8px}
@@ -53,10 +67,7 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
   <b>SANNLAS PRODUCTS</b>
   <span>🛒</span>
 </div>
-<div class="search-bar">
-  <span>🔍</span>
-  <input id="searchInput" placeholder="Search products..." onkeyup="filterProducts()">
-</div>
+<div class="search-bar"><span>🔍</span><input id="searchInput" placeholder="Search products..." onkeyup="filterProducts()"></div>
 <div id="products" class="products-grid">Loading Boss...</div>
 <div class="popup" id="viewPop" onclick="closePop()">
   <div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div>
@@ -66,13 +77,16 @@ let allProducts=[];
 let currentImgs=[];
 let currentIdx=0;
 let selectedSize='';
+// TikTok colors - background changes to match shirt!
 let bgColors=[
-  'linear-gradient(135deg,#FFE8EC,#FFD6DE)',
-  'linear-gradient(135deg,#E8F0FF,#D6E4FF)',
-  'linear-gradient(135deg,#FFF3D6,#FFE8A3)',
-  'linear-gradient(135deg,#E6FFE6,#C8FFC8)',
-  'linear-gradient(135deg,#F0E6FF,#DCC8FF)',
-  'linear-gradient(135deg,#FFE6D6,#FFC8A3)'
+  'linear-gradient(180deg,#F8D7DE,#F5C6D0)',
+  'linear-gradient(180deg,#E91E63,#D81B60)',
+  'linear-gradient(180deg,#8B6F5E,#7A5E4F)',
+  'linear-gradient(180deg,#F5E6C8,#EED9A8)',
+  'linear-gradient(180deg,#4A4A4A,#333333)',
+  'linear-gradient(180deg,#FFF3D6,#FFE8A3)',
+  'linear-gradient(180deg,#E8F0FF,#D6E4FF)',
+  'linear-gradient(180deg,#E6FFE6,#C8FFC8)'
 ];
 async function load(){
   const r = await fetch('/api/products?limit=200');
@@ -98,17 +112,14 @@ function render(list){
     let discount = p.original_price && p.original_price > price ? Math.round((p.original_price - price)*100/p.original_price) + '% OFF' : '10% OFF';
     let count = getAllImages(p).length;
     let badge = count > 1 ? `<span class="photo-count">📸 ${count} photos</span>` : '';
-    return `
-    <div class="product-card" onclick="openProduct('${p.id}')">
-      <span class="off">${discount}</span>
-      ${badge}
+    return `<div class="product-card" onclick="openProduct('${p.id}')">
+      <span class="off">${discount}</span>${badge}
       <img src="${img}" onerror="this.src='/icon-192.png'" loading="lazy">
       <div class="p-info">
         <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
         <b style="color:#FF6600;font-size:13px">UGX ${Number(price).toLocaleString()}</b>
         <div style="font-size:10px;color:#666">📍 ${p.location||'Kampala'}</div>
-      </div>
-    </div>`;
+      </div></div>`;
   }).join('');
 }
 function isFashion(p){
@@ -124,62 +135,70 @@ function openProduct(id){
   let name = p.name || p.product_name || 'Product';
   let price = p.price || 0;
   let orig = p.original_price || price;
-  let desc = p.description || p.desc || 'No description. Contact seller for details.';
+  let desc = p.description || p.desc || 'Discover premium t-shirts, hoodies, and sweatshirts designed for comfort, quality, and everyday expression.';
   let phone = p.phone || p.business_phone || 'Contact via Shop';
   let biz = p.business || p.business_name || 'SANNLAS Seller';
+  let isFash = isFashion(p);
   let sizeHtml = '';
-  if(isFashion(p)){
-    sizeHtml = `
-    <div style="margin:14px 0">
-      <div style="font-size:12px;font-weight:700;margin-bottom:8px">Choose your size</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="size-btn" onclick="pickSize(this,'XL')">XL</button>
-        <button class="size-btn" onclick="pickSize(this,'2XL')">2XL</button>
-        <button class="size-btn" onclick="pickSize(this,'3XL')">3XL</button>
-        <button class="size-btn" onclick="pickSize(this,'4XL')">4XL</button>
-      </div>
+  if(isFash){
+    sizeHtml = `<div class="size-label">Choose your size</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="size-btn active" onclick="pickSize(this,'XL')">XL</button>
+      <button class="size-btn" onclick="pickSize(this,'2XL')">2XL</button>
+      <button class="size-btn" onclick="pickSize(this,'3XL')">3XL</button>
+      <button class="size-btn" onclick="pickSize(this,'4XL')">4XL</button>
     </div>`;
+    selectedSize='XL';
+  } else {
+    sizeHtml = `<div class="size-label">🏪 ${biz}<br>📞 ${phone}</div>`;
   }
-  let thumbsHtml = currentImgs.map((im,i)=>`<img src="${im}" class="thumb ${i==0?'active':''}" onclick="goToImg(${i})" onerror="this.style.display='none'">`).join('');
-  let dotsHtml = currentImgs.map((_,i)=>`<div class="dot ${i==0?'active':''}" onclick="goToImg(${i})"></div>`).join('');
   let nextIdx = (currentIdx+1) % currentImgs.length;
-  let nextPreview = currentImgs.length>1 ? `<div class="next-preview"><img id="nextImg" src="${currentImgs[nextIdx]}"><div style="font-size:10px;font-weight:700;background:rgba(0,0,0,0.6);color:white;border-radius:8px;padding:2px 6px;margin-top:2px">Next →</div></div>` : '';
+  let thumbsHtml = currentImgs.map((im,i)=>`<img src="${im}" class="thumb ${i==0?'active':''}" onclick="goToImg(${i})" onerror="this.style.display='none'">`).join('');
   document.getElementById('viewContent').innerHTML = `
-    <div class="pro-top">
-      <b style="font-size:16px">🛍️ ${name}</b>
-      <button onclick="closePop()" style="background:white;border:1px solid #ddd;width:36px;height:36px;border-radius:50%;font-weight:900">✕</button>
+    <div class="tik-top">
+      <div class="logo">SANNLAS 👕</div>
+      <div class="nav"><span>Home</span><span class="active">Tshirt</span><span>Hoodies</span><span>Sweatshirts</span><span>About Us</span></div>
+      <div style="display:flex;gap:12px;align-items:center"><span>👤</span><span>🔔</span><button onclick="closePop()" style="background:white;border:1px solid #ddd;width:32px;height:32px;border-radius:50%;font-weight:900;cursor:pointer">✕</button></div>
     </div>
-    <div class="pro-body">
-      <div class="pro-left">
-        <button class="arrow-btn arrow-left" onclick="prevImg(event)">‹</button>
+    <div class="tik-main">
+      <div class="tik-left">
+        <h1>Wear Confidence<br>Define Your Style.</h1>
+        <p>${desc.slice(0,140)}</p>
+        <button class="get-look" onclick="orderNow('${p.id}')">Get the look ›</button>
+        <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">${thumbsHtml}</div>
+        <div style="font-size:11px;color:#333;margin-top:8px">📸 ${currentImgs.length} photos - Tap to view</div>
+      </div>
+      <div class="tik-center">
+        <div class="hanger">🪝</div>
         <div class="slider-viewport" id="sliderViewport">
           <div class="slider-track" id="sliderTrack">
             ${currentImgs.map(im=>`<img src="${im}" onerror="this.src='/icon-192.png'">`).join('')}
           </div>
         </div>
-        <button class="arrow-btn arrow-right" onclick="nextImg(event)">›</button>
-        <div style="background:rgba(0,0,0,0.6);color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800;margin-top:12px" id="counter">1 / ${currentImgs.length} 📸</div>
-        <div style="display:flex;gap:6px;margin-top:10px" id="dotsRow">${dotsHtml}</div>
-        <div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;max-width:100%;padding:4px">${thumbsHtml}</div>
-        ${nextPreview}
+        <div class="shadow-ellipse"></div>
+        <div class="counter" id="counter">1 / ${currentImgs.length} 📸</div>
       </div>
-      <div class="pro-right">
-        <h2 style="font-size:20px;line-height:1.2">${name}</h2>
-        <p style="font-size:12px;color:#666;margin:8px 0;line-height:1.4">${desc.slice(0,150)}</p>
-        <div style="margin:10px 0">
-          <b style="font-size:26px;color:#FF6600">UGX ${Number(price).toLocaleString()}</b>
-          ${orig>price?`<div><span style="text-decoration:line-through;color:#999;font-size:14px">UGX ${Number(orig).toLocaleString()}</span> <span style="background:#FF0000;color:white;padding:4px 8px;border-radius:8px;font-size:11px;font-weight:900">${Math.round((orig-price)*100/orig)}% OFF</span></div>`:''}
-        </div>
+      <div class="tik-right">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px">${name}</div>
+        <div class="price">UGX ${Number(price).toLocaleString()}</div>
+        ${orig>price?`<div class="old-price">UGX ${Number(orig).toLocaleString()}</div>`:''}
         ${sizeHtml}
-        <div style="background:white;padding:12px;border-radius:14px;margin:10px 0;border:1px solid #eee">
-          <b style="font-size:12px">🏪 ${biz}</b><br>
-          <span style="font-size:12px;color:#666">📞 ${phone}</span><br>
-          <span style="font-size:11px;color:#888">📍 ${p.location||'Kampala'}</span>
+        <div style="margin-top:14px">
+          <button class="btn btn-black" onclick="orderNow('${p.id}')">💬 Order via WhatsApp</button>
+          <button class="btn btn-orange" onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
         </div>
-        <button class="btn btn-black" onclick="orderNow('${p.id}')">💬 Order via WhatsApp</button>
-        <button class="btn btn-orange" onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
-        <button class="btn" style="background:#f0f0f0;width:100%;margin-top:8px" onclick="closePop()">Continue Shopping</button>
-        <p style="text-align:center;color:#888;font-size:11px;margin-top:10px">Dress Better. Feel Better.</p>
+        <div style="font-size:11px;color:#333;margin-top:8px">📍 ${p.location||'Kampala'} • 🏪 ${biz}</div>
+      </div>
+    </div>
+    <div class="tik-bottom">
+      <div>
+        <div class="socials">📸 𝕏 in 🎵</div>
+        <button class="arrow-btn" onclick="prevImg(event)" style="margin-top:10px">‹</button>
+      </div>
+      <div style="text-align:center">Dress Better.<br>Feel Better.</div>
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <div class="next-preview"><img id="nextImg" src="${currentImgs[nextIdx]}" onerror="this.style.display='none'"><div style="font-size:10px;font-weight:700">Next →</div></div>
+        <button class="arrow-btn" onclick="nextImg(event)">›</button>
       </div>
     </div>
   `;
@@ -194,12 +213,8 @@ function updateBg(){
 function showImg(idx){
   currentIdx = (idx + currentImgs.length) % currentImgs.length;
   let track = document.getElementById('sliderTrack');
-  if(track){
-    track.classList.remove('no-anim');
-    track.style.transform = 'translateX(-' + (currentIdx * 100) + '%)';
-  }
+  if(track){ track.classList.remove('no-anim'); track.style.transform = 'translateX(-' + (currentIdx * 100) + '%)'; }
   document.querySelectorAll('.thumb').forEach((t,i)=>{ t.classList.toggle('active', i===currentIdx); });
-  document.querySelectorAll('.dot').forEach((d,i)=>{ d.classList.toggle('active', i===currentIdx); });
   let c = document.getElementById('counter');
   if(c) c.textContent = (currentIdx+1) + ' / ' + currentImgs.length + ' 📸';
   let nextImg = document.getElementById('nextImg');
@@ -214,27 +229,20 @@ function pickSize(btn, size){
   document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
 }
-// DRAG LIKE TIKTOK - hold and pull photo, it follows finger
 let dragStartX=0, dragCurrentX=0, isDragging=false;
 function setupDrag(){
   let vp = document.getElementById('sliderViewport');
   let track = document.getElementById('sliderTrack');
   if(!vp || !track) return;
-  function start(x){
-    isDragging=true; dragStartX=x; dragCurrentX=x;
-    track.classList.add('no-anim');
-  }
+  function start(x){ isDragging=true; dragStartX=x; dragCurrentX=x; track.classList.add('no-anim'); }
   function move(x){
-    if(!isDragging) return;
-    dragCurrentX=x;
+    if(!isDragging) return; dragCurrentX=x;
     let diff = dragCurrentX - dragStartX;
     let base = -currentIdx * vp.offsetWidth;
     track.style.transform = 'translateX(' + (base + diff) + 'px)';
   }
   function end(){
-    if(!isDragging) return;
-    isDragging=false;
-    track.classList.remove('no-anim');
+    if(!isDragging) return; isDragging=false; track.classList.remove('no-anim');
     let diff = dragCurrentX - dragStartX;
     if(diff < -50) showImg(currentIdx+1);
     else if(diff > 50) showImg(currentIdx-1);
