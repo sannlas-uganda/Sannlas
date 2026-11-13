@@ -1,4 +1,4 @@
-# sannlas_sell.py - SELL WITH COMMISSION FOR PROMOTERS - FINAL
+# sannlas_sell.py - SELL WITH COMMISSION FOR PROMOTERS - FIXED 4 IMAGES
 from flask import Blueprint, Response, request, jsonify
 import os, json, uuid, time
 from datetime import datetime
@@ -23,7 +23,7 @@ def save_products(d): save_db('products.json', d)
 
 COMBINED_SELL_HTML = """<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SELL - SANNLAS</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;padding-bottom:80px}.navbar{background:#000;color:#fff;padding:10px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:12}.btn{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold;cursor:pointer;width:100%}.btn-yellow{background:#FFCC02;color:#000}.search-bar{background:#111;padding:10px;display:flex;gap:6px;position:sticky;top:50px;z-index:11}.search-bar input,.search-bar select{padding:10px;border-radius:20px;border:none;flex:1}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}.card{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer}.card img{width:100%;height:150px;object-fit:cover}.card-body{padding:8px}.sell-form{background:#fff;border-radius:12px;padding:15px;margin:10px;border:3px solid #FFCC02}.sell-form input,.sell-form textarea,.sell-form select{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #ddd}.hidden{display:none!important}</style>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#c0392b;padding-bottom:80px}.navbar{background:#000;color:#fff;padding:10px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:12}.btn{background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px;border-radius:20px;font-weight:bold;cursor:pointer;width:100%}.btn-yellow{background:#FFCC02;color:#000}.search-bar{background:#111;padding:10px;display:flex;gap:6px;position:sticky;top:50px;z-index:11}.search-bar input,.search-bar select{padding:10px;border-radius:20px;border:none;flex:1}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:10px}.card{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer}.card img{width:100%;height:150px;object-fit:cover}.card-body{padding:8px}.sell-form{background:#fff;border-radius:12px;padding:15px;margin:10px;border:3px solid #FFCC02}.sell-form input,.sell-form textarea,.sell-form select{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #ddd}.hidden{display:none!important}.thumb{width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer}.thumb.active{border:3px solid #FFCC02}#previewBox img{width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #FFCC02}</style>
 </head><body>
 <div class="navbar"><div><a href="/" style="color:#FFCC02;text-decoration:none;font-weight:bold">SANNLAS</a> | SELL</div><div><button onclick="showView('list')" style="background:#FFCC02;border:none;padding:6px 10px;border-radius:10px;font-weight:bold">Shop</button> <button onclick="showView('form')" style="background:#00FF00;border:none;padding:6px 10px;border-radius:10px;font-weight:bold">+ Sell</button></div></div>
 <div id="listView"><div class="search-bar"><input id="q" placeholder="Search..." oninput="loadProducts()"><select id="cat" onchange="loadProducts()"><option value="">All</option><option>Electronics</option><option>Fashion</option><option>Home</option><option>Vehicles</option></select><select id="sort" onchange="loadProducts()"><option value="newest">Newest</option><option value="price_low">Low</option><option value="price_high">High</option></select></div><div style="background:#000;color:#FFCC02;padding:8px;text-align:center">MARKETPLACE - <span id="totalProducts">0</span> products</div><div id="productsGrid" class="grid"><p style="color:white;text-align:center;grid-column:1/-1;padding:30px">Loading...</p></div></div>
@@ -36,9 +36,11 @@ COMBINED_SELL_HTML = """<!DOCTYPE html>
 <input id="pQty" type="number" value="1">
 <select id="pCategory"><option>Electronics</option><option>Fashion</option><option>Home & Living</option><option>Vehicles</option><option>Property</option><option>Other</option></select>
 <input id="pLocation" placeholder="Location">
-<input id="pImage" type="file" accept="image/*">
+<label style="font-weight:900;font-size:13px">📸 Product Photos (Up to 4 - First is MAIN)</label>
+<input id="pImage" type="file" accept="image/*" multiple onchange="previewImages(this)">
+<div id="previewBox" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"></div>
+<small id="imgCount" style="color:#666">No photos selected</small>
 
-<!-- 💰 COMMISSION FOR PROMOTERS - HERE ONLY, NOT IN REEL UPLOAD -->
 <div style="background:#000;color:#FFCC02;padding:12px;border-radius:12px;margin:12px 0;border:2px solid #FFCC02">
   <b>💰 Commission for Promoters</b><br>
   <small style="color:#fff">How much promoter earns when they promote?</small><br><br>
@@ -60,7 +62,6 @@ COMBINED_SELL_HTML = """<!DOCTYPE html>
 <div id="detailView" class="hidden"><div style="background:#000;padding:8px"><a href="javascript:showView('list')" style="color:#FFCC02;text-decoration:none">← Back</a></div><div id="productBox" style="background:#fff;border-radius:12px;margin:10px;overflow:hidden">Loading...</div></div>
 <script>
 let currentUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
-// AUTO-FILL BUSINESS NAME
 setTimeout(()=>{
   let biz = currentUser.business || currentUser.business_name || currentUser.name || '';
   let b = document.getElementById('pBiz');
@@ -69,15 +70,63 @@ setTimeout(()=>{
 function showView(v){document.getElementById('listView').classList.toggle('hidden',v!=='list');document.getElementById('formView').classList.toggle('hidden',v!=='form');document.getElementById('detailView').classList.toggle('hidden',v!=='detail');if(v=='list')loadProducts();}
 let parts=location.pathname.split('/').filter(Boolean);
 if(parts[0]=='sell'&&parts[1]){loadDetail(parts[1]);}else{showView('list');}
+function previewImages(input){
+  let box=document.getElementById('previewBox');
+  let count=document.getElementById('imgCount');
+  box.innerHTML='';
+  let files=input.files;
+  if(files.length>4){ alert('Max 4 photos! Only first 4 will be used.'); }
+  let show=Math.min(files.length,4);
+  count.innerText = show + ' / 4 photos selected';
+  for(let i=0;i<show;i++){ let url=URL.createObjectURL(files[i]); box.innerHTML+=`<img src="${url}">`; }
+}
+function changeMainImg(el, src){
+  document.getElementById('mainImg').src = src;
+  document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
 async function loadProducts(){let q=document.getElementById('q').value;let cat=document.getElementById('cat').value;let sort=document.getElementById('sort').value;let url=`/api/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&sort=${sort}`;try{let r=await fetch(url);let prods=await r.json();if(!Array.isArray(prods))prods=[];if(sort=='price_low')prods.sort((a,b)=>(a.price||0)-(b.price||0));else if(sort=='price_high')prods.sort((a,b)=>(b.price||0)-(a.price||0));else prods.sort((a,b)=>(b.created||0)-(a.created||0));document.getElementById('totalProducts').innerText=prods.length;if(prods.length==0){document.getElementById('productsGrid').innerHTML='<p style="color:white;grid-column:1/-1;text-align:center">No products</p>';return;}document.getElementById('productsGrid').innerHTML=prods.map(p=>`<div class="card" onclick="location.href='/sell/${p.id}'"><img src="${p.image||'https://via.placeholder.com/200'}"><div class="card-body"><b>${(p.name||'').slice(0,25)}</b><br><small>${p.location||''}</small><br><b style="color:#c0392b">UGX ${Number(p.price||0).toLocaleString()}</b><br><small style="color:#00aa00">${p.promo_coins?`💰 ${p.promo_coins} coins promo`:''}</small></div></div>`).join('');}catch(e){document.getElementById('productsGrid').innerHTML='Error: '+e.message;}}
-async function loadDetail(id){showView('detail');let r=await fetch(`/api/products/${id}`);let p=await r.json();if(!p.id){document.getElementById('productBox').innerHTML='Not found';return;}document.getElementById('productBox').innerHTML=`<img src="${p.image||''}" style="width:100%;height:300px;object-fit:cover"><div style="padding:15px"><h2>${p.name}</h2><p>${p.description||''}</p><h3>UGX ${Number(p.price||0).toLocaleString()}</h3><p>${p.location} | Qty: ${p.quantity}</p><p style="color:green;font-weight:900">${p.promo_coins?`💰 Promo: ${p.promo_coins} coins = ${(p.promo_coins*599).toLocaleString()} UGX`:''}</p><button class="btn btn-yellow" onclick="window.open('https://wa.me/${(p.phone||'').replace(/[^0-9]/g,'')}')">Contact ${p.phone||''}</button></div>`;}
-async function createProduct(){let name=document.getElementById('pName').value;let price=document.getElementById('pPrice').value;if(!name||!price){alert('Name and Price required');return;}if(!currentUser.phone){alert('Login first');return;}document.getElementById('status').innerText='⏳ Uploading...';let fd=new FormData();fd.append('name',name);fd.append('description',document.getElementById('pDesc').value);fd.append('price',price);fd.append('quantity',document.getElementById('pQty').value);fd.append('category',document.getElementById('pCategory').value);fd.append('location',document.getElementById('pLocation').value);fd.append('phone',currentUser.phone);fd.append('email',currentUser.email);
-fd.append('business', document.getElementById('pBiz').value);
-fd.append('promo_coins',promoCoins);
-fd.append('promo_commission',promoCoins);
-fd.append('commission_percent',(promoCoins*1.2).toFixed(1)+'%');
-let file=document.getElementById('pImage').files[0];if(file)fd.append('images',file);let r=await fetch('/api/products/create',{method:'POST',body:fd});let d=await r.json();document.getElementById('status').innerText=d.message;if(d.success)location.href='/sell/'+d.product.id;}
-
+async function loadDetail(id){
+  showView('detail');
+  let r=await fetch(`/api/products/${id}`);
+  let p=await r.json();
+  if(!p.id){document.getElementById('productBox').innerHTML='Not found';return;}
+  let allImages = [];
+  if(p.images && Array.isArray(p.images) && p.images.length>0) allImages = p.images;
+  else if(p.image) allImages = [p.image];
+  let mainImg = allImages[0] || '';
+  let thumbs = allImages.map((img,i)=>`<img src="${img}" class="thumb ${i==0?'active':''}" onclick="changeMainImg(this,'${img}')">`).join('');
+  let galleryHtml = allImages.length>1 ? `<div style="display:flex;gap:8px;padding:10px;overflow-x:auto">${thumbs}</div><p style="text-align:center;color:#888;font-size:12px">📸 ${allImages.length} photos - Tap to view</p>` : '';
+  document.getElementById('productBox').innerHTML=`<img id="mainImg" src="${mainImg}" style="width:100%;height:300px;object-fit:cover">${galleryHtml}<div style="padding:15px"><h2>${p.name}</h2><p>${p.description||''}</p><h3>UGX ${Number(p.price||0).toLocaleString()}</h3><p>${p.location} | Qty: ${p.quantity}</p><p style="color:green;font-weight:900">${p.promo_coins?`💰 Promo: ${p.promo_coins} coins = ${(p.promo_coins*599).toLocaleString()} UGX`:''}</p><button class="btn btn-yellow" onclick="window.open('https://wa.me/${(p.phone||'').replace(/[^0-9]/g,'')}')">Contact ${p.phone||''}</button></div>`;
+}
+async function createProduct(){
+  let name=document.getElementById('pName').value;
+  let price=document.getElementById('pPrice').value;
+  if(!name||!price){alert('Name and Price required');return;}
+  if(!currentUser.phone){alert('Login first');return;}
+  document.getElementById('status').innerText='⏳ Uploading...';
+  let promoCoins = document.getElementById('pPromoCoins').value;
+  let fd=new FormData();
+  fd.append('name',name);
+  fd.append('description',document.getElementById('pDesc').value);
+  fd.append('price',price);
+  fd.append('quantity',document.getElementById('pQty').value);
+  fd.append('category',document.getElementById('pCategory').value);
+  fd.append('location',document.getElementById('pLocation').value);
+  fd.append('phone',currentUser.phone);
+  fd.append('email',currentUser.email);
+  fd.append('business', document.getElementById('pBiz').value);
+  fd.append('promo_coins',promoCoins);
+  fd.append('promo_commission',promoCoins);
+  fd.append('commission_percent',(promoCoins*1.2).toFixed(1)+'%');
+  let files=document.getElementById('pImage').files;
+  if(files.length==0){ alert('Please add at least 1 photo!'); return; }
+  for(let i=0;i<Math.min(files.length,4);i++){ fd.append('images', files[i]); }
+  let r=await fetch('/api/products/create',{method:'POST',body:fd});
+  let d=await r.json();
+  document.getElementById('status').innerText=d.message;
+  if(d.success)location.href='/sell/'+d.product.id;
+}
 document.getElementById('pPromoCoins').addEventListener('change', function(){
   let c=this.value; let ugx=c*599;
   document.getElementById('promoPreview').innerHTML=c==0?'❌ No promotion':'✅ Promoter will earn '+c+' coins = '+ugx.toLocaleString()+' UGX per sale';
@@ -117,6 +166,9 @@ def api_single(pid):
     prod = next((p for p in products if str(p.get('id')) == str(pid)), None)
     if not prod:
         return jsonify({'success':False}),404
+    # BACKWARD COMPAT: old products have only image, give them images array
+    if not prod.get('images') and prod.get('image'):
+        prod['images'] = [prod['image']]
     return jsonify(prod)
 
 @sannlas_sell_bp.route('/api/products/create', methods=['POST'])
@@ -132,21 +184,25 @@ def api_create():
     business = request.form.get('business','')
     if not name or not price:
         return jsonify({'success':False,'message':'Name and price required'}),400
-    image_url = ""
+    # FIXED: Upload ALL up to 4 images
+    image_urls = []
     files = request.files.getlist('images')
-    if files and files[0].filename:
+    for f in files[:4]:
+        if not f or not f.filename:
+            continue
         try:
-            res = cloudinary.uploader.upload(files[0], folder="sannlas/products")
-            image_url = res['secure_url']
+            res = cloudinary.uploader.upload(f, folder="sannlas/products")
+            image_urls.append(res['secure_url'])
         except:
             try:
-                filename = f"{int(time.time())}_{secure_filename(files[0].filename)}"
+                filename = f"{int(time.time())}_{secure_filename(f.filename)}"
                 os.makedirs('static/uploads', exist_ok=True)
                 path = os.path.join('static/uploads', filename)
-                files[0].save(path)
-                image_url = f"/static/uploads/{filename}"
+                f.save(path)
+                image_urls.append(f"/static/uploads/{filename}")
             except:
-                image_url = ""
+                continue
+    image_url = image_urls[0] if image_urls else ""
     prod = {}
     prod['id'] = str(uuid.uuid4())[:8]
     prod['name'] = name
@@ -160,6 +216,7 @@ def api_create():
     prod['business'] = business
     prod['business_name'] = business
     prod['image'] = image_url
+    prod['images'] = image_urls
     prod['promo_coins'] = int(request.form.get('promo_coins', 0) or 0)
     prod['promo_commission'] = int(request.form.get('promo_commission', 0) or 0)
     prod['commission_percent'] = request.form.get('commission_percent','0%')
