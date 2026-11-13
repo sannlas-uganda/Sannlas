@@ -908,31 +908,50 @@ function cleanSlug(s){
 // ===== INSTANT: Save shop BEFORE leaving Reels, so shop.html opens in 0ms! =====
 let _reelsBySlug = {};
 function openShopInstantFromReel(r){
-  // ⚡ INSTANT S DOOR - Save reel data so shop opens in 0ms
+  // ⚡ GO FIRST - Don't wait for storage writes!
+  let slug = cleanSlug(r.shop_slug||r.shop_name||'shop');
+  window.location.href = '/shop/' + encodeURIComponent(slug);
+  // Save in background AFTER navigation starts
   try{
-    let shopData = {
-      shop_slug: cleanSlug(r.shop_slug||r.shop_name||'shop'),
-      shop_name: r.shop_name||r.business||r.shop_slug||'Shop',
-      shop_logo: r.shop_logo||r.logo||r.avatar||'',
-      shop_phone: r.shop_phone||r.phone||'',
-      shop_location: r.location||'Kampala',
-      products: [], // shop.html will fill this
-      fromReel: true,
-      savedAt: Date.now()
-    };
-    // Save 1 shop - shop.html reads this INSTANTLY
+    let shopData = {shop_slug:slug, shop_name:r.shop_name||r.business||r.shop_slug||'Shop', shop_logo:r.shop_logo||r.logo||r.avatar||'', shop_phone:r.shop_phone||r.phone||'', shop_location:r.location||'Kampala', products:[], fromReel:true, savedAt:Date.now()};
     sessionStorage.setItem('sannlas_instant_shop', JSON.stringify(shopData));
-    // Also cache it - so Back button is instant too
-    localStorage.setItem('sannlas_last_shop_'+shopData.shop_slug, JSON.stringify(shopData));
+    localStorage.setItem('sannlas_last_shop_'+slug, JSON.stringify(shopData));
+    sessionStorage.setItem('sannlas_shop_from', 'reels');
   }catch(e){}
-  // ⬇️⬇️ NEW LINE ADDED HERE - Tells shop.html you came from Reels! ⬇️⬇️
-  sessionStorage.setItem('sannlas_shop_from', 'reels');
-  // NOW open - shop.html will show saved data in 0ms, no Loading...
-  window.location.href = '/shop/' + encodeURIComponent(cleanSlug(r.shop_slug||r.shop_name||'shop'));
 }
 async function toggleFollowReal(btn){
   let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
   if(!user.email){ alert('Login first Boss!'); return; }
+  let targetEmail = btn.getAttribute('data-email') || '';
+  let targetShop = btn.getAttribute('data-slug') || btn.getAttribute('data-shop') || '';
+  if(targetEmail && user.email.toLowerCase() === targetEmail.toLowerCase()){ alert("Can't follow yourself Boss!"); return; }
+  let isFollowing = btn.innerText.includes('✓') || btn.classList.contains('following');
+  // ⚡ INSTANT - Change to ✓ / + in 0ms, DON'T wait for server!
+  let oldHTML = btn.innerHTML;
+  if(isFollowing){
+    btn.innerHTML = '+'; btn.classList.remove('following');
+    btn.style.background = '#FFCC02'; btn.style.color = '#000';
+  } else {
+    btn.innerHTML = '✓'; btn.classList.add('following');
+    btn.style.background = '#fff'; btn.style.color = '#00CC00'; btn.style.borderColor = '#00CC00';
+  }
+  // Sync ALL same-shop + buttons instantly too!
+  if(targetShop){
+    document.querySelectorAll(`[data-slug="${targetShop}"]`).forEach(b=>{
+      if(b!==btn){ b.innerHTML = isFollowing ? '+' : '✓'; b.style.background = isFollowing ? '#FFCC02' : '#fff'; b.style.color = isFollowing ? '#000' : '#00CC00'; }
+    });
+  }
+  // Background - sync to server, revert ONLY if it fails!
+  try{
+    let r = await fetch(isFollowing ? '/api/unfollow' : '/api/follow', {method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({email:user.email, phone:user.phone||'', target_email:targetEmail, target_shop:targetShop})});
+    let j = await r.json();
+    if(!r.ok || !j.success) throw new Error(j.message||'Failed');
+  }catch(e){
+    // Revert if server failed
+    btn.innerHTML = oldHTML;
+    btn.classList.toggle('following', isFollowing);
+  }
+}
   
   let targetEmail = btn.getAttribute('data-email') || btn.getAttribute('data-user-email') || '';
   let targetShop = btn.getAttribute('data-slug') || btn.getAttribute('data-shop') || '';
@@ -1024,6 +1043,8 @@ async function checkFollowStatus(){
   try{ me=JSON.parse(u);}catch(e){return;}
   if(!me.email) return;
   document.querySelectorAll('[id^="follow-btn-"]').forEach(async (btn)=>{
+    if(btn.dataset.checked) return; // ⚡ Already checked this + button, skip!
+    btn.dataset.checked = '1';
     let target = btn.getAttribute('data-email');
     if(!target) return;
     try{
