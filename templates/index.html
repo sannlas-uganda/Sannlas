@@ -1075,29 +1075,26 @@ async function loadHomeReels(){
     let instantCached = JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
     if(instantCached.length>0 && homePage===1){
       renderReels(instantCached, true);
+      // Don't block - let user watch old reels while new ones load
       homeIsLoading = false;
     }
   }catch(e){}
   let c=document.getElementById('reelsFeedContainer');
-  if(!c){ homeIsLoading = false; return; }
+  if(!c) return;
   // ⚡ DON'T overwrite instant reels! Only show Loading if NO cache!
   if(homePage===1 && !localStorage.getItem('sannlas_reels_cache')) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡</div>';
   try{
     let email = getHomeViewerEmail();
     let seen = [...homeSeenIds].join(',');
-    let controller = new AbortController();
-    // ⚡ FIX - 30 sec, NOT 5 sec! Render needs time to wake up!
-    setTimeout(()=>controller.abort(), 30000);
-    let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
-    let reels=await r.json();
+let controller = new AbortController();
+setTimeout(()=>controller.abort(), 5000);
+let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
+let reels=await r.json();
     if(!reels || !reels.length){
-      if(homePage===1 && !localStorage.getItem('sannlas_reels_cache')){
-        c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a><br><br><button onclick="homeIsLoading=false;homePage=1;loadHomeReels()" style="background:#FFCC02;border:none;padding:10px 20px;border-radius:20px;font-weight:900">🔄 Retry</button></p>';
-      }
-      homeIsLoading = false;
+      c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
       return;
     }
-    try{ localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,6))); }catch(e){}
+      try{ localStorage.setItem('sannlas_reels_cache', JSON.stringify(reels.slice(0,6))); }catch(e){}
     renderReels(reels, homePage===1);
     homeIsLoading = false;
     // Infinite scroll for home feed
@@ -1110,11 +1107,8 @@ async function loadHomeReels(){
     }
   }catch(e){
     console.error(e);
-    homeIsLoading = false; // ⚡ FIX - Unlock so you can retry / scroll!
     let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
-    if(cached.length>0){ renderReels(cached); return; }
-    // ⚡ FIX - Don't leave Loading... forever! Show Retry!
-    c.innerHTML='<p style="padding:40px 20px;color:#fff;text-align:center">Server is waking up... ⏳<br><span style="font-size:12px;color:#aaa">Tap retry in 10 sec</span><br><br><button onclick="homeIsLoading=false;homePage=1;loadHomeReels()" style="background:#FFCC02;border:none;padding:12px 24px;border-radius:20px;font-weight:900">🔄 Retry Now</button></p>';
+    if(cached.length>0) renderReels(cached);
   }
 }
 function renderReels(reels, isFirst=true){
