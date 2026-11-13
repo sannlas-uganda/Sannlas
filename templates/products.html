@@ -231,7 +231,7 @@ function showImg(idx){
 let imgs = track.querySelectorAll('img');
 imgs.forEach(im=>{ im.style.animation='none'; void im.offsetWidth; im.style.animation=''; });
 let shadow = document.querySelector('.shadow-ellipse');
-if(shadow){ shadow.style.animation='none'; void shadow.offsetWidth; shadow.style.animation=''; }
+if(shadow){ shadow.style.animation='none'; void shadow.offsetWidth; shadow.style.animation=''; } }
   document.querySelectorAll('.thumb').forEach((t,i)=>{ t.classList.toggle('active', i===currentIdx); });
   let c = document.getElementById('counter');
   if(c) c.textContent = (currentIdx+1) + ' / ' + currentImgs.length + ' 📸';
