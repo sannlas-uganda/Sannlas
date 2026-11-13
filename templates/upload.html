@@ -20,6 +20,9 @@ input:focus,textarea:focus,select:focus{border-color:#000}
 .btn-post{width:100%;background:#000;color:#FFCC02;padding:16px;border:none;border-radius:30px;font-weight:900;font-size:16px;margin-top:20px;cursor:pointer}
 .btn-post:disabled{background:#ccc}
 .badge{background:#FFCC02;color:#000;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:900}
+#uploadProgress{display:none;margin-top:10px;background:#f1f5f9;border-radius:12px;padding:12px}
+#progressBar{height:10px;background:#ddd;border-radius:10px;overflow:hidden}
+#progressFill{height:100%;background:#FFCC02;width:0%;transition:width 0.3s}
 </style></head><body>
 <div class="header">
   <a href="/">← Home</a>
@@ -33,7 +36,7 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <div id="videoPlaceholder">
         <div style="font-size:40px">🎥</div>
         <b>Tap to select video</b><br>
-        <span class="hint">MP4, MOV - Max 100MB</span>
+        <span class="hint">MP4, MOV - Max 100MB - Direct Upload, Site stays FAST! ⚡</span>
       </div>
       <video id="videoPreview" style="display:none" controls playsinline muted></video>
     </div>
@@ -46,8 +49,6 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <option value="">⏳ Loading ONLY your products...</option>
     </select>
     <div class="hint" id="loadHint">Tap card below to go to MY SHOP page!</div>
-
-    <!-- THIS CARD IS NOW BUTTON TO MY SHOP -->
     <div id="selectedProductPreview" style="display:none;margin-top:12px;background:#f8fafc;border:1.5px solid #000;border-radius:12px;padding:10px;cursor:pointer" onclick="goToMyShop()">
       <div style="display:flex;gap:10px;align-items:center">
         <img id="selImg" src="" style="width:60px;height:60px;border-radius:12px;object-fit:cover">
@@ -63,19 +64,15 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <button onclick="goToMyShop()" type="button" style="flex:1;background:#fff;border:1.5px solid #000;border-radius:12px;padding:12px;font-weight:900;font-size:13px">🏪 MY SHOP PAGE</button>
       <button onclick="goToProduct()" id="viewProductBtn" type="button" style="flex:1;display:none;background:#FFCC02;border:1.5px solid #000;border-radius:12px;padding:12px;font-weight:900;font-size:13px">👁️ VIEW PRODUCT</button>
     </div>
-
     <label>🏪 SHOP NAME *</label>
     <input type="text" id="shopName" placeholder="e.g. STEPH" readonly>
     <label>📝 DESCRIPTION *</label>
     <textarea id="description" rows="3" placeholder="Auto-filled from product"></textarea>
     <label>💬 CAPTION</label>
     <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! 🔥"></textarea>
-
-    <!-- ===== NEW: ALGORITHM FIELDS - PASTE HERE ===== -->
     <label>🏷️ HASHTAGS</label>
     <input type="text" id="hashtags" placeholder="e.g. #dress #kampala #fashion">
     <div class="hint">Use # - Helps algorithm show your reel to right people! 🔥</div>
-
     <label>📂 CATEGORY *</label>
     <select id="category">
       <option value="">✨ Auto-Detect from Product</option>
@@ -87,8 +84,6 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <option value="general">📦 General / Other</option>
     </select>
     <div class="hint">Pick this = Your reel shows to people who LOVE this category!</div>
-    <!-- ===== END NEW ===== -->
-
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><label>📍 LOCATION</label><input type="text" id="location" placeholder="Kampala"></div>
       <div><label>💰 PRICE (Auto)</label><input type="number" id="price" placeholder="Auto" readonly style="background:#f1f5f9"></div>
@@ -97,6 +92,11 @@ input:focus,textarea:focus,select:focus{border-color:#000}
     <input type="hidden" id="promoLink">
     <input type="hidden" id="shopSlug">
     <button class="btn-post" id="postBtn" onclick="uploadReel()">🚀 POST REEL</button>
+    <div id="uploadProgress">
+      <div id="progressText" style="font-size:12px;font-weight:900;margin-bottom:6px">Uploading... 0%</div>
+      <div id="progressBar"><div id="progressFill"></div></div>
+      <div class="hint" style="margin-top:6px">Uploading DIRECT to Cloudinary - Your site stays FAST for everyone else! ⚡</div>
+    </div>
     <div class="hint" style="text-align:center;margin-top:8px">Button will be: <b id="previewBtn">UGX 0 - BUY NOW</b></div>
   </div>
 </div>
@@ -187,7 +187,8 @@ function onProductSelected(){
 document.getElementById('videoInput').addEventListener('change', function(e){
   let file = e.target.files[0];
   if(!file) return;
-  if(file.size > 100*1024*1024){ alert('Too big! Max 100MB'); return; }
+  // ✅ 100MB - As you said Boss!
+  if(file.size > 100*1024*1024){ alert('Too big! Max 100MB Boss! Trim it a little!'); e.target.value=''; return; }
   videoFile = file;
   let url = URL.createObjectURL(file);
   let v = document.getElementById('videoPreview');
@@ -196,6 +197,8 @@ document.getElementById('videoInput').addEventListener('change', function(e){
   document.getElementById('videoBox').classList.add('has-video');
   document.getElementById('videoInfo').innerText = file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
 });
+
+// ✅ NEW: OPTION 2 - DIRECT TO CLOUDINARY!
 async function uploadReel(){
   let shopName = document.getElementById('shopName').value.trim();
   let description = document.getElementById('description').value.trim();
@@ -204,46 +207,91 @@ async function uploadReel(){
   let price = document.getElementById('price').value.trim();
   let productId = document.getElementById('productId').value.trim();
   let promoLink = document.getElementById('promoLink').value.trim();
-  // ===== NEW: GET HASHTAGS + CATEGORY =====
   let hashtags = document.getElementById('hashtags').value.trim();
   let category = document.getElementById('category').value.trim();
   if(!hashtags){
     let found = (caption + ' ' + description).match(/#\w+/g);
     if(found) hashtags = found.join(' ');
   }
-  // ===== END NEW =====
   if(!videoFile){ alert('Select video first Boss!'); return; }
   if(!productId){ alert('SELECT PRODUCT FROM YOUR SHOP FIRST!'); return; }
   if(!shopName){ alert('Shop name missing'); return; }
+  if(!user.email){ alert('Login first Boss!'); return; }
+
   let btn = document.getElementById('postBtn');
-  btn.disabled = true; btn.innerText = '⏳ Uploading...';
+  btn.disabled = true; btn.innerText = '⏳ Getting upload permission...';
+  document.getElementById('uploadProgress').style.display = 'block';
+
   try{
-    let fd = new FormData();
-    fd.append('video', videoFile);
-    fd.append('shop_name', shopName);
-    fd.append('business_name', shopName);
-    fd.append('shop_slug', getShopSlug());
-    fd.append('description', description);
-    fd.append('caption', (description + '\n' + caption).trim());
-    fd.append('location', location);
-    fd.append('price', price);
-    fd.append('product_id', productId);
-    fd.append('promo_link', promoLink);
-    fd.append('product_link', promoLink);
-    // ===== NEW: SEND TO ALGORITHM =====
-    fd.append('hashtags', hashtags);
-    fd.append('category', category);
-    // ===== END NEW =====
-    fd.append('user_email', user.email||'');
-    fd.append('user_name', shopName);
-    fd.append('user_id', user.email||shopName);
-    let r = await fetch('/api/sannlas/reels/upload', {method:'POST', body:fd});
-    let d = await r.json();
-    if(!r.ok) throw new Error(d.error||'Upload failed');
-    alert('✅ Posted! Button: UGX ' + Number(price).toLocaleString() + ' - BUY NOW');
+    // STEP 1: Get signature - 0.1s, tiny! Render does almost nothing!
+    let sigRes = await fetch('/api/cloudinary-signature');
+    let sig = await sigRes.json();
+    if(!sig.signature) throw new Error('No signature - Check CLOUDINARY_API_SECRET in Render Env!');
+
+    // STEP 2: Upload DIRECT to Cloudinary - BYPASSES Render! Site stays FAST!
+    btn.innerText = '⏳ Uploading DIRECT... 0%';
+    let form = new FormData();
+    form.append('file', videoFile);
+    form.append('api_key', sig.api_key);
+    form.append('timestamp', sig.timestamp);
+    form.append('signature', sig.signature);
+    form.append('folder', 'sannlas_reels');
+
+    let upData = await new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${sig.cloud_name}/video/upload`);
+      xhr.timeout = 600000; // 10 mins for 100MB on slow network
+      xhr.upload.onprogress = (e) => {
+        if(e.lengthComputable){
+          let pct = Math.round((e.loaded / e.total) * 100);
+          btn.innerText = `⏳ Uploading DIRECT... ${pct}%`;
+          document.getElementById('progressText').innerText = `Uploading DIRECT to Cloudinary... ${pct}% (${(e.loaded/1024/1024).toFixed(1)}MB / ${(e.total/1024/1024).toFixed(1)}MB)`;
+          document.getElementById('progressFill').style.width = pct + '%';
+        }
+      };
+      xhr.onload = () => {
+        try{ resolve(JSON.parse(xhr.responseText)); }
+        catch(err){ reject(new Error('Cloudinary bad response')); }
+      };
+      xhr.onerror = () => reject(new Error('Cloudinary upload failed - Check network!'));
+      xhr.ontimeout = () => reject(new Error('Timed out - Network too slow for 100MB, try WiFi or smaller video!'));
+      xhr.send(form);
+    });
+
+    if(!upData.secure_url) throw new Error(upData.error?.message || 'Cloudinary failed');
+
+    // STEP 3: Save ONLY URL - Tiny request, 0.2s!
+    btn.innerText = '💾 Saving...';
+    document.getElementById('progressText').innerText = 'Saving... Almost done!';
+
+    let saveRes = await fetch('/api/sannlas/reels/save-url', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        user_email: user.email,
+        user_name: shopName,
+        user_id: user.email,
+        shop_name: shopName,
+        shop_slug: getShopSlug(),
+        description: description,
+        caption: (description + '\n' + caption).trim(),
+        location: location,
+        price: price,
+        product_id: productId,
+        promo_link: promoLink,
+        product_link: promoLink,
+        hashtags: hashtags,
+        category: category,
+        video_url: upData.secure_url
+      })
+    });
+    let d = await saveRes.json();
+    if(!saveRes.ok || !d.success) throw new Error(d.error || 'Save failed');
+
+    alert('✅ Posted! Your reel is at TOP now!');
     location.href = '/reels';
   }catch(e){
-    alert('❌ Failed: '+e.message);
+    alert('❌ Failed: ' + e.message);
     btn.disabled = false; btn.innerText = '🚀 POST REEL';
   }
 }
