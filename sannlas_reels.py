@@ -1,8 +1,13 @@
-import os, traceback, json, time, re
+import os, traceback, json, time, re, math, random
 from flask import Blueprint, request, jsonify, render_template, send_from_directory
+from datetime import datetime, timezone
 import psycopg2
 
 reels_bp = Blueprint('reels_bp', __name__)
+
+# ============================================================
+# 1. HELPERS
+# ============================================================
 
 def get_conn():
     DATABASE_URL = os.getenv('DATABASE_URL')
@@ -31,7 +36,6 @@ def load_products_json():
 def load_shops_map():
     shops_data = []
     users_data = []
-    # Load shops
     for path in ['data/shops.json', 'shops.json']:
         if os.path.exists(path):
             try:
@@ -39,7 +43,6 @@ def load_shops_map():
                     shops_data = json.load(f)
                     break
             except: pass
-    # Load users for email fallback
     for path in ['data/users.json', 'users.json']:
         if os.path.exists(path):
             try:
@@ -48,7 +51,6 @@ def load_shops_map():
                     break
             except: pass
     
-    # Build map
     m = {}
     try:
         for s in shops_data:
@@ -59,19 +61,16 @@ def load_shops_map():
             if slug: m[slug] = s
             if name: m[name] = s
             if email: m[email] = s
-            # ensure email field exists
             if email and not s.get('email'):
                 s['email'] = email
                 s['owner_email'] = email
         
-        # Also map users by shop name
         for u in users_data:
             if not isinstance(u, dict): continue
             u_email = (u.get('email') or '').lower().strip()
             u_business = (u.get('business') or u.get('shop_name') or '').lower().strip()
             u_slug = clean_slug(u_business)
             if u_email:
-                # If shop exists, add email to it
                 if u_slug in m:
                     if not m[u_slug].get('email'):
                         m[u_slug]['email'] = u_email
@@ -80,7 +79,6 @@ def load_shops_map():
                     if not m[u_business].get('email'):
                         m[u_business]['email'] = u_email
                         m[u_business]['owner_email'] = u_email
-                # Also add user itself as fallback
                 if u_business not in m:
                     m[u_business] = {'email': u_email, 'owner_email': u_email, 'business_name': u.get('business')}
                 if u_slug not in m:
@@ -98,7 +96,6 @@ def ensure_reels_table():
       location TEXT, hashtags TEXT, video_url TEXT, 
       product_link TEXT, product_id TEXT, likes INT DEFAULT 0, 
       created TIMESTAMP DEFAULT NOW())""")
-    # --- ALGORITHM COLUMNS ---
     for col, dtype in [
         ('views','INT DEFAULT 0'),
         ('shares','INT DEFAULT 0'),
@@ -118,9 +115,9 @@ def ensure_reels_table():
         created TIMESTAMP DEFAULT NOW(), UNIQUE(follower_email, following_email))""")
     conn.commit(); cur.close(); conn.close()
 
-# ===== 🧠 THE ALGORITHM =====
-import math
-from datetime import datetime, timezone
+# ============================================================
+# 2. 🧠 THE ALGORITHM - NEW SHOWS FASTER / ON TOP!
+# ============================================================
 
 def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=None):
     likes = int(reel.get('likes') or 0)
@@ -129,10 +126,10 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
     shares = int(reel.get('shares') or 0)
     saves = int(reel.get('saves') or 0)
 
-    # 1. ENGAGEMENT SCORE (TikTok weights)
+    # 1. ENGAGEMENT
     engagement = (likes*3) + (comments*5) + (shares*10) + (saves*8) + (views*0.5)
 
-    # 2. FRESHNESS - Time Decay
+    # 2. FRESHNESS - ADDITIVE! NEW = ON TOP!
     created = reel.get('created')
     try:
         if isinstance(created, str):
@@ -143,32 +140,41 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
     except:
         hours = 999
 
-    if hours < 1: freshness = 2.0
-    elif hours < 6: freshness = 1.5
-    elif hours < 24: freshness = 1.0
-    elif hours < 72: freshness = 0.6
-    else: freshness = 0.3
+    if hours < 1:
+        fresh = 200
+    elif hours < 6:
+        fresh = 120
+    elif hours < 24:
+        fresh = 60
+    elif hours < 72:
+        fresh = 20
+    else:
+        fresh = 0
 
-    score = engagement * freshness
+    # ✅ ADD, DON'T MULTIPLY - So 0 likes new reel still = 200!
+    score = engagement + fresh
 
     # 3. PERSONAL BOOST - For You
     if followed_set and (reel.get('user_email') or '').lower() in followed_set:
-        score += 50  # You follow this shop
+        score += 50
 
     if liked_categories:
         cat = (reel.get('category') or '').lower()
         if cat in liked_categories:
-            score += 30  # You like this category
+            score += 30
 
-    # 4. NEW SELLER BOOST - Don't let new reels die
+    # 4. NEW SELLER BOOST
     if views < 20 and hours < 24:
         score += 20
 
-    # 5. Small random so feed is not identical every time
-    import random
+    # 5. Small random so feed is not identical
     score += random.uniform(0, 5)
 
     return round(score, 2)
+
+# ============================================================
+# 3. PAGES
+# ============================================================
 
 @reels_bp.route('/reels')
 @reels_bp.route('/reels.html')
@@ -181,6 +187,23 @@ def reels_page():
         except:
             return send_from_directory('templates', 'reels.html')
 
+@reels_bp.route('/profile/<shop_slug>')
+@reels_bp.route('/@<shop_slug>')
+@reels_bp.route('/reels/user/<shop_slug>')
+@reels_bp.route('/user/<shop_slug>')
+def user_profile_page(shop_slug):
+    try:
+        return render_template('user_profile.html', shop_slug=shop_slug)
+    except:
+        try:
+            return send_from_directory('templates', 'user_profile.html')
+        except:
+            return f"Create templates/user_profile.html first for @{shop_slug}", 404
+
+# ============================================================
+# 4. FEED - SORTED BY ALGORITHM
+# ============================================================
+
 @reels_bp.route('/api/sannlas/reels/feed')
 def reels_feed():
     try:
@@ -188,23 +211,20 @@ def reels_feed():
         products_map = load_products_json()
         shops_map = load_shops_map()
 
-        # --- WHO IS WATCHING? For personalization ---
         viewer_email = (request.args.get('user_email') or request.args.get('email') or '').lower().strip()
-        seen_ids = request.args.get('seen') or ''  # comma list of ids already seen
+        seen_ids = request.args.get('seen') or ''
         seen_set = set([x for x in seen_ids.split(',') if x])
         page = int(request.args.get('page') or 1)
         limit = int(request.args.get('limit') or 20)
 
         conn = get_conn(); cur = conn.cursor()
 
-        # Get who viewer follows + what categories they like
         followed_set = set()
         liked_categories = set()
         if viewer_email:
             try:
                 cur.execute("SELECT following_email FROM sannlas_follows WHERE follower_email=%s", (viewer_email,))
                 followed_set = set([r[0].lower() for r in cur.fetchall() if r[0]])
-                # Learn from past likes: what categories did they like?
                 cur.execute("""SELECT r.category FROM sannlas_reel_interactions i
                                JOIN sannlas_reels r ON r.id=i.reel_id
                                WHERE i.user_email=%s AND i.action IN ('like','save','share')
@@ -213,7 +233,6 @@ def reels_feed():
             except Exception as e:
                 print("Personalize fail:", e)
 
-        # Get 200 reels, score them, then paginate
         cur.execute("SELECT * FROM sannlas_reels ORDER BY id DESC LIMIT 300")
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description]
@@ -221,13 +240,12 @@ def reels_feed():
 
         scored = []
         for reel in data:
-            # Skip already seen (except page 1 refresh)
             if str(reel.get('id')) in seen_set and page > 1:
                 continue
             reel['algo_score'] = calc_reel_score(reel, viewer_email, followed_set, liked_categories)
             scored.append(reel)
 
-        # SORT BY SCORE - NOT BY TIME! This is the algorithm!
+        # SORT BY SCORE - NOT BY TIME!
         scored.sort(key=lambda x: x['algo_score'], reverse=True)
 
         # DIVERSITY: Don't show same shop 2x in a row
@@ -241,9 +259,8 @@ def reels_feed():
                 continue
             final.append(r)
             last_shop = shop
-        final.extend(skipped)  # add skipped at end
+        final.extend(skipped)
 
-        # Paginate
         start = (page-1)*limit
         page_data = final[start:start+limit]
 
@@ -265,7 +282,6 @@ def reels_feed():
                 reel['email'] = final_email
                 reel['user_id'] = final_email or slug
                 reel['shop_id'] = final_email or slug
-                # Is following?
                 reel['is_following'] = final_email in followed_set
                 reel['category'] = reel.get('category') or ''
                 reel['views'] = int(reel.get('views') or 0)
@@ -304,6 +320,10 @@ def reels_feed():
         traceback.print_exc()
         return jsonify([])
 
+# ============================================================
+# 5. USER REELS
+# ============================================================
+
 @reels_bp.route('/api/sannlas/reels/user/<shop_slug>')
 def get_user_reels(shop_slug):
     try:
@@ -333,8 +353,6 @@ def get_user_reels(shop_slug):
             shop_obj = shops_map.get(slug) or {}
             reel['shop_logo'] = shop_obj.get('logo','')
             reel['shop_profile_url'] = f"/shop/{slug}"
-
-            # ===== FIXED EMAIL FOR FOLLOW =====
             db_email = reel.get('user_email') or ''
             shop_email = shop_obj.get('email') or ''
             final_email = (db_email or shop_email or '').lower().strip()
@@ -343,7 +361,6 @@ def get_user_reels(shop_slug):
             reel['email'] = final_email
             reel['user_id'] = final_email or slug
             reel['shop_id'] = final_email or slug
-
             raw_coins = 3
             if pid and pid in products_map:
                 pd = products_map[pid]
@@ -363,32 +380,10 @@ def get_user_reels(shop_slug):
         print("USER REELS ERROR:", e)
         traceback.print_exc()
         return jsonify([])
-        
-@reels_bp.route('/profile/<shop_slug>')
-@reels_bp.route('/@<shop_slug>')
-@reels_bp.route('/reels/user/<shop_slug>')
-@reels_bp.route('/user/<shop_slug>')
-def user_profile_page(shop_slug):
-    try:
-        return render_template('user_profile.html', shop_slug=shop_slug)
-    except:
-        try:
-            return send_from_directory('templates', 'user_profile.html')
-        except:
-            return f"Create templates/user_profile.html first for @{shop_slug}", 404
 
-@reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
-def like_reel(rid):
-    try:
-        conn = get_conn(); cur = conn.cursor()
-        cur.execute("UPDATE sannlas_reels SET likes = likes + 1 WHERE id=%s", (rid,))
-        conn.commit(); cur.close(); conn.close()
-        return jsonify({'success':True})
-    except Exception as e:
-        print("LIKE ERROR", e)
-        return jsonify({'success':False})
-
-# ADD THIS AFTER your like_reel function at bottom of file:
+# ============================================================
+# 6. UPLOAD
+# ============================================================
 
 @reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
 def upload_reel():
@@ -407,9 +402,7 @@ def upload_reel():
         if not user_email:
             return jsonify({'success': False, 'error': 'user_email missing - login first!'}), 400
 
-        # --- Upload to Cloudinary (your existing logic) ---
         import cloudinary.uploader
-        # Ensure cloudinary configured in your app.py
         result = cloudinary.uploader.upload(file, resource_type="video", folder="sannlas_reels")
         video_url = result.get('secure_url') or result.get('url')
 
@@ -428,32 +421,23 @@ def upload_reel():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@reels_bp.route('/fix-old-reels-emails')
-def fix_old_reels():
+# ============================================================
+# 7. INTERACTIONS - LIKE / VIEW / SHARE / SAVE / FOLLOW
+# ============================================================
+
+@reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
+def like_reel(rid):
     try:
-        shops_map = load_shops_map()
+        d = request.get_json(silent=True) or {}
+        email = (d.get('user_email') or '').lower().strip()
         conn = get_conn(); cur = conn.cursor()
-        cur.execute("SELECT id, shop_name, shop_slug, user_email FROM sannlas_reels")
-        rows = cur.fetchall()
-        fixed = 0
-        for r in rows:
-            rid, shop_name, shop_slug, user_email = r
-            if user_email and '@' in str(user_email): 
-                continue
-            slug = clean_slug(shop_slug or shop_name)
-            shop_obj = shops_map.get(slug) or shops_map.get((shop_name or '').lower()) or {}
-            email = (shop_obj.get('email') or shop_obj.get('owner_email') or '').lower().strip()
-            if email:
-                cur.execute("UPDATE sannlas_reels SET user_email=%s WHERE id=%s", (email, rid))
-                fixed += 1
-        conn.commit()
-        cur.close(); conn.close()
-        return f"Fixed {fixed} reels with emails! Now + button will work!"
+        cur.execute("UPDATE sannlas_reels SET likes = likes + 1 WHERE id=%s", (rid,))
+        if email:
+            cur.execute("INSERT INTO sannlas_reel_interactions (reel_id, user_email, action) VALUES (%s,%s,'like')", (rid, email))
+        conn.commit(); cur.close(); conn.close()
+        return jsonify({'success':True})
     except Exception as e:
-        traceback.print_exc()
-        return f"Error: {e}", 500
-        
-# ===== TRACKING ENDPOINTS FOR ALGORITHM =====
+        print("LIKE ERROR", e); return jsonify({'success':False})
 
 @reels_bp.route('/api/sannlas/reels/view/<int:rid>', methods=['POST'])
 def view_reel(rid):
@@ -512,17 +496,31 @@ def follow_shop():
     except Exception as e:
         print("FOLLOW ERROR", e); return jsonify({'success':False})
 
-# UPDATE LIKE TO ALSO TRACK FOR ALGORITHM
-@reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
-def like_reel_v2(rid):
-    # This will override old like - keeps old logic + adds tracking
+# ============================================================
+# 8. FIX OLD REELS EMAILS
+# ============================================================
+
+@reels_bp.route('/fix-old-reels-emails')
+def fix_old_reels():
     try:
-        d = request.get_json(silent=True) or {}
-        email = (d.get('user_email') or '').lower().strip()
+        shops_map = load_shops_map()
         conn = get_conn(); cur = conn.cursor()
-        cur.execute("UPDATE sannlas_reels SET likes = likes + 1 WHERE id=%s", (rid,))
-        if email: cur.execute("INSERT INTO sannlas_reel_interactions (reel_id, user_email, action) VALUES (%s,%s,'like')", (rid, email))
-        conn.commit(); cur.close(); conn.close()
-        return jsonify({'success':True})
+        cur.execute("SELECT id, shop_name, shop_slug, user_email FROM sannlas_reels")
+        rows = cur.fetchall()
+        fixed = 0
+        for r in rows:
+            rid, shop_name, shop_slug, user_email = r
+            if user_email and '@' in str(user_email): 
+                continue
+            slug = clean_slug(shop_slug or shop_name)
+            shop_obj = shops_map.get(slug) or shops_map.get((shop_name or '').lower()) or {}
+            email = (shop_obj.get('email') or shop_obj.get('owner_email') or '').lower().strip()
+            if email:
+                cur.execute("UPDATE sannlas_reels SET user_email=%s WHERE id=%s", (email, rid))
+                fixed += 1
+        conn.commit()
+        cur.close(); conn.close()
+        return f"Fixed {fixed} reels with emails! Now + button will work!"
     except Exception as e:
-        print("LIKE ERROR", e); return jsonify({'success':False})
+        traceback.print_exc()
+        return f"Error: {e}", 500
