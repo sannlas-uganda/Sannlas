@@ -23,8 +23,12 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
 .pro-body{display:grid;grid-template-columns:1.2fr 1fr;gap:0;min-height:480px}
 @media(max-width:700px){.pro-body{grid-template-columns:1fr;overflow-y:auto;max-height:calc(95vh - 60px)}}
 .pro-left{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden}
-.pro-img{width:100%;max-width:380px;height:340px;object-fit:contain;border-radius:20px;background:transparent;filter:drop-shadow(0 25px 30px rgba(0,0,0,0.35));transition:opacity 0.3s}
-@media(max-width:700px){.pro-img{height:280px}}
+.slider-viewport{width:100%;max-width:380px;height:340px;overflow:hidden;border-radius:20px;position:relative;cursor:grab;touch-action:pan-y}
+.slider-viewport:active{cursor:grabbing}
+.slider-track{display:flex;width:100%;height:100%;transition:transform 0.45s cubic-bezier(0.25,0.8,0.25,1);will-change:transform}
+.slider-track.no-anim{transition:none}
+.slider-track img{width:100%;height:100%;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 25px 30px rgba(0,0,0,0.35));background:transparent;pointer-events:none;user-select:none;-webkit-user-drag:none}
+@media(max-width:700px){.slider-viewport{height:280px}}
 .pro-right{padding:20px;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);display:flex;flex-direction:column;justify-content:center}
 .arrow-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.7);color:white;border:none;width:42px;height:42px;border-radius:50%;font-size:22px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center}
 .arrow-btn:active{transform:translateY(-50%) scale(0.9)}
@@ -32,6 +36,8 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
 .arrow-right{right:12px}
 .thumb{width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.9);cursor:pointer;background:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
 .thumb.active{border:3px solid #FF6600;transform:scale(1.1)}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.25);cursor:pointer;transition:all 0.3s}
+.dot.active{background:#FF6600;width:22px;border-radius:10px}
 .size-btn{padding:8px 14px;border-radius:50%;border:2px solid #000;background:white;color:#000;font-weight:800;font-size:12px;cursor:pointer;min-width:42px}
 .size-btn.active{background:#000;color:white}
 .next-preview{position:absolute;bottom:12px;right:12px;text-align:center;z-index:4}
@@ -47,25 +53,19 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
   <b>SANNLAS PRODUCTS</b>
   <span>🛒</span>
 </div>
-
 <div class="search-bar">
   <span>🔍</span>
   <input id="searchInput" placeholder="Search products..." onkeyup="filterProducts()">
 </div>
-
 <div id="products" class="products-grid">Loading Boss...</div>
-
 <div class="popup" id="viewPop" onclick="closePop()">
-  <div class="popup-content" id="viewContent" onclick="event.stopPropagation()">
-  </div>
+  <div class="popup-content" id="viewContent" onclick="event.stopPropagation()"></div>
 </div>
-
 <script>
 let allProducts=[];
 let currentImgs=[];
 let currentIdx=0;
 let selectedSize='';
-
 let bgColors=[
   'linear-gradient(135deg,#FFE8EC,#FFD6DE)',
   'linear-gradient(135deg,#E8F0FF,#D6E4FF)',
@@ -74,14 +74,11 @@ let bgColors=[
   'linear-gradient(135deg,#F0E6FF,#DCC8FF)',
   'linear-gradient(135deg,#FFE6D6,#FFC8A3)'
 ];
-
 async function load(){
   const r = await fetch('/api/products?limit=200');
   allProducts = await r.json();
   render(allProducts);
 }
-
-// KEPT FROM YOUR FILE: Get all images, not just p.image
 function getAllImages(p){
   if(p.images && Array.isArray(p.images) && p.images.length>0) return p.images;
   if(typeof p.images === 'string' && p.images.length>0){
@@ -93,7 +90,6 @@ function getAllImages(p){
   if(p.image_url) return [p.image_url];
   return ['/icon-192.png'];
 }
-
 function render(list){
   document.getElementById('products').innerHTML = list.map(p=>{
     let name = p.name || p.product_name || 'Product';
@@ -115,13 +111,10 @@ function render(list){
     </div>`;
   }).join('');
 }
-
 function isFashion(p){
   let cat = ((p.main_category||'')+' '+(p.category||'')+' '+(p.name||'')).toLowerCase();
   return cat.includes('fashion')||cat.includes('cloth')||cat.includes('shirt')||cat.includes('dress')||cat.includes('shoe')||cat.includes('sneaker')||cat.includes('hoodie')||cat.includes('jacket')||cat.includes('trouser')||cat.includes('jeans')||cat.includes('t-shirt');
 }
-
-// CHANGED: Now with sliding + TikTok style, still 4 photos
 function openProduct(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
   if(!p) return;
@@ -134,7 +127,6 @@ function openProduct(id){
   let desc = p.description || p.desc || 'No description. Contact seller for details.';
   let phone = p.phone || p.business_phone || 'Contact via Shop';
   let biz = p.business || p.business_name || 'SANNLAS Seller';
-
   let sizeHtml = '';
   if(isFashion(p)){
     sizeHtml = `
@@ -148,11 +140,10 @@ function openProduct(id){
       </div>
     </div>`;
   }
-
   let thumbsHtml = currentImgs.map((im,i)=>`<img src="${im}" class="thumb ${i==0?'active':''}" onclick="goToImg(${i})" onerror="this.style.display='none'">`).join('');
+  let dotsHtml = currentImgs.map((_,i)=>`<div class="dot ${i==0?'active':''}" onclick="goToImg(${i})"></div>`).join('');
   let nextIdx = (currentIdx+1) % currentImgs.length;
   let nextPreview = currentImgs.length>1 ? `<div class="next-preview"><img id="nextImg" src="${currentImgs[nextIdx]}"><div style="font-size:10px;font-weight:700;background:rgba(0,0,0,0.6);color:white;border-radius:8px;padding:2px 6px;margin-top:2px">Next →</div></div>` : '';
-
   document.getElementById('viewContent').innerHTML = `
     <div class="pro-top">
       <b style="font-size:16px">🛍️ ${name}</b>
@@ -161,9 +152,14 @@ function openProduct(id){
     <div class="pro-body">
       <div class="pro-left">
         <button class="arrow-btn arrow-left" onclick="prevImg(event)">‹</button>
-        <img id="mainImg" src="${currentImgs[0]}" class="pro-img" onerror="this.src='/icon-192.png'">
+        <div class="slider-viewport" id="sliderViewport">
+          <div class="slider-track" id="sliderTrack">
+            ${currentImgs.map(im=>`<img src="${im}" onerror="this.src='/icon-192.png'">`).join('')}
+          </div>
+        </div>
         <button class="arrow-btn arrow-right" onclick="nextImg(event)">›</button>
         <div style="background:rgba(0,0,0,0.6);color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800;margin-top:12px" id="counter">1 / ${currentImgs.length} 📸</div>
+        <div style="display:flex;gap:6px;margin-top:10px" id="dotsRow">${dotsHtml}</div>
         <div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;max-width:100%;padding:4px">${thumbsHtml}</div>
         ${nextPreview}
       </div>
@@ -189,21 +185,21 @@ function openProduct(id){
   `;
   updateBg();
   document.getElementById('viewPop').style.display='flex';
+  setupDrag();
 }
-
-// NEW: Sliding logic
 function updateBg(){
   let el = document.getElementById('viewContent');
   if(el) el.style.background = bgColors[currentIdx % bgColors.length];
 }
 function showImg(idx){
   currentIdx = (idx + currentImgs.length) % currentImgs.length;
-  let main = document.getElementById('mainImg');
-  if(main){
-    main.style.opacity = 0;
-    setTimeout(()=>{ main.src = currentImgs[currentIdx]; main.style.opacity = 1; }, 150);
+  let track = document.getElementById('sliderTrack');
+  if(track){
+    track.classList.remove('no-anim');
+    track.style.transform = 'translateX(-' + (currentIdx * 100) + '%)';
   }
   document.querySelectorAll('.thumb').forEach((t,i)=>{ t.classList.toggle('active', i===currentIdx); });
+  document.querySelectorAll('.dot').forEach((d,i)=>{ d.classList.toggle('active', i===currentIdx); });
   let c = document.getElementById('counter');
   if(c) c.textContent = (currentIdx+1) + ' / ' + currentImgs.length + ' 📸';
   let nextImg = document.getElementById('nextImg');
@@ -218,8 +214,39 @@ function pickSize(btn, size){
   document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
 }
-
-// KEPT FROM YOUR FILE
+// DRAG LIKE TIKTOK - hold and pull photo, it follows finger
+let dragStartX=0, dragCurrentX=0, isDragging=false;
+function setupDrag(){
+  let vp = document.getElementById('sliderViewport');
+  let track = document.getElementById('sliderTrack');
+  if(!vp || !track) return;
+  function start(x){
+    isDragging=true; dragStartX=x; dragCurrentX=x;
+    track.classList.add('no-anim');
+  }
+  function move(x){
+    if(!isDragging) return;
+    dragCurrentX=x;
+    let diff = dragCurrentX - dragStartX;
+    let base = -currentIdx * vp.offsetWidth;
+    track.style.transform = 'translateX(' + (base + diff) + 'px)';
+  }
+  function end(){
+    if(!isDragging) return;
+    isDragging=false;
+    track.classList.remove('no-anim');
+    let diff = dragCurrentX - dragStartX;
+    if(diff < -50) showImg(currentIdx+1);
+    else if(diff > 50) showImg(currentIdx-1);
+    else showImg(currentIdx);
+  }
+  vp.addEventListener('touchstart', e=>start(e.touches[0].clientX), {passive:true});
+  vp.addEventListener('touchmove', e=>move(e.touches[0].clientX), {passive:true});
+  vp.addEventListener('touchend', end);
+  vp.addEventListener('mousedown', e=>{ e.preventDefault(); start(e.clientX); });
+  window.addEventListener('mousemove', e=>move(e.clientX));
+  window.addEventListener('mouseup', end);
+}
 function closePop(){ document.getElementById('viewPop').style.display='none'; }
 function filterProducts(){
   const q = document.getElementById('searchInput').value.toLowerCase();
@@ -234,11 +261,8 @@ function getUser(){
       return {email: email, phone: phone};
     }
     return u;
-  } catch(e){
-    return {email:'', phone:''};
-  }
+  } catch(e){ return {email:'', phone:''}; }
 }
-
 function orderNow(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
   if(!p) return;
@@ -248,39 +272,16 @@ function orderNow(id){
   let msg = `Hi Boss! I want ${name} - UGX ${Number(price).toLocaleString()}${sizeText} - Product ID ${id} - from SANNLAS PRODUCTS`;
   window.open(`https://wa.me/256795712326?text=${encodeURIComponent(msg)}`,'_blank');
 }
-
 async function addToCart(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
-  if(!p){
-    alert('Product not found!');
-    return;
-  }
+  if(!p){ alert('Product not found!'); return; }
   let user = getUser();
   let email = (user.email || '').toLowerCase().trim();
   let phone = (user.phone || '').trim();
-  if(!email && !phone){
-    alert('⚠️ Please login first Boss! Go to Home and login.');
-    window.location.href = '/';
-    return;
-  }
-  let payload = {
-    email: email,
-    phone: phone,
-    product_id: String(p.id),
-    name: p.name || p.product_name || 'Product',
-    price: Number(p.price || 0),
-    image: getAllImages(p)[0],
-    shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS',
-    shop_slug: p.shop_slug || p.slug || '',
-    qty: 1,
-    size: selectedSize || ''
-  };
+  if(!email && !phone){ alert('⚠️ Please login first Boss! Go to Home and login.'); window.location.href = '/'; return; }
+  let payload = { email: email, phone: phone, product_id: String(p.id), name: p.name || p.product_name || 'Product', price: Number(p.price || 0), image: getAllImages(p)[0], shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS', shop_slug: p.shop_slug || p.slug || '', qty: 1, size: selectedSize || '' };
   try {
-    let r = await fetch('/api/cart/add', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    });
+    let r = await fetch('/api/cart/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     let res = await r.json();
     if(res.success){
       let cart = JSON.parse(localStorage.getItem('sannlas_cart')||'[]');
@@ -288,28 +289,9 @@ async function addToCart(id){
       localStorage.setItem('sannlas_cart', JSON.stringify(cart));
       alert('✅ ' + res.message + (selectedSize ? ' Size: '+selectedSize : '') + ' Go to Cart to view!');
       closePop();
-    } else {
-      alert('❌ ' + (res.message || 'Failed to add'));
-    }
-  } catch(e){
-    console.log(e);
-    alert('❌ Network error Boss! Try again');
-  }
+    } else { alert('❌ ' + (res.message || 'Failed to add')); }
+  } catch(e){ console.log(e); alert('❌ Network error Boss! Try again'); }
 }
-
-// NEW: Swipe on mobile
-let startX = 0;
-document.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; }, {passive:true});
-document.addEventListener('touchend', e=>{
-  if(document.getElementById('viewPop').style.display !== 'flex') return;
-  let endX = e.changedTouches[0].clientX;
-  let diff = endX - startX;
-  if(Math.abs(diff) > 50){
-    if(diff < 0) showImg(currentIdx+1);
-    else showImg(currentIdx-1);
-  }
-}, {passive:true});
-
 load();
 </script>
 </body>
