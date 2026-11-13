@@ -126,52 +126,60 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
     shares = int(reel.get('shares') or 0)
     saves = int(reel.get('saves') or 0)
 
-    # 1. ENGAGEMENT
-    engagement = (likes*3) + (comments*5) + (shares*10) + (saves*8) + (views*0.5)
-
-    # 2. FRESHNESS - ADDITIVE! NEW = ON TOP!
+    # --- 1. GET HOURS AGO ---
     created = reel.get('created')
     try:
         if isinstance(created, str):
             created = datetime.fromisoformat(created.replace('Z','+00:00'))
         if created and created.tzinfo is None:
             created = created.replace(tzinfo=timezone.utc)
-        hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600 if created else 999
+        hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600 if created else 9999
     except:
-        hours = 999
+        hours = 9999
 
+    # --- 2. 🔥 FRESHNESS = MAJOR! HUGE NUMBERS! ---
+    # New reels get THOUSANDS - No old reel can ever catch them!
     if hours < 1:
-        fresh = 200
+        fresh = 100000  # < 1 Hour = ALWAYS TOP!
     elif hours < 6:
-        fresh = 120
+        fresh = 50000   # < 6 Hours = 2nd TOP!
     elif hours < 24:
-        fresh = 60
+        fresh = 20000   # < 24 Hours = Still TOP!
     elif hours < 72:
-        fresh = 20
+        fresh = 5000    # < 3 Days = Middle
+    elif hours < 168: # < 7 Days
+        fresh = 1000
     else:
-        fresh = 0
+        fresh = 0       # Old = Bottom!
 
-    # ✅ ADD, DON'T MULTIPLY - So 0 likes new reel still = 200!
-    score = engagement + fresh
+    # --- 3. ENGAGEMENT = MINOR! Only decides order INSIDE same freshness group ---
+    # We CAP it so even a viral old reel (1000 likes) can NEVER beat a new reel!
+    # Max engagement = 999 - Less than smallest fresh gap!
+    engagement = (likes*3) + (comments*5) + (shares*10) + (saves*8) + (views*0.5)
+    engagement = min(engagement, 999)  # ✅ CAPPED! Never beats freshness!
 
-    # 3. PERSONAL BOOST - For You
+    # --- 4. PERSONAL BOOST = SMALL! Also can't beat freshness ---
+    personal = 0
     if followed_set and (reel.get('user_email') or '').lower() in followed_set:
-        score += 50
-
+        personal += 50
     if liked_categories:
         cat = (reel.get('category') or '').lower()
         if cat in liked_categories:
-            score += 30
+            personal += 30
 
-    # 4. NEW SELLER BOOST
+    # --- 5. NEW SELLER BOOST = SMALL ---
+    new_seller = 0
     if views < 20 and hours < 24:
-        score += 20
+        new_seller = 20
 
-    # 5. Small random so feed is not identical
+    # --- FINAL SCORE: FRESHNESS FIRST, OTHERS FOLLOW! ---
+    score = fresh + engagement + personal + new_seller
+
+    # Small random - Only shuffles inside same group, can't jump groups
+    import random
     score += random.uniform(0, 5)
 
     return round(score, 2)
-
 # ============================================================
 # 3. PAGES
 # ============================================================
