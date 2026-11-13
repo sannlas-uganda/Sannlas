@@ -226,8 +226,12 @@ async function load(){
     if(!shop){ if(!currentShop) document.getElementById('shopNameBig').innerHTML=`<h1>Shop Not Found: ${raw_slug}</h1>`; return; }
     try{ sessionStorage.setItem('sannlas_shop_'+slug, JSON.stringify({shop, products})); }catch(e){}
     renderShopInstant(shop, products);
-    loadShopFollowStats();
-    checkFollowStatus();
+    // ⚡ FAST: Stats + Follow in BACKGROUND - don't block shop!
+    // Don't await - let them load while user already sees shop!
+    loadShopFollowStats(); // this is already async, don't await it
+    checkFollowStatus(); // this is already async, don't await it
+    // Stats also in background - no await!
+    fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); }).catch(()=>{});
     fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); }).catch(()=>{ document.getElementById('statLikes').innerText=products.length*5; document.getElementById('statViews').innerText=products.length*120; });
   }catch(e){ if(!currentShop){ document.getElementById('shopNameBig').innerHTML='<h1>Error loading shop</h1><p>'+e+'</p>'; } console.error(e); }
 }
