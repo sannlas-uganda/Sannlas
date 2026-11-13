@@ -113,20 +113,27 @@ if(INSTANT_SHOP && cleanSlug(INSTANT_SHOP.shop_slug) === slug){
 }
 // ⚡ SMART BACK - Go back to Reels / where you came from, DON'T reload Home!
 function goBackSmart(){
-  // If you came from Reels / Home, go back in history - NO reload, instant!
+  // 1. If we saved where we came from in index.html - USE IT!
+  let backTo = '';
+  try{ backTo = sessionStorage.getItem('sannlas_back_to') || ''; }catch(e){}
+  if(backTo){
+    try{ sessionStorage.removeItem('sannlas_back_to'); }catch(e){}
+    location.href = backTo;
+    return;
+  }
+  // 2. If came from All Shops - go back to All Shops
+  if(document.referrer && document.referrer.includes('/shops')){
+    location.href = '/shops';
+    return;
+  }
+  // 3. If came from Reels / Home - go back in history - NO reload!
   if(document.referrer && document.referrer.includes(location.host)){
     history.back();
-  } else {
-    // No history - e.g. opened shop link directly - go to Reels, not Home!
-    let from = new URLSearchParams(location.search).get('from') || sessionStorage.getItem('sannlas_shop_from') || 'reels';
-    if(from === 'reels') location.href = '/reels';
-    else location.href = '/';
+    return;
   }
+  // 4. No history - opened link directly - go to Reels!
+  location.href = '/reels';
 }
-// Phone Back button = same as Back button - DON'T force to Home!
-history.pushState(null,'',location.href);
-window.addEventListener('popstate', function(){ goBackSmart(); });
-
 function goToReelsProfile(){
   let target = slug || cleanSlug(currentShop?.shop_slug || currentShop?.business_name || originalSlug);
   window.location.href = '/@/' + target;
