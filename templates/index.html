@@ -979,14 +979,19 @@ async function checkFollowStatus(){
     }catch(e){}
   });
 }
-
+// ⚡ FIX - Define these on window so they NEVER go missing again!
+window.homePage = window.homePage || 1;
+window.homeSeenIds = window.homeSeenIds || new Set();
+window.homeIsLoading = false;
+window.homeWatchStart = window.homeWatchStart || 0;
+window.homeCurrentReel = window.homeCurrentReel || null;
 async function loadHomeReels(){
-  if(homeIsLoading) return; homeIsLoading = true;
+  if(window.homeIsLoading) return; window.homeIsLoading = true;
   try{
     let instantCached = JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
     if(instantCached.length>0 && homePage===1){
       renderReels(instantCached, true);
-      homeIsLoading = false;
+      window.homeIsLoading = false;
     }
   }catch(e){}
   let c=document.getElementById('reelsFeedContainer');
@@ -999,7 +1004,7 @@ async function loadHomeReels(){
     setTimeout(()=>controller.abort(), 30000);
     let r=await fetch(`/api/sannlas/reels/feed?user_email=${encodeURIComponent(email)}&page=${homePage}&limit=20&seen=${encodeURIComponent(seen)}`, {signal: controller.signal});
     let reels=await r.json();
-    homeIsLoading = false;
+    window.homeIsLoading = false;
     if(!reels || !reels.length){
       if(homePage===1) c.innerHTML='<p style="padding:20px;color:#FFCC02;text-align:center">No reels yet Boss! Be first<br><a href="/upload" style="color:#FFCC02">Upload Reel</a></p>';
       return;
@@ -1015,7 +1020,7 @@ async function loadHomeReels(){
     }
   }catch(e){
     console.error(e);
-    homeIsLoading = false;
+    window.homeIsLoading = false;
     let cached=JSON.parse(localStorage.getItem('sannlas_reels_cache')||'[]');
     if(cached.length>0) renderReels(cached);
     else if(homePage===1) c.innerHTML='<p style="padding:20px;color:#fff;text-align:center">Tap to retry<br><button onclick="homePage=1;loadHomeReels()" style="background:#FFCC02;padding:10px 20px;border:none;border-radius:20px;font-weight:900">RETRY</button></p>';
