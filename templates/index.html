@@ -952,6 +952,13 @@ async function toggleFollowReal(btn){
     btn.classList.toggle('following', isFollowing);
   }
 }
+function getHomeViewerEmail(){
+  try{
+    let u = JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+    if(u.user) u = u.user;
+    return (u.email||'').toLowerCase();
+  }catch(e){ return ''; }
+}
 async function checkFollowStatus(){
   let u = localStorage.getItem('sannlas_user');
   if(!u) return;
