@@ -37,7 +37,20 @@ body{background:#E9EFF7;font-family:system-ui;padding-bottom:80px}
 .hanger{font-size:28px;margin-bottom:-8px;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2))}
 .slider-viewport{width:100%;max-width:360px;height:360px;overflow:hidden;border-radius:20px;cursor:grab;touch-action:pan-y}
 @media(max-width:700px){.slider-viewport{height:280px}}
-.slider-track{display:flex;width:100%;height:100%;transition:transform 0.55s cubic-bezier(0.25,0.8,0.25,1)}
+.slider-track{display:flex;flex-direction:column;width:100%;height:100%;transition:transform 0.65s cubic-bezier(0.34,1.4,0.64,1)}
+.slider-track img{animation:fallIn 0.65s cubic-bezier(0.34,1.4,0.64,1)}
+@keyframes fallIn{
+  0%{transform:translateY(-120%) scale(0.85);opacity:0}
+  60%{transform:translateY(15px) scale(1.02);opacity:1}
+  80%{transform:translateY(-6px) scale(0.99)}
+  100%{transform:translateY(0) scale(1);opacity:1}
+}
+.shadow-ellipse{animation:shadowGrow 0.65s ease}
+@keyframes shadowGrow{
+  0%{transform:scale(0.4);opacity:0}
+  60%{transform:scale(1.15);opacity:0.8}
+  100%{transform:scale(1);opacity:1}
+}
 .slider-track.no-anim{transition:none}
 .slider-track img{width:100%;height:100%;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 25px 25px rgba(0,0,0,0.35));pointer-events:none;user-select:none;-webkit-user-drag:none}
 .shadow-ellipse{width:160px;height:18px;background:radial-gradient(ellipse,rgba(0,0,0,0.35),transparent);border-radius:50%;margin-top:6px}
@@ -213,7 +226,12 @@ function updateBg(){
 function showImg(idx){
   currentIdx = (idx + currentImgs.length) % currentImgs.length;
   let track = document.getElementById('sliderTrack');
-  if(track){ track.classList.remove('no-anim'); track.style.transform = 'translateX(-' + (currentIdx * 100) + '%)'; }
+  if(track){ track.classList.remove('no-anim'); track.style.transform = 'translateY(-' + (currentIdx * 100) + '%)';
+// Re-trigger falling bounce
+let imgs = track.querySelectorAll('img');
+imgs.forEach(im=>{ im.style.animation='none'; void im.offsetWidth; im.style.animation=''; });
+let shadow = document.querySelector('.shadow-ellipse');
+if(shadow){ shadow.style.animation='none'; void shadow.offsetWidth; shadow.style.animation=''; }
   document.querySelectorAll('.thumb').forEach((t,i)=>{ t.classList.toggle('active', i===currentIdx); });
   let c = document.getElementById('counter');
   if(c) c.textContent = (currentIdx+1) + ' / ' + currentImgs.length + ' 📸';
@@ -238,8 +256,8 @@ function setupDrag(){
   function move(x){
     if(!isDragging) return; dragCurrentX=x;
     let diff = dragCurrentX - dragStartX;
-    let base = -currentIdx * vp.offsetWidth;
-    track.style.transform = 'translateX(' + (base + diff) + 'px)';
+    let base = -currentIdx * vp.offsetHeight;
+track.style.transform = 'translateY(' + (base + diff) + 'px)';
   }
   function end(){
     if(!isDragging) return; isDragging=false; track.classList.remove('no-anim');
