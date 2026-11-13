@@ -227,7 +227,7 @@ def reels_feed():
         # ✅ 1. USE CACHE - Don't hit DB every scroll! Only every 60s
         now = time.time()
         cache_key = viewer_email or 'guest'
-        use_cache = (now - _feed_cache.get('time', 0) < 60 and _feed_cache.get('key') == cache_key and _feed_cache.get('data'))
+        use_cache = (now - _feed_cache.get('time', 0) < 01 and _feed_cache.get('key') == cache_key and _feed_cache.get('data'))
 
         if use_cache:
             final = _feed_cache['data']
