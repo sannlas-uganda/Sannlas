@@ -5,7 +5,7 @@ import psycopg2
 
 reels_bp = Blueprint('reels_bp', __name__)
 
-# ✅ CACHE AT TOP - So upload can clear it!
+# ✅ CACHE AT TOP
 _feed_cache = {'data': [], 'time': 0, 'followed': {}, 'liked': {}, 'key': ''}
 
 # ============================================================
@@ -53,7 +53,6 @@ def load_shops_map():
                     users_data = json.load(f)
                     break
             except: pass
-    
     m = {}
     try:
         for s in shops_data:
@@ -67,7 +66,6 @@ def load_shops_map():
             if email and not s.get('email'):
                 s['email'] = email
                 s['owner_email'] = email
-        
         for u in users_data:
             if not isinstance(u, dict): continue
             u_email = (u.get('email') or '').lower().strip()
@@ -119,7 +117,7 @@ def ensure_reels_table():
     conn.commit(); cur.close(); conn.close()
 
 # ============================================================
-# 2. 🧠 THE ALGORITHM - NEW = MAJOR, OTHERS FOLLOW!
+# 2. 🧠 ALGORITHM - NEW = MAJOR!
 # ============================================================
 
 def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=None):
@@ -128,8 +126,6 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
     comments = int(reel.get('comments_count') or 0)
     shares = int(reel.get('shares') or 0)
     saves = int(reel.get('saves') or 0)
-
-    # --- 1. GET HOURS AGO ---
     created = reel.get('created')
     try:
         if isinstance(created, str):
@@ -139,8 +135,6 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
         hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600 if created else 9999
     except:
         hours = 9999
-
-    # --- 2. 🔥 FRESHNESS = MAJOR! ---
     if hours < 1:
         fresh = 100000
     elif hours < 6:
@@ -153,12 +147,8 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
         fresh = 1000
     else:
         fresh = 0
-
-    # --- 3. ENGAGEMENT = MINOR! CAPPED! ---
     engagement = (likes*3) + (comments*5) + (shares*10) + (saves*8) + (views*0.5)
     engagement = min(engagement, 999)
-
-    # --- 4. PERSONAL BOOST = SMALL ---
     personal = 0
     if followed_set and (reel.get('user_email') or '').lower() in followed_set:
         personal += 50
@@ -166,12 +156,9 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
         cat = (reel.get('category') or '').lower()
         if cat in liked_categories:
             personal += 30
-
-    # --- 5. NEW SELLER BOOST ---
     new_seller = 0
     if views < 20 and hours < 24:
         new_seller = 20
-
     score = fresh + engagement + personal + new_seller
     score += random.uniform(0, 5)
     return round(score, 2)
@@ -205,7 +192,7 @@ def user_profile_page(shop_slug):
             return f"Create templates/user_profile.html first for @{shop_slug}", 404
 
 # ============================================================
-# 4. FEED - SORTED BY ALGORITHM, FAST + SHOWS ALL
+# 4. FEED
 # ============================================================
 
 @reels_bp.route('/api/sannlas/reels/feed')
@@ -216,12 +203,9 @@ def reels_feed():
         viewer_email = (request.args.get('user_email') or request.args.get('email') or '').lower().strip()
         page = int(request.args.get('page') or 1)
         limit = int(request.args.get('limit') or 20)
-
-        # ✅ FIXED INDENTATION - 8 spaces!
         now = time.time()
         cache_key = viewer_email or 'guest'
         use_cache = (now - _feed_cache.get('time', 0) < 10 and _feed_cache.get('key') == cache_key and _feed_cache.get('data'))
-
         if use_cache:
             final = _feed_cache['data']
             followed_set = _feed_cache.get('followed', set())
@@ -239,20 +223,16 @@ def reels_feed():
                                    GROUP BY r.category ORDER BY COUNT(*) DESC LIMIT 3""", (viewer_email,))
                     liked_categories = set([r[0].lower() for r in cur.fetchall() if r[0]])
                 except: pass
-
             cur.execute("SELECT id, user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, views, shares, comments_count, saves, category, created FROM sannlas_reels ORDER BY id DESC LIMIT 300")
             rows = cur.fetchall()
             cols = [d[0] for d in cur.description]
             data = [dict(zip(cols, r)) for r in rows]
             cur.close(); conn.close()
-
             scored = []
             for reel in data:
                 reel['algo_score'] = calc_reel_score(reel, viewer_email, followed_set, liked_categories)
                 scored.append(reel)
             scored.sort(key=lambda x: x['algo_score'], reverse=True)
-
-            # ✅ FIXED DIVERSITY - TOP 3 NEVER HIDDEN!
             final = []
             last_shop = ''
             skipped = []
@@ -264,15 +244,12 @@ def reels_feed():
                     skipped.append(r); continue
                 final.append(r); last_shop = shop
             final.extend(skipped)
-
             _feed_cache['data'] = final
             _feed_cache['time'] = now
             _feed_cache['key'] = cache_key
             _feed_cache['followed'] = followed_set
-
         start = (page-1)*limit
         page_data = final[start:start+limit]
-
         for reel in page_data:
             try:
                 pid = str(reel.get('product_id') or '').strip()
@@ -318,7 +295,6 @@ def reels_feed():
                     reel['buy_link'] = f"/shop/{slug}"
             except Exception as e:
                 print(f"Reel fail {reel.get('id')}: {e}")
-
         return jsonify(page_data)
     except Exception as e:
         print("FEED ERROR:", e)
@@ -387,51 +363,73 @@ def get_user_reels(shop_slug):
         return jsonify([])
 
 # ============================================================
-# 6. UPLOAD
+# 6. 🔥 OPTION 2 - DIRECT UPLOAD TO CLOUDINARY!
 # ============================================================
 
-@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
-def upload_reel():
+@reels_bp.route('/api/cloudinary-signature')
+def cloudinary_signature():
+    try:
+        import cloudinary.utils
+        ts = int(time.time())
+        # Sign ONLY timestamp + folder - safe!
+        params = {'timestamp': ts, 'folder': 'sannlas_reels'}
+        sig = cloudinary.utils.api_sign_request(params, os.getenv('CLOUDINARY_API_SECRET'))
+        return jsonify({
+            'signature': sig,
+            'timestamp': ts,
+            'api_key': os.getenv('CLOUDINARY_API_KEY'),
+            'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME'),
+            'folder': 'sannlas_reels'
+        })
+    except Exception as e:
+        print("SIG ERROR:", e)
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@reels_bp.route('/api/sannlas/reels/save-url', methods=['POST'])
+def save_reel_url():
+    """Frontend already uploaded to Cloudinary, we just save URL - SUPER FAST!"""
     try:
         ensure_reels_table()
-        file = request.files.get('video')
-        caption = request.form.get('caption') or request.form.get('product_name') or 'New Reel 🔥'
-        user_email = (request.form.get('user_email') or request.form.get('email') or '').lower().strip()
-        user_name = request.form.get('user_name') or user_email.split('@')[0] if user_email else 'SANNLAS USER'
-        product_id = request.form.get('product_id') or ''
-        shop_name = request.form.get('shop_name') or user_name or 'SANNLAS SHOP'
-        shop_slug = clean_slug(request.form.get('shop_slug') or shop_name)
-        
-        if not file:
-            return jsonify({'success': False, 'error': 'No video file'}), 400
+        d = request.get_json(silent=True) or {}
+        video_url = (d.get('video_url') or d.get('url') or '').strip()
+        if not video_url:
+            return jsonify({'success': False, 'error': 'video_url missing'}), 400
+        user_email = (d.get('user_email') or d.get('email') or '').lower().strip()
         if not user_email:
-            return jsonify({'success': False, 'error': 'user_email missing - login first!'}), 400
-
-        import cloudinary.uploader
-        result = cloudinary.uploader.upload(file, resource_type="video", folder="sannlas_reels")
-        video_url = result.get('secure_url') or result.get('url')
+            return jsonify({'success': False, 'error': 'login first!'}), 400
+        user_name = d.get('user_name') or (user_email.split('@')[0] if user_email else 'SANNLAS USER')
+        shop_name = d.get('shop_name') or user_name or 'SANNLAS SHOP'
+        shop_slug = clean_slug(d.get('shop_slug') or shop_name)
+        caption = d.get('caption') or d.get('product_name') or 'New Reel 🔥'
+        product_id = d.get('product_id') or ''
+        category = d.get('category') or ''
 
         conn = get_conn(); cur = conn.cursor()
         cur.execute("""
             INSERT INTO sannlas_reels 
-            (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0) RETURNING id
-        """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url))
+            (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, category)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s) RETURNING id
+        """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url, category))
         new_id = cur.fetchone()[0]
         conn.commit(); cur.close(); conn.close()
 
-        # ✅ CLEAR CACHE - New reel shows at TOP instantly!
+        # ✅ Clear cache - New reel at TOP instantly!
         _feed_cache['data'] = []
         _feed_cache['time'] = 0
-        
-        return jsonify({'success': True, 'id': new_id, 'url': video_url, 'video_url': video_url})
+        return jsonify({'success': True, 'id': new_id, 'video_url': video_url})
     except Exception as e:
-        print("UPLOAD ERROR:", e)
+        print("SAVE-URL ERROR:", e)
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# OLD upload kept as FALLBACK if direct fails - but NOT used by new frontend
+@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
+def upload_reel_old():
+    return jsonify({'success': False, 'error': 'Use direct upload - /api/cloudinary-signature + /api/sannlas/reels/save-url'}), 400
+
 # ============================================================
-# 7. INTERACTIONS - LIKE / VIEW / SHARE / SAVE / FOLLOW
+# 7. INTERACTIONS
 # ============================================================
 
 @reels_bp.route('/api/sannlas/reels/like/<int:rid>', methods=['POST'])
