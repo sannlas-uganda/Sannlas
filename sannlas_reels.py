@@ -5,6 +5,9 @@ import psycopg2
 
 reels_bp = Blueprint('reels_bp', __name__)
 
+# ✅ CACHE AT TOP - So upload can clear it!
+_feed_cache = {'data': [], 'time': 0, 'followed': {}, 'liked': {}, 'key': ''}
+
 # ============================================================
 # 1. HELPERS
 # ============================================================
@@ -116,7 +119,7 @@ def ensure_reels_table():
     conn.commit(); cur.close(); conn.close()
 
 # ============================================================
-# 2. 🧠 THE ALGORITHM - NEW SHOWS FASTER / ON TOP!
+# 2. 🧠 THE ALGORITHM - NEW = MAJOR, OTHERS FOLLOW!
 # ============================================================
 
 def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=None):
@@ -137,28 +140,25 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
     except:
         hours = 9999
 
-    # --- 2. 🔥 FRESHNESS = MAJOR! HUGE NUMBERS! ---
-    # New reels get THOUSANDS - No old reel can ever catch them!
+    # --- 2. 🔥 FRESHNESS = MAJOR! ---
     if hours < 1:
-        fresh = 100000  # < 1 Hour = ALWAYS TOP!
+        fresh = 100000
     elif hours < 6:
-        fresh = 50000   # < 6 Hours = 2nd TOP!
+        fresh = 50000
     elif hours < 24:
-        fresh = 20000   # < 24 Hours = Still TOP!
+        fresh = 20000
     elif hours < 72:
-        fresh = 5000    # < 3 Days = Middle
-    elif hours < 168: # < 7 Days
+        fresh = 5000
+    elif hours < 168:
         fresh = 1000
     else:
-        fresh = 0       # Old = Bottom!
+        fresh = 0
 
-    # --- 3. ENGAGEMENT = MINOR! Only decides order INSIDE same freshness group ---
-    # We CAP it so even a viral old reel (1000 likes) can NEVER beat a new reel!
-    # Max engagement = 999 - Less than smallest fresh gap!
+    # --- 3. ENGAGEMENT = MINOR! CAPPED! ---
     engagement = (likes*3) + (comments*5) + (shares*10) + (saves*8) + (views*0.5)
-    engagement = min(engagement, 999)  # ✅ CAPPED! Never beats freshness!
+    engagement = min(engagement, 999)
 
-    # --- 4. PERSONAL BOOST = SMALL! Also can't beat freshness ---
+    # --- 4. PERSONAL BOOST = SMALL ---
     personal = 0
     if followed_set and (reel.get('user_email') or '').lower() in followed_set:
         personal += 50
@@ -167,19 +167,15 @@ def calc_reel_score(reel, viewer_email='', followed_set=None, liked_categories=N
         if cat in liked_categories:
             personal += 30
 
-    # --- 5. NEW SELLER BOOST = SMALL ---
+    # --- 5. NEW SELLER BOOST ---
     new_seller = 0
     if views < 20 and hours < 24:
         new_seller = 20
 
-    # --- FINAL SCORE: FRESHNESS FIRST, OTHERS FOLLOW! ---
     score = fresh + engagement + personal + new_seller
-
-    # Small random - Only shuffles inside same group, can't jump groups
-    import random
     score += random.uniform(0, 5)
-
     return round(score, 2)
+
 # ============================================================
 # 3. PAGES
 # ============================================================
@@ -209,11 +205,8 @@ def user_profile_page(shop_slug):
             return f"Create templates/user_profile.html first for @{shop_slug}", 404
 
 # ============================================================
-# 4. FEED - SORTED BY ALGORITHM
+# 4. FEED - SORTED BY ALGORITHM, FAST + SHOWS ALL
 # ============================================================
-
-# ✅ ADD THIS AT TOP, after imports - CACHE!
-_feed_cache = {'data': [], 'time': 0, 'followed': {}, 'liked': {}}
 
 @reels_bp.route('/api/sannlas/reels/feed')
 def reels_feed():
@@ -224,10 +217,10 @@ def reels_feed():
         page = int(request.args.get('page') or 1)
         limit = int(request.args.get('limit') or 20)
 
-        # ✅ 1. USE CACHE - Don't hit DB every scroll! Only every 60s
+        # ✅ FIXED INDENTATION - 8 spaces!
         now = time.time()
         cache_key = viewer_email or 'guest'
-       use_cache = (now - _feed_cache.get('time', 0) < 10 and _feed_cache.get('key') == cache_key and _feed_cache.get('data'))
+        use_cache = (now - _feed_cache.get('time', 0) < 10 and _feed_cache.get('key') == cache_key and _feed_cache.get('data'))
 
         if use_cache:
             final = _feed_cache['data']
@@ -247,7 +240,6 @@ def reels_feed():
                     liked_categories = set([r[0].lower() for r in cur.fetchall() if r[0]])
                 except: pass
 
-            # ✅ 2. Fetch ONLY 300 - Enough for 15 pages! Not 2000!
             cur.execute("SELECT id, user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, views, shares, comments_count, saves, category, created FROM sannlas_reels ORDER BY id DESC LIMIT 300")
             rows = cur.fetchall()
             cols = [d[0] for d in cur.description]
@@ -260,24 +252,24 @@ def reels_feed():
                 scored.append(reel)
             scored.sort(key=lambda x: x['algo_score'], reverse=True)
 
-            # Diversity
+            # ✅ FIXED DIVERSITY - TOP 3 NEVER HIDDEN!
             final = []
             last_shop = ''
             skipped = []
-            for r in scored:
+            for idx, r in enumerate(scored):
                 shop = r.get('shop_slug') or ''
+                if idx < 3:
+                    final.append(r); last_shop = shop; continue
                 if shop == last_shop and len(final) < 20:
                     skipped.append(r); continue
                 final.append(r); last_shop = shop
             final.extend(skipped)
 
-            # ✅ SAVE TO CACHE
             _feed_cache['data'] = final
             _feed_cache['time'] = now
             _feed_cache['key'] = cache_key
             _feed_cache['followed'] = followed_set
 
-        # ✅ 3. Paginate from CACHE - Super fast, no DB!
         start = (page-1)*limit
         page_data = final[start:start+limit]
 
@@ -332,6 +324,7 @@ def reels_feed():
         print("FEED ERROR:", e)
         traceback.print_exc()
         return jsonify([])
+
 # ============================================================
 # 5. USER REELS
 # ============================================================
@@ -426,6 +419,10 @@ def upload_reel():
         """, (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url))
         new_id = cur.fetchone()[0]
         conn.commit(); cur.close(); conn.close()
+
+        # ✅ CLEAR CACHE - New reel shows at TOP instantly!
+        _feed_cache['data'] = []
+        _feed_cache['time'] = 0
         
         return jsonify({'success': True, 'id': new_id, 'url': video_url, 'video_url': video_url})
     except Exception as e:
