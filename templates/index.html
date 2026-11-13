@@ -925,6 +925,8 @@ function openShopInstantFromReel(r){
     // Also cache it - so Back button is instant too
     localStorage.setItem('sannlas_last_shop_'+shopData.shop_slug, JSON.stringify(shopData));
   }catch(e){}
+  // ⬇️⬇️ NEW LINE ADDED HERE - Tells shop.html you came from Reels! ⬇️⬇️
+  sessionStorage.setItem('sannlas_shop_from', 'reels');
   // NOW open - shop.html will show saved data in 0ms, no Loading...
   window.location.href = '/shop/' + encodeURIComponent(cleanSlug(r.shop_slug||r.shop_name||'shop'));
 }
