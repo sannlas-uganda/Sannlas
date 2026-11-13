@@ -983,13 +983,7 @@ async function toggleFollowReal(btn){
       try{
         let rr = await fetch('/api/user/follow-count/' + encodeURIComponent(targetShop));
         let dd = await rr.json();
-        // Update shop page stats if open
-        let fEl = document.getElementById('statFollowers');
-        if(fEl) fEl.innerText = (dd.followers||0).toLocaleString();
-        let fEl2 = document.getElementById('followersCount');
-        if(fEl2) fEl2.innerText = dd.followers||0;
-        
-        // Update all same shop buttons
+   // Update all same shop buttons
         document.querySelectorAll(`[data-slug="${targetShop}"]`).forEach(b=>{
           if(b !== btn){
             b.innerHTML = isFollowing ? '+' : '✓';
@@ -1057,8 +1051,6 @@ async function loadHomeReels(){
     }
   }catch(e){}
   let c=document.getElementById('reelsFeedContainer');
-      // Save reels for instant S open
-    reels.forEach(r=>{ _reelsBySlug[cleanSlug(r.shop_slug||r.shop_name||'shop')] = r; });
   if(!c) return;
 if(homePage===1) c.innerHTML='<div style="padding:16px;color:#fff;text-align:center">Loading reels... ⚡<br><br><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div><div style="background:#222;height:220px;border-radius:16px;margin:10px"></div></div>';  try{
     let email = getHomeViewerEmail();
@@ -1187,18 +1179,6 @@ async function saveHomeReel(id, btn){
   try{ await fetch('/api/sannlas/reels/save/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:getHomeViewerEmail()})}); btn.innerHTML='✅<div style="font-size:9px">Saved</div>'; }catch(e){}
 }
 
-// OPEN USER SHOP DIRECTLY - STYLE 1 - ANY SHOP
-function openUserShop(userId, shopName){
-  console.log('Opening shop for:', userId, shopName);
-  // Your shop.html uses shopName as slug - STEPH, JOHN, etc
-  let slug = (shopName || userId || '').toString().trim();
-  if(!slug){
-    alert('Shop not found');
-    return;
-  }
-  // Direct to your shop.html page
-  window.location.href = '/shop/' + encodeURIComponent(slug);
-}
 function openReelProduct(productId){
   if(!productId) return;
   if(window.viewProduct) viewProduct(productId);
@@ -1812,7 +1792,7 @@ async function showAllShops(){
         let slug=s.slug||s.shop_slug||'';
         let name=s.business_name||s.name||'Shop';
         let loc=s.location||'Uganda';
-        html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count} products</span></div><a href="/shop/${slug}"><button style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></a></div>`;
+        html+=`<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;background:#fff"><div><b>🏪 ${name}</b><br><span style="font-size:11px;color:#666">📍 ${loc} | 📦 ${count} products</span></div><button onclick="openShopInstantFromReel({shop_slug:'${slug}',shop_name:'${name}'})" style="background:#000;color:#FFCC02;border:none;padding:8px 14px;border-radius:20px;font-weight:700">Visit</button></div>`;
       });
       html+='</div><button onclick="closePop(\'shopsPop\')" style="width:100%;background:#eee;color:#000;padding:10px;border:none;border-radius:10px;margin-top:15px">Close</button>';
       document.getElementById('shopsContent').innerHTML=html;
@@ -1971,7 +1951,6 @@ let safeBiz = esc(p.business||'Seller').substring(0,50);
 let safeDesc = esc(p.description||p.desc||'No description').substring(0,500);
   let desc = safeDesc;
   let promoComm = p.promo_commission || 3;
-  let shopBtn = p.shop_slug? `/shop/${p.shop_slug}` : '#';
   let sellerPhone = (p.phone||'').replace(/[^0-9]/g,'');
   if(sellerPhone.startsWith('0')) sellerPhone='256'+sellerPhone.slice(1);
   let stockLeft = p.stock || 5;
@@ -1997,7 +1976,7 @@ let safeDesc = esc(p.description||p.desc||'No description').substring(0,500);
         <div><b class="pro-option-title">Description</b><p style="font-size:13px;color:#444;line-height:1.4;margin-top:4px">${desc}</p></div>
         <button class="pro-btn pro-btn-green" onclick="unlockChatAndOpenWhatsApp('${p.shop_slug||''}','${sellerPhone}','${safeName}')">💬 WhatsApp Seller • 1 Coin</button>
         <button class="pro-btn pro-btn-orange" onclick="addCart('${p.id}');closePop('viewPop');openCart()">🛒 Add to Cart</button>
-        <button class="pro-btn pro-btn-black" onclick="location.href='${shopBtn}'">🏪 Visit Shop</button>
+        <button class="pro-btn pro-btn-black" onclick="openShopInstantFromReel({shop_slug:'${p.shop_slug}',shop_name:'${safeBiz}',shop_logo:'${p.shop_logo||''}'})">🏪 Visit Shop</button>
         <div style="background:#FFCC02;padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="applyPromote('${p.id}', ${promoComm})">
           <span style="font-weight:900;font-size:13px">✨ Earn Coins • Apply to Promote • ${promoComm} coins/sale</span><span>→</span>
         </div>
