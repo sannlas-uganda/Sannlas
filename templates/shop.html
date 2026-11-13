@@ -78,6 +78,39 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 function cleanSlug(s){return (s||'shop').toString().trim().toLowerCase().replace(/%20|%2520|%20%20/gi,'-').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';}
 let raw_slug=(location.pathname.split('/shop/')[1]||new URLSearchParams(location.search).get('slug')||'').trim();raw_slug=decodeURIComponent(raw_slug).split('?')[0].split('/')[0];let slug=cleanSlug(raw_slug);let originalSlug=raw_slug;let currentShop=null;let buyerUser=JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');let buyerEmail=(buyerUser.email||'').toLowerCase();
 let shopOwnerEmail=''; let isFollowingShop=false;
+// ⚡ INSTANT S DOOR - Render from Reel data in 0ms, NO Loading...
+// PASTE AFTER: let shopOwnerEmail=''; let isFollowingShop=false;
+let INSTANT_SHOP = null;
+try{ INSTANT_SHOP = JSON.parse(sessionStorage.getItem('sannlas_instant_shop')||'null'); }catch(e){}
+
+if(INSTANT_SHOP && cleanSlug(INSTANT_SHOP.shop_slug) === slug){
+  // 1. Show shop header INSTANTLY - YOUR REAL IDs!
+  let nameEl = document.getElementById('shopNameBig');
+  if(nameEl) nameEl.innerText = '🏪 ' + (INSTANT_SHOP.shop_name||'Shop');
+
+  let bioEl = document.getElementById('shopBioText');
+  if(bioEl) bioEl.innerHTML = '📍 ' + (INSTANT_SHOP.shop_location||'Kampala') + ' | 📞 ' + (INSTANT_SHOP.shop_phone||'') + '<br>⚡ Opening shop...';
+
+  let avatarBox = document.getElementById('shopAvatarBox');
+  if(avatarBox){
+    if(INSTANT_SHOP.shop_logo) avatarBox.innerHTML = '<img src="'+INSTANT_SHOP.shop_logo+'">';
+    else avatarBox.innerText = (INSTANT_SHOP.shop_name||'S')[0].toUpperCase();
+  }
+
+  // 2. Show products area INSTANTLY - not blank white!
+  let pEl = document.getElementById('p');
+  if(pEl) pEl.innerHTML = '<p style="text-align:center;padding:20px;color:#888;grid-column:1/-1">⚡ Opening '+(INSTANT_SHOP.shop_name||'Shop')+'...</p>';
+
+  // 3. Show buttons INSTANTLY too - so user can tap FOLLOW / WhatsApp without waiting!
+  let actEl = document.getElementById('shopActions');
+  if(actEl) actEl.innerHTML = '<button style="background:#FFCC02;color:#000;padding:10px 18px;border-radius:20px;border:2px solid #000">+ FOLLOW</button><button style="background:#25D366;color:#fff;padding:10px 14px;border-radius:20px">💬 WhatsApp • 1 Coin</button>';
+
+  // 4. ALSO save it as sannlas_shop_ so your existing load() finds it too!
+  try{
+    let fakeShop = {business_name: INSTANT_SHOP.shop_name, location: INSTANT_SHOP.shop_location, phone: INSTANT_SHOP.shop_phone, description: '⚡ Opening...', shop_slug: INSTANT_SHOP.shop_slug, logo: INSTANT_SHOP.shop_logo, owner_email: '', created_at: Date.now()/1000};
+    sessionStorage.setItem('sannlas_shop_'+slug, JSON.stringify({shop: fakeShop, products: []}));
+  }catch(e){}
+}
 history.pushState(null,'',location.href);window.addEventListener('popstate',function(){location.href='/';});
 
 function goToReelsProfile(){
