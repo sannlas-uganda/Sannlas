@@ -76,7 +76,6 @@ function getViewerEmail(){
 async function loadReels(){
  if(isLoading || !hasMore) return; isLoading = true;
  const viewerEmail = getViewerEmail();
- // ✅ FIX: NO seen param! Backend now returns ALL reels by page, no skipping!
  const url = `/api/sannlas/reels/feed?user_email=${encodeURIComponent(viewerEmail)}&page=${currentPage}&limit=20`;
  try{
   const r=await fetch(url); let newReels=await r.json();
@@ -86,14 +85,11 @@ async function loadReels(){
     isLoading=false; return;
   }
   if(!newReels || newReels.length==0){
-    // ✅ REAL END - Show end message, don't keep trying
     hasMore = false;
     document.getElementById('end-msg').style.display='flex';
     isLoading=false; return;
   }
-  // ✅ If we got less than 20, this was the last page - but still show them!
   if(newReels.length < 20) hasMore = false;
-
   if(currentPage===1) reels = newReels; else reels = [...reels, ...newReels];
 
   const html = newReels.map((reel,i)=>{
@@ -112,7 +108,8 @@ async function loadReels(){
      </div>`;
    return `
   <div class="reel" data-id="${reel.id}">
-   <video src="${reel.video_url}" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
+   <!-- ✅ FIXED: preload=none + data-src = Only load when visible! -->
+   <video data-src="${reel.video_url}" preload="none" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
    <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
    <div class="unmute-hint">Tap 🔊 for sound</div>
    <div class="right-actions">
@@ -145,12 +142,15 @@ async function loadReels(){
  isLoading=false;
 }
 
-// ✅ FIX: INFINITE SCROLL - Load next page when 3 reels from bottom!
+// ✅ FIXED: Throttled scroll - Only fire once per 500ms, no skipping pages!
+let lastScroll = 0;
 document.getElementById('reels-container').addEventListener('scroll', function(){
   if(!hasMore || isLoading) return;
+  const now = Date.now();
+  if(now - lastScroll < 500) return;
+  lastScroll = now;
   const c = this;
   const remaining = c.scrollHeight - c.scrollTop - c.clientHeight;
-  // If within 2 screens from bottom, load more
   if(remaining < c.clientHeight * 2){
     currentPage++;
     loadReels();
@@ -163,6 +163,11 @@ function observeVideos(){
   entries.forEach(e=>{
    const reelId = e.target.getAttribute('data-reel-id');
    if(e.isIntersecting){
+     // ✅ LAZY LOAD: Only set src when visible!
+     if(!e.target.src && e.target.dataset.src){
+       e.target.src = e.target.dataset.src;
+       e.target.load();
+     }
      e.target.play().catch(()=>{});
      if(currentReelId && currentReelId !== reelId){ sendWatchTime(currentReelId); }
      currentReelId = reelId;
@@ -170,6 +175,8 @@ function observeVideos(){
      sendView(reelId);
    } else {
      e.target.pause();
+     // ✅ FREE MEMORY: Remove src when far away, so 100MB videos don't pile up!
+     // Keep it if it's next/prev - don't unload immediately
      if(currentReelId === reelId){ sendWatchTime(reelId); currentReelId = null; }
    }
   });
