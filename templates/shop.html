@@ -56,7 +56,6 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 </div>
 
 <div class="products" id="p"></div>
-<div class="products" id="shopReelsGrid" style="display:none"></div>
 <div id="buyerChatModal">
   <div style="background:#075E54;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center">
     <span>💬 Chat with <span id="buyerChatShopName">Seller</span> <small style="font-size:11px">(1 coin unlock)</small></span>
@@ -78,42 +77,29 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 function cleanSlug(s){return (s||'shop').toString().trim().toLowerCase().replace(/%20|%2520|%20%20/gi,'-').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'shop';}
 let raw_slug=(location.pathname.split('/shop/')[1]||new URLSearchParams(location.search).get('slug')||'').trim();raw_slug=decodeURIComponent(raw_slug).split('?')[0].split('/')[0];let slug=cleanSlug(raw_slug);let originalSlug=raw_slug;let currentShop=null;let buyerUser=JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');let buyerEmail=(buyerUser.email||'').toLowerCase();
 let shopOwnerEmail=''; let isFollowingShop=false;
-// ⚡ INSTANT S DOOR - Render from Reel data in 0ms, NO Loading...
-// PASTE AFTER: let shopOwnerEmail=''; let isFollowingShop=false;
 let INSTANT_SHOP = null;
 try{ INSTANT_SHOP = JSON.parse(sessionStorage.getItem('sannlas_instant_shop')||'null'); }catch(e){}
 
 if(INSTANT_SHOP && cleanSlug(INSTANT_SHOP.shop_slug) === slug){
-  // 1. Show shop header INSTANTLY - YOUR REAL IDs!
   let nameEl = document.getElementById('shopNameBig');
   if(nameEl) nameEl.innerText = '🏪 ' + (INSTANT_SHOP.shop_name||'Shop');
-
   let bioEl = document.getElementById('shopBioText');
   if(bioEl) bioEl.innerHTML = '📍 ' + (INSTANT_SHOP.shop_location||'Kampala') + ' | 📞 ' + (INSTANT_SHOP.shop_phone||'') + '<br>⚡ Opening shop...';
-
   let avatarBox = document.getElementById('shopAvatarBox');
   if(avatarBox){
     if(INSTANT_SHOP.shop_logo) avatarBox.innerHTML = '<img src="'+INSTANT_SHOP.shop_logo+'">';
     else avatarBox.innerText = (INSTANT_SHOP.shop_name||'S')[0].toUpperCase();
   }
-
-  // 2. Show products area INSTANTLY - not blank white!
   let pEl = document.getElementById('p');
   if(pEl) pEl.innerHTML = '<p style="text-align:center;padding:20px;color:#888;grid-column:1/-1">⚡ Opening '+(INSTANT_SHOP.shop_name||'Shop')+'...</p>';
-
-  // 3. Show buttons INSTANTLY too - so user can tap FOLLOW / WhatsApp without waiting!
   let actEl = document.getElementById('shopActions');
   if(actEl) actEl.innerHTML = '<button style="background:#FFCC02;color:#000;padding:10px 18px;border-radius:20px;border:2px solid #000">+ FOLLOW</button><button style="background:#25D366;color:#fff;padding:10px 14px;border-radius:20px">💬 WhatsApp • 1 Coin</button>';
-
-  // 4. ALSO save it as sannlas_shop_ so your existing load() finds it too!
   try{
     let fakeShop = {business_name: INSTANT_SHOP.shop_name, location: INSTANT_SHOP.shop_location, phone: INSTANT_SHOP.shop_phone, description: '⚡ Opening...', shop_slug: INSTANT_SHOP.shop_slug, logo: INSTANT_SHOP.shop_logo, owner_email: '', created_at: Date.now()/1000};
     sessionStorage.setItem('sannlas_shop_'+slug, JSON.stringify({shop: fakeShop, products: []}));
   }catch(e){}
 }
-// ⚡ SMART BACK - Go back to Reels / where you came from, DON'T reload Home!
 function goBackSmart(){
-  // 1. If we saved where we came from in index.html - USE IT!
   let backTo = '';
   try{ backTo = sessionStorage.getItem('sannlas_back_to') || ''; }catch(e){}
   if(backTo){
@@ -121,22 +107,16 @@ function goBackSmart(){
     location.href = backTo;
     return;
   }
-  // 2. If came from All Shops - go back to All Shops
   if(document.referrer && document.referrer.includes('/shops')){
     location.href = '/shops';
     return;
   }
-  // 3. If came from Reels / Home - go back in history - NO reload!
   if(document.referrer && document.referrer.includes(location.host)){
     history.back();
     return;
   }
-  // 4. No history - opened link directly - go to Reels!
   location.href = '/reels';
 }
-
-// ===== ALL SHOP CODE LIVES HERE NOW - NOT IN INDEX =====
-// ===== INSTANT OPEN: Show cached shop in 0ms, no waiting =====
 function renderShopInstant(shop, products){
   currentShop = shop;
   shopOwnerEmail = (shop.owner_email || shop.email || shopOwnerEmail || '').toLowerCase();
@@ -155,10 +135,6 @@ function renderShopInstant(shop, products){
 <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
   <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏪 My Shop</a>
 </div>
-<div style="display:flex;gap:8px;margin-top:16px;border-bottom:2px solid #eee">
-  <button onclick="showShopTab('products')" id="tabBtnProducts" style="flex:1;background:#000;color:#FFCC02;padding:12px;border:none;border-radius:12px 12px 0 0;font-weight:900">🛍️ Products</button>
-  <button onclick="showShopTab('reels')" id="tabBtnReels" style="flex:1;background:#f5f5f5;color:#000;padding:12px;border:none;border-radius:12px 12px 0 0;font-weight:900">🎬 Reels</button>
-</div>
 <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
   let pEl=document.getElementById('p');
   if(products.length){pEl.innerHTML=products.map(prod=>{let pid=prod.id||prod._id||'';let badge=prod.discount|| (prod.original_price>prod.price ? Math.round((prod.original_price-prod.price)*100/prod.original_price)+'% OFF' : '');return `<div class="card" id="product-${pid}" data-id="${pid}"><div style="position:relative"><img src="${prod.image||''}" loading="lazy"><div class="discount-badge">${badge}</div></div><div style="padding:8px"><b>${prod.title||prod.name||'Product'}</b><br><small>UGX ${prod.price||''}</small><br><button style="background:#000;color:#FFCC02;width:100%;margin-top:6px" onclick="location.href='/product/${pid}'">View Product</button></div></div>`}).join('');}
@@ -166,13 +142,10 @@ function renderShopInstant(shop, products){
   const params=new URLSearchParams(window.location.search);const highlightId=params.get('product')||params.get('highlight');
   if(highlightId){setTimeout(()=>{const el=document.getElementById('product-'+highlightId)||document.querySelector(`[data-id="${highlightId}"]`);if(el){document.getElementById('highlightBanner').style.display='block';let found=products.find(p=>String(p.id||p._id)===String(highlightId));document.getElementById('highlightBanner').innerHTML=`🎥 From Reel → ✨ ${found?.title||found?.name||'Product'} ✨`;el.classList.add('highlighted');el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>{el.classList.remove('highlighted');},5000);}},800);}
 }
-
-// EXTRACTED from index toggleFollowReal(): update ALL follower counts in one place
 function updateAllFollowerCounts(n){
   let fEl=document.getElementById('statFollowers'); if(fEl) fEl.innerText=(n||0).toLocaleString();
   let fEl2=document.getElementById('followersCount'); if(fEl2) fEl2.innerText=n||0;
 }
-
 async function loadShopFollowStats(){
   try{
     let r = await fetch('/api/user/follow-count/' + encodeURIComponent(slug));
@@ -182,7 +155,6 @@ async function loadShopFollowStats(){
     if(s.email) shopOwnerEmail = s.email.toLowerCase();
   }catch(e){}
 }
-
 async function checkFollowStatus(){
   if(!buyerEmail || !shopOwnerEmail) return;
   if(buyerEmail === shopOwnerEmail){
@@ -197,7 +169,6 @@ async function checkFollowStatus(){
     updateFollowBtn();
   }catch(e){}
 }
-
 function updateFollowBtn(){
   let btn=document.getElementById('followShopBtn');
   if(btn){
@@ -207,7 +178,6 @@ function updateFollowBtn(){
   let tick=document.getElementById('followTick');
   if(tick){ if(isFollowingShop) tick.classList.add('show'); else tick.classList.remove('show'); }
 }
-
 async function toggleFollowShop(){
   if(!buyerEmail){ alert('Login first Boss!'); location.href='/?open=login'; return; }
   if(!shopOwnerEmail){ alert('Shop email not ready, wait 1 sec'); return; }
@@ -227,7 +197,6 @@ async function toggleFollowShop(){
     updateFollowBtn();
   }catch(e){ btn.innerText=original; alert(e.message); }
 }
-
 async function load(){
   try{
     let cached = sessionStorage.getItem('sannlas_shop_'+slug) || sessionStorage.getItem('sannlas_shop_'+originalSlug);
@@ -237,21 +206,16 @@ async function load(){
     let r = await fetch('/api/shop/'+encodeURIComponent(slug));
     let d = await r.json();
     let shop = d.shop; let products = d.products||[];
-    // EXTRACTED from index openUserShop(): build shop from products if shop object missing
     if(!shop && products.length>0){ let s=products[0]; shop={business_name:s.business||s.shop_name||'Shop',location:s.location||'Uganda',phone:s.phone||'',description:'Welcome!',shop_slug:slug,logo:s.shop_logo||'',owner_email:s.shop_email||s.user_email||'',created_at:Date.now()/1000}; }
     if(!shop){
-      // ⚡ DON'T load all products! Only this shop, max 50!
       let r2=await fetch('/api/products?shop='+encodeURIComponent(slug)+'&limit=50'); let prods=await r2.json();
       if(prods.length>0){ products=prods; let s=products[0]; shop={business_name:s.business||'Shop',location:s.location||'Uganda',phone:s.phone||'',description:'Welcome!',shop_slug:slug,logo:'',owner_email:s.shop_email||'',created_at:Date.now()/1000}; }
     }
     if(!shop){ if(!currentShop) document.getElementById('shopNameBig').innerHTML=`<h1>Shop Not Found: ${raw_slug}</h1>`; return; }
     try{ sessionStorage.setItem('sannlas_shop_'+slug, JSON.stringify({shop, products})); }catch(e){}
     renderShopInstant(shop, products);
-    // ⚡ FAST: Stats + Follow in BACKGROUND - don't block shop!
-    // Don't await - let them load while user already sees shop!
-    loadShopFollowStats(); // this is already async, don't await it
-    checkFollowStatus(); // this is already async, don't await it
-    // Stats also in background - no await!
+    loadShopFollowStats();
+    checkFollowStatus();
     fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); }).catch(()=>{});
     fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); }).catch(()=>{ document.getElementById('statLikes').innerText=products.length*5; document.getElementById('statViews').innerText=products.length*120; });
   }catch(e){ if(!currentShop){ document.getElementById('shopNameBig').innerHTML='<h1>Error loading shop</h1><p>'+e+'</p>'; } console.error(e); }
@@ -277,26 +241,5 @@ function closeBuyerChat(){document.getElementById('buyerChatModal').style.displa
 async function loadBuyerMessages(){let r=await fetch(`/api/chat/history?buyer=${encodeURIComponent(buyerEmail)}&shop=${encodeURIComponent(slug)}`);let msgs=await r.json();document.getElementById('buyerChatMessages').innerHTML=msgs.length?msgs.map(m=>{let isMe=m.sender==='buyer';let style=isMe?'align-self:flex-end;background:#dcf8c6':'align-self:flex-start;background:#fff';if(m.sender==='admin')return `<div style="align-self:center;background:#FFF3CD;border:2px solid #FFCC02;padding:10px;border-radius:12px;text-align:center">🛡️ ADMIN: ${m.text}</div>`;return `<div style="${style};padding:10px;border-radius:10px;max-width:70%">${m.text}<br><small style="color:#888">${new Date(m.time*1000).toLocaleTimeString()}</small></div>`;}).join(''):'<div style="text-align:center;color:#777;margin-top:30px">No messages yet. Say hi!</div>';document.getElementById('buyerChatMessages').scrollTop=99999;}
 async function sendBuyerMessage(){let text=document.getElementById('buyerChatInput').value.trim();if(!text)return;await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_email:buyerEmail,shop_slug:slug,sender:'buyer',text})});document.getElementById('buyerChatInput').value='';loadBuyerMessages();}
 setInterval(()=>{let m=document.getElementById('buyerChatModal');if(m&&m.style.display==='flex')loadBuyerMessages();},3000);
-let shopReelsLoaded = false;
-function showShopTab(tab){
-  document.getElementById('p').style.display = tab === 'products' ? 'grid' : 'none';
-  document.getElementById('shopReelsGrid').style.display = tab === 'reels' ? 'grid' : 'none';
-  document.getElementById('tabBtnProducts').style.background = tab === 'products' ? '#000' : '#f5f5f5';
-  document.getElementById('tabBtnProducts').style.color = tab === 'products' ? '#FFCC02' : '#000';
-  document.getElementById('tabBtnReels').style.background = tab === 'reels' ? '#000' : '#f5f5f5';
-  document.getElementById('tabBtnReels').style.color = tab === 'reels' ? '#FFCC02' : '#000';
-  if(tab === 'reels' && !shopReelsLoaded) loadShopReels();
-}
-async function loadShopReels(){
-  shopReelsLoaded = true;
-  let grid = document.getElementById('shopReelsGrid');
-  grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;padding:20px;color:#888">Loading reels...</p>';
-  try{
-    let r = await fetch('/api/sannlas/reels/user/' + encodeURIComponent(slug));
-    let reels = await r.json();
-    if(!reels.length){ grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;padding:20px;color:#888">No reels yet 🎬</p>'; return; }
-    grid.innerHTML = reels.map(v => `<div style="position:relative;border-radius:12px;overflow:hidden;background:#000;cursor:pointer" onclick="location.href='/reels'"><video src="${v.video_url}" muted playsinline preload="metadata" style="width:100%;height:200px;object-fit:cover"></video><div style="position:absolute;bottom:6px;left:6px;color:#fff;font-size:11px;font-weight:900">❤️ ${v.likes||0} 👁️ ${v.views||0}</div></div>`).join('');
-  }catch(e){ grid.innerHTML = '<p style="grid-column:1/-1;text-align:center">Failed to load reels</p>'; }
-}
 load();
 </script></body></html>
