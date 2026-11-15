@@ -1,5 +1,5 @@
 import os, traceback, json, time, re, math, random
-from flask import Blueprint, request, jsonify, render_template, send_from_directory
+from flask import Blueprint, request, jsonify, render_template, send_from_directory, redirect
 from datetime import datetime, timezone
 import psycopg2
 
@@ -183,13 +183,8 @@ def reels_page():
 @reels_bp.route('/reels/user/<shop_slug>')
 @reels_bp.route('/user/<shop_slug>')
 def user_profile_page(shop_slug):
-    try:
-        return render_template('user_profile.html', shop_slug=shop_slug)
-    except:
-        try:
-            return send_from_directory('templates', 'user_profile.html')
-        except:
-            return f"Create templates/user_profile.html first for @{shop_slug}", 404
+    # ONE PROFILE ONLY - All old profile links go to SHOP!
+    return redirect(f"/shop/{clean_slug(shop_slug)}", code=301)
 
 # ============================================================
 # 4. FEED
