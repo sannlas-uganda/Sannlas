@@ -2,6 +2,7 @@ import os, traceback, json, time, re, math, random
 from flask import Blueprint, request, jsonify, render_template, send_from_directory, redirect
 from datetime import datetime, timezone
 import psycopg2
+from yottasrc_storage import save_reel_to_yottasrc
 
 reels_bp = Blueprint('reels_bp', __name__)
 
@@ -356,28 +357,50 @@ def get_user_reels(shop_slug):
         print("USER REELS ERROR:", e)
         traceback.print_exc()
         return jsonify([])
-
 # ============================================================
-# 6. 🔥 OPTION 2 - DIRECT UPLOAD TO CLOUDINARY!
+# 6. 🔥 REELS ONLY - FORCED TO YOTTA SRC - NO CLOUDINARY EVER!
 # ============================================================
 
-@reels_bp.route('/api/cloudinary-signature')
-def cloudinary_signature():
+@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
+def upload_reel_to_yotta():
     try:
-        import cloudinary.utils
-        ts = int(time.time())
-        # Sign ONLY timestamp + folder - safe!
-        params = {'timestamp': ts, 'folder': 'sannlas_reels'}
-        sig = cloudinary.utils.api_sign_request(params, os.getenv('CLOUDINARY_API_SECRET'))
-        return jsonify({
-            'signature': sig,
-            'timestamp': ts,
-            'api_key': os.getenv('CLOUDINARY_API_KEY'),
-            'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME'),
-            'folder': 'sannlas_reels'
-        })
+        ensure_reels_table()
+        # 1. Get file - frontend must send form-data with field name 'video' or 'file'
+        f = request.files.get('video') or request.files.get('file') or request.files.get('reel')
+        if not f or not f.filename:
+            return jsonify({'success': False, 'error': 'No video file sent!'}), 400
+
+        # 2. FORCE to YottaSrc /public_html/reels - NOTHING ELSE!
+        video_url = save_reel_to_yottasrc(f, "reel")
+
+        # 3. Get other fields from form
+        user_email = (request.form.get('user_email') or request.form.get('email') or '').lower().strip()
+        if not user_email:
+            return jsonify({'success': False, 'error': 'login first!'}), 400
+        user_name = request.form.get('user_name') or (user_email.split('@')[0] if user_email else 'SANNLAS USER')
+        shop_name = request.form.get('shop_name') or user_name or 'SANNLAS SHOP'
+        shop_slug = clean_slug(request.form.get('shop_slug') or shop_name)
+        caption = request.form.get('caption') or request.form.get('product_name') or 'New Reel 🔥'
+        product_id = request.form.get('product_id') or ''
+        category = request.form.get('category') or ''
+        hashtags = request.form.get('hashtags') or ''
+        location = request.form.get('location') or ''
+        price = str(request.form.get('price') or '')
+        promo_link = request.form.get('promo_link') or ''
+
+        # 4. Save Yotta URL in Postgres DB (DB stays on Render - Option A)
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO sannlas_reels (user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, category, hashtags, location, price, promo_link, product_link) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,%s,%s,%s) RETURNING id", (user_email, user_name, shop_name, shop_slug, caption, caption, product_id, video_url, category, hashtags, location, price, promo_link, promo_link))
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        _feed_cache['data'] = []
+        _feed_cache['time'] = 0
+        return jsonify({'success': True, 'id': new_id, 'video_url': video_url})
     except Exception as e:
-        print("SIG ERROR:", e)
+        print("YOTTA UPLOAD ERROR:", e)
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -389,6 +412,9 @@ def save_reel_url():
         video_url = (d.get('video_url') or d.get('url') or '').strip()
         if not video_url:
             return jsonify({'success': False, 'error': 'video_url missing'}), 400
+        # 🚫 BLOCK CLOUDINARY FOREVER - REELS ONLY TO YOTTA!
+        if 'cloudinary' in video_url.lower() or 'res.cloudinary' in video_url.lower():
+            return jsonify({'success': False, 'error': 'Cloudinary blocked! Use /api/sannlas/reels/upload - YottaSrc only!'}), 400
         user_email = (d.get('user_email') or d.get('email') or '').lower().strip()
         if not user_email:
             return jsonify({'success': False, 'error': 'login first!'}), 400
@@ -416,11 +442,8 @@ def save_reel_url():
         print("SAVE-URL ERROR:", e)
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-        
-# OLD upload kept as FALLBACK if direct fails - but NOT used by new frontend
-@reels_bp.route('/api/sannlas/reels/upload', methods=['POST'])
-def upload_reel_old():
-    return jsonify({'success': False, 'error': 'Use direct upload - /api/cloudinary-signature + /api/sannlas/reels/save-url'}), 400
+
+# 🚫 OLD Cloudinary signature route DELETED - No more direct Cloudinary upload!
 
 # ============================================================
 # 7. INTERACTIONS
