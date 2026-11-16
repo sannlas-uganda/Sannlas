@@ -103,7 +103,7 @@ let bgColors=[
 ];
 async function load(){
   try {
-    const r = await fetch('/api/products?limit=200');
+    const r = await fetch('/api/products?limit=20');
     allProducts = await r.json();
     if(!allProducts.length) {
       document.getElementById('products').innerHTML = '<p style="text-align:center;padding:20px">No products yet Boss - Be the first to sell!</p>';
