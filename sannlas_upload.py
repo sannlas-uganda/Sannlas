@@ -1,4 +1,4 @@
-# sannlas_upload.py - FIXED - DIRECT UPLOAD ONLY - NO RENDER UPLOAD!
+# sannlas_upload.py - FIXED - REELS ONLY TO YOTTA SRC - NO CLOUDINARY!
 from flask import Blueprint, Response, request, jsonify
 import os, json, time, traceback
 import psycopg2
@@ -18,7 +18,7 @@ def load_db(file, default):
         return default
     except: return default
 
-# ===== NEW UPLOAD HTML - DIRECT TO CLOUDINARY - SITE STAYS FAST! =====
+# ===== NEW UPLOAD HTML - REELS ONLY TO YOTTA SRC! =====
 UPLOAD_HTML = """<!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Upload Reel - Sannlas</title>
@@ -57,7 +57,7 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <div id="videoPlaceholder">
         <div style="font-size:40px">\\ud83c\\udfa5</div>
         <b>Tap to select video</b><br>
-        <span class="hint">MP4, MOV - Max 100MB - Direct Upload, Site stays FAST! \\u26a1</span>
+        <span class="hint">MP4, MOV - Max 100MB - Saved to YottaSrc! \\u26a1</span>
       </div>
       <video id="videoPreview" style="display:none" controls playsinline muted></video>
     </div>
@@ -116,7 +116,7 @@ input:focus,textarea:focus,select:focus{border-color:#000}
     <div id="uploadProgress">
       <div id="progressText" style="font-size:12px;font-weight:900;margin-bottom:6px">Uploading... 0%</div>
       <div id="progressBar"><div id="progressFill"></div></div>
-      <div class="hint" style="margin-top:6px">Uploading DIRECT to Cloudinary - Your site stays FAST for everyone else! \\u26a1</div>
+      <div class="hint" style="margin-top:6px">Uploading to YottaSrc - Your reels live on sannlas.store! \\u26a1</div>
     </div>
     <div class="hint" style="text-align:center;margin-top:8px">Button will be: <b id="previewBtn">UGX 0 - BUY NOW</b></div>
   </div>
@@ -237,63 +237,45 @@ async function uploadReel(){
   if(!shopName){ alert('Shop name missing'); return; }
   if(!user.email){ alert('Login first Boss!'); return; }
   let btn = document.getElementById('postBtn');
-  btn.disabled = true; btn.innerText = '\\u23f3 Getting upload permission...';
+  btn.disabled = true; btn.innerText = '\\u23f3 Uploading to YottaSrc...';
   document.getElementById('uploadProgress').style.display = 'block';
   try{
-    let sigRes = await fetch('/api/cloudinary-signature');
-    let sig = await sigRes.json();
-    if(!sig.signature) throw new Error('No signature - Check CLOUDINARY_API_SECRET in Render Env!');
-    btn.innerText = '\\u23f3 Uploading DIRECT... 0%';
+    // REELS ONLY -> YOTTA SRC - FormData to our own server, server FTPs to Yotta!
     let form = new FormData();
-    form.append('file', videoFile);
-    form.append('api_key', sig.api_key);
-    form.append('timestamp', sig.timestamp);
-    form.append('signature', sig.signature);
-    form.append('folder', 'sannlas_reels');
-    let upData = await new Promise((resolve, reject) => {
+    form.append('video', videoFile);
+    form.append('user_email', user.email);
+    form.append('user_name', shopName);
+    form.append('shop_name', shopName);
+    form.append('shop_slug', getShopSlug());
+    form.append('description', description);
+    form.append('caption', (description + '\\n' + caption).trim());
+    form.append('location', location);
+    form.append('price', price);
+    form.append('product_id', productId);
+    form.append('promo_link', promoLink);
+    form.append('product_link', promoLink);
+    form.append('hashtags', hashtags);
+    form.append('category', category);
+    let saveRes = await new Promise((resolve, reject) => {
       let xhr = new XMLHttpRequest();
-      xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/video/upload');
+      xhr.open('POST', '/api/sannlas/reels/upload');
       xhr.timeout = 600000;
       xhr.upload.onprogress = (e) => {
         if(e.lengthComputable){
           let pct = Math.round((e.loaded / e.total) * 100);
-          btn.innerText = '\\u23f3 Uploading DIRECT... ' + pct + '%';
-          document.getElementById('progressText').innerText = 'Uploading DIRECT to Cloudinary... ' + pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB / ' + (e.total/1024/1024).toFixed(1) + 'MB)';
+          btn.innerText = '\\u23f3 Uploading to YottaSrc... ' + pct + '%';
+          document.getElementById('progressText').innerText = 'Uploading to YottaSrc... ' + pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB / ' + (e.total/1024/1024).toFixed(1) + 'MB)';
           document.getElementById('progressFill').style.width = pct + '%';
         }
       };
-      xhr.onload = () => { try{ resolve(JSON.parse(xhr.responseText)); } catch(err){ reject(new Error('Cloudinary bad response')); } };
-      xhr.onerror = () => reject(new Error('Cloudinary upload failed - Check network!'));
-      xhr.ontimeout = () => reject(new Error('Timed out - Network too slow for 100MB, try WiFi or smaller video!'));
+      xhr.onload = () => { try{ resolve({ok: xhr.status < 300, json: async () => JSON.parse(xhr.responseText)}); } catch(err){ reject(new Error('Bad response from server')); } };
+      xhr.onerror = () => reject(new Error('Upload failed - Check network!'));
+      xhr.ontimeout = () => reject(new Error('Timed out - Try WiFi or smaller video!'));
       xhr.send(form);
-    });
-    if(!upData.secure_url) throw new Error(upData.error?.message || 'Cloudinary failed');
-    btn.innerText = '\\ud83d\\udcbe Saving...';
-    document.getElementById('progressText').innerText = 'Saving... Almost done!';
-    let saveRes = await fetch('/api/sannlas/reels/save-url', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        user_email: user.email,
-        user_name: shopName,
-        user_id: user.email,
-        shop_name: shopName,
-        shop_slug: getShopSlug(),
-        description: description,
-        caption: (description + '\\n' + caption).trim(),
-        location: location,
-        price: price,
-        product_id: productId,
-        promo_link: promoLink,
-        product_link: promoLink,
-        hashtags: hashtags,
-        category: category,
-        video_url: upData.secure_url
-      })
     });
     let d = await saveRes.json();
     if(!saveRes.ok || !d.success) throw new Error(d.error || 'Save failed');
-    alert('\\u2705 Posted! Your reel is at TOP now!');
+    alert('\\u2705 Posted! Your reel is at TOP now! Saved to YottaSrc!');
     location.href = '/reels';
   }catch(e){
     alert('\\u274c Failed: ' + e.message);
@@ -324,6 +306,5 @@ def my_products():
     filtered = sorted(filtered, key=lambda x: x.get('created',0) or x.get('id',0), reverse=True)
     return jsonify(filtered)
 
-# NOTE: NO /api/sannlas/reels/upload HERE ANYMORE!
-# That old endpoint is DELETED on purpose - Direct Upload only!
-# /api/cloudinary-signature + /api/sannlas/reels/save-url live in sannlas_reels.py
+# REELS ONLY -> YOTTA SRC via /api/sannlas/reels/upload in sannlas_reels.py
+# NO Cloudinary anywhere anymore!
