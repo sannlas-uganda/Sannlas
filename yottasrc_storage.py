@@ -5,7 +5,7 @@ FTP_HOST = os.environ.get('YOTTA_FTP_HOST', '152.89.253.10')
 FTP_USER = os.environ.get('YOTTA_FTP_USER', 'sannlass')
 FTP_PASS = os.environ.get('YOTTA_FTP_PASS', '')
 FTP_REELS_DIR = '/public_html/reels'
-SITE_URL = 'https://sannlas.store'
+SITE_URL = 'https://media.sannlas.store'
 
 def save_reel_to_yottasrc(file_obj, prefix="reel"):
     """ONLY REELS go to YottaSrc. Nothing else."""
