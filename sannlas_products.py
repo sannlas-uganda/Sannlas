@@ -3,7 +3,6 @@ import os, json, time, re, uuid, random
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
-# ✅ REMOVED: from sannlas_db import ... - NO MORE sannlas.db!
 
 products_bp = Blueprint('products_bp', __name__)
 
@@ -13,6 +12,9 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 PRODUCTS_CACHE = {"data": None, "time": 0}
+
+# ✅ FIX 1: Run ensure_tables ONCE, not every request
+_TABLES_DONE = False
 
 def get_conn():
     if not DATABASE_URL:
@@ -28,14 +30,28 @@ def get_conn():
             raise Exception("DB connection failed")
 
 def ensure_tables():
+    global _TABLES_DONE
+    if _TABLES_DONE:  # ✅ SKIP if already done!
+        return
     if not DATABASE_URL: return
     try:
         conn = get_conn(); cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
+        # ✅ Speed index for sorting by created date stored inside JSONB
+        try:
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_products_created ON products (((data->>'created')::float8) DESC);")
+        except: pass
         conn.commit(); cur.close(); conn.close()
+        _TABLES_DONE = True
     except Exception as e:
         print("ensure_tables:", e)
+
+def _parse_row_data(d):
+    if isinstance(d, str):
+        try: return json.loads(d)
+        except: return d
+    return d
 
 def load_db(file, default):
     try:
@@ -46,44 +62,22 @@ def load_db(file, default):
                 cur = conn.cursor(row_factory=dict_row)
                 if file == 'products.json':
                     cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                    result=[]
-                    for r in rows:
-                        d=r['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        result.append(d)
-                    return result
+                    return [_parse_row_data(r['data']) for r in rows]
                 else:
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
                     if not row: return default
-                    d=row['data']
-                    if isinstance(d,str):
-                        try: d=json.loads(d)
-                        except: pass
-                    return d
+                    return _parse_row_data(row['data'])
             except:
                 try:
                     import psycopg2.extras
                     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                     if file == 'products.json':
                         cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                        result=[]
-                        for r in rows:
-                            d=r['data']
-                            if isinstance(d,str):
-                                try: d=json.loads(d)
-                                except: pass
-                            result.append(d)
-                        return result
+                        return [_parse_row_data(r['data']) for r in rows]
                     else:
                         cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,)); row = cur.fetchone(); cur.close(); conn.close()
                         if not row: return default
-                        d=row['data']
-                        if isinstance(d,str):
-                            try: d=json.loads(d)
-                            except: pass
-                        return d
+                        return _parse_row_data(row['data'])
                 except:
                     try: conn.close()
                     except: pass
@@ -122,28 +116,120 @@ def save_db(file, data):
     os.makedirs('data', exist_ok=True)
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
-# ✅ NEW: Neon helpers - replace sannlas_db functions
+# ✅ FIX 2: FAST Neon helpers - SQL does paging, not Python
 def get_all_products_neon():
     return load_db('products.json', [])
 
+def get_products_page_neon(limit=20, offset=0, shop_slug=None, q_words=None):
+    """FAST: Neon returns only `limit` rows, sorted by created DESC. No loading all products!"""
+    if not DATABASE_URL:
+        # Local fallback
+        products = load_db('products.json', [])
+        products = sorted(products, key=lambda x: x.get('created', 0), reverse=True)
+        return products[offset:offset+limit]
+    # If search/shop filter present, we need to filter in Python (JSONB search is slow without index)
+    # But for normal browse (no filter) - use fast SQL path!
+    if not shop_slug and not q_words:
+        try:
+            ensure_tables(); conn = get_conn()
+            try:
+                from psycopg.rows import dict_row
+                cur = conn.cursor(row_factory=dict_row)
+                # ✅ Neon sorts + pages - only 20 rows travel over network!
+                cur.execute("SELECT data FROM products ORDER BY (data->>'created')::float8 DESC NULLS LAST, id DESC LIMIT %s OFFSET %s", (limit, offset))
+                rows = cur.fetchall(); cur.close(); conn.close()
+                return [_parse_row_data(r['data']) for r in rows]
+            except:
+                try:
+                    import psycopg2.extras
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    cur.execute("SELECT data FROM products ORDER BY (data->>'created')::float8 DESC NULLS LAST, id DESC LIMIT %s OFFSET %s", (limit, offset))
+                    rows = cur.fetchall(); cur.close(); conn.close()
+                    return [_parse_row_data(r['data']) for r in rows]
+                except:
+                    try: conn.close()
+                    except: pass
+                    return get_all_products_neon()[offset:offset+limit]
+        except Exception as e:
+            print("get_products_page:", e)
+            return get_all_products_neon()[offset:offset+limit]
+    # Filtered path: use cache, filter in Python
+    now = time.time()
+    if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
+        products = PRODUCTS_CACHE["data"]
+    else:
+        products = get_all_products_neon()
+        PRODUCTS_CACHE["data"] = products
+        PRODUCTS_CACHE["time"] = now
+    filtered = products
+    if q_words:
+        def match(p):
+            hay = f"{p.get('name','')} {p.get('business','')} {p.get('main_category','')} {p.get('category','')} {p.get('description','')} {p.get('desc','')} {p.get('smart_keywords','')}".lower()
+            return any(w in hay for w in q_words)
+        filtered = [p for p in filtered if match(p)]
+    if shop_slug:
+        exact = [p for p in filtered if p.get('shop_slug') == shop_slug]
+        if exact: filtered = exact
+    filtered = sorted(filtered, key=lambda x: x.get('created', 0), reverse=True)
+    return filtered[offset:offset+limit]
+
 def add_product_neon(prod):
-    products = load_db('products.json', [])
-    # Update if same ID exists, else append
-    found = False
-    for i, p in enumerate(products):
-        if str(p.get('id')) == str(prod.get('id')):
-            products[i] = prod
-            found = True
-            break
-    if not found:
+    """✅ FAST: 1 INSERT, not DELETE ALL + re-insert ALL!"""
+    global PRODUCTS_CACHE
+    PRODUCTS_CACHE["data"] = None
+    if not DATABASE_URL:
+        products = load_db('products.json', [])
+        found = False
+        for i, p in enumerate(products):
+            if str(p.get('id')) == str(prod.get('id')):
+                products[i] = prod; found = True; break
+        if not found: products.append(prod)
+        save_db('products.json', products)
+        return prod
+    try:
+        ensure_tables(); conn = get_conn(); cur = conn.cursor()
+        try:
+            from psycopg.types.json import Jsonb
+            # If same ID exists, update it, else insert
+            cur.execute("SELECT id FROM products WHERE (data->>'id') = %s LIMIT 1", (str(prod.get('id')),))
+            row = cur.fetchone()
+            if row:
+                cur.execute("UPDATE products SET data = %s WHERE id = %s", (Jsonb(prod), row[0]))
+            else:
+                cur.execute("INSERT INTO products (data) VALUES (%s)", [Jsonb(prod)])
+        except ImportError:
+            import json as js
+            cur.execute("SELECT id FROM products WHERE (data->>'id') = %s LIMIT 1", (str(prod.get('id')),))
+            row = cur.fetchone()
+            if row:
+                cur.execute("UPDATE products SET data = %s WHERE id = %s", (js.dumps(prod), row[0]))
+            else:
+                cur.execute("INSERT INTO products (data) VALUES (%s)", [js.dumps(prod)])
+        conn.commit(); cur.close(); conn.close()
+        return prod
+    except Exception as e:
+        print("add_product_neon:", e)
+        # Fallback to old slow method if fast fails
+        products = load_db('products.json', [])
         products.append(prod)
-    save_db('products.json', products)
-    return prod
+        save_db('products.json', products)
+        return prod
 
 def delete_product_neon(pid):
-    products = load_db('products.json', [])
-    products = [p for p in products if str(p.get('id')) != str(pid)]
-    save_db('products.json', products)
+    """✅ FAST: 1 DELETE, not DELETE ALL + re-insert ALL!"""
+    global PRODUCTS_CACHE
+    PRODUCTS_CACHE["data"] = None
+    if not DATABASE_URL:
+        products = load_db('products.json', [])
+        products = [p for p in products if str(p.get('id')) != str(pid)]
+        save_db('products.json', products)
+        return
+    try:
+        ensure_tables(); conn = get_conn(); cur = conn.cursor()
+        cur.execute("DELETE FROM products WHERE (data->>'id') = %s", (str(pid),))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        print("delete_product_neon:", e)
 
 # ===== CATEGORY MAP =====
 CATEGORY_MAP = {
@@ -246,7 +332,6 @@ def product_link(pid):
 def product_short(pid):
     return product_link(pid)
 
-# ✅ FIXED: NOW USES NEON ONLY
 @products_bp.route('/api/all-products')
 def api_all_products():
     try:
@@ -261,34 +346,18 @@ def get_products():
         q = request.args.get('q','').lower()
         q_expanded = expand_search_query(q) if q else ""
         shop_slug = request.args.get('shop') or request.args.get('shop_slug')
-        limit = int(request.args.get('limit', 200))
+        limit = int(request.args.get('limit', 20))  # ✅ Changed 200 -> 20 default!
         offset = int(request.args.get('offset', 0))
-        now = time.time()
-        if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
-            products = PRODUCTS_CACHE["data"]
-        else:
-            products = get_all_products_neon()
-            PRODUCTS_CACHE["data"] = products
-            PRODUCTS_CACHE["time"] = now
-        filtered = products
-        if q_expanded:
-            q_words = q_expanded.split()
-            def match(p):
-                hay = f"{p.get('name','')} {p.get('business','')} {p.get('main_category','')} {p.get('category','')} {p.get('description','')} {p.get('desc','')} {p.get('smart_keywords','')}".lower()
-                return any(w in hay for w in q_words)
-            filtered = [p for p in filtered if match(p)]
-        if shop_slug:
-            sf = shop_slug.strip()
-            exact = [p for p in filtered if p.get('shop_slug')==sf]
-            if exact: filtered = exact
-        filtered = sorted(filtered, key=lambda x:x.get('created',0), reverse=True)
-        chunk = filtered[offset:offset+limit]
+        limit = min(limit, 50)  # ✅ Never allow 200 at once!
+        q_words = q_expanded.split() if q_expanded else None
+        shop_val = shop_slug.strip() if shop_slug else None
+        # ✅ FIX 2: Neon does LIMIT/OFFSET + sorting
+        chunk = get_products_page_neon(limit=limit, offset=offset, shop_slug=shop_val, q_words=q_words)
         return jsonify(chunk)
     except Exception as e:
         print(f"Products API error: {e}")
         return jsonify([])
 
-# ✅ FIXED: NOW USES NEON ONLY
 @products_bp.route('/api/my-products')
 def my_products_compat():
     phone = request.args.get('phone','').strip()
@@ -425,5 +494,3 @@ def fix_all_old():
                     fixed += 1
     PRODUCTS_CACHE["data"] = None
     return jsonify({'success': True, 'fixed': fixed, 'total': len(products), 'message': f'Fixed {fixed} old products!'})
-
-# ✅ DELETED: /api/run-migrate - No more migration!
