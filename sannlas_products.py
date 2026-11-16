@@ -3,6 +3,7 @@ import os, json, time, re, uuid, random
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
+from sannlas_db import get_all_products_db, add_product_db, delete_product_db
 
 products_bp = Blueprint('products_bp', __name__)
 
@@ -33,7 +34,7 @@ def ensure_tables():
         cur.execute("CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, data JSONB NOT NULL);")
         cur.execute("CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, data JSONB NOT NULL);")
         conn.commit(); cur.close(); conn.close()
-    except Exception as e: 
+    except Exception as e:
         print("ensure_tables:", e)
 
 def load_db(file, default):
@@ -222,20 +223,14 @@ def product_link(pid):
 def product_short(pid):
     return product_link(pid)
 
+# ===== FIXED: NOW USES sannlas.db =====
 @products_bp.route('/api/all-products')
 def api_all_products():
     try:
-        conn = get_conn(); cur = conn.cursor()
-        cur.execute("SELECT * FROM products ORDER BY id DESC")
-        rows = cur.fetchall()
-        cols = [d[0] for d in cur.description]
-        data = [dict(zip(cols, r)) for r in rows]
-        cur.close(); conn.close()
-        return jsonify(data)
+        return jsonify(get_all_products_db())
     except Exception as e:
         print(e)
-        products = load_db('products.json', [])
-        return jsonify(products)
+        return jsonify([])
 
 @products_bp.route('/api/products')
 def get_products():
@@ -249,7 +244,7 @@ def get_products():
         if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
             products = PRODUCTS_CACHE["data"]
         else:
-            products = load_db('products.json', [])
+            products = get_all_products_db()
             PRODUCTS_CACHE["data"] = products
             PRODUCTS_CACHE["time"] = now
         filtered = products
@@ -270,11 +265,12 @@ def get_products():
         print(f"Products API error: {e}")
         return jsonify([])
 
+# ===== FIXED: NOW USES sannlas.db =====
 @products_bp.route('/api/my-products')
 def my_products_compat():
     phone = request.args.get('phone','').strip()
     email = request.args.get('email','').lower().strip()
-    products = load_db('products.json', [])
+    products = get_all_products_db()
     if not email and not phone:
         return jsonify([])
     result = []
@@ -354,36 +350,38 @@ def sell():
         'shop_slug': shop_slug,
         'promo_commission': promo_commission
     }
-    products=load_db('products.json',[]); products.append(prod); save_db('products.json', products)
+    add_product_db(prod)
     PRODUCTS_CACHE["data"] = None
     PRODUCTS_CACHE["time"] = 0
     return jsonify({'success':True,'message':f'Product added! Seller {user_email} will receive orders!'})
 
 @products_bp.route('/api/delete-product/<int:pid>', methods=['DELETE'])
 def delete_prod(pid):
-    products=load_db('products.json', []); products=[p for p in products if p['id']!=pid]; save_db('products.json', products)
+    delete_product_db(pid)
     PRODUCTS_CACHE["data"] = None
     return jsonify({'success':True})
 
+# NOTE: fix-slugs / fix-all-old-products still use old Neon - we don't need them in new DB.
+# Keep them as backup, or delete later in Step 2.
 @products_bp.route('/api/fix-slugs')
 def fix_slugs():
-    products = load_db('products.json', [])
+    products = get_all_products_db()
     for p in products:
         b = p.get('business') or ''
-        if b: p['shop_slug'] = make_shop_slug(b)
-    save_db('products.json', products)
+        if b:
+            p['shop_slug'] = make_shop_slug(b)
+            add_product_db(p)
     PRODUCTS_CACHE["data"] = None
-    return jsonify({'success':True,'message':'Fixed'})
+    return jsonify({'success':True,'message':'Fixed in sannlas.db'})
 
 @products_bp.route('/api/fix-all-old-products')
 def fix_all_old():
-    products = load_db('products.json', [])
+    products = get_all_products_db()
     shops = load_db('shops.json', [])
     users = load_db('users.json', [])
     fixed = 0
     for p in products:
         if not p.get('seller_email'):
-            # Try shop
             shop = next((s for s in shops if s.get('shop_slug') == p.get('shop_slug')), None)
             if shop and shop.get('owner_email'):
                 p['seller_email'] = shop['owner_email'].lower()
@@ -391,9 +389,9 @@ def fix_all_old():
                 p['owner_email'] = p['seller_email']
                 p['email'] = p['seller_email']
                 p['user_email'] = p['seller_email']
+                add_product_db(p)
                 fixed += 1
             else:
-                # Try phone -> user
                 ph = p.get('phone')
                 u = next((x for x in users if x.get('phone') == ph), None)
                 if u and u.get('email'):
@@ -402,7 +400,7 @@ def fix_all_old():
                     p['owner_email'] = u['email'].lower()
                     p['email'] = u['email'].lower()
                     p['user_email'] = u['email'].lower()
+                    add_product_db(p)
                     fixed += 1
-    save_db('products.json', products)
     PRODUCTS_CACHE["data"] = None
-    return jsonify({'success': True, 'fixed': fixed, 'total': len(products), 'message': f'Fixed {fixed} old products! Now ALL products will send orders to seller!'})
+    return jsonify({'success': True, 'fixed': fixed, 'total': len(products), 'message': f'Fixed {fixed} old products!'})
