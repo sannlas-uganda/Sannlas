@@ -102,9 +102,17 @@ let bgColors=[
   'linear-gradient(180deg,#E6FFE6,#C8FFC8)'
 ];
 async function load(){
-  const r = await fetch('/api/products?limit=200');
-  allProducts = await r.json();
-  render(allProducts);
+  try {
+    const r = await fetch('/api/products?limit=200');
+    allProducts = await r.json();
+    if(!allProducts.length) {
+      document.getElementById('products').innerHTML = '<p style="text-align:center;padding:20px">No products yet Boss - Be the first to sell!</p>';
+      return;
+    }
+    render(allProducts);
+  } catch(e) {
+    document.getElementById('products').innerHTML = '<p style="text-align:center;padding:20px">❌ Network error - Pull to refresh!</p>';
+  }
 }
 function getAllImages(p){
   if(p.images && Array.isArray(p.images) && p.images.length>0) return p.images;
