@@ -3,7 +3,7 @@ import os, json, time, re, uuid, random
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
-from sannlas_db import get_all_products_db, add_product_db, delete_product_db
+# ✅ REMOVED: from sannlas_db import ... - NO MORE sannlas.db!
 
 products_bp = Blueprint('products_bp', __name__)
 
@@ -122,6 +122,29 @@ def save_db(file, data):
     os.makedirs('data', exist_ok=True)
     json.dump(data, open(f'data/{file}','w'), indent=2)
 
+# ✅ NEW: Neon helpers - replace sannlas_db functions
+def get_all_products_neon():
+    return load_db('products.json', [])
+
+def add_product_neon(prod):
+    products = load_db('products.json', [])
+    # Update if same ID exists, else append
+    found = False
+    for i, p in enumerate(products):
+        if str(p.get('id')) == str(prod.get('id')):
+            products[i] = prod
+            found = True
+            break
+    if not found:
+        products.append(prod)
+    save_db('products.json', products)
+    return prod
+
+def delete_product_neon(pid):
+    products = load_db('products.json', [])
+    products = [p for p in products if str(p.get('id')) != str(pid)]
+    save_db('products.json', products)
+
 # ===== CATEGORY MAP =====
 CATEGORY_MAP = {
     "Fashion & Clothing": ["t-shirt","tshirt","shirt","trouser","jeans","dress","skirt","suit","jacket","coat","sweater","hoodie","shorts","tracksuit","uniform","underwear","socks","fabric","textile","cloth","kitenge","gomesi","kanzu"],
@@ -223,11 +246,11 @@ def product_link(pid):
 def product_short(pid):
     return product_link(pid)
 
-# ===== FIXED: NOW USES sannlas.db =====
+# ✅ FIXED: NOW USES NEON ONLY
 @products_bp.route('/api/all-products')
 def api_all_products():
     try:
-        return jsonify(get_all_products_db())
+        return jsonify(get_all_products_neon())
     except Exception as e:
         print(e)
         return jsonify([])
@@ -244,7 +267,7 @@ def get_products():
         if PRODUCTS_CACHE["data"] and (now - PRODUCTS_CACHE["time"] < 30):
             products = PRODUCTS_CACHE["data"]
         else:
-            products = get_all_products_db()
+            products = get_all_products_neon()
             PRODUCTS_CACHE["data"] = products
             PRODUCTS_CACHE["time"] = now
         filtered = products
@@ -265,12 +288,12 @@ def get_products():
         print(f"Products API error: {e}")
         return jsonify([])
 
-# ===== FIXED: NOW USES sannlas.db =====
+# ✅ FIXED: NOW USES NEON ONLY
 @products_bp.route('/api/my-products')
 def my_products_compat():
     phone = request.args.get('phone','').strip()
     email = request.args.get('email','').lower().strip()
-    products = get_all_products_db()
+    products = get_all_products_neon()
     if not email and not phone:
         return jsonify([])
     result = []
@@ -350,33 +373,31 @@ def sell():
         'shop_slug': shop_slug,
         'promo_commission': promo_commission
     }
-    add_product_db(prod)
+    add_product_neon(prod)
     PRODUCTS_CACHE["data"] = None
     PRODUCTS_CACHE["time"] = 0
     return jsonify({'success':True,'message':f'Product added! Seller {user_email} will receive orders!'})
 
 @products_bp.route('/api/delete-product/<int:pid>', methods=['DELETE'])
 def delete_prod(pid):
-    delete_product_db(pid)
+    delete_product_neon(pid)
     PRODUCTS_CACHE["data"] = None
     return jsonify({'success':True})
 
-# NOTE: fix-slugs / fix-all-old-products still use old Neon - we don't need them in new DB.
-# Keep them as backup, or delete later in Step 2.
 @products_bp.route('/api/fix-slugs')
 def fix_slugs():
-    products = get_all_products_db()
+    products = get_all_products_neon()
     for p in products:
         b = p.get('business') or ''
         if b:
             p['shop_slug'] = make_shop_slug(b)
-            add_product_db(p)
+            add_product_neon(p)
     PRODUCTS_CACHE["data"] = None
-    return jsonify({'success':True,'message':'Fixed in sannlas.db'})
+    return jsonify({'success':True,'message':'Fixed in Neon'})
 
 @products_bp.route('/api/fix-all-old-products')
 def fix_all_old():
-    products = get_all_products_db()
+    products = get_all_products_neon()
     shops = load_db('shops.json', [])
     users = load_db('users.json', [])
     fixed = 0
@@ -389,7 +410,7 @@ def fix_all_old():
                 p['owner_email'] = p['seller_email']
                 p['email'] = p['seller_email']
                 p['user_email'] = p['seller_email']
-                add_product_db(p)
+                add_product_neon(p)
                 fixed += 1
             else:
                 ph = p.get('phone')
@@ -400,17 +421,9 @@ def fix_all_old():
                     p['owner_email'] = u['email'].lower()
                     p['email'] = u['email'].lower()
                     p['user_email'] = u['email'].lower()
-                    add_product_db(p)
+                    add_product_neon(p)
                     fixed += 1
     PRODUCTS_CACHE["data"] = None
     return jsonify({'success': True, 'fixed': fixed, 'total': len(products), 'message': f'Fixed {fixed} old products!'})
 
-# TEMP MIGRATE - DELETE AFTER 1 USE!
-@products_bp.route('/api/run-migrate')
-def run_migrate():
-    try:
-        import sannlas_db
-        import migrate_products_step1
-        return jsonify({'success': True, 'message': 'Migration ran! Check Logs!'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+# ✅ DELETED: /api/run-migrate - No more migration!
