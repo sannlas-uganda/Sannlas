@@ -404,3 +404,13 @@ def fix_all_old():
                     fixed += 1
     PRODUCTS_CACHE["data"] = None
     return jsonify({'success': True, 'fixed': fixed, 'total': len(products), 'message': f'Fixed {fixed} old products!'})
+
+# TEMP MIGRATE - DELETE AFTER 1 USE!
+@products_bp.route('/api/run-migrate')
+def run_migrate():
+    try:
+        import sannlas_db
+        import migrate_products_step1
+        return jsonify({'success': True, 'message': 'Migration ran! Check Logs!'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
