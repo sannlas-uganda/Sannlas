@@ -365,12 +365,28 @@ def get_user_reels(shop_slug):
 def upload_reel_to_yotta():
     try:
         ensure_reels_table()
-        # 1. Get file - frontend must send form-data with field name 'video' or 'file'
+        # ✅ FIXED: Server-side size check - 50MB MAX (frontend can be bypassed!)
         f = request.files.get('video') or request.files.get('file') or request.files.get('reel')
         if not f or not f.filename:
             return jsonify({'success': False, 'error': 'No video file sent!'}), 400
 
+        # ✅ Check file size BEFORE uploading to Yotta
+        f.seek(0, os.SEEK_END)
+        file_size = f.tell()
+        f.seek(0)
+        print(f"📹 Upload size: {file_size/1024/1024:.1f} MB - {f.filename}")
+        if file_size > 50*1024*1024:
+            return jsonify({'success': False, 'error': 'Too big! Max 50MB Boss! Compress with CapCut and try again.'}), 400
+        if file_size == 0:
+            return jsonify({'success': False, 'error': 'Empty file!'}), 400
+
+        # ✅ Check file type
+        ext = (f.filename.rsplit('.',1)[-1] if '.' in f.filename else '').lower()
+        if ext not in ['mp4','mov','webm','mkv','m4v']:
+            return jsonify({'success': False, 'error': 'Only MP4 / MOV video allowed!'}), 400
+
         # 2. FORCE to YottaSrc /public_html/reels - NOTHING ELSE!
+        # NOTE: save_reel_to_yottasrc MUST compress - see yottasrc_storage.py fix
         video_url = save_reel_to_yottasrc(f, "reel")
 
         # 3. Get other fields from form
