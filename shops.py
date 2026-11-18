@@ -250,16 +250,22 @@ def shop_page_slug(slug):
 body{font-family:system-ui;background:#f8fafc;margin:0}
 .topnav{background:#000;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999}
 .topnav a{color:#FFCC02;text-decoration:none;font-weight:900}
-.shop-profile-header{background:#fff;padding:16px;border-bottom:1px solid #eee}
-.profile-top{display:flex;gap:14px;align-items:center}
-.avatar-box{width:86px;height:86px;border-radius:50%;border:3px solid #FFCC02;background:#fff;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900}
+.shop-profile-header{background:#fff;padding:16px 16px 0;text-align:center;border-bottom:1px solid #eee}
+.avatar-wrap{position:relative;width:110px;height:110px;margin:0 auto}
+.avatar-ring{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#FFCC02,#FF6A00);padding:3px}
+.avatar-box{width:100%;height:100%;border-radius:50%;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900}
 .avatar-box img{width:100%;height:100%;object-fit:cover}
-.stats-row{flex:1;display:flex;justify-content:space-around;text-align:center}
-.stat b{display:block;font-size:17px;color:#111;line-height:1}
-.stat span{font-size:10px;color:#666;font-weight:700;letter-spacing:0.5px;margin-top:3px;display:block}
-.shop-name{font-weight:900;font-size:18px;margin-top:12px}
-.shop-bio{font-size:12px;color:#666;margin:4px 0;line-height:1.4}
-.action-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.verified-badge{position:absolute;bottom:4px;right:4px;width:26px;height:26px;background:#00AFF0;color:#fff;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px}
+.shop-name{font-weight:900;font-size:22px;margin:12px 0 2px}
+.shop-handle{font-size:13px;color:#666;font-weight:700}
+.shop-bio{font-size:13px;color:#333;margin:8px 20px;line-height:1.4}
+.stats-row{display:flex;justify-content:center;gap:28px;margin:14px 0;text-align:center}
+.stat b{display:block;font-size:18px;color:#111}
+.stat span{font-size:12px;color:#888}
+.action-row{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.tab-row{display:flex;border-top:1px solid #eee;margin-top:4px}
+.tab-row button{flex:1;padding:12px;border:none;background:none;font-weight:700;color:#888;font-size:14px;border-bottom:3px solid transparent}
+.tab-row button.active{color:#000;border-bottom:3px solid #000;font-weight:900}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px;max-width:1000px;margin:auto}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
 .card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #eee}
@@ -273,20 +279,25 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 <body>
 <div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
 <div class="shop-profile-header" id="shop-header" style="display:none">
-  <div class="profile-top">
-    <div class="avatar-box" id="shopAvatarBox">S</div>
-    <div class="stats-row">
-      <div class="stat"><b id="statFollowing">0</b><span>Following</span></div>
-      <div class="stat"><b id="statFollowers">0</b><span>Followers</span></div>
-      <div class="stat"><b id="statLikes">0</b><span>Likes</span></div>
-      <div class="stat"><b id="statViews">0</b><span>Views</span></div>
-    </div>
+  <div class="avatar-wrap"><div class="avatar-ring"><div class="avatar-box" id="shopAvatarBox">S</div></div><div class="verified-badge">✓</div></div>
+  <div class="shop-name" id="shopNameBig">Loading...</div>
+  <div class="shop-handle" id="shopHandleText">@shop</div>
+  <div class="shop-bio" id="shopBioText"></div>
+  <div class="stats-row">
+    <div class="stat"><b id="statFollowing">0</b><span>Following</span></div>
+    <div class="stat"><b id="statFollowers">0</b><span>Followers</span></div>
+    <div class="stat"><b id="statLikes">0</b><span>Likes</span></div>
+    <div class="stat"><b id="statViews">0</b><span>Views</span></div>
   </div>
-  <div id="headerText">
-    <div class="shop-name" id="shopNameBig">Loading...</div>
-    <div class="shop-bio" id="shopBioText"></div>
-    <div class="action-row" id="shopActions"></div>
+  <div class="action-row" id="shopActions"></div>
+  <div class="tab-row">
+    <button id="tabProductsBtn" class="active" onclick="showShopTab('products')">🛍️ Products</button>
+    <button id="tabReelsBtn" onclick="showShopTab('reels')">🎬 Reels</button>
   </div>
+</div>
+<div id="shopReelsTab" style="display:none;padding:12px;background:#fff">
+  <div id="shopReelsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px"></div>
+  <p id="shopReelsEmpty" style="text-align:center;color:#888;font-size:13px;padding:20px">No reels yet</p>
 </div>
 <div id="loading">⏳ Loading shop...</div>
 <div id="products" class="grid"></div>
@@ -305,7 +316,7 @@ async function loadShop(){
      if(lg) ab.innerHTML=`<img src="${lg}">`;
      else ab.innerText=(instant.shop_name||'S')[0].toUpperCase();
      document.getElementById('shopNameBig').innerText='🏪 '+(instant.shop_name||instant.business_name||slug);
-     document.getElementById('shopBioText').innerHTML=`📍 ${instant.shop_location||instant.location||'Kampala'} | 📞 ${instant.shop_phone||instant.phone||''}<br>Quality products!`;
+     document.getElementById('shopBioText').innerHTML=`📍 ${instant.shop_location||instant.location||'Kampala'} | 📞 ${instant.shop_phone||instant.phone||''}<br>Quality products, fast delivery in Uganda 🇺🇬`;
    }
  }catch(e){}
  try{
@@ -321,18 +332,22 @@ async function loadShop(){
   if(logo){avatarBox.innerHTML=`<img src="${logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
   document.getElementById('shopNameBig').innerText='🏪 '+(shop.business_name||shop.name||slug);
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Quality products!'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
+   document.getElementById('shopHandleText').innerText='@'+cleanSlug(shop.shop_slug||shop.business_name)+' • '+(shop.category||'Shop');
+  document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Welcome to '+ (shop.business_name||'shop') +' shop! Quality products, fast delivery in Uganda 🇺🇬'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
   document.getElementById('shopActions').innerHTML=`
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
-      <button style="background:#25D366;color:#fff;padding:10px 14px;border-radius:20px;border:none;font-weight:800" onclick="location.href='https://wa.me/${(shop.phone||'').toString().replace(/[^0-9]/g,'')}'">💬 WhatsApp</button>
-      <button style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px 14px;border-radius:20px;font-weight:800">💬 Chat</button>
-      <button style="background:#FFCC02;color:#000;padding:10px 14px;border-radius:20px;border:none;font-weight:800">📞 Call</button>
-      <button style="background:#fff;color:#000;border:2px solid #000;padding:10px 14px;border-radius:20px">🔗 Share</button>
+    <div style="display:flex;gap:8px;justify-content:center;width:100%">
+      <button id="followShopBtn" onclick="toggleFollowShop()" style="flex:1;max-width:160px;background:#FE2C55;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">➕ Follow</button>
+      <button onclick="openShopChat()" style="flex:1;max-width:160px;background:#F1F1F2;color:#000;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">💬 Message</button>
+      <button onclick="shareShopLink()" style="width:44px;background:#F1F1F2;border:none;border-radius:8px;font-size:18px">↗️</button>
     </div>
-    <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
-      <a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px">🎬 View Reels Profile</a>
-      <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02">🏪 My Shop</a>
+    <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:8px">
+      <a href="https://wa.me/${(shop.phone||'').toString().replace(/[^0-9]/g,'')}" style="flex:1;max-width:160px;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">💬 WhatsApp</a>
+      <a href="tel:${shop.phone||''}" style="flex:1;max-width:160px;background:#000;color:#FFCC02;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📞 Call Shop</a>
+      <a href="/my-shop" style="flex:1;max-width:160px;background:#FFCC02;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">🏪 My Shop</a>
     </div>
-    <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
+    <div style="margin-top:10px"><a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:10px 18px;border-radius:25px;font-size:13px;display:inline-block">🎬 View Reels Profile</a></div>`;
+  // Save shop for tab functions
+  window._currentShop = shop;
   let h='';
   prods.forEach(p=>{h+=`<div class="card"><img loading="lazy" src="${p.image||'https://via.placeholder.com/300'}"><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;});
   if(!prods.length) h='<p style="padding:20px">No products yet</p>';
@@ -346,6 +361,32 @@ async function loadShop(){
   }).catch(()=>{ document.getElementById('statLikes').innerText=prods.length*5; document.getElementById('statViews').innerText=prods.length*124; });
  }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
+function showShopTab(tab){
+  let pBtn=document.getElementById('tabProductsBtn'), rBtn=document.getElementById('tabReelsBtn');
+  let reelsDiv=document.getElementById('shopReelsTab'), prodGrid=document.getElementById('products');
+  if(tab==='reels'){
+    rBtn.classList.add('active'); pBtn.classList.remove('active');
+    reelsDiv.style.display='block'; prodGrid.style.display='none';
+    loadShopReels();
+  } else {
+    pBtn.classList.add('active'); rBtn.classList.remove('active');
+    reelsDiv.style.display='none'; prodGrid.style.display='grid';
+  }
+}
+async function loadShopReels(){
+  try{
+    let slug=cleanSlug((window._currentShop||{}).shop_slug||(window._currentShop||{}).business_name||'');
+    let r=await fetch('/api/sannlas/reels/feed?shop='+encodeURIComponent(slug));
+    let reels=await r.json();
+    let grid=document.getElementById('shopReelsGrid'), empty=document.getElementById('shopReelsEmpty');
+    if(!reels.length){ empty.style.display='block'; return; }
+    empty.style.display='none';
+    grid.innerHTML=reels.map(re=>`<div onclick="location.href='/reels'" style="aspect-ratio:9/16;background:#000;border-radius:8px;overflow:hidden"><video src="${re.video_url}" muted style="width:100%;height:100%;object-fit:cover"></video></div>`).join('');
+  }catch(e){}
+}
+function openShopChat(){ let s=window._currentShop||{}; location.href='/chat?shop='+encodeURIComponent(cleanSlug(s.shop_slug||s.business_name||'')); }
+function shareShopLink(){ let url=location.href; if(navigator.share) navigator.share({title:document.getElementById('shopNameBig').innerText, url:url}); else { navigator.clipboard.writeText(url); alert('Link copied!'); } }
+function toggleFollowShop(){ let b=document.getElementById('followShopBtn'); if(!b) return; let isF=b.innerText.includes('Following'); b.innerText=isF?'➕ Follow':'✓ Following'; b.style.background=isF?'#FE2C55':'#F1F1F2'; b.style.color=isF?'#fff':'#000'; let el=document.getElementById('statFollowers'); if(el) el.innerText=parseInt((el.innerText||'0').replace(/,/g,'')) + (isF?-1:1); }
 loadShop();
 </script></body></html>
 """
