@@ -21,7 +21,7 @@ def compress_video(input_path):
     """Compress to 720p + faststart - THIS FIXES PAUSING"""
     ffmpeg = get_ffmpeg()
     if not ffmpeg:
-        print("No ffmpeg found, uploading original")
+        print("⚠️ No ffmpeg found, uploading original - ADD imageio-ffmpeg to requirements.txt!")
         return input_path
     
     output_path = input_path.rsplit('.', 1)[0] + '_compressed.mp4'
@@ -29,20 +29,24 @@ def compress_video(input_path):
         # -movflags +faststart = browser can play instantly without downloading all
         # scale=720:-2 = 720p, enough for phone
         # crf 28 = small file, still clear
+        # maxrate 1500k = caps bitrate so it never buffers on slow network
         cmd = [
             ffmpeg, '-y', '-i', input_path,
             '-vf', 'scale=720:-2',
             '-c:v', 'libx264', '-crf', '28', '-preset', 'veryfast',
+            '-maxrate', '1500k', '-bufsize', '3000k',
             '-movflags', '+faststart',
             '-c:a', 'aac', '-b:a', '128k',
             '-t', '60',  # Max 60 sec reel - prevents huge files
             output_path
         ]
-        subprocess.run(cmd, check=True, timeout=120, capture_output=True)
+        subprocess.run(cmd, check=True, timeout=180, capture_output=True)
         
         # Only use compressed if it's actually smaller
         if os.path.exists(output_path) and os.path.getsize(output_path) < os.path.getsize(input_path):
-            print(f"Compressed: {os.path.getsize(input_path)//1024//1024}MB -> {os.path.getsize(output_path)//1024//1024}MB")
+            orig_mb = os.path.getsize(input_path)//1024//1024
+            new_mb = os.path.getsize(output_path)//1024//1024
+            print(f"✅ Compressed: {orig_mb}MB -> {new_mb}MB")
             os.remove(input_path)
             return output_path
         else:
@@ -51,6 +55,9 @@ def compress_video(input_path):
             return input_path
     except Exception as e:
         print(f"Compress failed, using original: {e}")
+        if os.path.exists(output_path):
+            try: os.remove(output_path)
+            except: pass
         return input_path
 
 def save_reel_to_yottasrc(file_obj, prefix="reel"):
@@ -69,23 +76,27 @@ def save_reel_to_yottasrc(file_obj, prefix="reel"):
     final_path = compress_video(tmp_path)
     final_filename = os.path.basename(final_path)
     
-    ftp = ftplib.FTP(FTP_HOST, timeout=120)
-    ftp.login(FTP_USER, FTP_PASS)
+    ftp = None
     try:
-        ftp.cwd(FTP_REELS_DIR)
-    except:
-        try: ftp.mkd(FTP_REELS_DIR)
+        ftp = ftplib.FTP(FTP_HOST, timeout=180)
+        ftp.login(FTP_USER, FTP_PASS)
+        try:
+            ftp.cwd(FTP_REELS_DIR)
+        except:
+            try: ftp.mkd(FTP_REELS_DIR)
+            except: pass
+            ftp.cwd(FTP_REELS_DIR)
+        with open(final_path, 'rb') as f:
+            ftp.storbinary(f'STOR {final_filename}', f)
+    finally:
+        if ftp:
+            try: ftp.quit()
+            except: pass
+        # Cleanup - always, even if FTP fails
+        try: os.remove(final_path)
         except: pass
-        ftp.cwd(FTP_REELS_DIR)
-    with open(final_path, 'rb') as f:
-        ftp.storbinary(f'STOR {final_filename}', f)
-    ftp.quit()
-    
-    # Cleanup
-    try: os.remove(final_path)
-    except: pass
-    if final_path != tmp_path:
-        try: os.remove(tmp_path)
-        except: pass
+        if final_path != tmp_path:
+            try: os.remove(tmp_path)
+            except: pass
     
     return f"{SITE_URL}/reels/{final_filename}"
