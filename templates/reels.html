@@ -24,11 +24,18 @@
 .volume-btn{position:absolute;top:15px;right:15px;background:rgba(0,0,0,0.6);border:none;color:#fff;padding:8px 12px;border-radius:20px;z-index:6}
 .unmute-hint{position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);padding:6px 10px;border-radius:10px;font-size:12px;z-index:6}
 #end-msg{display:none;text-align:center;padding:40px;color:#FFCC02;height:100vh;align-items:center;justify-content:center;flex-direction:column}
+/* ✅ NEW - Instant shop loading overlay */
+#shopLoading{ display:none; position:fixed; inset:0; background:#000; z-index:99999; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+#shopLoading .spin{ width:40px;height:40px;border:3px solid #333;border-top-color:#FFCC02;border-radius:50%;animation:spin 0.7s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg);} }
 </style>
 </head>
 <body>
 <div id="reels-container"></div>
 <div id="end-msg"><div style="font-size:40px">🎉</div><div style="font-weight:900;margin:10px">You watched ALL reels!</div><div style="opacity:.7">Pull to refresh for new ones</div><button onclick="location.reload()" style="margin-top:15px;background:#FFCC02;border:none;padding:12px 24px;border-radius:25px;font-weight:900">🔄 RELOAD</button></div>
+
+<!-- ✅ NEW - Instant shop loading screen, shows in 0 sec -->
+<div id="shopLoading"><div class="spin"></div><b style="color:#FFCC02">Opening Shop...</b><span style="font-size:12px;opacity:.6" id="shopLoadingName"></span></div>
 
 <!-- SANNLAS AI CHAT MODAL - NEW -->
 <div id="sannlasAIModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:100000;flex-direction:column">
@@ -64,6 +71,8 @@ let isLoading = false;
 let hasMore = true;
 let watchStartTime = 0;
 let currentReelId = null;
+// ✅ NEW - Prefetch cache for shops
+let prefetchedShops = new Set();
 
 function getViewerEmail(){
   try{
@@ -71,6 +80,31 @@ function getViewerEmail(){
     if(u.user) u = u.user;
     return (u.email||'').toLowerCase();
   }catch(e){ return ''; }
+}
+
+// ✅ NEW - Prefetch shop page in background while user watches reel
+function prefetchShop(slug){
+  if(!slug || prefetchedShops.has(slug)) return;
+  prefetchedShops.add(slug);
+  // Fetch silently, browser caches it - tap will be instant!
+  fetch('/shop/' + slug, {credentials:'same-origin'}).catch(()=>{});
+  // Also prefetch logo image
+  let reel = reels.find(r => cleanSlug(r.shop_slug||r.shop_name||'shop') === slug);
+  if(reel && reel.shop_logo){
+    let img = new Image(); img.src = reel.shop_logo;
+  }
+}
+
+// ✅ NEW - Instant shop open - show loading in 0 sec, then navigate
+function openShopInstant(e, slug, shopName){
+  if(e) e.stopPropagation();
+  if(!slug) slug = 'shop';
+  // Show loading INSTANTLY - user sees feedback in 0ms, not blank white 3 sec
+  let loader = document.getElementById('shopLoading');
+  document.getElementById('shopLoadingName').innerText = shopName ? '@' + shopName : '';
+  loader.style.display = 'flex';
+  // Small delay so loader paints before navigation
+  setTimeout(()=>{ location.href = '/shop/' + slug; }, 50);
 }
 
 async function loadReels(){
@@ -99,15 +133,16 @@ async function loadReels(){
    const email = (reel.user_email||reel.shop_email||reel.email||'').toLowerCase();
    const isFollowing = reel.is_following ? '✓' : '+';
    const followStyle = reel.is_following ? "background:#fff;color:#00CC00;border-color:#00CC00" : "";
+   const shopNameSafe = (reel.shop_name||'SHOP').replace(/'/g,"");
    const profileHtml = `
      <div class="profile-btn-wrap">
-       <div class="profile-avatar" onclick="event.stopPropagation(); location.href='/shop/${slug}'">
+       <div class="profile-avatar" onclick="openShopInstant(event, '${slug}', '${shopNameSafe}')">
          ${logo ? `<img src="${logo}">` : shopInitial}
        </div>
        <div class="follow-plus" data-email="${email}" data-slug="${slug}" style="${followStyle}" id="follow-btn-${reel.id}" onclick="event.stopPropagation(); toggleFollowReal(this)">${isFollowing}</div>
      </div>`;
    return `
-  <div class="reel" data-id="${reel.id}">
+  <div class="reel" data-id="${reel.id}" data-shop-slug="${slug}">
    <video data-src="${reel.video_url}" preload="none" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
    <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
    <div class="unmute-hint">Tap 🔊 for sound</div>
@@ -118,16 +153,16 @@ async function loadReels(){
      <button class="action-btn" onclick="saveReel(${reel.id}, this)">🔖<br><span style="font-size:10px">${reel.saves||0}</span></button>
    </div>
    <div class="overlay">
-    <a class="shop-name" href="/shop/${slug}">🏪 @${(reel.shop_name||'SHOP').toUpperCase()}</a>
-    <a class="product-title" href="/shop/${slug}">${reel.product_name||reel.caption||'New Collection'}</a>
+    <a class="shop-name" href="javascript:void(0)" onclick="openShopInstant(event, '${slug}', '${shopNameSafe}')">🏪 @${(reel.shop_name||'SHOP').toUpperCase()}</a>
+    <a class="product-title" href="javascript:void(0)" onclick="openShopInstant(event, '${slug}', '${shopNameSafe}')">${reel.product_name||reel.caption||'New Collection'}</a>
      <div class="product-desc">${(reel.description||'').slice(0,80)}</div>
      <div style="font-size:11px;color:#aaa;margin:4px 0">👁️ ${reel.views||0} views • ${reel.category||''}</div>
      <div class="action-col">
-       <a href="/shop/${slug}" class="promote-btn">🏪 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
-       <button class="shop-btn" onclick="location.href='/shop/${slug}'">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW SHOP</button>
+       <a href="javascript:void(0)" onclick="openShopInstant(event, '${slug}', '${shopNameSafe}')" class="promote-btn">🏪 VIEW SHOP - @${(reel.shop_name||'SHOP').toUpperCase()}</a>
+       <button class="shop-btn" onclick="openShopInstant(event, '${slug}', '${shopNameSafe}')">UGX ${Number(reel.price||24000).toLocaleString()} - VIEW SHOP</button>
        <button onclick="openSannlasAI('${slug}')" style="background:linear-gradient(135deg,#000,#1a1a1a);color:#FFCC02;padding:12px 20px;border-radius:25px;font-weight:900;border:2px solid #FFCC02;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 10px rgba(255,204,2,0.3)">🧠 SANNLAS AI - ASK ANYTHING</button>
      </div>
-     <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="/shop/${slug}">@${slug} • ${reel.location||'Uganda'} ➔ Tap to View Shop</a></div>
+     <div style="font-size:10px;opacity:0.8;margin-top:8px;color:#FFCC02"><a style="color:#FFCC02;text-decoration:none" href="javascript:void(0)" onclick="openShopInstant(event, '${slug}', '${shopNameSafe}')">@${slug} • ${reel.location||'Uganda'} ➔ Tap to View Shop</a></div>
    </div>
   </div>`}).join('');
 
@@ -166,12 +201,17 @@ function observeVideos(){
        e.target.load();
      }
      e.target.play().catch(()=>{});
-     // ✅ FIXED - Preload NEXT reel so swipe is instant
-     const nextVideo = e.target.closest('.reel')?.nextElementSibling?.querySelector('video');
+     const reelEl = e.target.closest('.reel');
+     const nextVideo = reelEl?.nextElementSibling?.querySelector('video');
      if(nextVideo && !nextVideo.src && nextVideo.dataset.src){
        nextVideo.src = nextVideo.dataset.src;
        nextVideo.load();
      }
+     // ✅ NEW - Prefetch THIS shop + NEXT shop while user watches!
+     const thisSlug = reelEl?.getAttribute('data-shop-slug');
+     if(thisSlug) prefetchShop(thisSlug);
+     const nextSlug = reelEl?.nextElementSibling?.getAttribute('data-shop-slug');
+     if(nextSlug) prefetchShop(nextSlug);
      if(currentReelId && currentReelId !== reelId){ sendWatchTime(currentReelId); }
      currentReelId = reelId;
      watchStartTime = Date.now();
