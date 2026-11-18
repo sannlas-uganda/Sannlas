@@ -108,7 +108,6 @@ async function loadReels(){
      </div>`;
    return `
   <div class="reel" data-id="${reel.id}">
-   <!-- ✅ FIXED: preload=none + data-src = Only load when visible! -->
    <video data-src="${reel.video_url}" preload="none" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
    <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
    <div class="unmute-hint">Tap 🔊 for sound</div>
@@ -142,7 +141,6 @@ async function loadReels(){
  isLoading=false;
 }
 
-// ✅ FIXED: Throttled scroll - Only fire once per 500ms, no skipping pages!
 let lastScroll = 0;
 document.getElementById('reels-container').addEventListener('scroll', function(){
   if(!hasMore || isLoading) return;
@@ -163,20 +161,23 @@ function observeVideos(){
   entries.forEach(e=>{
    const reelId = e.target.getAttribute('data-reel-id');
    if(e.isIntersecting){
-     // ✅ LAZY LOAD: Only set src when visible!
      if(!e.target.src && e.target.dataset.src){
        e.target.src = e.target.dataset.src;
        e.target.load();
      }
      e.target.play().catch(()=>{});
+     // ✅ FIXED - Preload NEXT reel so swipe is instant
+     const nextVideo = e.target.closest('.reel')?.nextElementSibling?.querySelector('video');
+     if(nextVideo && !nextVideo.src && nextVideo.dataset.src){
+       nextVideo.src = nextVideo.dataset.src;
+       nextVideo.load();
+     }
      if(currentReelId && currentReelId !== reelId){ sendWatchTime(currentReelId); }
      currentReelId = reelId;
      watchStartTime = Date.now();
      sendView(reelId);
    } else {
      e.target.pause();
-     // ✅ FREE MEMORY: Remove src when far away, so 100MB videos don't pile up!
-     // Keep it if it's next/prev - don't unload immediately
      if(currentReelId === reelId){ sendWatchTime(reelId); currentReelId = null; }
    }
   });
@@ -222,8 +223,6 @@ function toggleVolume(btn){
  video.muted=!video.muted;
  btn.innerText=video.muted?'🔇':'🔊';
 }
-
-// ===== SANNLAS AI =====
 let aiHistory = [];
 let currentShopSlug = '';
 function openSannlasAI(shopSlug=''){
@@ -252,8 +251,6 @@ async function sendToAI(){
     box.scrollTop=box.scrollHeight;
   }catch(e){document.getElementById('aiTyping')?.remove(); box.innerHTML+=`<div style="background:#ffeaea;color:#000;padding:10px;border-radius:12px">Sorry Boss, network! Try again 🚀</div>`;}
 }
-
-// ===== FOLLOW SYSTEM =====
 async function toggleFollowReal(btn){
   let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
   if(!user.email){ alert('Login first Boss!'); return; }
