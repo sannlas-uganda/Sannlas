@@ -216,8 +216,14 @@ async function load(){
     renderShopInstant(shop, products);
     loadShopFollowStats();
     checkFollowStatus();
-    fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); }).catch(()=>{});
-    fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); }).catch(()=>{ document.getElementById('statLikes').innerText=products.length*5; document.getElementById('statViews').innerText=products.length*120; });
+// ✅ FIXED - Only ONE stats call
+fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).then(s=>{ 
+  document.getElementById('statLikes').innerText=(s.total_likes||s.likes||0).toLocaleString(); 
+  document.getElementById('statViews').innerText=(s.total_views||s.views||0).toLocaleString(); 
+}).catch(()=>{ 
+  document.getElementById('statLikes').innerText=products.length*5; 
+  document.getElementById('statViews').innerText=products.length*120; 
+});
   }catch(e){ if(!currentShop){ document.getElementById('shopNameBig').innerHTML='<h1>Error loading shop</h1><p>'+e+'</p>'; } console.error(e); }
 }
 function shareShop(){navigator.clipboard.writeText(location.href);alert('🔗 Copied!');}
