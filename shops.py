@@ -345,7 +345,6 @@ async function loadShop(){
       <a href="tel:${shop.phone||''}" style="flex:1;max-width:160px;background:#000;color:#FFCC02;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📞 Call Shop</a>
       <a href="/my-shop" style="flex:1;max-width:160px;background:#FFCC02;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">🏪 My Shop</a>
     </div>
-    <div style="margin-top:10px"><a href="/@/${cleanSlug(shop.shop_slug||shop.business_name)}" style="color:#000;background:#FFCC02;text-decoration:none;font-weight:900;padding:10px 18px;border-radius:25px;font-size:13px;display:inline-block">🎬 View Reels Profile</a></div>`;
   // Save shop for tab functions
   window._currentShop = shop;
   let h='';
@@ -509,10 +508,3 @@ def get_all_shops():
         return jsonify(shops)
     except Exception as e:
         return jsonify([])
-
-@shops_bp.route('/@/<path:slug>')
-@shops_bp.route('/@/<path:slug>/reels')
-def reels_profile_by_shop(slug):
-    from flask import redirect
-    cleaned = clean_slug_fix(slug)
-    return redirect(f'/@{cleaned}')
