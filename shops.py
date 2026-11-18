@@ -344,7 +344,7 @@ async function loadShop(){
       <a href="https://wa.me/${(shop.phone||'').toString().replace(/[^0-9]/g,'')}" style="flex:1;max-width:160px;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">💬 WhatsApp</a>
       <a href="tel:${shop.phone||''}" style="flex:1;max-width:160px;background:#000;color:#FFCC02;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📞 Call Shop</a>
       <a href="/my-shop" style="flex:1;max-width:160px;background:#FFCC02;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">🏪 My Shop</a>
-    </div>
+    </div>`;
   // Save shop for tab functions
   window._currentShop = shop;
   let h='';
