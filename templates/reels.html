@@ -133,10 +133,14 @@ function prefetchShop(slug){
 async function loadReels(){
  if(isLoading || !hasMore) return; isLoading = true;
  const viewerEmail = getViewerEmail();
- const url = `/api/sannlas/reels/feed?user_email=${encodeURIComponent(viewerEmail)}&page=${currentPage}&limit=20`;
+ const c=document.getElementById('reels-container');
+
+ // ⚡ FIRST LOAD = ONLY 2 REELS - INSTANT!
+ // Backend fast-path you added returns these in <0.5 sec, no scoring 300!
+ let limit = (currentPage===1) ? 2 : 20;
+ const url = `/api/sannlas/reels/feed?user_email=${encodeURIComponent(viewerEmail)}&page=${currentPage}&limit=${limit}`;
  try{
   const r=await fetch(url); let newReels=await r.json();
-  const c=document.getElementById('reels-container');
   if(currentPage===1 && (!newReels || newReels.length==0)){
     c.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#FFCC02">No reels yet! Upload one.</div>';
     isLoading=false; return;
@@ -146,7 +150,6 @@ async function loadReels(){
     document.getElementById('end-msg').style.display='flex';
     isLoading=false; return;
   }
-  if(newReels.length < 20) hasMore = false;
   if(currentPage===1) reels = newReels; else reels = [...reels, ...newReels];
 
   const html = newReels.map((reel,i)=>{
@@ -164,9 +167,12 @@ async function loadReels(){
        </div>
        <div class="follow-plus" data-email="${email}" data-slug="${slug}" style="${followStyle}" id="follow-btn-${reel.id}" onclick="event.stopPropagation(); toggleFollowReal(this)">${isFollowing}</div>
      </div>`;
+   // ⚡ FIRST 2: load video src immediately, others: lazy data-src
+   const isFirst2 = (currentPage===1 && i<2);
+   const videoSrcAttr = isFirst2 ? `src="${reel.video_url}" preload="auto"` : `data-src="${reel.video_url}" preload="none"`;
    return `
   <div class="reel" data-id="${reel.id}" data-shop-slug="${slug}">
-   <video data-src="${reel.video_url}" preload="none" loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
+   <video ${videoSrcAttr} loop playsinline muted ${currentPage===1 && i==0?'autoplay':''} data-reel-id="${reel.id}"></video>
    <button class="volume-btn" onclick="toggleVolume(this)">🔇</button>
    <div class="unmute-hint">Tap 🔊 for sound</div>
    <div class="right-actions">
@@ -195,10 +201,17 @@ async function loadReels(){
   observeVideos();
   addVideoClickHandlers();
   checkFollowStatus();
+
+  // ⚡ After first 2 show instantly, load next 20 in background!
+  if(currentPage===1){
+    isLoading=false;
+    currentPage=2;
+    setTimeout(()=>{ loadReels(); }, 800);
+    return;
+  }
  }catch(e){ console.log("Load reels fail", e); }
  isLoading=false;
 }
-
 let lastScroll = 0;
 document.getElementById('reels-container').addEventListener('scroll', function(){
   if(!hasMore || isLoading) return;
