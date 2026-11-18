@@ -277,8 +277,16 @@ async function uploadReel(){
           document.getElementById('progressText').innerText = 'Uploading to YottaSrc... ' + pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB / ' + (e.total/1024/1024).toFixed(1) + 'MB)';
           document.getElementById('progressFill').style.width = pct + '%';
         }
+      };      xhr.onload = () => {
+        let txt = xhr.responseText || '';
+        // ✅ If server sent HTML, show it - don't try to JSON.parse it!
+        if(txt.trim().startsWith('<')){
+          reject(new Error('Server returned HTML ('+xhr.status+'): ' + txt.replace(/<[^>]+>/g,' ').slice(0,300)));
+          return;
+        }
+        try{ resolve({ok: xhr.status < 300, json: async () => JSON.parse(txt)}); }
+        catch(err){ reject(new Error('Bad JSON from server ('+xhr.status+'): ' + txt.slice(0,200))); }
       };
-      xhr.onload = () => { try{ resolve({ok: xhr.status < 300, json: async () => JSON.parse(xhr.responseText)}); } catch(err){ reject(new Error('Bad response from server')); } };
       xhr.onerror = () => reject(new Error('Upload failed - Check network!'));
       xhr.ontimeout = () => reject(new Error('Timed out - Try WiFi or smaller video!'));
       xhr.send(form);
