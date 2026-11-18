@@ -46,18 +46,18 @@ input:focus,textarea:focus,select:focus{border-color:#000}
 #progressFill{height:100%;background:#FFCC02;width:0%;transition:width 0.3s}
 </style></head><body>
 <div class="header">
-  <a href="/">\\u2190 Home</a>
+  <a href="/">← Home</a>
   <b>SANNLAS UPLOAD</b>
   <a href="/reels">Reels</a>
 </div>
 <div class="container">
   <div class="card">
-    <label>\\ud83d\\udcf9 UPLOAD VIDEO * <span class="badge">Required</span></label>
+    <label>📹 UPLOAD VIDEO * <span class="badge">Required</span></label>
     <div class="video-box" id="videoBox" onclick="document.getElementById('videoInput').click()">
       <div id="videoPlaceholder">
-        <div style="font-size:40px">\\ud83c\\udfa5</div>
+        <div style="font-size:40px">🎥</div>
         <b>Tap to select video</b><br>
-        <span class="hint">MP4, MOV - Max 100MB - Saved to YottaSrc! \\u26a1</span>
+        <span class="hint">MP4, MOV - Max 50MB, Max 60 sec - Saved to YottaSrc! ⚡</span>
       </div>
       <video id="videoPreview" style="display:none" controls playsinline muted></video>
     </div>
@@ -65,9 +65,9 @@ input:focus,textarea:focus,select:focus{border-color:#000}
     <div class="hint" id="videoInfo"></div>
   </div>
   <div class="card">
-    <label>\\ud83d\\udecd\\ufe0f SELECT PRODUCT FROM YOUR SHOP * <span class="badge">ONLY YOUR SHOP</span></label>
+    <label>🛍️ SELECT PRODUCT FROM YOUR SHOP * <span class="badge">ONLY YOUR SHOP</span></label>
     <select id="productSelect" onchange="onProductSelected()">
-      <option value="">\\u23f3 Loading ONLY your products...</option>
+      <option value="">⏳ Loading ONLY your products...</option>
     </select>
     <div class="hint" id="loadHint">Tap card below to go to MY SHOP page!</div>
     <div id="selectedProductPreview" style="display:none;margin-top:12px;background:#f8fafc;border:1.5px solid #000;border-radius:12px;padding:10px;cursor:pointer" onclick="goToMyShop()">
@@ -75,48 +75,48 @@ input:focus,textarea:focus,select:focus{border-color:#000}
         <img id="selImg" src="" style="width:60px;height:60px;border-radius:12px;object-fit:cover">
         <div style="flex:1">
           <b id="selName">Product</b><br>
-          <span style="font-weight:900" id="selPrice">UGX 0</span> \\u2022 <span id="selShop" style="font-size:12px"></span>
-          <div style="margin-top:6px"><span style="background:#000;color:#FFCC02;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:900;display:inline-block">\\ud83c\\udfea GO TO MY SHOP \\u2192</span></div>
+          <span style="font-weight:900" id="selPrice">UGX 0</span> • <span id="selShop" style="font-size:12px"></span>
+          <div style="margin-top:6px"><span style="background:#000;color:#FFCC02;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:900;display:inline-block">🏪 GO TO MY SHOP →</span></div>
         </div>
-        <div style="font-size:20px">\\u27a1\\ufe0f</div>
+        <div style="font-size:20px">➡️</div>
       </div>
     </div>
     <div style="margin-top:10px;display:flex;gap:8px">
-      <button onclick="goToMyShop()" type="button" style="flex:1;background:#fff;border:1.5px solid #000;border-radius:12px;padding:12px;font-weight:900;font-size:13px">\\ud83c\\udfea MY SHOP PAGE</button>
-      <button onclick="goToProduct()" id="viewProductBtn" type="button" style="flex:1;display:none;background:#FFCC02;border:1.5px solid #000;border-radius:12px;padding:12px;font-weight:900;font-size:13px">\\ud83d\\udc41\\ufe0f VIEW PRODUCT</button>
+      <button onclick="goToMyShop()" type="button" style="flex:1;background:#fff;border:1.5px solid #000;border-radius:12px;padding:12px;font-weight:900;font-size:13px">🏪 MY SHOP PAGE</button>
+      <button onclick="goToProduct()" id="viewProductBtn" type="button" style="flex:1;display:none;background:#FFCC02;border:1.5px solid #000;border-radius:12px;padding:12px;font-weight:900;font-size:13px">👁️ VIEW PRODUCT</button>
     </div>
-    <label>\\ud83c\\udfea SHOP NAME *</label>
+    <label>🏪 SHOP NAME *</label>
     <input type="text" id="shopName" placeholder="e.g. STEPH" readonly>
-    <label>\\ud83d\\udcdd DESCRIPTION *</label>
+    <label>📝 DESCRIPTION *</label>
     <textarea id="description" rows="3" placeholder="Auto-filled from product"></textarea>
-    <label>\\ud83d\\udcac CAPTION</label>
-    <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! \\ud83d\\udd25"></textarea>
-    <label>\\ud83c\\udff7\\ufe0f HASHTAGS</label>
+    <label>💬 CAPTION</label>
+    <textarea id="caption" rows="2" placeholder="e.g. New collection just landed! 🔥"></textarea>
+    <label>🏷️ HASHTAGS</label>
     <input type="text" id="hashtags" placeholder="e.g. #dress #kampala #fashion">
-    <div class="hint">Use # - Helps algorithm show your reel to right people! \\ud83d\\udd25</div>
-    <label>\\ud83d\\udcc2 CATEGORY *</label>
+    <div class="hint">Use # - Helps algorithm show your reel to right people! 🔥</div>
+    <label>📂 CATEGORY *</label>
     <select id="category">
-      <option value="">\\u2728 Auto-Detect from Product</option>
-      <option value="fashion">\\ud83d\\udc57 Fashion - Clothes, Shoes, Bags</option>
-      <option value="electronics">\\ud83d\\udcf1 Electronics - Phones, Laptops</option>
-      <option value="beauty">\\ud83d\\udc84 Beauty - Hair, Makeup, Perfume</option>
-      <option value="food">\\ud83c\\udf55 Food - Cakes, Restaurant</option>
-      <option value="home">\\ud83d\\udecb\\ufe0f Home - Furniture, Decor</option>
-      <option value="general">\\ud83d\\udce6 General / Other</option>
+      <option value="">✨ Auto-Detect from Product</option>
+      <option value="fashion">👗 Fashion - Clothes, Shoes, Bags</option>
+      <option value="electronics">📱 Electronics - Phones, Laptops</option>
+      <option value="beauty">💄 Beauty - Hair, Makeup, Perfume</option>
+      <option value="food">🍕 Food - Cakes, Restaurant</option>
+      <option value="home">🛋️ Home - Furniture, Decor</option>
+      <option value="general">📦 General / Other</option>
     </select>
     <div class="hint">Pick this = Your reel shows to people who LOVE this category!</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label>\\ud83d\\udccd LOCATION</label><input type="text" id="location" placeholder="Kampala"></div>
-      <div><label>\\ud83d\\udcb0 PRICE (Auto)</label><input type="number" id="price" placeholder="Auto" readonly style="background:#f1f5f9"></div>
+      <div><label>📍 LOCATION</label><input type="text" id="location" placeholder="Kampala"></div>
+      <div><label>💰 PRICE (Auto)</label><input type="number" id="price" placeholder="Auto" readonly style="background:#f1f5f9"></div>
     </div>
     <input type="hidden" id="productId">
     <input type="hidden" id="promoLink">
     <input type="hidden" id="shopSlug">
-    <button class="btn-post" id="postBtn" onclick="uploadReel()">\\ud83d\\ude80 POST REEL</button>
+    <button class="btn-post" id="postBtn" onclick="uploadReel()">🚀 POST REEL</button>
     <div id="uploadProgress">
       <div id="progressText" style="font-size:12px;font-weight:900;margin-bottom:6px">Uploading... 0%</div>
       <div id="progressBar"><div id="progressFill"></div></div>
-      <div class="hint" style="margin-top:6px">Uploading to YottaSrc - Your reels live on sannlas.store! \\u26a1</div>
+      <div class="hint" style="margin-top:6px">Uploading to YottaSrc - Your reels live on sannlas.store! ⚡</div>
     </div>
     <div class="hint" style="text-align:center;margin-top:8px">Button will be: <b id="previewBtn">UGX 0 - BUY NOW</b></div>
   </div>
@@ -151,7 +151,7 @@ async function loadMyProducts(){
     let sel = document.getElementById('productSelect');
     let hint = document.getElementById('loadHint');
     if(!email && !phone){
-      sel.innerHTML = '<option value="">\\u274c Not logged in! Login again</option>';
+      sel.innerHTML = '<option value="">❌ Not logged in! Login again</option>';
       return;
     }
     hint.innerText = 'Loading for: ' + (email||phone) + ' ...';
@@ -163,7 +163,7 @@ async function loadMyProducts(){
     }
     myProducts = products;
     if(!products || products.length==0){
-      sel.innerHTML = '<option value="">\\u274c No products in YOUR shop - Upload product first</option>';
+      sel.innerHTML = '<option value="">❌ No products in YOUR shop - Upload product first</option>';
       hint.innerText = 'Found 0 for ' + email;
       return;
     }
@@ -174,7 +174,7 @@ async function loadMyProducts(){
       let img = p.image||'';
       return '<option value="' + pid + '" data-price="' + price + '" data-name="' + name + '" data-shop="' + (p.shop_slug||'') + '" data-img="' + img + '" data-desc="' + (p.description||'').replace(/"/g,'') + '" data-business="' + (p.business||'').replace(/"/g,'') + '">' + name + ' - UGX ' + Number(price).toLocaleString() + '</option>';
     }).join('');
-    hint.innerText = '\\u2705 Found ' + products.length + ' - ONLY YOUR SHOP - Tap card to go to My Shop!';
+    hint.innerText = '✅ Found ' + products.length + ' - ONLY YOUR SHOP - Tap card to go to My Shop!';
   }catch(e){
     document.getElementById('productSelect').innerHTML = '<option>Error: ' + e.message + '</option>';
   }
@@ -209,7 +209,7 @@ function onProductSelected(){
 document.getElementById('videoInput').addEventListener('change', function(e){
   let file = e.target.files[0];
   if(!file) return;
-  if(file.size > 100*1024*1024){ alert('Too big! Max 100MB Boss! Trim it a little!'); e.target.value=''; return; }
+  if(file.size > 50*1024*1024){ alert('Too big! Max 50MB Boss! Trim it a little! Use CapCut to compress.'); e.target.value=''; return; }
   videoFile = file;
   let url = URL.createObjectURL(file);
   let v = document.getElementById('videoPreview');
@@ -217,6 +217,17 @@ document.getElementById('videoInput').addEventListener('change', function(e){
   document.getElementById('videoPlaceholder').style.display='none';
   document.getElementById('videoBox').classList.add('has-video');
   document.getElementById('videoInfo').innerText = file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+  v.onloadedmetadata = function(){
+    if(v.duration > 60){
+      alert('Too long! Max 60 seconds Boss! Your video is ' + Math.round(v.duration) + ' sec. Please trim it.');
+      videoFile = null; e.target.value=''; v.src=''; v.style.display='none';
+      document.getElementById('videoPlaceholder').style.display='block';
+      document.getElementById('videoBox').classList.remove('has-video');
+      document.getElementById('videoInfo').innerText = '';
+    } else {
+      document.getElementById('videoInfo').innerText = file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB • ' + Math.round(v.duration) + ' sec)';
+    }
+  };
 });
 async function uploadReel(){
   let shopName = document.getElementById('shopName').value.trim();
@@ -237,10 +248,9 @@ async function uploadReel(){
   if(!shopName){ alert('Shop name missing'); return; }
   if(!user.email){ alert('Login first Boss!'); return; }
   let btn = document.getElementById('postBtn');
-  btn.disabled = true; btn.innerText = '\\u23f3 Uploading to YottaSrc...';
+  btn.disabled = true; btn.innerText = '⏳ Uploading to YottaSrc...';
   document.getElementById('uploadProgress').style.display = 'block';
   try{
-    // REELS ONLY -> YOTTA SRC - FormData to our own server, server FTPs to Yotta!
     let form = new FormData();
     form.append('video', videoFile);
     form.append('user_email', user.email);
@@ -263,7 +273,7 @@ async function uploadReel(){
       xhr.upload.onprogress = (e) => {
         if(e.lengthComputable){
           let pct = Math.round((e.loaded / e.total) * 100);
-          btn.innerText = '\\u23f3 Uploading to YottaSrc... ' + pct + '%';
+          btn.innerText = '⏳ Uploading to YottaSrc... ' + pct + '%';
           document.getElementById('progressText').innerText = 'Uploading to YottaSrc... ' + pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB / ' + (e.total/1024/1024).toFixed(1) + 'MB)';
           document.getElementById('progressFill').style.width = pct + '%';
         }
@@ -275,11 +285,11 @@ async function uploadReel(){
     });
     let d = await saveRes.json();
     if(!saveRes.ok || !d.success) throw new Error(d.error || 'Save failed');
-    alert('\\u2705 Posted! Your reel is at TOP now! Saved to YottaSrc!');
+    alert('✅ Posted! Your reel is at TOP now! Saved to YottaSrc!');
     location.href = '/reels';
   }catch(e){
-    alert('\\u274c Failed: ' + e.message);
-    btn.disabled = false; btn.innerText = '\\ud83d\\ude80 POST REEL';
+    alert('❌ Failed: ' + e.message);
+    btn.disabled = false; btn.innerText = '🚀 POST REEL';
   }
 }
 </script></body></html>
