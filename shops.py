@@ -236,7 +236,7 @@ def get_live_like_counts(shop_email, shop_slug, prods):
         if isinstance(likes, str):
             try: likes = json.loads(likes)
             except: likes = []
-        my_pids = set([str(p.get('id')) for p in (prods or [])])
+        my_pids = set([str(p.get('id')) for p in (prods or []) if isinstance(p, dict)])
         product_likes = len([l for l in (likes or []) if str(l.get('product_id')) in my_pids])
         if product_likes == 0:
             product_likes = sum(int(p.get('likes',0) or 0) for p in (prods or []))
@@ -248,7 +248,7 @@ def get_live_like_counts(shop_email, shop_slug, prods):
         conn = get_conn(); cur = conn.cursor()
         cur.execute("SELECT COALESCE(SUM(likes),0), COALESCE(SUM(views),0) FROM sannlas_reels WHERE LOWER(user_email)=%s OR LOWER(shop_slug)=%s", (shop_email, shop_slug))
         r = cur.fetchone()
-        if r:
+        if r and len(r) >= 2:
             reel_likes = int(r[0] or 0); reel_views = int(r[1] or 0)
         cur.close(); conn.close()
     except Exception as e:
@@ -263,14 +263,23 @@ def shop_stats(slug):
         cleaned = clean_slug_fix(slug)
         cached = _SHOP_CACHE.get(cleaned)
         if cached and time.time() - cached['time'] < _CACHE_TTL:
-            prods = cached['data'].get('products', [])
+            prods = cached['data'].get('products', []) or []
             total_products = len(prods)
             shop = cached['data'].get('shop', {}) or {}
-            _lc = get_live_like_counts(shop.get('owner_email') or shop.get('email') or '', cleaned, prods)
-            total_likes = _lc['total_likes']
-            total_views = _lc['total_views']
-            # ✅ FIX - Don't use cached followers (always 0)! Count live!
-            counts = get_live_follow_counts(shop.get('owner_email') or shop.get('email') or '', cleaned)
+            if not isinstance(shop, dict): shop = {}
+            # ✅ Each helper in its own try - if one crashes, others still work!
+            try:
+                _lc = get_live_like_counts(shop.get('owner_email') or shop.get('email') or '', cleaned, prods)
+                total_likes = _lc['total_likes']; total_views = _lc['total_views']
+            except Exception as e:
+                print("stats likes fail:", e)
+                total_likes = sum(int((p or {}).get('likes',0) or 0) for p in prods)
+                total_views = sum(int((p or {}).get('views',0) or 0) for p in prods)
+            try:
+                counts = get_live_follow_counts(shop.get('owner_email') or shop.get('email') or '', cleaned)
+            except Exception as e:
+                print("stats follows fail:", e)
+                counts = {'followers':0,'following':0}
             return jsonify({
                 'shop_slug': cleaned,
                 'business_name': shop.get('business_name',''),
@@ -281,14 +290,48 @@ def shop_stats(slug):
                 'total_views': total_views,
                 'total_products': total_products
             })
-        shop = get_shop_fast(cleaned)
-        prods = get_shop_products_fast(cleaned, shop) if shop else []
+        shop = None
+        try:
+            shop = get_shop_fast(cleaned)
+        except Exception as e:
+            print("get_shop_fast fail:", e)
+        if not isinstance(shop, dict): shop = {}
+        # ✅ If shop not found, build from products (Sann 2 case!)
+        if not shop:
+            try:
+                conn = get_conn(); cur = conn.cursor()
+                cur.execute("SELECT data FROM products WHERE data->>'business' ILIKE %s LIMIT 1", ('%'+cleaned.replace('-',' %')+'%',))
+                row = cur.fetchone(); cur.close(); conn.close()
+                if row and row[0]:
+                    p = row[0]
+                    if isinstance(p, str):
+                        try: p = json.loads(p)
+                        except: p = {}
+                    if isinstance(p, dict):
+                        biz = p.get('business','')
+                        shop = {"shop_slug": clean_slug_fix(biz), "slug": clean_slug_fix(biz), "business_name": biz, "name": biz, "owner_email": p.get('seller_email',''), "logo": p.get('shop_logo','')}
+            except Exception as e:
+                print("shop_stats fallback shop fail:", e)
+        if not isinstance(shop, dict): shop = {}
+        try:
+            prods = get_shop_products_fast(cleaned, shop) if shop else []
+        except Exception as e:
+            print("get_shop_products fail:", e)
+            prods = []
+        if not isinstance(prods, list): prods = []
         total_products = len(prods)
-        _lc = get_live_like_counts((shop.get('owner_email') or shop.get('email') or '') if shop else '', cleaned, prods)
-        total_likes = _lc['total_likes']
-        total_views = _lc['total_views']
-        # ✅ FIX - Count from follows.json + sannlas_follows, NOT shop_follows.json!
-        counts = get_live_follow_counts((shop.get('owner_email') or shop.get('email') or '') if shop else '', cleaned)
+        try:
+            _lc = get_live_like_counts(shop.get('owner_email') or shop.get('email') or '', cleaned, prods)
+            total_likes = _lc['total_likes']; total_views = _lc['total_views']
+        except Exception as e:
+            print("stats likes fail2:", e)
+            total_likes = sum(int((p or {}).get('likes',0) or 0) for p in prods if isinstance(p, dict))
+            total_views = sum(int((p or {}).get('views',0) or 0) for p in prods if isinstance(p, dict))
+        try:
+            counts = get_live_follow_counts(shop.get('owner_email') or shop.get('email') or '', cleaned)
+        except Exception as e:
+            print("stats follows fail2:", e)
+            counts = {'followers':0,'following':0}
         return jsonify({
             'shop_slug': cleaned,
             'business_name': shop.get('business_name','') if shop else cleaned,
@@ -300,6 +343,7 @@ def shop_stats(slug):
             'total_products': total_products
         })
     except Exception as e:
+        import traceback; traceback.print_exc()
         return jsonify({'followers':0,'following':0,'total_likes':0,'total_views':0,'total_products':0,'error':str(e)})
 
 @shops_bp.route('/shop/<path:slug>')
