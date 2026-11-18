@@ -95,18 +95,41 @@ function prefetchShop(slug){
   }
 }
 
-// ✅ NEW - Instant shop open - show loading in 0 sec, then navigate
 function openShopInstant(e, slug, shopName){
   if(e) e.stopPropagation();
   if(!slug) slug = 'shop';
-  // Show loading INSTANTLY - user sees feedback in 0ms, not blank white 3 sec
+
+  // ✅ FIX - Save shop data BEFORE leaving reels, so shop page opens in 0 sec!
+  try{
+    let reel = reels.find(r => cleanSlug(r.shop_slug||r.shop_name||'shop') === slug);
+    if(reel){
+      sessionStorage.setItem('sannlas_instant_shop', JSON.stringify({
+        shop_slug: slug,
+        shop_name: reel.shop_name || shopName,
+        shop_logo: reel.shop_logo || '',
+        shop_location: reel.location || 'Kampala',
+        shop_phone: reel.shop_phone || '',
+        shop_email: reel.shop_email || reel.user_email || ''
+      }));
+      // Also save back button
+      sessionStorage.setItem('sannlas_back_to', '/reels');
+    }
+  }catch(err){}
+
   let loader = document.getElementById('shopLoading');
   document.getElementById('shopLoadingName').innerText = shopName ? '@' + shopName : '';
   loader.style.display = 'flex';
-  // Small delay so loader paints before navigation
   setTimeout(()=>{ location.href = '/shop/' + slug; }, 50);
 }
 
+// ✅ FIX - Prefetch should prefetch API, not HTML page!
+function prefetchShop(slug){
+  if(!slug || prefetchedShops.has(slug)) return;
+  prefetchedShops.add(slug);
+  // Prefetch the API data, not the HTML - this is what shop.html actually waits for!
+  fetch('/api/shop/' + slug).catch(()=>{});
+  fetch('/api/user/follow-count/' + slug).catch(()=>{});
+}
 async function loadReels(){
  if(isLoading || !hasMore) return; isLoading = true;
  const viewerEmail = getViewerEmail();
