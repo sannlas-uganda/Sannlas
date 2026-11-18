@@ -8,10 +8,9 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# ===== ⚡ FAST CACHE - Fixes slow shop open =====
-_SHOP_CACHE = {}  # slug -> {time, data}
+_SHOP_CACHE = {}
 _SHOPS_LIST_CACHE = {"data": None, "time": 0}
-_CACHE_TTL = 30  # 30 sec
+_CACHE_TTL = 30
 
 def get_conn():
     if not DATABASE_URL:
@@ -107,7 +106,6 @@ def load_db(file, default):
 def clean_slug_fix(s):
     return re.sub(r'[^a-z0-9]+', '-', str(s or 'shop').lower().replace('%20','-').replace('%2520','-')).strip('-') or 'shop'
 
-# ===== ⚡ FAST HELPER - Get only 1 shop, not all =====
 def get_shop_fast(cleaned, raw=""):
     try:
         conn = get_conn()
@@ -128,7 +126,6 @@ def get_shop_fast(cleaned, raw=""):
                 val = str(s.get(key,'') or '')
                 if clean_slug_fix(val) == cleaned or val.lower().strip() == raw.lower():
                     return s
-        # fallback contains
         for s in shops:
             if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
                 return s
@@ -138,7 +135,6 @@ def get_shop_fast(cleaned, raw=""):
         return None
 
 def get_shop_products_fast(cleaned, shop):
-    # ✅ Direct SQL - DB filters, not Python looping 1000+ products
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -163,7 +159,6 @@ def get_shop_products_fast(cleaned, shop):
             return out
     except Exception as e:
         print("get_shop_products_fast err", e)
-    # Fallback - old way, only if SQL failed
     try:
         products = load_db('products.json', []) or []
         real_name_clean = clean_slug_fix(shop.get('business_name','')) if shop else ''
@@ -181,12 +176,58 @@ def get_shop_products_fast(cleaned, shop):
     except:
         return []
 
-# ===== ✅ FIXED STATS - Uses cache, no 4x DB loads =====
+# ===== ✅ NEW - LIVE FOLLOW COUNT - Fixes 0 Followers! =====
+def get_live_follow_counts(shop_email, shop_slug):
+    shop_email = (shop_email or '').lower().strip()
+    shop_slug = (shop_slug or '').lower().strip()
+    followers_set = set()
+    following_set = set()
+    # 1. From follows.json (kv_store) - NOT shop_follows.json!
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT data FROM kv_store WHERE key=%s", ('follows.json',))
+        row = cur.fetchone(); cur.close(); conn.close()
+        follows = row[0] if row else []
+        if isinstance(follows, str):
+            try: follows = json.loads(follows)
+            except: follows = []
+        for f in (follows or []):
+            fe = (f.get('follower_email') or '').lower()
+            te = (f.get('following_email') or '').lower()
+            if shop_email and te == shop_email and fe:
+                followers_set.add(fe)
+            if shop_email and fe == shop_email and te:
+                following_set.add(te)
+            if shop_slug and te == shop_slug and fe:
+                followers_set.add(fe)
+    except Exception as e:
+        print("live counts JSON fail:", e)
+    # 2. From Postgres sannlas_follows (Reels follows!)
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS sannlas_follows (id BIGSERIAL PRIMARY KEY, follower_email TEXT, following_email TEXT, created TIMESTAMP DEFAULT NOW(), UNIQUE(follower_email, following_email))")
+        conn.commit()
+        if shop_email:
+            cur.execute("SELECT follower_email FROM sannlas_follows WHERE LOWER(following_email)=%s", (shop_email,))
+            for r in cur.fetchall():
+                if r[0]: followers_set.add(r[0].lower())
+            cur.execute("SELECT following_email FROM sannlas_follows WHERE LOWER(follower_email)=%s", (shop_email,))
+            for r in cur.fetchall():
+                if r[0]: following_set.add(r[0].lower())
+        if shop_slug:
+            cur.execute("SELECT follower_email FROM sannlas_follows WHERE LOWER(following_email)=%s", (shop_slug,))
+            for r in cur.fetchall():
+                if r[0]: followers_set.add(r[0].lower())
+        cur.close(); conn.close()
+    except Exception as e:
+        print("live counts PG fail:", e)
+    return {'followers': len(followers_set), 'following': len(following_set)}
+
+# ===== ✅ FIXED STATS - Live count, no cache trap =====
 @shops_bp.route('/api/shop/<path:slug>/stats')
 def shop_stats(slug):
     try:
         cleaned = clean_slug_fix(slug)
-        # ✅ If shop already loaded, use its products - 0 DB calls!
         cached = _SHOP_CACHE.get(cleaned)
         if cached and time.time() - cached['time'] < _CACHE_TTL:
             prods = cached['data'].get('products', [])
@@ -196,17 +237,18 @@ def shop_stats(slug):
             if total_views == 0: total_views = total_products * 124
             if total_likes == 0: total_likes = total_products * 5
             shop = cached['data'].get('shop', {}) or {}
+            # ✅ FIX - Don't use cached followers (always 0)! Count live!
+            counts = get_live_follow_counts(shop.get('owner_email') or shop.get('email') or '', cleaned)
             return jsonify({
                 'shop_slug': cleaned,
                 'business_name': shop.get('business_name',''),
                 'logo': shop.get('logo',''),
-                'followers': cached['data'].get('followers', 0),
-                'following': 0,
+                'followers': counts['followers'],
+                'following': counts['following'],
                 'total_likes': total_likes,
                 'total_views': total_views,
                 'total_products': total_products
             })
-        # Fallback - only if no cache, load once and cache
         shop = get_shop_fast(cleaned)
         prods = get_shop_products_fast(cleaned, shop) if shop else []
         total_products = len(prods)
@@ -214,26 +256,14 @@ def shop_stats(slug):
         total_views = sum(int(p.get('views',0) or 0) for p in prods)
         if total_views == 0: total_views = total_products * 124
         if total_likes == 0: total_likes = total_products * 5
-        # Light followers count - 1 query only, not full table load
-        followers = 0
-        try:
-            conn = get_conn(); cur = conn.cursor()
-            cur.execute("SELECT data FROM kv_store WHERE key=%s", ('shop_follows.json',))
-            row = cur.fetchone(); cur.close(); conn.close()
-            if row:
-                follows = row[0]
-                if isinstance(follows, str):
-                    follows = json.loads(follows)
-                for f in (follows or []):
-                    if clean_slug_fix(f.get('shop_slug','') or f.get('following','') or '') == cleaned:
-                        followers += 1
-        except: pass
+        # ✅ FIX - Count from follows.json + sannlas_follows, NOT shop_follows.json!
+        counts = get_live_follow_counts((shop.get('owner_email') or shop.get('email') or '') if shop else '', cleaned)
         return jsonify({
             'shop_slug': cleaned,
             'business_name': shop.get('business_name','') if shop else cleaned,
             'logo': shop.get('logo','') if shop else '',
-            'followers': followers,
-            'following': 0,
+            'followers': counts['followers'],
+            'following': counts['following'],
             'total_likes': total_likes,
             'total_views': total_views,
             'total_products': total_products
@@ -345,8 +375,15 @@ async function loadShop(){
       <a href="tel:${shop.phone||''}" style="flex:1;max-width:160px;background:#000;color:#FFCC02;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📞 Call Shop</a>
       <a href="/my-shop" style="flex:1;max-width:160px;background:#FFCC02;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">🏪 My Shop</a>
     </div>`;
-  // Save shop for tab functions
   window._currentShop = shop;
+  // ✅ Check real follow status on load
+  try{
+    let me = JSON.parse(localStorage.getItem('sannlas_user')||'null');
+    if(me && me.email){
+      let chk = await fetch('/api/follow/check?email='+encodeURIComponent(me.email)+'&target='+encodeURIComponent(shop.owner_email||slug)).then(r=>r.json()).catch(()=>null);
+      if(chk && chk.is_following){ let b=document.getElementById('followShopBtn'); if(b){ b.innerText='✓ Following'; b.style.background='#F1F1F2'; b.style.color='#000'; } }
+    }
+  }catch(e){}
   let h='';
   prods.forEach(p=>{h+=`<div class="card"><img loading="lazy" src="${p.image||'https://via.placeholder.com/300'}"><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;});
   if(!prods.length) h='<p style="padding:20px">No products yet</p>';
@@ -385,7 +422,30 @@ async function loadShopReels(){
 }
 function openShopChat(){ let s=window._currentShop||{}; location.href='/chat?shop='+encodeURIComponent(cleanSlug(s.shop_slug||s.business_name||'')); }
 function shareShopLink(){ let url=location.href; if(navigator.share) navigator.share({title:document.getElementById('shopNameBig').innerText, url:url}); else { navigator.clipboard.writeText(url); alert('Link copied!'); } }
-function toggleFollowShop(){ let b=document.getElementById('followShopBtn'); if(!b) return; let isF=b.innerText.includes('Following'); b.innerText=isF?'➕ Follow':'✓ Following'; b.style.background=isF?'#FE2C55':'#F1F1F2'; b.style.color=isF?'#fff':'#000'; let el=document.getElementById('statFollowers'); if(el) el.innerText=parseInt((el.innerText||'0').replace(/,/g,'')) + (isF?-1:1); }
+async function toggleFollowShop(){
+  let b=document.getElementById('followShopBtn'); if(!b) return;
+  let me=null; try{ me=JSON.parse(localStorage.getItem('sannlas_user')||'null'); }catch(e){}
+  if(!me || !me.email){ alert('Login first to Follow Boss!'); location.href='/login'; return; }
+  let s=window._currentShop||{};
+  let isF=b.innerText.includes('Following');
+  b.disabled=true; b.innerText='...';
+  try{
+    let url = isF ? '/api/unfollow' : '/api/follow';
+    let body = isF ? {email: me.email, target_email: s.owner_email||s.email||''} : {email: me.email, target_email: s.owner_email||s.email||'', target_shop: s.shop_slug||s.business_name||''};
+    let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    let j=await r.json();
+    if(j.success || j.followers!==undefined){
+      b.innerText = isF ? '➕ Follow' : '✓ Following';
+      b.style.background = isF ? '#FE2C55' : '#F1F1F2';
+      b.style.color = isF ? '#fff' : '#000';
+      // Refresh real count from server
+      let slug=cleanSlug(s.shop_slug||s.business_name||'');
+      let stats=await fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).catch(()=>null);
+      if(stats) document.getElementById('statFollowers').innerText=(stats.followers||0).toLocaleString();
+    } else { alert(j.message||'Follow failed'); b.innerText = isF ? '✓ Following' : '➕ Follow'; }
+  }catch(e){ alert('Follow error: '+e.message); b.innerText = isF ? '✓ Following' : '➕ Follow'; }
+  b.disabled=false;
+}
 loadShop();
 </script></body></html>
 """
@@ -442,13 +502,11 @@ def get_shop_by_slug(slug):
     try:
         raw = unquote(unquote(slug)).strip()
         cleaned = clean_slug_fix(raw)
-        # ✅ CACHE - 2nd tap in 30 sec = instant, 0 DB calls
         cached = _SHOP_CACHE.get(cleaned)
         if cached and time.time() - cached['time'] < _CACHE_TTL:
             return jsonify(cached['data'])
         shop = get_shop_fast(cleaned, raw)
         if not shop:
-            # Fallback: try to build shop from a product
             try:
                 conn = get_conn(); cur = conn.cursor()
                 cur.execute("SELECT data FROM products WHERE data->>'business' ILIKE %s LIMIT 1", ('%'+raw+'%',))
@@ -472,7 +530,6 @@ def get_shop_by_slug(slug):
 @shops_bp.route('/api/shops')
 def get_all_shops():
     try:
-        # ✅ Cache list 30 sec
         if _SHOPS_LIST_CACHE["data"] is not None and time.time() - _SHOPS_LIST_CACHE["time"] < _CACHE_TTL:
             return jsonify(_SHOPS_LIST_CACHE["data"])
         shops = load_db('shops.json', []) or []
