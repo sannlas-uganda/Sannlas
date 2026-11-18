@@ -872,7 +872,6 @@ window.addEventListener('appinstalled', ()=>{
       <input id="searchInput" type="text" placeholder="Search for electronics, fashion, groceries..." oninput="showSuggestions(this.value); debouncedFilter()" autocomplete="off" style="flex:1;border:none;background:transparent;padding:10px;font-size:13px;outline:none;color:#111">
       <button type="button" id="searchBtnFix" onclick="document.getElementById('searchSuggestions').style.display='none'; doFilter();" style="background:#111!important;color:#fff!important;border:none;padding:10px 20px;border-radius:20px;font-weight:900;cursor:pointer">Search</button>
       <button onclick="startVoiceSearch()" id="micBtn" style="background:#fff;color:#111;border:1px solid #eee;border-radius:50%;padding:9px 11px;cursor:pointer">🎤</button>
-      <div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:16px; margin-top:8px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 12px 32px rgba(0,0,0,0.12);"></div>
     </div>
     <div id="tiktokLayout" style="background:transparent;min-height:88vh;display:flex;justify-content:center;box-shadow:none;border:none;position:relative;">
       <div id="homeReelsFeed" style="width:100%;max-width:380px;background:#000;border-radius:22px;overflow:hidden;height:85vh;position:relative;box-shadow:none;border:none;">
@@ -929,14 +928,14 @@ function cleanSlug(s){
 let _reelsBySlug = {};
 function openShopInstantFromReel(r){
   let slug = cleanSlug(r.shop_slug||r.shop_name||'shop');
-  window.location.href = '/shop/' + encodeURIComponent(slug);
-  // Save in background AFTER navigation starts
+  // ✅ SAVE FIRST, THEN navigate!
   try{
-    let shopData = {shop_slug:slug, shop_name:r.shop_name||r.business||r.shop_slug||'Shop', shop_logo:r.shop_logo||r.logo||r.avatar||'', shop_phone:r.shop_phone||r.phone||'', shop_location:r.location||'Kampala', products:[], fromReel:true, savedAt:Date.now()};
+    let shopData = {shop_slug:slug, shop_name:r.shop_name||r.business||'Shop', shop_logo:r.shop_logo||r.logo||'', shop_phone:r.shop_phone||r.phone||'', shop_location:r.location||'Kampala', products:[], fromReel:true, savedAt:Date.now()};
     sessionStorage.setItem('sannlas_instant_shop', JSON.stringify(shopData));
     localStorage.setItem('sannlas_last_shop_'+slug, JSON.stringify(shopData));
     sessionStorage.setItem('sannlas_shop_from', 'reels');
   }catch(e){}
+  window.location.href = '/shop/' + encodeURIComponent(slug); // ✅ Navigate LAST!
 }
 async function toggleFollowReal(btn){
   let user = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
@@ -1261,8 +1260,6 @@ window.toggleSideMenu = function(){
     <button id="agencySideBtn" onclick="location.href='/agency'" style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:14px;border-radius:14px;font-weight:900;text-align:left;display:none">🧠 Agency Dashboard <span id="agencySideCount"></span></button>
   </div>
 </div>
-<!-- SUGGESTION BOX -->
-<div id="searchSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-radius:12px; margin-top:6px; max-height:250px; overflow-y:auto; z-index:999; box-shadow:0 8px 20px rgba(0,0,0,0.15);"></div>
 </div>
 <div id="billboardBanner"><div id="billboardMediaWrap"></div><div id="billboardText"></div></div>
 <div id="liveWantsBoard" style="display:none"></div>
@@ -1752,9 +1749,7 @@ async function loadWantsLive(){if(isLoadingWants)return;isLoadingWants=true;try{
 function loadWantsLiveSafe(){
   if(isLoadingWants) return;
   loadWantsLive();
-  refreshWantsBadge();
 }
-
 async function refreshWantsBadge(){
   try{
     let r=await fetch('/api/wants');
@@ -2107,8 +2102,6 @@ function autoFillFrontBiz(){
   if(locInput && loc && !locInput.value){ locInput.value = loc; }
 }
 gateCheck();
-loadWantsLiveSafe(); 
-refreshWantsBadge();
 loadCoinLive();
 // FIXED: poll only every 2 minutes, not 10 sec - prevent hang
 setInterval(async()=>{ try{ await loadCoinLive(); updateCartCount(); }catch(e){} },120000);
@@ -2262,7 +2255,6 @@ function buildGlassPopup(){
 }
 const _vP=window.viewProd;
 window.viewProd=function(id){ if(_vP) _vP(id); setTimeout(buildGlassPopup,50); setTimeout(buildGlassPopup,300); setTimeout(buildGlassPopup,700); };
-setInterval(buildGlassPopup,800);
 </script>
 <style>
 #viewPop.pro-modal-right h2{ color:#000!important; }
@@ -2313,7 +2305,6 @@ window.viewProd = function(id){
   setTimeout(forceJellyButtons, 400);
   setTimeout(forceJellyButtons, 900);
 };
-setInterval(forceJellyButtons, 800);
 </script>
   <style>
 /* ===== FIX BREADCRUMB TO BE CENTERED INSIDE TOP BAR ===== */
