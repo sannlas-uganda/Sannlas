@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-import os, json, re
+import os, json, re, time
 from urllib.parse import unquote
 
 shops_bp = Blueprint('shops_bp', __name__)
@@ -7,6 +7,11 @@ shops_bp = Blueprint('shops_bp', __name__)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# ===== ⚡ FAST CACHE - Fixes slow shop open =====
+_SHOP_CACHE = {}  # slug -> {time, data}
+_SHOPS_LIST_CACHE = {"data": None, "time": 0}
+_CACHE_TTL = 30  # 30 sec
 
 def get_conn():
     if not DATABASE_URL:
@@ -98,71 +103,137 @@ def load_db(file, default):
             return default
     except Exception as e:
         return default
-        
+
 def clean_slug_fix(s):
     return re.sub(r'[^a-z0-9]+', '-', str(s or 'shop').lower().replace('%20','-').replace('%2520','-')).strip('-') or 'shop'
 
-# ===== NEW STATS API - FOR YOUR REQUESTED HEADER =====
-@shops_bp.route('/api/shop/<path:slug>/stats')
-def shop_stats(slug):
+# ===== ⚡ FAST HELPER - Get only 1 shop, not all =====
+def get_shop_fast(cleaned, raw=""):
     try:
-        cleaned = clean_slug_fix(slug)
-        shops = load_db('shops.json', []) or []
-        products = load_db('products.json', []) or []
-        reels = load_db('sannlas_reels.json', []) or load_db('reels.json', []) or []
-        follows = load_db('shop_follows.json', []) or load_db('follows.json', []) or []
-        
-        # Find shop
-        shop = None
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT data FROM kv_store WHERE key=%s", ('shops.json',))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if not row:
+            return None
+        shops = row[0]
+        if isinstance(shops, str):
+            try: shops = json.loads(shops)
+            except: shops = []
+        if not isinstance(shops, list):
+            return None
         for s in shops:
-            if clean_slug_fix(s.get('shop_slug','')) == cleaned or clean_slug_fix(s.get('business_name','')) == cleaned:
-                shop = s
-                break
-        
-        # Calculate stats
-        total_products = 0
-        total_likes = 0
-        total_views = 0
-        owner_email = str(shop.get('owner_email','')).lower() if shop else ''
+            for key in ['shop_slug','slug','business_name','name']:
+                val = str(s.get(key,'') or '')
+                if clean_slug_fix(val) == cleaned or val.lower().strip() == raw.lower():
+                    return s
+        # fallback contains
+        for s in shops:
+            if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
+                return s
+        return None
+    except Exception as e:
+        print("get_shop_fast err", e)
+        return None
+
+def get_shop_products_fast(cleaned, shop):
+    # ✅ Direct SQL - DB filters, not Python looping 1000+ products
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        biz = shop.get('business_name','') if shop else ''
+        email = shop.get('owner_email','') if shop else ''
+        cur.execute(
+            "SELECT data FROM products WHERE data->>'shop_slug' = %s OR data->>'business' = %s OR data->>'seller_email' = %s LIMIT 100",
+            (cleaned, biz, email)
+        )
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        out = []
+        for r in rows:
+            d = r[0]
+            if isinstance(d, str):
+                try: d = json.loads(d)
+                except: continue
+            if isinstance(d, dict):
+                d.pop('phone', None)
+                out.append(d)
+        if out:
+            return out
+    except Exception as e:
+        print("get_shop_products_fast err", e)
+    # Fallback - old way, only if SQL failed
+    try:
+        products = load_db('products.json', []) or []
         real_name_clean = clean_slug_fix(shop.get('business_name','')) if shop else ''
+        owner_email = str(shop.get('owner_email','')).lower() if shop else ''
+        out = []
         for p in products:
             ps_clean = clean_slug_fix(p.get('shop_slug',''))
             pb_clean = clean_slug_fix(p.get('business',''))
             p_email = str(p.get('seller_email','')).lower()
-            if ps_clean==cleaned or pb_clean==cleaned or pb_clean==real_name_clean or (owner_email and p_email==owner_email):
-                total_products += 1
-                total_likes += int(p.get('likes',0) or 0)
-                total_views += int(p.get('views',0) or 0)
-        
-        for r in reels:
-            if clean_slug_fix(r.get('shop_slug','') or r.get('business','') or r.get('seller','')) == cleaned:
-                total_likes += int(r.get('likes',0) or r.get('like_count',0) or 0)
-                total_views += int(r.get('views',0) or r.get('view_count',0) or 0)
-        
-        # Followers / Following from follows table
+            if ps_clean==cleaned or pb_clean==real_name_clean or ps_clean==clean_slug_fix(shop.get('shop_slug','')) if shop else False or pb_clean==cleaned or (owner_email and p_email==owner_email):
+                pp=dict(p); pp.pop('phone',None); out.append(pp)
+            if len(out) >= 100:
+                break
+        return out
+    except:
+        return []
+
+# ===== ✅ FIXED STATS - Uses cache, no 4x DB loads =====
+@shops_bp.route('/api/shop/<path:slug>/stats')
+def shop_stats(slug):
+    try:
+        cleaned = clean_slug_fix(slug)
+        # ✅ If shop already loaded, use its products - 0 DB calls!
+        cached = _SHOP_CACHE.get(cleaned)
+        if cached and time.time() - cached['time'] < _CACHE_TTL:
+            prods = cached['data'].get('products', [])
+            total_products = len(prods)
+            total_likes = sum(int(p.get('likes',0) or 0) for p in prods)
+            total_views = sum(int(p.get('views',0) or 0) for p in prods)
+            if total_views == 0: total_views = total_products * 124
+            if total_likes == 0: total_likes = total_products * 5
+            shop = cached['data'].get('shop', {}) or {}
+            return jsonify({
+                'shop_slug': cleaned,
+                'business_name': shop.get('business_name',''),
+                'logo': shop.get('logo',''),
+                'followers': cached['data'].get('followers', 0),
+                'following': 0,
+                'total_likes': total_likes,
+                'total_views': total_views,
+                'total_products': total_products
+            })
+        # Fallback - only if no cache, load once and cache
+        shop = get_shop_fast(cleaned)
+        prods = get_shop_products_fast(cleaned, shop) if shop else []
+        total_products = len(prods)
+        total_likes = sum(int(p.get('likes',0) or 0) for p in prods)
+        total_views = sum(int(p.get('views',0) or 0) for p in prods)
+        if total_views == 0: total_views = total_products * 124
+        if total_likes == 0: total_likes = total_products * 5
+        # Light followers count - 1 query only, not full table load
         followers = 0
-        following = 0
-        for f in follows:
-            f_shop = clean_slug_fix(f.get('shop_slug','') or f.get('following','') or '')
-            f_user = str(f.get('user','') or '').lower()
-            if f_shop == cleaned:
-                followers += 1
-            # if user is this shop owner, count following
-            if shop and f_user == str(shop.get('owner_email','')).lower():
-                following += 1
-        
-        # Fallback if no data - show products count based
-        if total_views == 0:
-            total_views = total_products * 124
-        if total_likes == 0:
-            total_likes = total_products * 5
-        
+        try:
+            conn = get_conn(); cur = conn.cursor()
+            cur.execute("SELECT data FROM kv_store WHERE key=%s", ('shop_follows.json',))
+            row = cur.fetchone(); cur.close(); conn.close()
+            if row:
+                follows = row[0]
+                if isinstance(follows, str):
+                    follows = json.loads(follows)
+                for f in (follows or []):
+                    if clean_slug_fix(f.get('shop_slug','') or f.get('following','') or '') == cleaned:
+                        followers += 1
+        except: pass
         return jsonify({
             'shop_slug': cleaned,
             'business_name': shop.get('business_name','') if shop else cleaned,
             'logo': shop.get('logo','') if shop else '',
             'followers': followers,
-            'following': following,
+            'following': 0,
             'total_likes': total_likes,
             'total_views': total_views,
             'total_products': total_products
@@ -179,7 +250,6 @@ def shop_page_slug(slug):
 body{font-family:system-ui;background:#f8fafc;margin:0}
 .topnav{background:#000;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999}
 .topnav a{color:#FFCC02;text-decoration:none;font-weight:900}
-/* ===== NEW PROFILE HEADER WITH STATS ===== */
 .shop-profile-header{background:#fff;padding:16px;border-bottom:1px solid #eee}
 .profile-top{display:flex;gap:14px;align-items:center}
 .avatar-box{width:86px;height:86px;border-radius:50%;border:3px solid #FFCC02;background:#fff;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900}
@@ -202,8 +272,6 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 </style></head>
 <body>
 <div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
-
-<!-- NEW HEADER WITH PROFILE PIC + STATS -->
 <div class="shop-profile-header" id="shop-header" style="display:none">
   <div class="profile-top">
     <div class="avatar-box" id="shopAvatarBox">S</div>
@@ -220,7 +288,6 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
     <div class="action-row" id="shopActions"></div>
   </div>
 </div>
-
 <div id="loading">⏳ Loading shop...</div>
 <div id="products" class="grid"></div>
 <script>
@@ -228,7 +295,6 @@ function cleanSlug(s){return (s||'shop').toString().toLowerCase().replace(/%20|%
 async function loadShop(){
  let raw=decodeURIComponent(location.pathname.split('/shop/')[1].split('?')[0].split('/')[0]);
  let slug=cleanSlug(raw);
- // ⚡ INSTANT 0ms - From Reels S-door! Don't wait for API!
  try{
    let instant = JSON.parse(sessionStorage.getItem('sannlas_instant_shop')||'null') || JSON.parse(localStorage.getItem('sannlas_last_shop_'+slug)||'null');
    if(instant && cleanSlug(instant.shop_slug||instant.shop_name||'')===slug){
@@ -243,7 +309,6 @@ async function loadShop(){
    }
  }catch(e){}
  try{
-  // ⚡ PARALLEL - Shop + Stats at SAME time, not one after other!
   let shopP = fetch('/api/shop/'+encodeURIComponent(slug)).then(r=>r.json());
   let statsP = fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).catch(()=>null);
   const d = await shopP;
@@ -268,12 +333,10 @@ async function loadShop(){
       <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02">🏪 My Shop</a>
     </div>
     <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
-  // ⚡ PRODUCTS FIRST - Don't wait for stats!
   let h='';
   prods.forEach(p=>{h+=`<div class="card"><img loading="lazy" src="${p.image||'https://via.placeholder.com/300'}"><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;});
   if(!prods.length) h='<p style="padding:20px">No products yet</p>';
   document.getElementById('products').innerHTML=h;
-  // Stats in background - fill when ready, don't block!
   statsP.then(stats=>{
     if(!stats) return;
     document.getElementById('statFollowers').innerText=(stats.followers||0).toLocaleString();
@@ -339,62 +402,39 @@ def get_shop_by_slug(slug):
     try:
         raw = unquote(unquote(slug)).strip()
         cleaned = clean_slug_fix(raw)
-        shops = load_db('shops.json', []) or []
-        products = load_db('products.json', []) or []
-        shop = None
-        for s in shops:
-            for key in ['shop_slug','slug','business_name','name']:
-                val = str(s.get(key,'') or '')
-                if clean_slug_fix(val) == cleaned or val.lower().strip() == raw.lower():
-                    shop=s; break
-            if shop: break
+        # ✅ CACHE - 2nd tap in 30 sec = instant, 0 DB calls
+        cached = _SHOP_CACHE.get(cleaned)
+        if cached and time.time() - cached['time'] < _CACHE_TTL:
+            return jsonify(cached['data'])
+        shop = get_shop_fast(cleaned, raw)
         if not shop:
-            for s in shops:
-                if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
-                    shop=s; break
-        if not shop:
-            for p in products:
-                business = str(p.get('business','') or p.get('shop_slug','') or '').strip()
-                if not business: continue
-                if clean_slug_fix(business) == cleaned or business.lower() == raw.lower() or cleaned in clean_slug_fix(business):
-                    shop = {
-                        "shop_slug": clean_slug_fix(business),
-                        "slug": clean_slug_fix(business),
-                        "business_name": business,
-                        "name": business,
-                        "description": f"Welcome to {business} shop!",
-                        "location": p.get('location','Kampala'),
-                        "phone": p.get('phone',''),
-                        "owner_email": p.get('seller_email',''),
-                        "logo": p.get('shop_logo',''),
-                        "verified": False
-                    }
-                    break
+            # Fallback: try to build shop from a product
+            try:
+                conn = get_conn(); cur = conn.cursor()
+                cur.execute("SELECT data FROM products WHERE data->>'business' ILIKE %s LIMIT 1", ('%'+raw+'%',))
+                row = cur.fetchone(); cur.close(); conn.close()
+                if row:
+                    p = row[0]
+                    if isinstance(p, str): p = json.loads(p)
+                    biz = p.get('business','')
+                    shop = {"shop_slug": clean_slug_fix(biz), "slug": clean_slug_fix(biz), "business_name": biz, "name": biz, "description": f"Welcome to {biz} shop!", "location": p.get('location','Kampala'), "phone": p.get('phone',''), "owner_email": p.get('seller_email',''), "logo": p.get('shop_logo',''), "verified": False}
+            except: pass
         if not shop:
             return jsonify({'success':False,'shop':None,'products':[], 'message': f'Shop {raw} not found'}),404
-        real_slug = clean_slug_fix(shop.get('shop_slug') or cleaned)
-        real_name_clean = clean_slug_fix(shop.get('business_name') or '')
-        owner_email = str(shop.get('owner_email','')).lower()
-        shop_products=[]
-        for p in products:
-            ps_clean = clean_slug_fix(p.get('shop_slug',''))
-            pb_clean = clean_slug_fix(p.get('business',''))
-            p_email = str(p.get('seller_email','')).lower()
-            if ps_clean==real_slug or pb_clean==real_name_clean or ps_clean==cleaned or pb_clean==cleaned or (owner_email and p_email==owner_email):
-                pp=dict(p); pp.pop('phone',None); shop_products.append(pp)
-        if not shop_products:
-            for p in products:
-                b = str(p.get('business','') or '').lower()
-                if 'sannlas' in b or cleaned in b or b in cleaned:
-                    shop_products.append(p)
-        return jsonify({'success':True,'shop':shop,'products':shop_products[:100]})
+        shop_products = get_shop_products_fast(cleaned, shop)
+        result = {'success':True,'shop':shop,'products':shop_products[:100]}
+        _SHOP_CACHE[cleaned] = {'time': time.time(), 'data': result}
+        return jsonify(result)
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success':False,'message':str(e)}),500
-        
+
 @shops_bp.route('/api/shops')
 def get_all_shops():
     try:
+        # ✅ Cache list 30 sec
+        if _SHOPS_LIST_CACHE["data"] is not None and time.time() - _SHOPS_LIST_CACHE["time"] < _CACHE_TTL:
+            return jsonify(_SHOPS_LIST_CACHE["data"])
         shops = load_db('shops.json', []) or []
         products = load_db('products.json', []) or []
         if not shops:
@@ -404,15 +444,7 @@ def get_all_shops():
                 if not b: continue
                 key = clean_slug_fix(b)
                 if key not in seen:
-                    seen[key] = {
-                        "shop_slug": key,
-                        "slug": key,
-                        "business_name": b,
-                        "name": b,
-                        "location": p.get('location','Kampala'),
-                        "logo": "",
-                        "total_products": 0
-                    }
+                    seen[key] = {"shop_slug": key, "slug": key, "business_name": b, "name": b, "location": p.get('location','Kampala'), "logo": "", "total_products": 0}
                 seen[key]["total_products"] += 1
             shops = list(seen.values())
         else:
@@ -431,6 +463,8 @@ def get_all_shops():
                 result.append(s_copy)
             shops = sorted(result, key=lambda x: x.get('total_products',0), reverse=True)
         shops = sorted(shops, key=lambda x: x.get('total_products',0), reverse=True)
+        _SHOPS_LIST_CACHE["data"] = shops
+        _SHOPS_LIST_CACHE["time"] = time.time()
         return jsonify(shops)
     except Exception as e:
         return jsonify([])
