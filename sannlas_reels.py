@@ -194,6 +194,35 @@ def user_profile_page(shop_slug):
 @reels_bp.route('/api/sannlas/reels/feed')
 def reels_feed():
     try:
+        viewer_email = (request.args.get('user_email') or request.args.get('email') or '').lower().strip()
+        page = int(request.args.get('page') or 1)
+        limit = int(request.args.get('limit') or 20)
+
+        # ⚡ FAST PATH - First 2 reels: NO scoring, NO 300 load, NO products.json
+        # This is what homepage shows first - must be INSTANT!
+        if page == 1 and limit <= 2:
+            conn = get_conn(); cur = conn.cursor()
+            cur.execute("SELECT id, user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, views, shares, comments_count, saves, category, created FROM sannlas_reels ORDER BY id DESC LIMIT 2")
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+            cur.close(); conn.close()
+            data = [dict(zip(cols, r)) for r in rows]
+            for reel in data:
+                shop = reel.get('shop_name') or reel.get('user_name') or 'SANNLAS SHOP'
+                slug = clean_slug(reel.get('shop_slug') or shop)
+                reel['shop_name'] = shop
+                reel['shop_slug'] = slug
+                reel['shop_profile_url'] = f"/shop/{slug}"
+                reel['shop_logo'] = ''
+                reel['promo_coins'] = 3
+                reel['promo_commission_ugx'] = 1797
+                reel['earn_amount'] = 1797
+                reel['product_link'] = f"/product/{reel.get('product_id')}" if reel.get('product_id') else f"/shop/{slug}"
+                reel['buy_link'] = reel['product_link']
+                reel['promote_link'] = reel['product_link']
+            return jsonify(data)
+
+        # ... KEEP YOUR OLD CODE BELOW THIS FOR PAGE 2+ ...
         products_map = load_products_json()
         shops_map = load_shops_map()
         viewer_email = (request.args.get('user_email') or request.args.get('email') or '').lower().strip()
@@ -219,7 +248,7 @@ def reels_feed():
                                    GROUP BY r.category ORDER BY COUNT(*) DESC LIMIT 3""", (viewer_email,))
                     liked_categories = set([r[0].lower() for r in cur.fetchall() if r[0]])
                 except: pass
-            cur.execute("SELECT id, user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, views, shares, comments_count, saves, category, created FROM sannlas_reels ORDER BY id DESC LIMIT 300")
+            cur.execute("SELECT id, user_email, user_name, shop_name, shop_slug, caption, description, product_id, video_url, likes, views, shares, comments_count, saves, category, created FROM sannlas_reels ORDER BY id DESC LIMIT 100")
             rows = cur.fetchall()
             cols = [d[0] for d in cur.description]
             data = [dict(zip(cols, r)) for r in rows]
