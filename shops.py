@@ -221,7 +221,40 @@ def get_live_follow_counts(shop_email, shop_slug):
         cur.close(); conn.close()
     except Exception as e:
         print("live counts PG fail:", e)
-    return {'followers': len(followers_set), 'following': len(following_set)}
+        return {'followers': len(followers_set), 'following': len(following_set)}
+
+# ===== ✅ NEW - LIVE LIKES - Products + Reels, no fake *5! =====
+def get_live_like_counts(shop_email, shop_slug, prods):
+    shop_email = (shop_email or '').lower().strip()
+    shop_slug = (shop_slug or '').lower().strip()
+    product_likes = 0
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT data FROM kv_store WHERE key=%s", ('likes.json',))
+        row = cur.fetchone(); cur.close(); conn.close()
+        likes = row[0] if row else []
+        if isinstance(likes, str):
+            try: likes = json.loads(likes)
+            except: likes = []
+        my_pids = set([str(p.get('id')) for p in (prods or [])])
+        product_likes = len([l for l in (likes or []) if str(l.get('product_id')) in my_pids])
+        if product_likes == 0:
+            product_likes = sum(int(p.get('likes',0) or 0) for p in (prods or []))
+    except:
+        product_likes = sum(int(p.get('likes',0) or 0) for p in (prods or []))
+    reel_likes = 0
+    reel_views = 0
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT COALESCE(SUM(likes),0), COALESCE(SUM(views),0) FROM sannlas_reels WHERE LOWER(user_email)=%s OR LOWER(shop_slug)=%s", (shop_email, shop_slug))
+        r = cur.fetchone()
+        if r:
+            reel_likes = int(r[0] or 0); reel_views = int(r[1] or 0)
+        cur.close(); conn.close()
+    except Exception as e:
+        print("reel likes fail:", e)
+    product_views = sum(int(p.get('views',0) or 0) for p in (prods or []))
+    return {'total_likes': product_likes + reel_likes, 'total_views': product_views + reel_views}
 
 # ===== ✅ FIXED STATS - Live count, no cache trap =====
 @shops_bp.route('/api/shop/<path:slug>/stats')
@@ -232,11 +265,10 @@ def shop_stats(slug):
         if cached and time.time() - cached['time'] < _CACHE_TTL:
             prods = cached['data'].get('products', [])
             total_products = len(prods)
-            total_likes = sum(int(p.get('likes',0) or 0) for p in prods)
-            total_views = sum(int(p.get('views',0) or 0) for p in prods)
-            if total_views == 0: total_views = total_products * 124
-            if total_likes == 0: total_likes = total_products * 5
             shop = cached['data'].get('shop', {}) or {}
+            _lc = get_live_like_counts(shop.get('owner_email') or shop.get('email') or '', cleaned, prods)
+            total_likes = _lc['total_likes']
+            total_views = _lc['total_views']
             # ✅ FIX - Don't use cached followers (always 0)! Count live!
             counts = get_live_follow_counts(shop.get('owner_email') or shop.get('email') or '', cleaned)
             return jsonify({
@@ -252,10 +284,9 @@ def shop_stats(slug):
         shop = get_shop_fast(cleaned)
         prods = get_shop_products_fast(cleaned, shop) if shop else []
         total_products = len(prods)
-        total_likes = sum(int(p.get('likes',0) or 0) for p in prods)
-        total_views = sum(int(p.get('views',0) or 0) for p in prods)
-        if total_views == 0: total_views = total_products * 124
-        if total_likes == 0: total_likes = total_products * 5
+        _lc = get_live_like_counts((shop.get('owner_email') or shop.get('email') or '') if shop else '', cleaned, prods)
+        total_likes = _lc['total_likes']
+        total_views = _lc['total_views']
         # ✅ FIX - Count from follows.json + sannlas_follows, NOT shop_follows.json!
         counts = get_live_follow_counts((shop.get('owner_email') or shop.get('email') or '') if shop else '', cleaned)
         return jsonify({
@@ -394,8 +425,8 @@ async function loadShop(){
     document.getElementById('statFollowing').innerText=(stats.following||0).toLocaleString();
     document.getElementById('statLikes').innerText=(stats.total_likes||0).toLocaleString();
     document.getElementById('statViews').innerText=(stats.total_views||0).toLocaleString();
-  }).catch(()=>{ document.getElementById('statLikes').innerText=prods.length*5; document.getElementById('statViews').innerText=prods.length*124; });
- }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
+  }).catch(()=>{});
+  }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
 function showShopTab(tab){
   let pBtn=document.getElementById('tabProductsBtn'), rBtn=document.getElementById('tabReelsBtn');
