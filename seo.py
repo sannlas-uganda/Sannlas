@@ -1,4 +1,4 @@
-# seo.py - SANNLAS SEO - MAJOR PAGES ONLY
+# seo.py - SANNLAS SEO - MAJOR PAGES + ONE BRAIN AUTO
 from flask import Response
 
 SEO_PAGES = {
@@ -21,8 +21,22 @@ SEO_PAGES = {
 }
 
 def get_seo_for_path(path):
-    if path.startswith("/product/"): return {"title": "Sannlas - Buy in Kampala", "desc": "Buy in Kampala on Sannlas.", "robots": "noindex, follow"}
-    if path.startswith("/shop/"): return {"title": "Shop in Kampala - Buy from This Seller | Sannlas", "desc": "Buy from this verified shop in Kampala.", "robots": "index, follow"}
+    if path.startswith("/product/"):
+        # TRY BRAIN - Get real product name for Google title!
+        try:
+            from sannlas_brain import get_live_products
+            pid = path.replace("/product/", "").strip()
+            for p in get_live_products(limit=1000):
+                if str(p.get("id")) == str(pid) or str(p.get("product_id")) == str(pid):
+                    name = p.get("name", "Product")
+                    price = p.get("price", "")
+                    loc = p.get("location", "Kampala")
+                    return {"title": f"Buy {name} in {loc} - {price} UGX | SANNLAS Uganda", "desc": f"Buy {name} in {loc} at best price {price} UGX on SANNLAS Uganda. Fast delivery in Kampala.", "robots": "index, follow"}
+        except:
+            pass
+        return {"title": "Sannlas - Buy in Kampala", "desc": "Buy in Kampala on Sannlas.", "robots": "index, follow"}
+    if path.startswith("/shop/"):
+        return {"title": "Shop in Kampala - Buy from This Seller | Sannlas", "desc": "Buy from this verified shop in Kampala.", "robots": "index, follow"}
     seo = SEO_PAGES.get(path, SEO_PAGES["/"])
     return {"title": seo["title"], "desc": seo["desc"], "robots": "index, follow"}
 
@@ -32,12 +46,34 @@ def register_seo(app):
         from flask import request
         seo = get_seo_for_path(request.path)
         return {"seo_title": seo["title"], "seo_desc": seo["desc"], "seo_robots": seo["robots"], "seo_keywords": ""}
+
     @app.route('/sitemap.xml')
     def sitemap_xml():
+        # ===== ONE BRAIN SITEMAP - STATIC + PRODUCTS + SHOPS AUTO =====
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        # 1. Your static pages - KEPT!
         for path, data in SEO_PAGES.items():
             loc = f"https://sannlas.store{path}" if path != "/" else "https://sannlas.store/"
             xml += f'  <url><loc>{loc}</loc><priority>0.9</priority><changefreq>daily</changefreq></url>\n'
+        # 2. BRAIN - Auto products!
+        try:
+            from sannlas_brain import get_live_products, get_live_shops
+            products = get_live_products(limit=1000)
+            for p in products:
+                pid = p.get("id") or p.get("product_id") or ""
+                if pid:
+                    xml += f'  <url><loc>https://sannlas.store/product/{pid}</loc><priority>0.8</priority><changefreq>daily</changefreq></url>\n'
+            # 3. BRAIN - Auto shops!
+            shops = get_live_shops(limit=500)
+            for s in shops:
+                sid = s.get("id") or s.get("shop_id") or ""
+                if sid:
+                    xml += f'  <url><loc>https://sannlas.store/shop/{sid}</loc><priority>0.7</priority><changefreq>daily</changefreq></url>\n'
+            # 4. BRAIN - Auto categories!
+            for cat in ["phones", "shoes", "watches", "bags", "laptops", "furniture", "hair", "groceries", "clothes"]:
+                xml += f'  <url><loc>https://sannlas.store/buy-{cat}-in-kampala</loc><priority>0.8</priority><changefreq>daily</changefreq></url>\n'
+        except Exception as e:
+            print(f"Sitemap brain error: {e}")
         xml += '</urlset>'
         return Response(xml, mimetype='text/xml')
 
