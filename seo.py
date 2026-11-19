@@ -40,4 +40,14 @@ def register_seo(app):
             xml += f'  <url><loc>{loc}</loc><priority>0.9</priority><changefreq>daily</changefreq></url>\n'
         xml += '</urlset>'
         return Response(xml, mimetype='text/xml')
+
+    @app.route('/about')
+    def about_page():
+        from flask import render_template
+        return render_template('about.html')
+
+    @app.route('/faq')
+    def faq_page():
+        from flask import render_template
+        return render_template('faq.html')
     return app
