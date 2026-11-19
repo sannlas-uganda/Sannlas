@@ -4,7 +4,6 @@ from flask import Response
 SEO_PAGES = {
     "/": {"title": "SANNLAS Uganda - #1 Reels Shopping App | Buy, Sell & Request Anything in Kampala", "desc": "Buy, sell and request anything in Kampala. Watch reels, buy watches, bags, shoes, phones, laptops. Post Wants and get offers."},
     "/reels": {"title": "Reels Shopping - Watch & Buy in Kampala | Sannlas Uganda", "desc": "Watch short reels and buy instantly in Uganda. Watches, bags, shoes, electronics, fashion."},
-    "/shop": {"title": "Shops in Kampala - Buy from Verified Sellers | Sannlas", "desc": "Browse verified shops in Kampala. Buy watches, phones, shoes, bags, electronics."},
     "/shops": {"title": "Shops in Kampala - Buy from Verified Sellers | Sannlas", "desc": "Browse verified shops in Kampala. Buy watches, phones, shoes, bags, electronics."},
     "/wants": {"title": "Wants - Request Anything in Kampala | Sannlas Uganda", "desc": "Post a Want FREE in Kampala. Request watches, phones, shoes, furniture, anything."},
     "/sell": {"title": "Sell Online FREE in Uganda - Sell Anything | Sannlas", "desc": "Sell online FREE in Kampala. Upload product FREE, get buyers instantly."},
