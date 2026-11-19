@@ -44,4 +44,4 @@ def sitemap_xml():
             xml += f'  <url><loc>{loc}</loc><priority>0.9</priority><changefreq>daily</changefreq></url>\n'
         xml += '</urlset>'
         return Response(xml, mimetype='text/xml')
-    return app
+        return app
