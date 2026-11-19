@@ -26,7 +26,7 @@ def get_seo_for_path(path):
     if path.startswith("/shop/"):
         return {"title": "Shop in Kampala - Buy from This Seller | Sannlas", "desc": "Buy from this verified shop in Kampala.", "robots": "index, follow"}
     seo = SEO_PAGES.get(path, SEO_PAGES["/"])
-    return {"title": seo["title"], "desc": seo["desc"], "robots": "index, follow"}
+        return {"title": seo["title"], "desc": seo["desc"], "robots": "index, follow"}
 
 def register_seo(app):
     @app.context_processor
@@ -34,10 +34,9 @@ def register_seo(app):
         from flask import request
         seo = get_seo_for_path(request.path)
         return {"seo_title": seo["title"], "seo_desc": seo["desc"], "seo_robots": seo["robots"], "seo_keywords": ""}
-    # === SITEMAP - MAJOR PAGES ONLY - LIVES HERE, NOT IN app.py ===
-
-@app.route('/sitemap.xml')
-def sitemap_xml():
+        
+    @app.route('/sitemap.xml')
+    def sitemap_xml():
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         for path, data in SEO_PAGES.items():
             loc = f"https://sannlas.store{path}" if path != "/" else "https://sannlas.store/"
