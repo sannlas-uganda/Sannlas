@@ -20,13 +20,10 @@ SEO_PAGES = {
 }
 
 def get_seo_for_path(path):
-    # PRODUCTS = DO NOT INDEX - We only want major pages!
-    if path.startswith("/product/"):
-        return {"title": "Sannlas - Buy in Kampala", "desc": "Buy in Kampala on Sannlas.", "robots": "noindex, follow"}
-    if path.startswith("/shop/"):
-        return {"title": "Shop in Kampala - Buy from This Seller | Sannlas", "desc": "Buy from this verified shop in Kampala.", "robots": "index, follow"}
+    if path.startswith("/product/"): return {"title": "Sannlas - Buy in Kampala", "desc": "Buy in Kampala on Sannlas.", "robots": "noindex, follow"}
+    if path.startswith("/shop/"): return {"title": "Shop in Kampala - Buy from This Seller | Sannlas", "desc": "Buy from this verified shop in Kampala.", "robots": "index, follow"}
     seo = SEO_PAGES.get(path, SEO_PAGES["/"])
-        return {"title": seo["title"], "desc": seo["desc"], "robots": "index, follow"}
+    return {"title": seo["title"], "desc": seo["desc"], "robots": "index, follow"}
 
 def register_seo(app):
     @app.context_processor
@@ -34,7 +31,6 @@ def register_seo(app):
         from flask import request
         seo = get_seo_for_path(request.path)
         return {"seo_title": seo["title"], "seo_desc": seo["desc"], "seo_robots": seo["robots"], "seo_keywords": ""}
-        
     @app.route('/sitemap.xml')
     def sitemap_xml():
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -43,4 +39,4 @@ def register_seo(app):
             xml += f'  <url><loc>{loc}</loc><priority>0.9</priority><changefreq>daily</changefreq></url>\n'
         xml += '</urlset>'
         return Response(xml, mimetype='text/xml')
-        return app
+    return app
