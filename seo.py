@@ -37,7 +37,7 @@ return {"seo_title": seo["title"], "seo_desc": seo["desc"], "seo_robots": seo["r
     # === SITEMAP - MAJOR PAGES ONLY - LIVES HERE, NOT IN app.py ===
 
 @app.route('/sitemap.xml')
-    def sitemap_xml():
+def sitemap_xml():
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         for path, data in SEO_PAGES.items():
             loc = f"https://sannlas.store{path}" if path != "/" else "https://sannlas.store/"
