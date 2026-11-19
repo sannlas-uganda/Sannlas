@@ -19,6 +19,10 @@ from seo import register_seo
 app = Flask(__name__)
 register_seo(app)
 
+# ===== ONE BRAIN - GOOGLE USES BRAIN NOW! =====
+from seo_auto import seo_auto_bp
+app.register_blueprint(seo_auto_bp)
+
 @app.route('/ping')
 def ping():
     return "OK", 200
