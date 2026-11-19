@@ -33,7 +33,7 @@ def register_seo(app):
     def inject_seo():
         from flask import request
         seo = get_seo_for_path(request.path)
-return {"seo_title": seo["title"], "seo_desc": seo["desc"], "seo_robots": seo["robots"], "seo_keywords": ""}
+        return {"seo_title": seo["title"], "seo_desc": seo["desc"], "seo_robots": seo["robots"], "seo_keywords": ""}
     # === SITEMAP - MAJOR PAGES ONLY - LIVES HERE, NOT IN app.py ===
 
 @app.route('/sitemap.xml')
