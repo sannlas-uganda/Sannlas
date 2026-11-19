@@ -16,6 +16,8 @@ SEO_PAGES = {
     "/agency": {"title": "Agency - Earn 400 UGX Per Shop | Sannlas Uganda", "desc": "Become Sannlas Agency. Help shops join, earn 400 UGX per shop."},
     "/terms": {"title": "Terms - Sannlas Uganda", "desc": "Terms of Service for Sannlas Uganda."},
     "/privacy": {"title": "Privacy Policy - Sannlas Uganda", "desc": "Privacy Policy for Sannlas Uganda."},
+    "/about": {"title": "What is SANNLAS? Uganda's #1 Reels Shopping App | Sannlas Uganda", "desc": "SANNLAS is Uganda's #1 Reels Shopping App in Kampala. Buy, sell, request anything, book transport, find manufacturers, go live, earn coins."},
+    "/faq": {"title": "Sannlas FAQ - How to Buy, Sell & Request in Uganda | Sannlas", "desc": "How to buy, sell FREE, post Wants, book transport, earn coins on Sannlas Uganda. Frequently asked questions."},
 }
 
 def get_seo_for_path(path):
