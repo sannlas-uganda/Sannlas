@@ -57,7 +57,7 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <div id="videoPlaceholder">
         <div style="font-size:40px">🎥</div>
         <b>Tap to select video</b><br>
-        <span class="hint">MP4, MOV - Max 50MB, Max 100 sec - Saved to YottaSrc! ⚡</span>
+        <span class="hint">MP4, MOV - Max 50MB, Max 100 sec</span>
       </div>
       <video id="videoPreview" style="display:none" controls playsinline muted></video>
     </div>
@@ -116,7 +116,7 @@ input:focus,textarea:focus,select:focus{border-color:#000}
     <div id="uploadProgress">
       <div id="progressText" style="font-size:12px;font-weight:900;margin-bottom:6px">Uploading... 0%</div>
       <div id="progressBar"><div id="progressFill"></div></div>
-      <div class="hint" style="margin-top:6px">Uploading to YottaSrc - Your reels live on sannlas.store! ⚡</div>
+      <div class="hint" style="margin-top:6px">Uploading...  Your reels live on sannlas.store! ⚡</div>
     </div>
     <div class="hint" style="text-align:center;margin-top:8px">Button will be: <b id="previewBtn">UGX 0 - BUY NOW</b></div>
   </div>
@@ -248,7 +248,7 @@ async function uploadReel(){
   if(!shopName){ alert('Shop name missing'); return; }
   if(!user.email){ alert('Login first Boss!'); return; }
   let btn = document.getElementById('postBtn');
-  btn.disabled = true; btn.innerText = '⏳ Uploading to YottaSrc...';
+  btn.disabled = true; btn.innerText = '⏳ Uploading...';
   document.getElementById('uploadProgress').style.display = 'block';
   try{
     let form = new FormData();
@@ -273,8 +273,8 @@ async function uploadReel(){
       xhr.upload.onprogress = (e) => {
         if(e.lengthComputable){
           let pct = Math.round((e.loaded / e.total) * 100);
-          btn.innerText = '⏳ Uploading to YottaSrc... ' + pct + '%';
-          document.getElementById('progressText').innerText = 'Uploading to YottaSrc... ' + pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB / ' + (e.total/1024/1024).toFixed(1) + 'MB)';
+          btn.innerText = '⏳ Uploading to... ' + pct + '%';
+          document.getElementById('progressText').innerText = 'Uploading... ' + pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB / ' + (e.total/1024/1024).toFixed(1) + 'MB)';
           document.getElementById('progressFill').style.width = pct + '%';
         }
       };      xhr.onload = () => {
