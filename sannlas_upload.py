@@ -293,7 +293,7 @@ async function uploadReel(){
     });
     let d = await saveRes.json();
     if(!saveRes.ok || !d.success) throw new Error(d.error || 'Save failed');
-    alert('✅ Posted! Your reel is at TOP now! Saved to YottaSrc!');
+    alert('✅ Posted successfully!');
     location.href = '/reels';
   }catch(e){
     alert('❌ Failed: ' + e.message);
