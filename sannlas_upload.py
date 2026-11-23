@@ -57,7 +57,7 @@ input:focus,textarea:focus,select:focus{border-color:#000}
       <div id="videoPlaceholder">
         <div style="font-size:40px">🎥</div>
         <b>Tap to select video</b><br>
-        <span class="hint">MP4, MOV - Max 50MB, Max 60 sec - Saved to YottaSrc! ⚡</span>
+        <span class="hint">MP4, MOV - Max 50MB, Max 100 sec - Saved to YottaSrc! ⚡</span>
       </div>
       <video id="videoPreview" style="display:none" controls playsinline muted></video>
     </div>
@@ -218,8 +218,8 @@ document.getElementById('videoInput').addEventListener('change', function(e){
   document.getElementById('videoBox').classList.add('has-video');
   document.getElementById('videoInfo').innerText = file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
   v.onloadedmetadata = function(){
-    if(v.duration > 60){
-      alert('Too long! Max 60 seconds Boss! Your video is ' + Math.round(v.duration) + ' sec. Please trim it.');
+    if(v.duration > 100){
+  alert('Too long! Max 100 seconds Boss! Your video is ' + Math.round(v.duration) + ' sec. Please trim it.');
       videoFile = null; e.target.value=''; v.src=''; v.style.display='none';
       document.getElementById('videoPlaceholder').style.display='block';
       document.getElementById('videoBox').classList.remove('has-video');
