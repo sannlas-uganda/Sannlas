@@ -409,6 +409,33 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
       <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">📊 Stats</a>
     </div>
   </div>
+    <!-- ✅ OWNER MANAGE - Only owner sees, visitors never -->
+  <div id="ownerManage" style="display:none;background:#fff;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:0 16px 12px;text-align:left">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
+      <button onclick="showOwnerPanel('products')" style="background:#000;color:#FFCC02;border:none;padding:9px 12px;border-radius:8px;font-weight:800">🛠️ Manage Products</button>
+      <button onclick="showOwnerPanel('edit')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">✏️ Edit Shop</button>
+      <button onclick="showOwnerPanel('orders')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">📦 Orders</button>
+    </div>
+
+    <!-- Manage Products -->
+    <div id="panel-products">
+      <div id="ownerProductsList" style="font-size:13px">Loading your products...</div>
+    </div>
+
+    <!-- Edit Shop -->
+    <div id="panel-edit" style="display:none">
+      <input id="editBiz" placeholder="Shop Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="editPhone" placeholder="Phone" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="editLoc" placeholder="Location" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <textarea id="editDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
+      <button onclick="saveShopSettings()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">💾 Save Shop</button>
+    </div>
+
+    <!-- Orders -->
+    <div id="panel-orders" style="display:none">
+      <div id="ownerOrdersList" style="font-size:13px">Loading orders...</div>
+    </div>
+  </div>
   <div class="tab-row">
     <button id="tabProductsBtn" class="active" onclick="showShopTab('products')">🛍️ Products</button>
     <button id="tabReelsBtn" onclick="showShopTab('reels')">🎬 Reels</button>
@@ -464,6 +491,17 @@ async function loadShop(){
   // ✅ EDIT 2 - Show Owner Box ONLY if owner, else keep hidden
   let _ownerBox = document.getElementById('ownerTools');
   if(_ownerBox) _ownerBox.style.display = _isOwner ? 'block' : 'none';
+    let _manageBox = document.getElementById('ownerManage');
+  if(_manageBox) _manageBox.style.display = _isOwner ? 'block' : 'none';
+  if(_isOwner){
+    // Fill Edit form
+    document.getElementById('editBiz').value = shop.business_name||'';
+    document.getElementById('editPhone').value = shop.phone||'';
+    document.getElementById('editLoc').value = shop.location||'Kampala';
+    document.getElementById('editDesc').value = shop.description||'';
+    loadOwnerProducts(prods);
+    loadOwnerOrders();
+  }
     if(_isOwner){
     // 👑 OWNER - Real buttons are in #ownerTools yellow box below, here just Share
     document.getElementById('shopActions').innerHTML=`
@@ -505,6 +543,61 @@ async function loadShop(){
     document.getElementById('statViews').innerText=(stats.total_views||0).toLocaleString();
   }).catch(()=>{});
   }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
+}
+function showOwnerPanel(name){
+  ['products','edit','orders'].forEach(n=>{
+    let el=document.getElementById('panel-'+n);
+    if(el) el.style.display = (n===name)?'block':'none';
+  });
+}
+function loadOwnerProducts(prods){
+  let el=document.getElementById('ownerProductsList'); if(!el) return;
+  if(!prods.length){ el.innerHTML='No products yet'; return; }
+  el.innerHTML = prods.map(p=>`
+    <div style="display:flex;gap:8px;align-items:center;border:1px solid #eee;border-radius:10px;padding:8px;margin-bottom:6px">
+      <img src="${p.image||''}" style="width:44px;height:44px;object-fit:cover;border-radius:8px">
+      <div style="flex:1"><b>${(p.name||'').replace(/</g,'&lt;')}</b><br>
+      Price: <input type="number" value="${p.price||0}" onchange="ownerUpdatePrice('${p.id}',this.value)" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:6px">
+      Stock: <input type="number" value="${p.stock??''}" onchange="ownerUpdateStock('${p.id}',this.value)" style="width:60px;padding:4px;border:1px solid #ddd;border-radius:6px">
+      </div>
+      <button onclick="ownerToggleHide('${p.id}',${!p.is_hidden})" style="border:none;background:#F1F1F2;padding:8px;border-radius:8px">${p.is_hidden?'👁️ Show':'🙈 Hide'}</button>
+      <button onclick="ownerDeleteProduct('${p.id}')" style="border:none;background:#FEE;padding:8px;border-radius:8px">🗑️</button>
+    </div>`).join('');
+}
+async function ownerUpdatePrice(id,price){
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  await fetch('/api/my-shop/update-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,price:parseInt(price),email:me?.email})});
+  alert('Price updated');
+}
+async function ownerUpdateStock(id,stock){
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  await fetch('/api/my-shop/update-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,stock:parseInt(stock),email:me?.email})});
+}
+async function ownerToggleHide(id,hidden){
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  await fetch('/api/my-shop/toggle-hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,hidden:hidden,email:me?.email})});
+  location.reload();
+}
+async function ownerDeleteProduct(id){
+  if(!confirm('Delete this product?')) return;
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  await fetch('/api/my-shop/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,email:me?.email})});
+  location.reload();
+}
+async function saveShopSettings(){
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  let body={email:me?.email,business_name:document.getElementById('editBiz').value,phone:document.getElementById('editPhone').value,location:document.getElementById('editLoc').value,description:document.getElementById('editDesc').value};
+  let r=await fetch('/api/my-shop/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let j=await r.json();
+  if(j.success){ alert('Shop saved!'); location.reload(); } else alert(j.message||'Failed');
+}
+async function loadOwnerOrders(){
+  let el=document.getElementById('ownerOrdersList'); if(!el) return;
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  let r=await fetch('/api/my-shop?email='+encodeURIComponent(me?.email||'')).then(r=>r.json()).catch(()=>null);
+  let orders=r?.orders||[];
+  if(!orders.length){ el.innerHTML='No orders yet'; return; }
+  el.innerHTML=orders.slice(0,20).map(o=>`<div style="border:1px solid #eee;border-radius:10px;padding:8px;margin-bottom:6px">📦 ${o.product_name||o.id} - UGX ${(o.total||o.price||0).toLocaleString()} - ${o.status||'new'}</div>`).join('');
 }
 function showShopTab(tab){
   let pBtn=document.getElementById('tabProductsBtn'), rBtn=document.getElementById('tabReelsBtn');
