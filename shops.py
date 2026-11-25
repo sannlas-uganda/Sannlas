@@ -464,18 +464,12 @@ async function loadShop(){
   // ✅ EDIT 2 - Show Owner Box ONLY if owner, else keep hidden
   let _ownerBox = document.getElementById('ownerTools');
   if(_ownerBox) _ownerBox.style.display = _isOwner ? 'block' : 'none';
-  if(_isOwner){
-    // 👑 OWNER ONLY - No Follow, No Message, No WhatsApp, No Call
+    if(_isOwner){
+    // 👑 OWNER - Real buttons are in #ownerTools yellow box below, here just Share
     document.getElementById('shopActions').innerHTML=`
-      <div style="background:#FFCC02;color:#000;padding:10px;border-radius:10px;font-weight:900;font-size:13px;margin-bottom:8px">👑 This is YOUR Shop</div>
       <div style="display:flex;gap:8px;justify-content:center;width:100%">
-        <a href="/my-shop" style="flex:1;background:#000;color:#FFCC02;text-decoration:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px;text-align:center">✏️ Edit Shop</a>
-        <a href="/my-shop" style="flex:1;background:#FFCC02;color:#000;text-decoration:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px;text-align:center;border:2px solid #000">➕ Add Product</a>
+        <div style="flex:1;background:#FFCC02;color:#000;padding:11px;border-radius:8px;font-weight:900;text-align:center">👑 This is YOUR Shop</div>
         <button onclick="shareShopLink()" style="width:44px;background:#F1F1F2;border:none;border-radius:8px;font-size:18px">↗️</button>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:8px">
-        <a href="/my-shop" style="flex:1;background:#fff;color:#000;border:2px solid #000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">💰 Earnings</a>
-        <a href="/my-shop" style="flex:1;background:#fff;color:#000;border:2px solid #000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📦 Orders</a>
       </div>`;
   } else {
     // 👤 VISITOR ONLY - No Edit, No My Shop
