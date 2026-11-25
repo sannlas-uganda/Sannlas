@@ -139,7 +139,20 @@ def api_add_to_cart():
     image = data.get('image','')
     shop_name = data.get('shop_name','')
     shop_slug = data.get('shop_slug','')
+    seller_email = (data.get('seller_email') or data.get('shop_email') or '').lower().strip()
+    size = data.get('size','')
     qty = int(data.get('qty',1) or 1)
+    # If frontend didn't send seller_email, look it up from products table
+    if not seller_email and product_id:
+        try:
+            _prods = load_db('products.json', []) or []
+            for _p in _prods:
+                if str(_p.get('id')) == product_id:
+                    seller_email = str(_p.get('seller_email','')).lower().strip()
+                    if not shop_slug: shop_slug = _p.get('shop_slug','')
+                    if not shop_name: shop_name = _p.get('business','')
+                    break
+        except: pass
 
     if not product_id or product_id == 'None':
         return jsonify({"success": False, "message": "Invalid product ID Boss!"}), 400
@@ -171,6 +184,8 @@ def api_add_to_cart():
             "image": image,
             "shop_name": shop_name,
             "shop_slug": shop_slug,
+            "seller_email": seller_email,
+            "size": size,
             "qty": qty,
             "added_at": time.time()
         })
@@ -239,3 +254,96 @@ def api_update_qty():
 
     save_carts(carts)
     return jsonify({"success": True, "message": f"Updated to {new_qty if new_qty>0 else 'removed'}"})
+
+@cart_bp.route('/api/orders/create', methods=['POST'])
+def api_create_order():
+    data = request.get_json() or {}
+    email = (data.get('email') or data.get('buyer_email') or '').lower().strip()
+    phone = (data.get('phone') or data.get('buyer_phone') or '').strip()
+    buyer_name = data.get('buyer_name') or data.get('name') or email or 'Customer'
+    district = data.get('district') or ''
+    address = data.get('address') or data.get('delivery_address') or ''
+    items = data.get('items') or []
+    # FALLBACK: If frontend didn't send items (old cart.html), load from saved cart
+    if not items:
+        carts = get_carts()
+        for c in carts:
+            c_email = (c.get('email') or '').lower().strip()
+            c_phone = (c.get('phone') or '').strip()
+            if (email and c_email == email) or (phone and c_phone == phone and phone != ''):
+                items = c.get('items', [])
+                break
+    if not items:
+        return jsonify({"success": False, "message": "Cart is empty Boss!"}), 400
+    # Enrich missing seller_email from products
+    try:
+        _prods = load_db('products.json', []) or []
+        _map = {str(_p.get('id')): _p for _p in _prods}
+        for it in items:
+            if not it.get('seller_email'):
+                _p = _map.get(str(it.get('product_id')))
+                if _p:
+                    it['seller_email'] = str(_p.get('seller_email','')).lower().strip()
+                    it['shop_slug'] = it.get('shop_slug') or _p.get('shop_slug','')
+                    it['shop_name'] = it.get('shop_name') or _p.get('business','')
+    except: pass
+    orders = load_db('orders_v2.json', []) or []
+    if not isinstance(orders, list): orders = []
+    created = []
+    for it in items:
+        seller_email = str(it.get('seller_email') or '').lower().strip()
+        if not seller_email:
+            continue  # Can't deliver order without seller - skip
+        tracking = f"SN-{int(time.time())}-{len(orders)+1}"
+        qty = int(it.get('qty') or it.get('quantity') or 1)
+        price = float(it.get('price') or 0)
+        new_o = {
+            'id': tracking,
+            'tracking_id': tracking,
+            'product_id': str(it.get('product_id') or ''),
+            'product_name': it.get('name') or 'Product',
+            'name': it.get('name') or 'Product',
+            'image': it.get('image') or '',
+            'product_image': it.get('image') or '',
+            'price': price,
+            'total': price * qty,
+            'qty': qty,
+            'quantity': qty,
+            'size': it.get('size') or '',
+            'seller_email': seller_email,
+            'shop_slug': it.get('shop_slug') or '',
+            'business': it.get('shop_name') or '',
+            'shop_name': it.get('shop_name') or '',
+            'buyer_email': email,
+            'buyer_name': buyer_name,
+            'buyer_phone': phone,
+            'customer_name': buyer_name,
+            'phone': phone,
+            'district': district,
+            'address': address,
+            'delivery_address': address,
+            'status': 'new',
+            'created_at': time.time(),
+            'created': time.time()
+        }
+        orders.append(new_o); created.append(new_o)
+    if not created:
+        return jsonify({"success": False, "message": "No seller found for these products - re-add to cart"}), 400
+    save_db('orders_v2.json', orders)
+    # Clear cart after order
+    carts = get_carts()
+    for c in carts:
+        c_email = (c.get('email') or '').lower().strip()
+        c_phone = (c.get('phone') or '').strip()
+        if (email and c_email == email) or (phone and c_phone == phone and phone != ''):
+            c['items'] = []
+            break
+    save_carts(carts)
+    return jsonify({"success": True, "orders": created, "count": len(created)})
+
+@cart_bp.route('/api/my-orders', methods=['GET'])
+def api_my_orders():
+    email = request.args.get('email','').lower().strip()
+    orders = load_db('orders_v2.json', []) or []
+    mine = [o for o in orders if str(o.get('buyer_email','')).lower() == email]
+    return jsonify({"orders": sorted(mine, key=lambda x: x.get('created_at',0), reverse=True)})
