@@ -434,15 +434,6 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
     <div id="panel-orders" style="display:none">
       <div id="ownerOrdersList" style="font-size:13px">Loading orders...</div>
     </div>
-    <div id="panel-add" style="display:none">
-      <input id="addName" placeholder="Product Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <input id="addPrice" type="number" placeholder="Price UGX" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <input id="addStock" type="number" placeholder="Stock" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <input id="addImage" placeholder="Image URL" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <textarea id="addDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
-      <button onclick="ownerAddProduct()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">➕ Add Product Here</button>
-      <p style="font-size:11px;color:#888;text-align:center">Saves to your shop, visible to all visitors instantly.</p>
-    </div>
     <div id="panel-earnings" style="display:none">
       <div id="ownerEarningsBox" style="font-size:14px;text-align:center;padding:10px">Loading earnings...</div>
     </div>
