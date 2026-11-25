@@ -442,6 +442,14 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
       <button onclick="saveShopSettings()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">💾 Save Shop</button>
     </div>
     <div id="panel-orders" style="display:none">
+      <div id="orderStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto">
+        <button onclick="setOrderFilter('all')" id="of-all" style="padding:8px 12px;border-radius:20px;border:none;background:#000;color:#FFCC02;font-weight:900;white-space:nowrap">All</button>
+        <button onclick="setOrderFilter('new')" id="of-new" style="padding:8px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;white-space:nowrap">🆕 New</button>
+        <button onclick="setOrderFilter('confirmed')" id="of-confirmed" style="padding:8px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;white-space:nowrap">✅ Confirmed</button>
+        <button onclick="setOrderFilter('shipped')" id="of-shipped" style="padding:8px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;white-space:nowrap">🚚 Shipped</button>
+        <button onclick="setOrderFilter('delivered')" id="of-delivered" style="padding:8px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;white-space:nowrap">✔️ Delivered</button>
+      </div>
       <div id="ownerOrdersList" style="font-size:13px">Loading orders...</div>
     </div>
     <div id="panel-earnings" style="display:none">
@@ -756,15 +764,74 @@ async function ownerAddProduct(){
   let j=await r.json();
   if(j.success){ alert('✅ Product added - visible to all!'); location.reload(); } else alert(j.message||'Failed');
 }
+let _allOrders = [];
+let _orderFilter = 'all';
+function setOrderFilter(f){
+  _orderFilter = f;
+  ['all','new','confirmed','shipped','delivered'].forEach(x=>{
+    let b = document.getElementById('of-'+x);
+    if(b){ b.style.background = (x===f)?'#000':'#fff'; b.style.color = (x===f)?'#FFCC02':'#000'; }
+  });
+  renderOwnerOrders();
+}
+function renderOwnerOrders(){
+  let el = document.getElementById('ownerOrdersList'); if(!el) return;
+  let st = document.getElementById('orderStats');
+  let newCount = _allOrders.filter(o=> ['new','pending',''].includes(String(o.status||'new').toLowerCase())).length;
+  let totalEarn = _allOrders.filter(o=> ['delivered','completed','paid'].includes(String(o.status||'').toLowerCase())).reduce((s,o)=> s+Number(o.total||o.price||0), 0);
+  if(st) st.innerHTML = `
+    <div style="background:#ff4444;color:#fff;padding:10px;border-radius:10px;text-align:center"><b style="font-size:18px">${newCount}</b><br><small>🆕 New Orders</small></div>
+    <div style="background:#000;color:#fff;padding:10px;border-radius:10px;text-align:center"><b style="font-size:18px">${_allOrders.length}</b><br><small>Total Orders</small></div>
+    <div style="background:#00aa00;color:#fff;padding:10px;border-radius:10px;text-align:center"><b style="font-size:13px">UGX ${totalEarn.toLocaleString()}</b><br><small>Delivered 💰</small></div>`;
+  let list = _allOrders.filter(o=>{
+    if(_orderFilter==='all') return true;
+    let s = String(o.status||'new').toLowerCase();
+    if(_orderFilter==='new') return ['new','pending',''].includes(s);
+    return s===_orderFilter;
+  });
+  if(!list.length){ el.innerHTML='<p style="text-align:center;color:#888;padding:20px">No orders in this filter</p>'; return; }
+  el.innerHTML = list.map(o=>{
+    let s = String(o.status||'new').toLowerCase();
+    let color = s==='new'||s==='pending' ? '#ff8800' : s==='confirmed' ? '#0066ff' : s==='shipped' ? '#8800ff' : s==='delivered'||s==='completed' ? '#00aa00' : s==='cancelled' ? '#ff4444' : '#888';
+    let buyer = o.buyer_name || o.customer_name || o.buyer_email || o.email || 'Customer';
+    let phone = (o.buyer_phone || o.phone || o.customer_phone || '').toString().replace(/[^0-9]/g,'');
+    let date = o.created_at ? new Date(o.created_at).toLocaleDateString() + ' ' + new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:10px;margin-bottom:10px;display:flex;gap:10px">
+      <img src="${o.image||o.product_image||''}" onerror="this.style.display='none'" style="width:70px;height:70px;object-fit:cover;border-radius:10px">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:6px"><b>${o.product_name||o.name||o.id}</b><span style="background:${color};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900;text-transform:uppercase">${s}</span></div>
+        <div style="font-size:12px;color:#666;margin-top:3px">👤 ${buyer} • Qty: ${o.qty||o.quantity||1} • ${date}</div>
+        <div style="font-weight:900;margin-top:3px">UGX ${Number(o.total||o.price||0).toLocaleString()} ${o.size?`• Size: ${o.size}`:''}</div>
+        <div style="display:flex;gap:5px;margin-top:7px;flex-wrap:wrap">
+          ${s==='new'||s==='pending'?`<button onclick="updateOrderStatus('${o.id}','confirmed')" style="padding:6px 10px;border:none;border-radius:8px;background:#0066ff;color:#fff;font-weight:900;font-size:12px">✅ Confirm</button>`:''}
+          ${s==='confirmed'?`<button onclick="updateOrderStatus('${o.id}','shipped')" style="padding:6px 10px;border:none;border-radius:8px;background:#8800ff;color:#fff;font-weight:900;font-size:12px">🚚 Ship</button>`:''}
+          ${s==='shipped'?`<button onclick="updateOrderStatus('${o.id}','delivered')" style="padding:6px 10px;border:none;border-radius:8px;background:#00aa00;color:#fff;font-weight:900;font-size:12px">✔️ Delivered</button>`:''}
+          ${!['delivered','cancelled','completed'].includes(s)?`<button onclick="updateOrderStatus('${o.id}','cancelled')" style="padding:6px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:12px">❌ Cancel</button>`:''}
+          ${phone?`<button onclick="window.open('https://wa.me/${phone}')" style="padding:6px 10px;border:none;border-radius:8px;background:#25D366;color:#fff;font-weight:900;font-size:12px">💬 WhatsApp</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
 async function loadOwnerOrders(){
   let el=document.getElementById('ownerOrdersList'); if(!el) return;
   let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
   let s=window._currentShop||{};
   let slug=cleanSlug(s.shop_slug||s.business_name||'');
   let r=await fetch('/api/shop-owner/dashboard?email='+encodeURIComponent(me?.email||'')+'&slug='+encodeURIComponent(slug)).then(r=>r.json()).catch(()=>null);
-  let orders=r?.orders||[];
-  if(!orders.length){ el.innerHTML='No orders yet'; return; }
-  el.innerHTML=orders.slice(0,20).map(o=>`<div style="border:1px solid #eee;border-radius:10px;padding:8px;margin-bottom:6px">📦 ${o.product_name||o.id} - UGX ${(o.total||o.price||0).toLocaleString()} - ${o.status||'new'}</div>`).join('');
+  _allOrders = r?.orders || [];
+  renderOwnerOrders();
+}
+async function updateOrderStatus(id, status){
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  let r = await fetch('/api/shop-owner/update-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:me?.email||'', id:id, status:status})});
+  let j = await r.json().catch(()=>({}));
+  if(j.success){
+    let o = _allOrders.find(x=> String(x.id)===String(id));
+    if(o) o.status = status;
+    renderOwnerOrders();
+    alert('✅ Order -> ' + status.toUpperCase());
+  } else alert(j.message||'Failed - need backend PASTE 3');
 }
 async function loadOwnerEarnings(){
   let el=document.getElementById('ownerEarningsBox'); if(!el) return;
@@ -1095,6 +1162,41 @@ def _shop_owner_update_product_field(field, _d=None):
             return jsonify({'success':True})
     cur.close(); conn.close()
     return jsonify({'success':False,'message':'Not your product'}), 403
+
+@shops_bp.route('/api/shop-owner/update-order', methods=['POST'])
+def shop_owner_update_order():
+    d = request.get_json() or {}
+    email = (d.get('email') or '').lower().strip()
+    oid = str(d.get('id',''))
+    status = str(d.get('status','')).lower().strip()
+    if status not in ['confirmed','shipped','delivered','cancelled','new']:
+        return jsonify({'success':False,'message':'Invalid status'}), 400
+    # Try orders_v2.json in kv_store + orders table
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT data FROM kv_store WHERE key=%s", ('orders_v2.json',))
+        row = cur.fetchone()
+        orders = row[0] if row else []
+        if isinstance(orders, str): orders = json.loads(orders)
+        changed = False
+        for o in (orders or []):
+            if str(o.get('id'))==oid and str(o.get('seller_email','')).lower()==email:
+                o['status'] = status; changed = True; break
+        if changed:
+            cur.execute("INSERT INTO kv_store (key,data) VALUES (%s,%s) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", ('orders_v2.json', json.dumps(orders)))
+            conn.commit()
+        cur.close(); conn.close()
+        if changed: return jsonify({'success':True})
+    except Exception as e:
+        print("update-order kv fail", e)
+    # Fallback: try orders table if exists
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("UPDATE orders SET data = jsonb_set(data, '{status}', %s::jsonb) WHERE data->>'id'=%s", (json.dumps(status), oid))
+        conn.commit(); cur.close(); conn.close()
+        return jsonify({'success':True})
+    except Exception as e:
+        return jsonify({'success':False,'message':str(e)}), 500
 
 @shops_bp.route('/api/shop-owner/delete-product', methods=['POST'])
 def shop_owner_delete_product():
