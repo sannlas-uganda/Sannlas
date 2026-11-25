@@ -157,6 +157,27 @@ function isFashion(p){
   let cat = ((p.main_category||'')+' '+(p.category||'')+' '+(p.name||'')).toLowerCase();
   return cat.includes('fashion')||cat.includes('cloth')||cat.includes('shirt')||cat.includes('dress')||cat.includes('shoe')||cat.includes('sneaker')||cat.includes('hoodie')||cat.includes('jacket')||cat.includes('trouser')||cat.includes('jeans')||cat.includes('t-shirt');
 }
+function getProductTheme(p){
+  let txt = ((p.main_category||'')+' '+(p.category||'')+' '+(p.name||'')+' '+(p.description||'')).toLowerCase();
+  let name = p.name || 'Product';
+  if(txt.includes('iphone')||txt.includes('phone')||txt.includes('case')||txt.includes('magsafe')||txt.includes('electronic')||txt.includes('charger')||txt.includes('earphone')||txt.includes('watch')){
+    return {icon:'📱', headline:'Protect Your Phone<br>In Style.', tagline:'Premium protection, perfect fit, stylish finish.', btn:'🛒 Get This Case ›', bottom:'Protect Better.<br>Live Better.', nav:['Home','Phones','Accessories','Electronics','About Us'], hanger:'✨'};
+  }
+  if(txt.includes('shoe')||txt.includes('sneaker')||txt.includes('heel')||txt.includes('sandal')){
+    return {icon:'👟', headline:'Step Out<br>In Confidence.', tagline:'Comfort meets style in every step.', btn:'🛒 Get These Shoes ›', bottom:'Walk Better.<br>Feel Better.', nav:['Home','Shoes','Sneakers','Fashion','About Us'], hanger:'✨'};
+  }
+  if(txt.includes('bag')||txt.includes('handbag')){
+    return {icon:'👜', headline:'Carry Elegance<br>Everywhere.', tagline:'Stylish, spacious, made to stand out.', btn:'🛒 Get This Bag ›', bottom:'Carry Better.<br>Look Better.', nav:['Home','Bags','Fashion','Accessories','About Us'], hanger:'✨'};
+  }
+  if(txt.includes('home')||txt.includes('lamp')||txt.includes('chair')||txt.includes('decor')||txt.includes('kitchen')){
+    return {icon:'🏠', headline:'Make Your Home<br>Beautiful.', tagline:'Quality for your home, built to last.', btn:'🛒 Get For Home ›', bottom:'Live Better.<br>Home Better.', nav:['Home','Home','Decor','Living','About Us'], hanger:'✨'};
+  }
+  if(txt.includes('beauty')||txt.includes('hair')||txt.includes('makeup')||txt.includes('skin')){
+    return {icon:'💄', headline:'Glow Up<br>With Confidence.', tagline:'Beauty that brings out your best.', btn:'🛒 Get This Beauty ›', bottom:'Glow Better.<br>Feel Better.', nav:['Home','Beauty','Hair','Skin','About Us'], hanger:'✨'};
+  }
+  // Default Fashion
+  return {icon:'👕', headline:'Wear Confidence<br>Define Your Style.', tagline:'Designed for comfort, quality, and everyday expression.', btn:'Get the look ›', bottom:'Dress Better.<br>Feel Better.', nav:['Home','Tshirt','Hoodies','Sweatshirts','About Us'], hanger:'🪝'};
+}
 function openProduct(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
   if(!p) return;
@@ -189,25 +210,25 @@ function openProduct(id){
   } else {
     sizeHtml = `<div class="size-label">🏪 ${biz}<br>📞 ${phone}</div>`;
   }
+  let theme = getProductTheme(p);
   let nextIdx = (currentIdx+1) % currentImgs.length;
   let thumbsHtml = currentImgs.map((im,i)=>`<img src="${im}" class="thumb ${i==0?'active':''}" onclick="goToImg(${i})" onerror="this.style.display='none'">`).join('');
   document.getElementById('viewContent').innerHTML = `
     <div class="tik-top">
-      <div class="logo">SANNLAS 👕</div>
-      <div class="nav"><span>Home</span><span class="active">Tshirt</span><span>Hoodies</span><span>Sweatshirts</span><span>About Us</span></div>
+      <div class="logo">SANNLAS ${theme.icon}</div>
+      <div class="nav">${theme.nav.map((n,i)=>`<span class="${i==1?'active':''}">${n}</span>`).join('')}</div>
       <div style="display:flex;gap:12px;align-items:center"><span>👤</span><span>🔔</span><button onclick="closePop()" style="background:white;border:1px solid #ddd;width:32px;height:32px;border-radius:50%;font-weight:900;cursor:pointer">✕</button></div>
     </div>
     <div class="tik-main">
-      <div class="tik-left">
-        <h1>Wear Confidence<br>Define Your Style.</h1>
-        <p>${desc}</p>
-        <div style="font-size:11px;color:#333;margin-top:8px;line-height:1.6">🏪 ${biz}<br>📍 ${p.location||'Kampala'}<br>${promoText}</div>
-        <button class="get-look" onclick="orderNow('${p.id}')">Get the look ›</button>
+    <div class="tik-left">
+        <h1>${theme.headline}</h1>
+        <p><b>${name}</b><br>${desc}</p>
+        <button class="get-look" onclick="orderNow('${p.id}')">${theme.btn}</button>
         <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">${thumbsHtml}</div>
         <div style="font-size:11px;color:#333;margin-top:8px">📸 ${currentImgs.length} photos - Tap to view</div>
       </div>
       <div class="tik-center">
-        <div class="hanger">🪝</div>
+        <div class="hanger">${theme.hanger}</div>
         <div class="slider-viewport" id="sliderViewport">
           <div class="slider-track" id="sliderTrack">
             ${currentImgs.map(im=>`<img src="${im}" onerror="this.src='/icon-192.png'">`).join('')}
@@ -238,7 +259,7 @@ function openProduct(id){
         <div class="socials">📸 𝕏 in 🎵</div>
         <button class="arrow-btn" onclick="prevImg(event)" style="margin-top:10px">‹</button>
       </div>
-      <div style="text-align:center">Dress Better.<br>Feel Better.</div>
+      <div style="text-align:center">${theme.bottom}</div>
       <div style="display:flex;align-items:flex-end;gap:10px">
         <div class="next-preview"><img id="nextImg" src="${currentImgs[nextIdx]}" onerror="this.style.display='none'"><div style="font-size:10px;font-weight:700">Next →</div></div>
         <button class="arrow-btn" onclick="nextImg(event)">›</button>
