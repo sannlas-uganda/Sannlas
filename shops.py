@@ -914,6 +914,7 @@ def shop_owner_update_settings():
     row = cur.fetchone()
     shops = row[0] if row else []
     if isinstance(shops, str): shops = json.loads(shops)
+    if not isinstance(shops, list): shops = []
     found=False
     for s in shops:
         if clean_slug_fix(s.get('shop_slug') or s.get('business_name'))==slug:
@@ -928,12 +929,13 @@ def shop_owner_update_settings():
             break
     if not found:
         shops.append({'shop_slug':slug,'business_name':d.get('business_name',slug),'owner_email':email,'phone':d.get('phone',''),'location':d.get('location','Kampala'),'description':d.get('description',''),'logo':d.get('logo',''),'banner':d.get('banner','')})
-        cur.execute("INSERT INTO kv_store (key,data) VALUES (%s,%s) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", ('shops.json', json.dumps(shops)))
+    # ✅ ALWAYS SAVE - whether found or new - THIS WAS THE BUG
+    cur.execute("INSERT INTO kv_store (key,data) VALUES (%s,%s) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", ('shops.json', json.dumps(shops)))
     conn.commit(); cur.close(); conn.close()
     _SHOP_CACHE.pop(slug, None)
     _SHOPS_LIST_CACHE["data"]=None
     return jsonify({'success':True})
-
+    
 @shops_bp.route('/api/shop-owner/add-product', methods=['POST'])
 def shop_owner_add_product():
     d = request.get_json() or {}
