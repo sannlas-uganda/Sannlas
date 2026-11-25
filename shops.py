@@ -395,6 +395,20 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
     <div class="stat"><b id="statViews">0</b><span>Views</span></div>
   </div>
   <div class="action-row" id="shopActions"></div>
+
+  <!-- ✅ EDIT 1 - OWNER ONLY - Hidden by default -->
+  <div id="ownerTools" style="display:none;background:#FFCC02;border-radius:12px;padding:12px;margin:0 16px 12px;text-align:center">
+    <div style="font-weight:900;margin-bottom:8px">👑 YOUR SHOP - Owner Only</div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <a href="/my-shop" style="flex:1;background:#000;color:#FFCC02;text-decoration:none;padding:11px;border-radius:8px;font-weight:800">✏️ Edit Shop</a>
+      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:11px;border-radius:8px;font-weight:800;border:2px solid #000">➕ Add Product</a>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">💰 Earnings</a>
+      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">📦 Orders</a>
+      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">📊 Stats</a>
+    </div>
+  </div>
   <div class="tab-row">
     <button id="tabProductsBtn" class="active" onclick="showShopTab('products')">🛍️ Products</button>
     <button id="tabReelsBtn" onclick="showShopTab('reels')">🎬 Reels</button>
