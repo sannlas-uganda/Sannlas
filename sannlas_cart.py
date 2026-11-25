@@ -341,10 +341,6 @@ def api_create_order():
     save_carts(carts)
     return jsonify({"success": True, "orders": created, "count": len(created)})
 
-@cart_bp.route('/my-orders')
-def my_orders_page():
-    return render_template('my-orders.html')
-
 @cart_bp.route('/api/my-orders', methods=['GET'])
 def api_my_orders():
     email = request.args.get('email','').lower().strip()
