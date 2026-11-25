@@ -396,7 +396,23 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
     <div id="panel-products">
       <div id="ownerProductsList" style="font-size:13px">Loading your products...</div>
     </div>
-    <div id="panel-edit" style="display:none">
+        <div id="panel-edit" style="display:none">
+      <!-- ✅ LOGO - NEW -->
+      <div style="text-align:center;margin-bottom:8px">
+        <img id="editLogoPreview" src="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #FFCC02;display:none">
+        <p style="font-size:12px;font-weight:800;margin:6px 0">🏪 Shop Logo</p>
+        <label style="display:block;background:#F1F1F2;padding:10px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer">
+          📷 Choose Logo Photo
+          <input type="file" id="editLogoFile" accept="image/*" onchange="previewShopLogo(this)" style="display:none">
+        </label>
+        <input id="editLogo" placeholder="Or paste Logo Image URL here" style="width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:8px">
+      </div>
+      <input id="editBiz" placeholder="Shop Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="editPhone" placeholder="Phone" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="editLoc" placeholder="Location" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <textarea id="editDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
+      <button onclick="saveShopSettings()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">💾 Save Shop</button>
+    </div>
       <input id="editBiz" placeholder="Shop Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
       <input id="editPhone" placeholder="Phone" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
       <input id="editLoc" placeholder="Location" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
@@ -476,6 +492,12 @@ async function loadShop(){
     document.getElementById('editPhone').value = shop.phone||'';
     document.getElementById('editLoc').value = shop.location||'Kampala';
     document.getElementById('editDesc').value = shop.description||'';
+        // Fill logo
+    _newShopLogo = '';
+    let logoInput = document.getElementById('editLogo');
+    if(logoInput) logoInput.value = shop.logo || shop.logo_url || '';
+    let logoPrev = document.getElementById('editLogoPreview');
+    if(logoPrev && shop.logo){ logoPrev.src = shop.logo; logoPrev.style.display = 'block'; }
     loadOwnerProducts(prods);
     loadOwnerOrders();
   }
@@ -560,8 +582,38 @@ async function ownerDeleteProduct(id){
   await fetch('/api/shop-owner/delete-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id}))});
   location.reload();
 }
+let _newShopLogo = ''; // holds new logo if owner picks photo
+
+function previewShopLogo(input){
+  let file = input.files[0];
+  if(!file) return;
+  let reader = new FileReader();
+  reader.onload = function(e){
+    _newShopLogo = e.target.result; // base64 photo
+    let prev = document.getElementById('editLogoPreview');
+    prev.src = _newShopLogo;
+    prev.style.display = 'block';
+    // Also show in top avatar instantly for preview
+    let topAvatar = document.getElementById('shopAvatarBox');
+    if(topAvatar) topAvatar.innerHTML = `<img src="${_newShopLogo}">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// When owner types URL, preview it too
+document.addEventListener('input', function(e){
+  if(e.target && e.target.id === 'editLogo'){
+    let url = e.target.value.trim();
+    if(url){
+      _newShopLogo = url;
+      let prev = document.getElementById('editLogoPreview');
+      prev.src = url; prev.style.display = 'block';
+    }
+  }
+});
 async function saveShopSettings(){
-  let body=_ownerBody({business_name:document.getElementById('editBiz').value,phone:document.getElementById('editPhone').value,location:document.getElementById('editLoc').value,description:document.getElementById('editDesc').value});
+  let logoVal = _newShopLogo || document.getElementById('editLogo').value.trim();
+  let body = _ownerBody({business_name: document.getElementById('editBiz').value,logo: logoVal,,phone:document.getElementById('editPhone').value,location:document.getElementById('editLoc').value,description:document.getElementById('editDesc').value});
   let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let j=await r.json();
   if(j.success){ alert('Shop saved - visible to all!'); location.reload(); } else alert(j.message||'Failed');
