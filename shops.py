@@ -413,12 +413,6 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
       <textarea id="editDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
       <button onclick="saveShopSettings()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">💾 Save Shop</button>
     </div>
-      <input id="editBiz" placeholder="Shop Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <input id="editPhone" placeholder="Phone" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <input id="editLoc" placeholder="Location" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
-      <textarea id="editDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
-      <button onclick="saveShopSettings()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">💾 Save Shop</button>
-    </div>
     <div id="panel-orders" style="display:none">
       <div id="ownerOrdersList" style="font-size:13px">Loading orders...</div>
     </div>
@@ -613,8 +607,7 @@ document.addEventListener('input', function(e){
 });
 async function saveShopSettings(){
   let logoVal = _newShopLogo || document.getElementById('editLogo').value.trim();
-  let body = _ownerBody({business_name: document.getElementById('editBiz').value,logo: logoVal,,phone:document.getElementById('editPhone').value,location:document.getElementById('editLoc').value,description:document.getElementById('editDesc').value});
-  let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+let body = _ownerBody({business_name: document.getElementById('editBiz').value, logo: logoVal, phone: document.getElementById('editPhone').value, location: document.getElementById('editLoc').value, description: document.getElementById('editDesc').value});  let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let j=await r.json();
   if(j.success){ alert('Shop saved - visible to all!'); location.reload(); } else alert(j.message||'Failed');
 }
