@@ -507,16 +507,18 @@ async function loadShop(){
     document.getElementById('editPhone').value = shop.phone||'';
     document.getElementById('editLoc').value = shop.location||'Kampala';
     document.getElementById('editDesc').value = shop.description||'';
-        // Fill logo
+        // Fill logo - HIDE base64, only show URL
     _newShopLogo = '';
     let logoInput = document.getElementById('editLogo');
-    if(logoInput) logoInput.value = shop.logo || shop.logo_url || '';
+    let _logoVal = shop.logo || shop.logo_url || '';
+    if(logoInput) logoInput.value = _logoVal.startsWith('http') ? _logoVal : (_logoVal ? '✅ Photo uploaded - choose new to replace' : '');
     let logoPrev = document.getElementById('editLogoPreview');
     if(logoPrev && shop.logo){ logoPrev.src = shop.logo; logoPrev.style.display = 'block'; }
-        // Show banner on load
+        // Show banner on load - HIDE base64
     _newShopBanner = '';
     let bannerInput = document.getElementById('editBanner');
-    if(bannerInput) bannerInput.value = shop.banner || shop.cover || '';
+    let _bannerVal = shop.banner || shop.cover || '';
+    if(bannerInput) bannerInput.value = _bannerVal.startsWith('http') ? _bannerVal : (_bannerVal ? '✅ Photo uploaded - choose new to replace' : '');
     let bannerPrev = document.getElementById('editBannerPreview');
     if(bannerPrev && shop.banner){ bannerPrev.src = shop.banner; bannerPrev.style.display = 'block'; }
     let bw2 = document.getElementById('shopBannerWrap');
@@ -659,8 +661,13 @@ document.addEventListener('input', function(e){
     }
   }});
 async function saveShopSettings(){
-  let logoVal = _newShopLogo || document.getElementById('editLogo').value.trim();
-  let bannerVal = _newShopBanner || document.getElementById('editBanner').value.trim();
+  let _logoIn = document.getElementById('editLogo').value.trim();
+  let _bannerIn = document.getElementById('editBanner').value.trim();
+  let logoVal = _newShopLogo || (_logoIn.startsWith('http') ? _logoIn : '');
+  let bannerVal = _newShopBanner || (_bannerIn.startsWith('http') ? _bannerIn : '');
+  // If no new photo, keep old one - don't overwrite with empty
+  if(!logoVal) logoVal = (window._currentShop||{}).logo || '';
+  if(!bannerVal) bannerVal = (window._currentShop||{}).banner || '';
 let body = _ownerBody({    business_name: document.getElementById('editBiz').value, logo: logoVal, banner: bannerVal, phone: document.getElementById('editPhone').value, location: document.getElementById('editLoc').value, description: document.getElementById('editDesc').value});  let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let j=await r.json();
   if(j.success){ alert('Shop saved - visible to all!'); location.reload(); } else alert(j.message||'Failed');
