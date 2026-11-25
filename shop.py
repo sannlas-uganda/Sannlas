@@ -133,14 +133,38 @@ def ensure_shop_for_user(user):
     save_db('shops.json', shops)
     return shop
 
-# ✅ NEW - API so frontend can get live count without Python template
+# ✅ NEW - API so frontend can get live count + OWNER vs VISITOR split
 @shop_bp.route('/api/shop/<slug>/live-stats')
 def live_stats(slug):
     from app import load_db
     shops = load_db('shops.json', [])
     shop = next((s for s in shops if (s.get('shop_slug')==slug or s.get('slug')==slug)), None)
-    email = (shop.get('owner_email') or shop.get('email') or '') if shop else ''
+    email = (shop.get('owner_email') or shop.get('email') or '').lower().strip() if shop else ''
+    
+    # ✅ WHO IS VIEWING? - from frontend localStorage
+    viewer_email = (request.args.get('viewer_email') or request.args.get('user_email') or request.args.get('email') or '').lower().strip()
+    is_owner = bool(viewer_email and email and viewer_email == email)
+
     stats = get_live_shop_stats(email, slug)
     stats['email'] = email
     stats['slug'] = slug
+
+    # ✅ SEEN BY BOTH - Always return
+    stats['is_owner'] = is_owner
+    stats['show_public'] = True  # name, logo, products, reels, reviews
+
+    # ✅ SEEN BY OWNER ONLY - Hide from visitors!
+    if is_owner:
+        # TODO: Later we add real earnings/orders here
+        stats['show_owner_tools'] = True  # Edit Shop, Add Product, Earnings, Orders, Stats
+        stats['show_visitor_actions'] = False # Hide Buy/Follow/Report for owner
+        # stats['earnings'] = 0
+        # stats['orders'] = []
+    else:
+        stats['show_owner_tools'] = False
+        stats['show_visitor_actions'] = True # Buy Now, Follow, Chat, Report
+        # Never send earnings/orders to visitor!
+        stats.pop('earnings', None)
+        stats.pop('orders', None)
+
     return jsonify(stats)
