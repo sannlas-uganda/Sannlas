@@ -224,17 +224,30 @@ async function placeOrder(){
   let btn = document.getElementById('placeOrderBtn');
   
   if(!name || !phone || !district || !address){ alert('Fill all fields Boss!'); return; }
+  let items = (window._lastCartItems || []).map(it=>({
+    product_id: it.product_id,
+    name: it.name,
+    price: it.price,
+    image: it.image,
+    qty: it.qty || 1,
+    size: it.size || '',
+    seller_email: it.seller_email || it.shop_email || '',
+    shop_slug: it.shop_slug || '',
+    shop_name: it.shop_name || it.business || ''
+  }));
+  if(!items.length){ alert('Cart is empty Boss!'); return; }
   btn.innerText='Placing...'; btn.disabled=true;
   
   try{
     let r = await fetch('/api/orders/create', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email: user.email, phone: phone, buyer_name: name, buyer_phone: phone, district: district, address: address})
+      body: JSON.stringify({email: user.email, phone: phone, buyer_name: name, buyer_phone: phone, buyer_email: user.email, district: district, address: address, delivery_address: address + ', ' + district, items: items})
     });
     let res = await r.json();
     if(res.success){
-      alert('Order Placed Boss! Tracking: ' + res.orders[0].tracking_id);
+      let track = (res.orders && res.orders[0] && (res.orders[0].tracking_id || res.orders[0].id)) || 'SN-ORDER';
+      alert('✅ Order Placed Boss! Tracking: ' + track + ' - Seller will confirm soon!');
       closeCheckoutForm();
       window.location.href='/my-orders?email='+encodeURIComponent(user.email);
     } else {
