@@ -359,27 +359,3 @@ def mark_read():
 @orders_bp.route('/track/<tracking_id>')
 def track_page(tracking_id):
     return render_template('track.html', tracking_id=tracking_id)
-@orders_bp.route('/api/orders/clear-fake')
-def clear_fake_orders():
-    # DELETE all orders with UGX 0 OR shop Sannlas OR status new
-    orders = get_orders()
-    good = []
-    deleted = 0
-    for o in orders:
-        total = float(o.get('total') or 0)
-        shop = (o.get('shop_name') or '').lower()
-        status = str(o.get('status') or '').lower()
-        # Fake = total 0 OR shop = sannlas (admin) OR no items name
-        items = o.get('items') or []
-        has_name = any((i.get('name') or i.get('product_name')) for i in items) if items else bool(o.get('product_name'))
-        if total == 0 or shop == 'sannlas' or (status == 'new' and not has_name):
-            deleted += 1
-            continue
-        good.append(o)
-    save_orders(good)
-    # Also clear orders_v2.json - the fake file from cart
-    try:
-        save_db('orders_v2.json', [])
-    except:
-        pass
-    return jsonify({"success": True, "deleted_fake": deleted, "remaining_good": len(good)})
