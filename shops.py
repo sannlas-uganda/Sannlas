@@ -439,17 +439,38 @@ async function loadShop(){
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Quality products!'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
    document.getElementById('shopHandleText').innerText='@'+cleanSlug(shop.shop_slug||shop.business_name)+' • '+(shop.category||'Shop');
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Welcome to '+ (shop.business_name||'shop') +' shop! Quality products, fast delivery in Uganda 🇺🇬'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
-  document.getElementById('shopActions').innerHTML=`
-    <div style="display:flex;gap:8px;justify-content:center;width:100%">
-      <button id="followShopBtn" onclick="toggleFollowShop()" style="flex:1;max-width:160px;background:#FE2C55;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">➕ Follow</button>
-      <button onclick="openShopChat()" style="flex:1;max-width:160px;background:#F1F1F2;color:#000;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">💬 Message</button>
-      <button onclick="shareShopLink()" style="width:44px;background:#F1F1F2;border:none;border-radius:8px;font-size:18px">↗️</button>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:8px">
-      <a href="https://wa.me/${(shop.phone||'').toString().replace(/[^0-9]/g,'')}" style="flex:1;max-width:160px;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">💬 WhatsApp</a>
-      <a href="tel:${shop.phone||''}" style="flex:1;max-width:160px;background:#000;color:#FFCC02;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📞 Call Shop</a>
-      <a href="/my-shop" style="flex:1;max-width:160px;background:#FFCC02;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">🏪 My Shop</a>
-    </div>`;
+    // ✅ OWNER vs VISITOR SPLIT
+  let _me = null; try{ _me = JSON.parse(localStorage.getItem('sannlas_user')||'null'); }catch(e){}
+  let _myEmail = (_me && _me.email ? _me.email.toLowerCase() : '');
+  let _ownerEmail = ((shop.owner_email||shop.email||'').toLowerCase());
+  let _isOwner = _myEmail && _ownerEmail && _myEmail === _ownerEmail;
+
+  if(_isOwner){
+    // 👑 OWNER ONLY - No Follow, No Message, No WhatsApp, No Call
+    document.getElementById('shopActions').innerHTML=`
+      <div style="background:#FFCC02;color:#000;padding:10px;border-radius:10px;font-weight:900;font-size:13px;margin-bottom:8px">👑 This is YOUR Shop</div>
+      <div style="display:flex;gap:8px;justify-content:center;width:100%">
+        <a href="/my-shop" style="flex:1;background:#000;color:#FFCC02;text-decoration:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px;text-align:center">✏️ Edit Shop</a>
+        <a href="/my-shop" style="flex:1;background:#FFCC02;color:#000;text-decoration:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px;text-align:center;border:2px solid #000">➕ Add Product</a>
+        <button onclick="shareShopLink()" style="width:44px;background:#F1F1F2;border:none;border-radius:8px;font-size:18px">↗️</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:8px">
+        <a href="/my-shop" style="flex:1;background:#fff;color:#000;border:2px solid #000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">💰 Earnings</a>
+        <a href="/my-shop" style="flex:1;background:#fff;color:#000;border:2px solid #000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📦 Orders</a>
+      </div>`;
+  } else {
+    // 👤 VISITOR ONLY - No Edit, No My Shop
+    document.getElementById('shopActions').innerHTML=`
+      <div style="display:flex;gap:8px;justify-content:center;width:100%">
+        <button id="followShopBtn" onclick="toggleFollowShop()" style="flex:1;max-width:160px;background:#FE2C55;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">➕ Follow</button>
+        <button onclick="openShopChat()" style="flex:1;max-width:160px;background:#F1F1F2;color:#000;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">💬 Message</button>
+        <button onclick="shareShopLink()" style="width:44px;background:#F1F1F2;border:none;border-radius:8px;font-size:18px">↗️</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:8px">
+        <a href="https://wa.me/${(shop.phone||'').toString().replace(/[^0-9]/g,'')}" style="flex:1;max-width:160px;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">💬 WhatsApp</a>
+        <a href="tel:${shop.phone||''}" style="flex:1;max-width:160px;background:#000;color:#FFCC02;text-decoration:none;padding:10px;border-radius:8px;font-weight:800;font-size:13px;text-align:center">📞 Call Shop</a>
+      </div>`;
+  }
   window._currentShop = shop;
   // ✅ Check real follow status on load
   try{
