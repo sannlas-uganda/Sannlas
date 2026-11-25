@@ -1214,3 +1214,60 @@ def shop_owner_delete_product():
             return jsonify({'success':True})
     cur.close(); conn.close()
     return jsonify({'success':False}), 404
+    # ===== FIX: Seller dashboard reads REAL orders.json =====
+@shops_bp.route('/api/shop-owner/dashboard')
+def shop_owner_dashboard_FIXED():
+    email = (request.args.get('email') or '').lower().strip()
+    slug = clean_slug_fix(request.args.get('slug') or '')
+    try:
+        orders = load_db('orders.json', []) or []
+    except:
+        orders = []
+    if not isinstance(orders, list):
+        orders = []
+    mine = []
+    for o in orders:
+        o_seller = str(o.get('seller_email') or '').lower().strip()
+        o_slug = clean_slug_fix(o.get('shop_slug') or '')
+        o_shop = clean_slug_fix(o.get('shop_name') or o.get('business') or '')
+        if email and o_seller == email:
+            mine.append(o)
+        elif slug and (o_slug == slug or o_shop == slug):
+            mine.append(o)
+    mine = sorted(mine, key=lambda x: x.get('created_at', 0), reverse=True)
+    total_earn = sum(float(o.get('total') or 0) for o in mine if str(o.get('status') or '').lower() in ['delivered','completed','paid'])
+    return jsonify({
+        "success": True,
+        "orders": mine,
+        "count": len(mine),
+        "stats": {
+            "total_orders": len(mine),
+            "total_earnings": total_earn,
+            "total_products": 0,
+            "total_views": 0,
+            "total_likes": 0,
+            "new_orders": len([o for o in mine if str(o.get('status') or '').lower() in ['new','pending']])
+        }
+    })
+
+@shops_bp.route('/api/shop-owner/update-order', methods=['POST'])
+def shop_owner_update_order_FIXED():
+    d = request.get_json() or {}
+    oid = str(d.get('id') or '')
+    status = str(d.get('status') or '').lower().strip()
+    orders = load_db('orders.json', []) or []
+    found = False
+    for o in orders:
+        if str(o.get('id')) == oid or str(o.get('tracking_id')) == oid:
+            o['status'] = status
+            found = True
+            break
+    if found:
+        # save back to kv_store orders.json
+        try:
+            conn = get_conn(); cur = conn.cursor()
+            cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", ('orders.json', json.dumps(orders)))
+            conn.commit(); cur.close(); conn.close()
+        except Exception as e:
+            print("update-order save fail:", e)
+    return jsonify({"success": found})
