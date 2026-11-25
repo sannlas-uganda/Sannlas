@@ -69,7 +69,10 @@ setTimeout(()=>{
 }, 200);
 function showView(v){document.getElementById('listView').classList.toggle('hidden',v!=='list');document.getElementById('formView').classList.toggle('hidden',v!=='form');document.getElementById('detailView').classList.toggle('hidden',v!=='detail');if(v=='list')loadProducts();}
 let parts=location.pathname.split('/').filter(Boolean);
-if(parts[0]=='sell'&&parts[1]){loadDetail(parts[1]);}else{showView('list');}
+let _mode = new URLSearchParams(location.search).get('mode');
+if(parts[0]=='sell'&&parts[1]){loadDetail(parts[1]);}
+else if(_mode==='form'){showView('form');}
+else{showView('list');}
 function previewImages(input){
   let box=document.getElementById('previewBox');
   let count=document.getElementById('imgCount');
