@@ -454,11 +454,16 @@ async function loadShop(){
    document.getElementById('shopHandleText').innerText='@'+cleanSlug(shop.shop_slug||shop.business_name)+' • '+(shop.category||'Shop');
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Welcome to '+ (shop.business_name||'shop') +' shop! Quality products, fast delivery in Uganda 🇺🇬'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
     // ✅ OWNER vs VISITOR SPLIT
-  let _me = null; try{ _me = JSON.parse(localStorage.getItem('sannlas_user')||'null'); }catch(e){}
-  let _myEmail = (_me && _me.email ? _me.email.toLowerCase() : '');
-  let _ownerEmail = ((shop.owner_email||shop.email||'').toLowerCase());
+    let _me = null; try{ _me = JSON.parse(localStorage.getItem('sannlas_user')||'null'); }catch(e){}
+  let _myEmail = (_me && _me.email ? _me.email.toLowerCase().trim() : '');
+  // ✅ FIX: If shop.owner_email is empty, use first product's seller_email
+  let _fallbackEmail = (prods[0] && (prods[0].seller_email||prods[0].shop_email||prods[0].user_email) || '');
+  let _ownerEmail = ((shop.owner_email||shop.email||_fallbackEmail||'').toLowerCase().trim());
   let _isOwner = _myEmail && _ownerEmail && _myEmail === _ownerEmail;
 
+  // ✅ EDIT 2 - Show Owner Box ONLY if owner, else keep hidden
+  let _ownerBox = document.getElementById('ownerTools');
+  if(_ownerBox) _ownerBox.style.display = _isOwner ? 'block' : 'none';
   if(_isOwner){
     // 👑 OWNER ONLY - No Follow, No Message, No WhatsApp, No Call
     document.getElementById('shopActions').innerHTML=`
