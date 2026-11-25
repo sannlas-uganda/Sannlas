@@ -567,6 +567,11 @@ async function loadShop(){
   }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
 function showOwnerPanel(name){
+  // ✅ Add Product -> Go to Sell Page (real upload with 4 photos + promo)
+  if(name==='add'){
+    location.href = '/sell?mode=form';
+    return;
+  }
   ['products','edit','orders','add','earnings'].forEach(n=>{
     let el=document.getElementById('panel-'+n);
     if(el) el.style.display = (n===name)?'block':'none';
