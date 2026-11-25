@@ -402,6 +402,16 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
       <button onclick="showOwnerPanel('earnings')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">💰 Earnings</button>
     </div>
     <div id="panel-products">
+      <!-- STATS -->
+      <div id="manageStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px"></div>
+      <!-- SEARCH + FILTER -->
+      <input id="manageSearch" placeholder="🔍 Search product..." oninput="renderOwnerManage()" style="width:100%;padding:11px;border-radius:10px;border:1px solid #ddd;margin-bottom:8px;box-sizing:border-box">
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button onclick="setManageFilter('all')" id="mf-all" style="flex:1;padding:8px;border-radius:20px;border:none;background:#000;color:#FFCC02;font-weight:900">All</button>
+        <button onclick="setManageFilter('active')" id="mf-active" style="flex:1;padding:8px;border-radius:20px;border:1px solid #ddd;background:#fff">Active</button>
+        <button onclick="setManageFilter('hidden')" id="mf-hidden" style="flex:1;padding:8px;border-radius:20px;border:1px solid #ddd;background:#fff">Hidden</button>
+        <button onclick="setManageFilter('low')" id="mf-low" style="flex:1;padding:8px;border-radius:20px;border:1px solid #ddd;background:#fff">⚠️ Low</button>
+      </div>
       <div id="ownerProductsList" style="font-size:13px">Loading your products...</div>
     </div>
         <div id="panel-edit" style="display:none">
@@ -574,35 +584,98 @@ function _ownerBody(extra){
   let s=window._currentShop||{};
   return Object.assign({email:me?.email||'', shop_slug: cleanSlug(s.shop_slug||s.business_name||'')}, extra||{});
 }
+let _manageProducts = [];
+let _manageFilter = 'all';
+function setManageFilter(f){
+  _manageFilter = f;
+  ['all','active','hidden','low'].forEach(x=>{
+    let b = document.getElementById('mf-'+x);
+    if(b){ b.style.background = (x===f)?'#000':'#fff'; b.style.color = (x===f)?'#FFCC02':'#000'; }
+  });
+  renderOwnerManage();
+}
 function loadOwnerProducts(prods){
-  let el=document.getElementById('ownerProductsList'); if(!el) return;
-  if(!prods.length){ el.innerHTML='No products yet'; return; }
-  el.innerHTML = prods.map(p=>`
-    <div style="display:flex;gap:8px;align-items:center;border:1px solid #eee;border-radius:10px;padding:8px;margin-bottom:6px">
-      <img src="${p.image||''}" style="width:44px;height:44px;object-fit:cover;border-radius:8px">
-      <div style="flex:1"><b>${(p.name||'').replace(/</g,'&lt;')}</b><br>
-      Price: <input type="number" value="${p.price||0}" onchange="ownerUpdatePrice('${p.id}',this.value)" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:6px">
-      Stock: <input type="number" value="${p.stock??''}" onchange="ownerUpdateStock('${p.id}',this.value)" style="width:60px;padding:4px;border:1px solid #ddd;border-radius:6px">
+  _manageProducts = prods || [];
+  renderOwnerManage();
+}
+function renderOwnerManage(){
+  let el = document.getElementById('ownerProductsList'); if(!el) return;
+  let q = (document.getElementById('manageSearch')?.value || '').toLowerCase();
+  let list = _manageProducts.filter(p=>{
+    if(q && !(p.name||'').toLowerCase().includes(q)) return false;
+    let hidden = p.is_hidden || p.hidden;
+    let stock = Number(p.stock ?? p.quantity ?? 0);
+    if(_manageFilter==='active' && hidden) return false;
+    if(_manageFilter==='hidden' && !hidden) return false;
+    if(_manageFilter==='low' && stock >= 5) return false;
+    return true;
+  });
+  // STATS
+  let totalVal = _manageProducts.reduce((s,p)=> s + (Number(p.price||0) * Number(p.stock ?? p.quantity ?? 0)), 0);
+  let lowCount = _manageProducts.filter(p=> Number(p.stock ?? p.quantity ?? 0) < 5).length;
+  let st = document.getElementById('manageStats');
+  if(st) st.innerHTML = `
+    <div style="background:#000;color:#fff;padding:10px;border-radius:10px;text-align:center"><b style="color:#FFCC02;font-size:18px">${_manageProducts.length}</b><br><small>Products</small></div>
+    <div style="background:#fff;padding:10px;border-radius:10px;text-align:center;border:1px solid #eee"><b style="font-size:13px">UGX ${totalVal.toLocaleString()}</b><br><small>Stock Value</small></div>
+    <div style="background:${lowCount?'#ff4444':'#00aa00'};color:#fff;padding:10px;border-radius:10px;text-align:center"><b>${lowCount}</b><br><small>Low Stock ⚠️</small></div>`;
+  if(!list.length){ el.innerHTML='<p style="text-align:center;color:#888;padding:20px">No products found</p>'; return; }
+  el.innerHTML = list.map(p=>{
+    let stock = Number(p.stock ?? p.quantity ?? 0);
+    let pid = p.id || p._id;
+    let disc = Number(p.discount_price || 0);
+    let hidden = p.is_hidden || p.hidden;
+    let badge = hidden ? '<span style="background:#ff4444;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">🔴 Hidden</span>' : '<span style="background:#00aa00;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">🟢 Active</span>';
+    let lowBadge = stock < 5 ? '<span style="background:#FFCC02;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900">⚠️ Low Stock</span>' : '';
+    let saleBadge = disc > 0 ? `<span style="background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">🔥 SALE -${Math.round((1-disc/Number(p.price||1))*100)}%</span>` : '';
+    let featBadge = p.featured ? '<span style="background:#FFCC02;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900">⭐ Featured</span>' : '';
+    return `<div style="background:#fff;border-radius:12px;padding:10px;margin-bottom:10px;border:1px solid #eee;display:flex;gap:10px">
+      <img src="${p.image||''}" style="width:80px;height:80px;object-fit:cover;border-radius:10px">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${badge} ${lowBadge} ${saleBadge} ${featBadge}</div>
+        <input value="${(p.name||'').replace(/"/g,'&quot;')}" onchange="ownerUpdateProduct('${pid}','name',this.value)" style="width:100%;font-weight:900;border:none;border-bottom:1px solid #eee;padding:4px 0;margin-top:4px">
+        <textarea onchange="ownerUpdateProduct('${pid}','description',this.value)" style="width:100%;border:none;border-bottom:1px solid #eee;font-size:12px;color:#666;resize:none" rows="1">${p.description||''}</textarea>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap">
+          <label style="font-size:11px">Price <input type="number" value="${p.price||0}" onchange="ownerUpdateProduct('${pid}','price',this.value)" style="width:75px;padding:5px;border-radius:6px;border:1px solid #ddd"></label>
+          <label style="font-size:11px">SALE <input type="number" value="${disc||''}" placeholder="Discount" onchange="ownerUpdateProduct('${pid}','discount_price',this.value)" style="width:75px;padding:5px;border-radius:6px;border:1px solid #FFCC02"></label>
+          <label style="font-size:11px">Stock <input type="number" value="${stock}" onchange="ownerUpdateProduct('${pid}','stock',this.value)" style="width:55px;padding:5px;border-radius:6px;border:1px solid #ddd"></label>
+          <label style="font-size:11px">💰 Promo <input type="number" value="${p.promo_coins||0}" onchange="ownerUpdateProduct('${pid}','promo_coins',this.value)" style="width:50px;padding:5px;border-radius:6px;border:1px solid #ddd"></label>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:4px">👁️ ${p.views||0} views • 🛒 ${p.sold||0} sold</div>
+        <div style="display:flex;gap:5px;margin-top:6px">
+          <button onclick="ownerUpdateProduct('${pid}','featured',${p.featured?'0':'1'})" style="padding:6px 10px;border-radius:8px;border:1px solid #FFCC02;background:${p.featured?'#FFCC02':'#fff'};font-weight:900;font-size:12px">⭐ Feature</button>
+          <button onclick="ownerToggleHide('${pid}',${!hidden})" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:12px">${hidden?'👁️ Show':'🙈 Hide'}</button>
+          <button onclick="ownerDeleteProduct('${pid}')" style="padding:6px 10px;border-radius:8px;border:none;background:#ff4444;color:#fff;font-size:12px">🗑️ Delete</button>
+        </div>
       </div>
-      <button onclick="ownerToggleHide('${p.id}',${!p.is_hidden})" style="border:none;background:#F1F1F2;padding:8px;border-radius:8px">${p.is_hidden?'👁️ Show':'🙈 Hide'}</button>
-      <button onclick="ownerDeleteProduct('${p.id}')" style="border:none;background:#FEE;padding:8px;border-radius:8px">🗑️</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
-async function ownerUpdatePrice(id,price){
-  await fetch('/api/shop-owner/update-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,price:parseInt(price)}))});
-  alert('Price updated - visible to all');
+async function ownerUpdateProduct(id, field, value){
+  let body = _ownerBody({id:id, field:field, value:value});
+  // also send old format for price/stock compat
+  body[field] = value;
+  let r = await fetch('/api/shop-owner/update-field',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let j = await r.json().catch(()=>({}));
+  if(j.success){
+    let p = _manageProducts.find(x=> String(x.id)===String(id));
+    if(p){ p[field]=value; if(field==='stock') p.quantity=value; if(field==='featured') p.featured = (value==1||value=='1'); }
+    // Don't reload - just re-render to keep search/filter
+    renderOwnerManage();
+  } else alert(j.message||'Update failed');
 }
-async function ownerUpdateStock(id,stock){
-  await fetch('/api/shop-owner/update-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,stock:parseInt(stock)}))});
-}
+// Keep old names working
+async function ownerUpdatePrice(id,price){ return ownerUpdateProduct(id,'price',price); }
+async function ownerUpdateStock(id,stock){ return ownerUpdateProduct(id,'stock',stock); }
 async function ownerToggleHide(id,hidden){
-  await fetch('/api/shop-owner/toggle-hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,hidden:hidden}))});
-  location.reload();
+  let r = await fetch('/api/shop-owner/toggle-hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,hidden:hidden}))});
+  let j = await r.json().catch(()=>({}));
+  if(j.success){ let p=_manageProducts.find(x=>String(x.id)===String(id)); if(p){ p.is_hidden=hidden; p.hidden=hidden; } renderOwnerManage(); }
 }
 async function ownerDeleteProduct(id){
   if(!confirm('Delete this product?')) return;
   await fetch('/api/shop-owner/delete-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id}))});
-  location.reload();
+  _manageProducts = _manageProducts.filter(x=> String(x.id)!==String(id));
+  renderOwnerManage();
 }
 var _newShopBanner = '';
 
@@ -961,6 +1034,17 @@ def shop_owner_add_product():
     _SHOP_CACHE.pop(slug, None)
     return jsonify({'success':True})
 
+@shops_bp.route('/api/shop-owner/update-field', methods=['POST'])
+def shop_owner_update_field():
+    d = request.get_json() or {}
+    field = d.get('field') or ''
+    # map frontend field -> DB field
+    if field == 'stock':
+        return _shop_owner_update_product_field('stock', d)
+    if field == 'is_hidden' or field == 'hidden':
+        return _shop_owner_update_product_field('is_hidden', d)
+    return _shop_owner_update_product_field(field, d)
+
 @shops_bp.route('/api/shop-owner/update-price', methods=['POST'])
 def shop_owner_update_price():
     return _shop_owner_update_product_field('price')
@@ -971,20 +1055,32 @@ def shop_owner_update_stock():
 def shop_owner_toggle_hide():
     return _shop_owner_update_product_field('is_hidden')
 
-def _shop_owner_update_product_field(field):
-    d = request.get_json() or {}
+def _shop_owner_update_product_field(field, _d=None):
+    d = _d or request.get_json() or {}
     email = (d.get('email') or '').lower().strip()
     pid = str(d.get('id',''))
+    # value can be in d['value'] (new) or d[field] (old)
+    val = d.get('value', d.get(field, d.get('hidden', '')))
     conn = get_conn(); cur = conn.cursor()
     cur.execute("SELECT id, data FROM products")
     rows = cur.fetchall()
     for rid, pdata in rows:
         p = pdata if isinstance(pdata, dict) else json.loads(pdata)
         if str(p.get('id'))==pid and str(p.get('seller_email','')).lower()==email:
-            if field == 'is_hidden':
-                p['is_hidden'] = bool(d.get('hidden', d.get('is_hidden', False)))
-            elif field in ['price','stock']:
-                p[field] = int(d.get(field, 0) or 0)
+            if field in ['is_hidden','hidden']:
+                v = val
+                if isinstance(v, str): v = v.lower() in ['1','true','yes']
+                p['is_hidden'] = bool(v); p['hidden'] = bool(v)
+            elif field in ['price','stock','quantity','discount_price','promo_coins','featured','views','sold']:
+                try: p[field] = int(float(val or 0))
+                except: p[field] = 0
+                if field=='stock': p['quantity'] = p['stock']
+                if field=='quantity': p['stock'] = p['quantity']
+            elif field in ['name','description','title']:
+                p[field] = str(val or '')
+                if field=='name': p['title'] = str(val or '')
+            else:
+                p[field] = val
             cur.execute("UPDATE products SET data=%s WHERE id=%s", (json.dumps(p), rid))
             conn.commit(); cur.close(); conn.close()
             _SHOP_CACHE.clear()
