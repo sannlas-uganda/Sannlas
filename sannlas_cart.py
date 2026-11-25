@@ -30,44 +30,78 @@ def ensure_tables():
 def load_db(file, default):
     try:
         if DATABASE_URL:
-            ensure_tables(); conn = get_conn()
+            ensure_tables()
+            conn = get_conn()
             try:
                 from psycopg.rows import dict_row
                 cur = conn.cursor(row_factory=dict_row)
-        if file == 'products.json':
-                cur.execute("SELECT data FROM products ORDER BY id ASC"); rows = cur.fetchall(); cur.close(); conn.close()
-                return [r['data'] if not isinstance(r['data'], str) else json.loads(r['data']) for r in rows]
+                if file == 'products.json':
+                    cur.execute("SELECT data FROM products ORDER BY id ASC")
+                    rows = cur.fetchall()
+                    cur.close()
+                    conn.close()
+                    out = []
+                    for r in rows:
+                        d = r['data']
+                        if isinstance(d, str):
+                            try:
+                                d = json.loads(d)
+                            except:
+                                pass
+                        out.append(d)
+                    return out
                 cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                row = cur.fetchone(); cur.close(); conn.close()
-                if not row: return default
+                row = cur.fetchone()
+                cur.close()
+                conn.close()
+                if not row:
+                    return default
                 d = row['data']
-                if isinstance(d,str):
-                    try: d=json.loads(d)
-                    except: pass
+                if isinstance(d, str):
+                    try:
+                        d = json.loads(d)
+                    except:
+                        pass
                 return d
-            except:
+            except Exception:
                 try:
                     import psycopg2.extras
                     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    if file == 'products.json':
+                        cur.execute("SELECT data FROM products ORDER BY id ASC")
+                        rows = cur.fetchall()
+                        cur.close()
+                        conn.close()
+                        return [r['data'] if not isinstance(r['data'], str) else json.loads(r['data']) for r in rows]
                     cur.execute("SELECT data FROM kv_store WHERE key=%s", (file,))
-                    row = cur.fetchone(); cur.close(); conn.close()
-                    if not row: return default
+                    row = cur.fetchone()
+                    cur.close()
+                    conn.close()
+                    if not row:
+                        return default
                     d = row['data']
-                    if isinstance(d,str):
-                        try: d=json.loads(d)
-                        except: pass
+                    if isinstance(d, str):
+                        try:
+                            d = json.loads(d)
+                        except:
+                            pass
                     return d
                 except:
-                    try: conn.close()
-                    except: pass
+                    try:
+                        conn.close()
+                    except:
+                        pass
                     return default
         else:
             path = f'data/{file}'
             if os.path.exists(path):
-                try: return json.load(open(path))
-                except: return default
+                try:
+                    return json.load(open(path))
+                except:
+                    return default
             return default
-    except: return default
+    except:
+        return default
 
 def save_db(file, data):
     if DATABASE_URL:
