@@ -359,7 +359,13 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 <body>
 <div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
 <div class="shop-profile-header" id="shop-header" style="display:none">
-  <div class="avatar-wrap"><div class="avatar-ring"><div class="avatar-box" id="shopAvatarBox">S</div></div><div class="verified-badge">✓</div></div>
+  <!-- ✅ BANNER - NEW -->
+  <div id="shopBannerWrap" style="margin:-16px -16px 0 -16px;height:140px;background:#f1f5f9;overflow:hidden;position:relative;display:none">
+    <img id="shopBannerImg" src="" style="width:100%;height:100%;object-fit:cover">
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(255,255,255,0.95) 95%)"></div>
+  </div>
+  <div class="avatar-wrap" style="margin-top:-35px">
+  <div class="avatar-ring"><div class="avatar-box" id="shopAvatarBox">S</div></div><div class="verified-badge">✓</div></div>
   <div class="shop-name" id="shopNameBig">Loading...</div>
   <div class="shop-handle" id="shopHandleText">@shop</div>
   <div class="shop-bio" id="shopBioText"></div>
@@ -406,6 +412,16 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
           <input type="file" id="editLogoFile" accept="image/*" onchange="previewShopLogo(this)" style="display:none">
         </label>
         <input id="editLogo" placeholder="Or paste Logo Image URL here" style="width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:8px">
+              <!-- ✅ BANNER EDIT - NEW -->
+      <div style="text-align:center;margin:10px 0">
+        <img id="editBannerPreview" src="" style="width:100%;height:90px;object-fit:cover;border-radius:10px;border:2px solid #FFCC02;display:none">
+        <p style="font-size:12px;font-weight:800;margin:6px 0">🖼️ Shop Banner / Cover Photo</p>
+        <label style="display:block;background:#F1F1F2;padding:10px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer">
+          🖼️ Choose Banner Photo
+          <input type="file" id="editBannerFile" accept="image/*" onchange="previewShopBanner(this)" style="display:none">
+        </label>
+        <input id="editBanner" placeholder="Or paste Banner Image URL here" style="width:100%;padding:10px;margin:6px 0;border:1px solid #ddd;border-radius:8px">
+      </div>
       </div>
       <input id="editBiz" placeholder="Shop Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
       <input id="editPhone" placeholder="Phone" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
@@ -469,6 +485,9 @@ async function loadShop(){
   let avatarBox=document.getElementById('shopAvatarBox');
   let logo = shop.logo||shop.logo_url||'';
   if(logo){avatarBox.innerHTML=`<img src="${logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
+  let bannerWrap = document.getElementById('shopBannerWrap');
+  let bannerImg = document.getElementById('shopBannerImg');
+  if(bannerWrap && bannerImg && (shop.banner || shop.cover)){ bannerImg.src = shop.banner || shop.cover; bannerWrap.style.display = 'block'; }
   document.getElementById('shopNameBig').innerText='🏪 '+(shop.business_name||shop.name||slug);
   document.getElementById('shopHandleText').innerText='@'+cleanSlug(shop.shop_slug||shop.business_name)+' • '+(shop.category||'Shop');
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Welcome to '+ (shop.business_name||'shop') +' shop! Quality products, fast delivery in Uganda 🇺🇬'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
@@ -492,6 +511,15 @@ async function loadShop(){
     if(logoInput) logoInput.value = shop.logo || shop.logo_url || '';
     let logoPrev = document.getElementById('editLogoPreview');
     if(logoPrev && shop.logo){ logoPrev.src = shop.logo; logoPrev.style.display = 'block'; }
+        // Show banner on load
+    _newShopBanner = '';
+    let bannerInput = document.getElementById('editBanner');
+    if(bannerInput) bannerInput.value = shop.banner || shop.cover || '';
+    let bannerPrev = document.getElementById('editBannerPreview');
+    if(bannerPrev && shop.banner){ bannerPrev.src = shop.banner; bannerPrev.style.display = 'block'; }
+    let bw2 = document.getElementById('shopBannerWrap');
+    let bi2 = document.getElementById('shopBannerImg');
+    if(bw2 && bi2 && shop.banner){ bi2.src = shop.banner; bw2.style.display = 'block'; }
     loadOwnerProducts(prods);
     loadOwnerOrders();
   }
@@ -576,6 +604,22 @@ async function ownerDeleteProduct(id){
   await fetch('/api/shop-owner/delete-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id}))});
   location.reload();
 }
+var _newShopBanner = '';
+
+function previewShopBanner(input){
+  var file = input.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    _newShopBanner = e.target.result;
+    var prev = document.getElementById('editBannerPreview');
+    if(prev){ prev.src = _newShopBanner; prev.style.display = 'block'; }
+    var bw = document.getElementById('shopBannerWrap');
+    var bi = document.getElementById('shopBannerImg');
+    if(bw && bi){ bi.src = _newShopBanner; bw.style.display = 'block'; }
+  };
+  reader.readAsDataURL(file);
+}
 let _newShopLogo = ''; // holds new logo if owner picks photo
 
 function previewShopLogo(input){
@@ -604,10 +648,18 @@ document.addEventListener('input', function(e){
       prev.src = url; prev.style.display = 'block';
     }
   }
-});
+  if(e.target && e.target.id === 'editBanner'){
+    var burl = e.target.value.trim();
+    if(burl){
+      _newShopBanner = burl;
+      var bprev = document.getElementById('editBannerPreview');
+      if(bprev){ bprev.src = burl; bprev.style.display = 'block'; }
+    }
+  }});
 async function saveShopSettings(){
   let logoVal = _newShopLogo || document.getElementById('editLogo').value.trim();
-let body = _ownerBody({business_name: document.getElementById('editBiz').value, logo: logoVal, phone: document.getElementById('editPhone').value, location: document.getElementById('editLoc').value, description: document.getElementById('editDesc').value});  let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let bannerVal = _newShopBanner || document.getElementById('editBanner').value.trim();
+let body = _ownerBody({    business_name: document.getElementById('editBiz').value, logo: logoVal, banner: bannerVal, phone: document.getElementById('editPhone').value, location: document.getElementById('editLoc').value, description: document.getElementById('editDesc').value});  let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let j=await r.json();
   if(j.success){ alert('Shop saved - visible to all!'); location.reload(); } else alert(j.message||'Failed');
 }
@@ -870,11 +922,13 @@ def shop_owner_update_settings():
             if 'location' in d: s['location']=d['location']
             if 'description' in d: s['description']=d['description']
             if d.get('logo'): s['logo']=d['logo']
+            if d.get('banner'): s['banner']=d['banner']
+            if d.get('cover'): s['banner']=d['cover']
             found=True
             break
     if not found:
-        shops.append({'shop_slug':slug,'business_name':d.get('business_name',slug),'owner_email':email,'phone':d.get('phone',''),'location':d.get('location','Kampala'),'description':d.get('description',''),'logo':d.get('logo','')})
-    cur.execute("INSERT INTO kv_store (key,data) VALUES (%s,%s) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", ('shops.json', json.dumps(shops)))
+        shops.append({'shop_slug':slug,'business_name':d.get('business_name',slug),'owner_email':email,'phone':d.get('phone',''),'location':d.get('location','Kampala'),'description':d.get('description',''),'logo':d.get('logo',''),'banner':d.get('banner','')})
+        cur.execute("INSERT INTO kv_store (key,data) VALUES (%s,%s) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", ('shops.json', json.dumps(shops)))
     conn.commit(); cur.close(); conn.close()
     _SHOP_CACHE.pop(slug, None)
     _SHOPS_LIST_CACHE["data"]=None
