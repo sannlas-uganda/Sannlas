@@ -348,7 +348,8 @@ function orderNow(id){
   let price = (_disc>0 && _disc < Number(p.price||0)) ? _disc : Number(p.price||0);
   let sizeText = selectedSize ? ' Size: '+selectedSize : '';
   let msg = `Hi Boss! I want ${name} - UGX ${Number(price).toLocaleString()}${sizeText} - Product ID ${id} - from SANNLAS PRODUCTS`;
-  window.open(`https://wa.me/256795712326?text=${encodeURIComponent(msg)}`,'_blank');
+  let sellerPhone = String(p.phone || p.business_phone || '256795712326').replace(/[^0-9]/g,'');
+  window.open(`https://wa.me/${sellerPhone}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 async function addToCart(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
@@ -359,7 +360,7 @@ async function addToCart(id){
   if(!email && !phone){ alert('⚠️ Please login first Boss! Go to Home and login.'); window.location.href = '/'; return; }
   let _disc2 = Number(p.discount_price||0);
   let _finalPrice = (_disc2>0 && _disc2 < Number(p.price||0)) ? _disc2 : Number(p.price||0);
-  let payload = { email: email, phone: phone, product_id: String(p.id), name: p.name || p.product_name || 'Product', price: _finalPrice, image: getAllImages(p)[0], shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS', shop_slug: p.shop_slug || p.slug || '', qty: 1, size: selectedSize || '' };
+    let payload = { email: email, phone: phone, product_id: String(p.id), name: p.name || p.product_name || 'Product', price: _finalPrice, image: getAllImages(p)[0], shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS', shop_slug: p.shop_slug || p.slug || '', seller_email: p.seller_email || p.shop_email || p.owner_email || '', qty: 1, size: selectedSize || '' };
   try {
     let r = await fetch('/api/cart/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     let res = await r.json();
