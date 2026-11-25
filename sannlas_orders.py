@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 import random, time, os, json
 from datetime import datetime
 from collections import defaultdict
@@ -205,7 +205,14 @@ def create_orders():
         
         carts = get_carts()
         direct_items = data.get('items', [])
-        user_carts = direct_items if direct_items else [c for c in carts if (c.get('email','').lower()==email) or (c.get('phone','')==buyer_phone)]
+        if direct_items:
+            user_carts = direct_items
+        else:
+            user_carts = []
+            for c in carts:
+                if (c.get('email','').lower()==email) or (c.get('phone','')==buyer_phone):
+                    user_carts.extend(c.get('items', []))
+                    break
         if not user_carts:
             return jsonify({"success": False, "message": "Cart empty"}), 400
         
@@ -459,3 +466,7 @@ def fix_all():
 def clear_cache_route():
     clear_all_caches()
     return jsonify({"success": True, "message": "Cache cleared!"})
+
+@orders_bp.route('/my-orders')
+def my_orders_page():
+    return render_template('my-orders.html')
