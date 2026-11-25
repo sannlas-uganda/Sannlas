@@ -360,9 +360,9 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 <div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
 <div class="shop-profile-header" id="shop-header" style="display:none;padding:0 0 0 0">
   <!-- ✅ BANNER - FIXED -->
-  <div id="shopBannerWrap" style="margin:0;height:200px;background:#f1f5f9;overflow:hidden;position:relative;display:none">
-    <img id="shopBannerImg" src="" style="width:100%;height:100%;object-fit:cover;display:block">
-  </div>
+  <div id="shopBannerWrap" style="margin:0;background:#FF6A00;overflow:hidden;position:relative;display:none">
+  <img id="shopBannerImg" src="" style="width:100%;height:auto;max-height:280px;object-fit:contain;display:block;background:#FF6A00">
+</div>
   <div class="avatar-wrap" style="margin-top:-45px">
   <div class="avatar-ring"><div class="avatar-box" id="shopAvatarBox">S</div></div><div class="verified-badge">✓</div></div>
   <div class="shop-name" id="shopNameBig">Loading...</div>
