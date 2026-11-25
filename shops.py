@@ -358,13 +358,12 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 </style></head>
 <body>
 <div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
-<div class="shop-profile-header" id="shop-header" style="display:none">
-  <!-- ✅ BANNER - NEW -->
-  <div id="shopBannerWrap" style="margin:-16px -16px 0 -16px;height:140px;background:#f1f5f9;overflow:hidden;position:relative;display:none">
-    <img id="shopBannerImg" src="" style="width:100%;height:100%;object-fit:cover">
-    <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(255,255,255,0.95) 95%)"></div>
+<div class="shop-profile-header" id="shop-header" style="display:none;padding:0 0 0 0">
+  <!-- ✅ BANNER - FIXED -->
+  <div id="shopBannerWrap" style="margin:0;height:200px;background:#f1f5f9;overflow:hidden;position:relative;display:none">
+    <img id="shopBannerImg" src="" style="width:100%;height:100%;object-fit:cover;display:block">
   </div>
-  <div class="avatar-wrap" style="margin-top:-35px">
+  <div class="avatar-wrap" style="margin-top:-45px">
   <div class="avatar-ring"><div class="avatar-box" id="shopAvatarBox">S</div></div><div class="verified-badge">✓</div></div>
   <div class="shop-name" id="shopNameBig">Loading...</div>
   <div class="shop-handle" id="shopHandleText">@shop</div>
