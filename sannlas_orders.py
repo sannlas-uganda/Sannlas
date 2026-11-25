@@ -355,3 +355,7 @@ def mark_read():
         if n.get('recipient_email','').lower()==email: n['is_read']=True
     save_db('notifications.json', notifs)
     return jsonify({"success": True})
+
+@orders_bp.route('/track/<tracking_id>')
+def track_page(tracking_id):
+    return render_template('track.html', tracking_id=tracking_id)
