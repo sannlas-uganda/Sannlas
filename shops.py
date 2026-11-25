@@ -168,7 +168,7 @@ def get_shop_products_fast(cleaned, shop):
             ps_clean = clean_slug_fix(p.get('shop_slug',''))
             pb_clean = clean_slug_fix(p.get('business',''))
             p_email = str(p.get('seller_email','')).lower()
-            if ps_clean==cleaned or pb_clean==real_name_clean or ps_clean==clean_slug_fix(shop.get('shop_slug','')) if shop else False or pb_clean==cleaned or (owner_email and p_email==owner_email):
+            if ps_clean==cleaned or pb_clean==real_name_clean or pb_clean==cleaned or (owner_email and p_email==owner_email):
                 pp=dict(p); pp.pop('phone',None); out.append(pp)
             if len(out) >= 100:
                 break
@@ -176,13 +176,11 @@ def get_shop_products_fast(cleaned, shop):
     except:
         return []
 
-# ===== ✅ NEW - LIVE FOLLOW COUNT - Fixes 0 Followers! =====
 def get_live_follow_counts(shop_email, shop_slug):
     shop_email = (shop_email or '').lower().strip()
     shop_slug = (shop_slug or '').lower().strip()
     followers_set = set()
     following_set = set()
-    # 1. From follows.json (kv_store) - NOT shop_follows.json!
     try:
         conn = get_conn(); cur = conn.cursor()
         cur.execute("SELECT data FROM kv_store WHERE key=%s", ('follows.json',))
@@ -202,7 +200,6 @@ def get_live_follow_counts(shop_email, shop_slug):
                 followers_set.add(fe)
     except Exception as e:
         print("live counts JSON fail:", e)
-    # 2. From Postgres sannlas_follows (Reels follows!)
     try:
         conn = get_conn(); cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS sannlas_follows (id BIGSERIAL PRIMARY KEY, follower_email TEXT, following_email TEXT, created TIMESTAMP DEFAULT NOW(), UNIQUE(follower_email, following_email))")
@@ -221,9 +218,8 @@ def get_live_follow_counts(shop_email, shop_slug):
         cur.close(); conn.close()
     except Exception as e:
         print("live counts PG fail:", e)
-        return {'followers': len(followers_set), 'following': len(following_set)}
+    return {'followers': len(followers_set), 'following': len(following_set)}
 
-# ===== ✅ NEW - LIVE LIKES - Products + Reels, no fake *5! =====
 def get_live_like_counts(shop_email, shop_slug, prods):
     shop_email = (shop_email or '').lower().strip()
     shop_slug = (shop_slug or '').lower().strip()
@@ -256,7 +252,6 @@ def get_live_like_counts(shop_email, shop_slug, prods):
     product_views = sum(int(p.get('views',0) or 0) for p in (prods or []))
     return {'total_likes': product_likes + reel_likes, 'total_views': product_views + reel_views}
 
-# ===== ✅ FIXED STATS - Live count, no cache trap =====
 @shops_bp.route('/api/shop/<path:slug>/stats')
 def shop_stats(slug):
     try:
@@ -267,7 +262,6 @@ def shop_stats(slug):
             total_products = len(prods)
             shop = cached['data'].get('shop', {}) or {}
             if not isinstance(shop, dict): shop = {}
-            # ✅ Each helper in its own try - if one crashes, others still work!
             try:
                 _lc = get_live_like_counts(shop.get('owner_email') or shop.get('email') or '', cleaned, prods)
                 total_likes = _lc['total_likes']; total_views = _lc['total_views']
@@ -280,23 +274,13 @@ def shop_stats(slug):
             except Exception as e:
                 print("stats follows fail:", e)
                 counts = {'followers':0,'following':0}
-            return jsonify({
-                'shop_slug': cleaned,
-                'business_name': shop.get('business_name',''),
-                'logo': shop.get('logo',''),
-                'followers': counts['followers'],
-                'following': counts['following'],
-                'total_likes': total_likes,
-                'total_views': total_views,
-                'total_products': total_products
-            })
+            return jsonify({'shop_slug': cleaned,'business_name': shop.get('business_name',''),'logo': shop.get('logo',''),'followers': counts['followers'],'following': counts['following'],'total_likes': total_likes,'total_views': total_views,'total_products': total_products})
         shop = None
         try:
             shop = get_shop_fast(cleaned)
         except Exception as e:
             print("get_shop_fast fail:", e)
         if not isinstance(shop, dict): shop = {}
-        # ✅ If shop not found, build from products (Sann 2 case!)
         if not shop:
             try:
                 conn = get_conn(); cur = conn.cursor()
@@ -332,16 +316,7 @@ def shop_stats(slug):
         except Exception as e:
             print("stats follows fail2:", e)
             counts = {'followers':0,'following':0}
-        return jsonify({
-            'shop_slug': cleaned,
-            'business_name': shop.get('business_name','') if shop else cleaned,
-            'logo': shop.get('logo','') if shop else '',
-            'followers': counts['followers'],
-            'following': counts['following'],
-            'total_likes': total_likes,
-            'total_views': total_views,
-            'total_products': total_products
-        })
+        return jsonify({'shop_slug': cleaned,'business_name': shop.get('business_name','') if shop else cleaned,'logo': shop.get('logo','') if shop else '','followers': counts['followers'],'following': counts['following'],'total_likes': total_likes,'total_views': total_views,'total_products': total_products})
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'followers':0,'following':0,'total_likes':0,'total_views':0,'total_products':0,'error':str(e)})
@@ -396,33 +371,31 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
   </div>
   <div class="action-row" id="shopActions"></div>
 
-  <!-- ✅ EDIT 1 - OWNER ONLY - Hidden by default -->
+  <!-- ✅ NEW OWNER TOOLS - All HERE, NEVER go to /my-shop -->
   <div id="ownerTools" style="display:none;background:#FFCC02;border-radius:12px;padding:12px;margin:0 16px 12px;text-align:center">
     <div style="font-weight:900;margin-bottom:8px">👑 YOUR SHOP - Owner Only</div>
     <div style="display:flex;gap:8px;justify-content:center">
-      <a href="/my-shop" style="flex:1;background:#000;color:#FFCC02;text-decoration:none;padding:11px;border-radius:8px;font-weight:800">✏️ Edit Shop</a>
-      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:11px;border-radius:8px;font-weight:800;border:2px solid #000">➕ Add Product</a>
+      <button onclick="showOwnerPanel('edit')" style="flex:1;background:#000;color:#FFCC02;border:none;padding:11px;border-radius:8px;font-weight:800">✏️ Edit Shop</button>
+      <button onclick="showOwnerPanel('add')" style="flex:1;background:#fff;color:#000;border:none;padding:11px;border-radius:8px;font-weight:800;border:2px solid #000">➕ Add Product</button>
     </div>
     <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
-      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">💰 Earnings</a>
-      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">📦 Orders</a>
-      <a href="/my-shop" style="flex:1;background:#fff;color:#000;text-decoration:none;padding:10px;border-radius:8px;font-weight:800">📊 Stats</a>
+      <button onclick="showOwnerPanel('products')" style="flex:1;background:#fff;color:#000;border:none;padding:10px;border-radius:8px;font-weight:800">🛠️ Manage</button>
+      <button onclick="showOwnerPanel('orders')" style="flex:1;background:#fff;color:#000;border:none;padding:10px;border-radius:8px;font-weight:800">📦 Orders</button>
+      <button onclick="showOwnerPanel('earnings')" style="flex:1;background:#fff;color:#000;border:none;padding:10px;border-radius:8px;font-weight:800">💰 Earnings</button>
     </div>
   </div>
-    <!-- ✅ OWNER MANAGE - Only owner sees, visitors never -->
+  <!-- ✅ OWNER MANAGE - Only owner sees, visitors never -->
   <div id="ownerManage" style="display:none;background:#fff;border:2px solid #FFCC02;border-radius:12px;padding:12px;margin:0 16px 12px;text-align:left">
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
       <button onclick="showOwnerPanel('products')" style="background:#000;color:#FFCC02;border:none;padding:9px 12px;border-radius:8px;font-weight:800">🛠️ Manage Products</button>
       <button onclick="showOwnerPanel('edit')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">✏️ Edit Shop</button>
       <button onclick="showOwnerPanel('orders')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">📦 Orders</button>
+      <button onclick="showOwnerPanel('add')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">➕ Add</button>
+      <button onclick="showOwnerPanel('earnings')" style="background:#F1F1F2;border:none;padding:9px 12px;border-radius:8px;font-weight:800">💰 Earnings</button>
     </div>
-
-    <!-- Manage Products -->
     <div id="panel-products">
       <div id="ownerProductsList" style="font-size:13px">Loading your products...</div>
     </div>
-
-    <!-- Edit Shop -->
     <div id="panel-edit" style="display:none">
       <input id="editBiz" placeholder="Shop Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
       <input id="editPhone" placeholder="Phone" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
@@ -430,10 +403,20 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
       <textarea id="editDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
       <button onclick="saveShopSettings()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">💾 Save Shop</button>
     </div>
-
-    <!-- Orders -->
     <div id="panel-orders" style="display:none">
       <div id="ownerOrdersList" style="font-size:13px">Loading orders...</div>
+    </div>
+    <div id="panel-add" style="display:none">
+      <input id="addName" placeholder="Product Name" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="addPrice" type="number" placeholder="Price UGX" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="addStock" type="number" placeholder="Stock" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <input id="addImage" placeholder="Image URL" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px">
+      <textarea id="addDesc" placeholder="Description" style="width:100%;padding:10px;margin:4px 0;border:1px solid #ddd;border-radius:8px"></textarea>
+      <button onclick="ownerAddProduct()" style="width:100%;background:#000;color:#FFCC02;border:none;padding:12px;border-radius:8px;font-weight:900">➕ Add Product Here</button>
+      <p style="font-size:11px;color:#888;text-align:center">Saves to your shop, visible to all visitors instantly.</p>
+    </div>
+    <div id="panel-earnings" style="display:none">
+      <div id="ownerEarningsBox" style="font-size:14px;text-align:center;padding:10px">Loading earnings...</div>
     </div>
   </div>
   <div class="tab-row">
@@ -477,24 +460,18 @@ async function loadShop(){
   let logo = shop.logo||shop.logo_url||'';
   if(logo){avatarBox.innerHTML=`<img src="${logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
   document.getElementById('shopNameBig').innerText='🏪 '+(shop.business_name||shop.name||slug);
-  document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Quality products!'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
-   document.getElementById('shopHandleText').innerText='@'+cleanSlug(shop.shop_slug||shop.business_name)+' • '+(shop.category||'Shop');
+  document.getElementById('shopHandleText').innerText='@'+cleanSlug(shop.shop_slug||shop.business_name)+' • '+(shop.category||'Shop');
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Welcome to '+ (shop.business_name||'shop') +' shop! Quality products, fast delivery in Uganda 🇺🇬'}<br><span style="color:#FF6A00;font-weight:800">${prods.length} Products • Kampala</span>`;
-    // ✅ OWNER vs VISITOR SPLIT
-    let _me = null; try{ _me = JSON.parse(localStorage.getItem('sannlas_user')||'null'); }catch(e){}
+  let _me = null; try{ _me = JSON.parse(localStorage.getItem('sannlas_user')||'null'); }catch(e){}
   let _myEmail = (_me && _me.email ? _me.email.toLowerCase().trim() : '');
-  // ✅ FIX: If shop.owner_email is empty, use first product's seller_email
   let _fallbackEmail = (prods[0] && (prods[0].seller_email||prods[0].shop_email||prods[0].user_email) || '');
   let _ownerEmail = ((shop.owner_email||shop.email||_fallbackEmail||'').toLowerCase().trim());
   let _isOwner = _myEmail && _ownerEmail && _myEmail === _ownerEmail;
-
-  // ✅ EDIT 2 - Show Owner Box ONLY if owner, else keep hidden
   let _ownerBox = document.getElementById('ownerTools');
   if(_ownerBox) _ownerBox.style.display = _isOwner ? 'block' : 'none';
-    let _manageBox = document.getElementById('ownerManage');
+  let _manageBox = document.getElementById('ownerManage');
   if(_manageBox) _manageBox.style.display = _isOwner ? 'block' : 'none';
   if(_isOwner){
-    // Fill Edit form
     document.getElementById('editBiz').value = shop.business_name||'';
     document.getElementById('editPhone').value = shop.phone||'';
     document.getElementById('editLoc').value = shop.location||'Kampala';
@@ -502,15 +479,13 @@ async function loadShop(){
     loadOwnerProducts(prods);
     loadOwnerOrders();
   }
-    if(_isOwner){
-    // 👑 OWNER - Real buttons are in #ownerTools yellow box below, here just Share
+  if(_isOwner){
     document.getElementById('shopActions').innerHTML=`
       <div style="display:flex;gap:8px;justify-content:center;width:100%">
         <div style="flex:1;background:#FFCC02;color:#000;padding:11px;border-radius:8px;font-weight:900;text-align:center">👑 This is YOUR Shop</div>
         <button onclick="shareShopLink()" style="width:44px;background:#F1F1F2;border:none;border-radius:8px;font-size:18px">↗️</button>
       </div>`;
   } else {
-    // 👤 VISITOR ONLY - No Edit, No My Shop
     document.getElementById('shopActions').innerHTML=`
       <div style="display:flex;gap:8px;justify-content:center;width:100%">
         <button id="followShopBtn" onclick="toggleFollowShop()" style="flex:1;max-width:160px;background:#FE2C55;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:800;font-size:14px">➕ Follow</button>
@@ -523,7 +498,6 @@ async function loadShop(){
       </div>`;
   }
   window._currentShop = shop;
-  // ✅ Check real follow status on load
   try{
     let me = JSON.parse(localStorage.getItem('sannlas_user')||'null');
     if(me && me.email){
@@ -545,10 +519,16 @@ async function loadShop(){
   }catch(e){ document.getElementById('loading').innerHTML='Error: '+e.message; }
 }
 function showOwnerPanel(name){
-  ['products','edit','orders'].forEach(n=>{
+  ['products','edit','orders','add','earnings'].forEach(n=>{
     let el=document.getElementById('panel-'+n);
     if(el) el.style.display = (n===name)?'block':'none';
   });
+  if(name==='earnings') loadOwnerEarnings();
+}
+function _ownerBody(extra){
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  let s=window._currentShop||{};
+  return Object.assign({email:me?.email||'', shop_slug: cleanSlug(s.shop_slug||s.business_name||'')}, extra||{});
 }
 function loadOwnerProducts(prods){
   let el=document.getElementById('ownerProductsList'); if(!el) return;
@@ -565,39 +545,52 @@ function loadOwnerProducts(prods){
     </div>`).join('');
 }
 async function ownerUpdatePrice(id,price){
-  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
-  await fetch('/api/my-shop/update-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,price:parseInt(price),email:me?.email})});
-  alert('Price updated');
+  await fetch('/api/shop-owner/update-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,price:parseInt(price)}))});
+  alert('Price updated - visible to all');
 }
 async function ownerUpdateStock(id,stock){
-  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
-  await fetch('/api/my-shop/update-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,stock:parseInt(stock),email:me?.email})});
+  await fetch('/api/shop-owner/update-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,stock:parseInt(stock)}))});
 }
 async function ownerToggleHide(id,hidden){
-  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
-  await fetch('/api/my-shop/toggle-hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,hidden:hidden,email:me?.email})});
+  await fetch('/api/shop-owner/toggle-hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id,hidden:hidden}))});
   location.reload();
 }
 async function ownerDeleteProduct(id){
   if(!confirm('Delete this product?')) return;
-  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
-  await fetch('/api/my-shop/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,email:me?.email})});
+  await fetch('/api/shop-owner/delete-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ownerBody({id:id}))});
   location.reload();
 }
 async function saveShopSettings(){
-  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
-  let body={email:me?.email,business_name:document.getElementById('editBiz').value,phone:document.getElementById('editPhone').value,location:document.getElementById('editLoc').value,description:document.getElementById('editDesc').value};
-  let r=await fetch('/api/my-shop/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let body=_ownerBody({business_name:document.getElementById('editBiz').value,phone:document.getElementById('editPhone').value,location:document.getElementById('editLoc').value,description:document.getElementById('editDesc').value});
+  let r=await fetch('/api/shop-owner/update-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let j=await r.json();
-  if(j.success){ alert('Shop saved!'); location.reload(); } else alert(j.message||'Failed');
+  if(j.success){ alert('Shop saved - visible to all!'); location.reload(); } else alert(j.message||'Failed');
+}
+async function ownerAddProduct(){
+  let body=_ownerBody({name:document.getElementById('addName').value,price:parseInt(document.getElementById('addPrice').value||0),stock:parseInt(document.getElementById('addStock').value||0),image:document.getElementById('addImage').value,description:document.getElementById('addDesc').value});
+  if(!body.name||!body.price){ alert('Name + Price required'); return; }
+  let r=await fetch('/api/shop-owner/add-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let j=await r.json();
+  if(j.success){ alert('✅ Product added - visible to all!'); location.reload(); } else alert(j.message||'Failed');
 }
 async function loadOwnerOrders(){
   let el=document.getElementById('ownerOrdersList'); if(!el) return;
   let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
-  let r=await fetch('/api/my-shop?email='+encodeURIComponent(me?.email||'')).then(r=>r.json()).catch(()=>null);
+  let s=window._currentShop||{};
+  let slug=cleanSlug(s.shop_slug||s.business_name||'');
+  let r=await fetch('/api/shop-owner/dashboard?email='+encodeURIComponent(me?.email||'')+'&slug='+encodeURIComponent(slug)).then(r=>r.json()).catch(()=>null);
   let orders=r?.orders||[];
   if(!orders.length){ el.innerHTML='No orders yet'; return; }
   el.innerHTML=orders.slice(0,20).map(o=>`<div style="border:1px solid #eee;border-radius:10px;padding:8px;margin-bottom:6px">📦 ${o.product_name||o.id} - UGX ${(o.total||o.price||0).toLocaleString()} - ${o.status||'new'}</div>`).join('');
+}
+async function loadOwnerEarnings(){
+  let el=document.getElementById('ownerEarningsBox'); if(!el) return;
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  let s=window._currentShop||{};
+  let slug=cleanSlug(s.shop_slug||s.business_name||'');
+  let r=await fetch('/api/shop-owner/dashboard?email='+encodeURIComponent(me?.email||'')+'&slug='+encodeURIComponent(slug)).then(r=>r.json()).catch(()=>null);
+  if(!r||!r.success){ el.innerHTML='No data'; return; }
+  el.innerHTML=`<b style="font-size:22px">UGX ${(r.stats?.total_earnings||0).toLocaleString()}</b><br>${r.stats?.total_orders||0} Orders • ${r.stats?.total_products||0} Products<br>👁️ Views: ${r.stats?.total_views||0} | ❤️ Likes: ${r.stats?.total_likes||0}<br><small style="color:#888">REAL - no fake *3</small>`;
 }
 function showShopTab(tab){
   let pBtn=document.getElementById('tabProductsBtn'), rBtn=document.getElementById('tabReelsBtn');
@@ -640,7 +633,6 @@ async function toggleFollowShop(){
       b.innerText = isF ? '➕ Follow' : '✓ Following';
       b.style.background = isF ? '#FE2C55' : '#F1F1F2';
       b.style.color = isF ? '#fff' : '#000';
-      // Refresh real count from server
       let slug=cleanSlug(s.shop_slug||s.business_name||'');
       let stats=await fetch('/api/shop/'+encodeURIComponent(slug)+'/stats').then(r=>r.json()).catch(()=>null);
       if(stats) document.getElementById('statFollowers').innerText=(stats.followers||0).toLocaleString();
@@ -767,3 +759,146 @@ def get_all_shops():
         return jsonify(shops)
     except Exception as e:
         return jsonify([])
+
+# ===== ✅ NEW - INDEPENDENT OWNER SYSTEM - No my_shop.py, No Fake Codes =====
+def _owner_email_from_req():
+    try:
+        d = request.get_json(silent=True) or {}
+        e = (d.get('email') or '').lower().strip()
+        if e: return e
+    except: pass
+    e = (request.args.get('email') or request.headers.get('X-User-Email') or '').lower().strip()
+    return e
+
+def _is_shop_owner(shop_slug, email):
+    if not email: return False
+    try:
+        shop = get_shop_fast(clean_slug_fix(shop_slug), shop_slug)
+        if shop and str(shop.get('owner_email','')).lower().strip() == email:
+            return True
+    except: pass
+    try:
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute("SELECT data FROM products WHERE data->>'shop_slug'=%s LIMIT 1", (clean_slug_fix(shop_slug),))
+        row = cur.fetchone(); cur.close(); conn.close()
+        if row:
+            p = row[0]
+            if isinstance(p, str): p = json.loads(p)
+            if str(p.get('seller_email','')).lower().strip() == email:
+                return True
+    except: pass
+    return False
+
+@shops_bp.route('/api/shop-owner/dashboard')
+def shop_owner_dashboard():
+    email = _owner_email_from_req()
+    slug = clean_slug_fix(request.args.get('slug',''))
+    if not email or not _is_shop_owner(slug, email):
+        return jsonify({'success':False,'message':'Not owner'}), 403
+    shop = get_shop_fast(slug, slug) or {}
+    prods = get_shop_products_fast(slug, shop)
+    orders = load_db('orders_v2.json', []) or []
+    my_orders = [o for o in orders if str(o.get('seller_email','')).lower()==email]
+    total_earnings = sum(int(o.get('total') or o.get('price') or 0) for o in my_orders if str(o.get('status','')).lower() in ['paid','completed','delivered','success'])
+    return jsonify({'success':True,'shop':shop,'products':prods,'orders':sorted(my_orders,key=lambda x:x.get('created_at',0),reverse=True),
+        'stats':{'total_products':len(prods),'total_orders':len(my_orders),'total_earnings':total_earnings,
+        'total_views':sum(int(p.get('views',0) or 0) for p in prods),
+        'total_likes':sum(int(p.get('likes',0) or 0) for p in prods)}})
+
+@shops_bp.route('/api/shop-owner/update-settings', methods=['POST'])
+def shop_owner_update_settings():
+    d = request.get_json() or {}
+    email = (d.get('email') or '').lower().strip()
+    slug = clean_slug_fix(d.get('shop_slug',''))
+    if not _is_shop_owner(slug, email):
+        return jsonify({'success':False,'message':'Not owner'}), 403
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT data FROM kv_store WHERE key=%s", ('shops.json',))
+    row = cur.fetchone()
+    shops = row[0] if row else []
+    if isinstance(shops, str): shops = json.loads(shops)
+    found=False
+    for s in shops:
+        if clean_slug_fix(s.get('shop_slug') or s.get('business_name'))==slug:
+            if d.get('business_name'): s['business_name']=d['business_name']
+            if 'phone' in d: s['phone']=d['phone']
+            if 'location' in d: s['location']=d['location']
+            if 'description' in d: s['description']=d['description']
+            if d.get('logo'): s['logo']=d['logo']
+            found=True
+            break
+    if not found:
+        shops.append({'shop_slug':slug,'business_name':d.get('business_name',slug),'owner_email':email,'phone':d.get('phone',''),'location':d.get('location','Kampala'),'description':d.get('description',''),'logo':d.get('logo','')})
+    cur.execute("INSERT INTO kv_store (key,data) VALUES (%s,%s) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", ('shops.json', json.dumps(shops)))
+    conn.commit(); cur.close(); conn.close()
+    _SHOP_CACHE.pop(slug, None)
+    _SHOPS_LIST_CACHE["data"]=None
+    return jsonify({'success':True})
+
+@shops_bp.route('/api/shop-owner/add-product', methods=['POST'])
+def shop_owner_add_product():
+    d = request.get_json() or {}
+    email = (d.get('email') or '').lower().strip()
+    slug = clean_slug_fix(d.get('shop_slug',''))
+    if not _is_shop_owner(slug, email):
+        return jsonify({'success':False,'message':'Not owner'}), 403
+    if not d.get('name') or not d.get('price'):
+        return jsonify({'success':False,'message':'Name + Price required'}), 400
+    conn = get_conn(); cur = conn.cursor()
+    shop = get_shop_fast(slug, slug) or {}
+    new_p = {'name':d['name'],'title':d['name'],'price':int(d['price']),'stock':int(d.get('stock',0) or 0),
+             'image':d.get('image',''),'description':d.get('description',''),
+             'business':shop.get('business_name',slug),'shop_slug':slug,
+             'seller_email':email,'created':time.time(),'views':0,'likes':0,'is_hidden':False}
+    cur.execute("INSERT INTO products (data) VALUES (%s)", (json.dumps(new_p),))
+    conn.commit(); cur.close(); conn.close()
+    _SHOP_CACHE.pop(slug, None)
+    return jsonify({'success':True})
+
+@shops_bp.route('/api/shop-owner/update-price', methods=['POST'])
+def shop_owner_update_price():
+    return _shop_owner_update_product_field('price')
+@shops_bp.route('/api/shop-owner/update-stock', methods=['POST'])
+def shop_owner_update_stock():
+    return _shop_owner_update_product_field('stock')
+@shops_bp.route('/api/shop-owner/toggle-hide', methods=['POST'])
+def shop_owner_toggle_hide():
+    return _shop_owner_update_product_field('is_hidden')
+
+def _shop_owner_update_product_field(field):
+    d = request.get_json() or {}
+    email = (d.get('email') or '').lower().strip()
+    pid = str(d.get('id',''))
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT id, data FROM products")
+    rows = cur.fetchall()
+    for rid, pdata in rows:
+        p = pdata if isinstance(pdata, dict) else json.loads(pdata)
+        if str(p.get('id'))==pid and str(p.get('seller_email','')).lower()==email:
+            if field == 'is_hidden':
+                p['is_hidden'] = bool(d.get('hidden', d.get('is_hidden', False)))
+            elif field in ['price','stock']:
+                p[field] = int(d.get(field, 0) or 0)
+            cur.execute("UPDATE products SET data=%s WHERE id=%s", (json.dumps(p), rid))
+            conn.commit(); cur.close(); conn.close()
+            _SHOP_CACHE.clear()
+            return jsonify({'success':True})
+    cur.close(); conn.close()
+    return jsonify({'success':False,'message':'Not your product'}), 403
+
+@shops_bp.route('/api/shop-owner/delete-product', methods=['POST'])
+def shop_owner_delete_product():
+    d = request.get_json() or {}
+    email = (d.get('email') or '').lower().strip()
+    pid = str(d.get('id',''))
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT id, data FROM products")
+    for rid, pdata in cur.fetchall():
+        p = pdata if isinstance(pdata, dict) else json.loads(pdata)
+        if str(p.get('id'))==pid and str(p.get('seller_email','')).lower()==email:
+            cur.execute("DELETE FROM products WHERE id=%s", (rid,))
+            conn.commit(); cur.close(); conn.close()
+            _SHOP_CACHE.clear()
+            return jsonify({'success':True})
+    cur.close(); conn.close()
+    return jsonify({'success':False}), 404
