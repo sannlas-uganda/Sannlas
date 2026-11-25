@@ -511,6 +511,7 @@ async function loadShop(){
   if(_ownerBox) _ownerBox.style.display = _isOwner ? 'block' : 'none';
   let _manageBox = document.getElementById('ownerManage');
   if(_manageBox) _manageBox.style.display = _isOwner ? 'block' : 'none';
+  window._currentShop = shop;
   if(_isOwner){
     document.getElementById('editBiz').value = shop.business_name||'';
     document.getElementById('editPhone').value = shop.phone||'';
@@ -816,10 +817,20 @@ function renderOwnerOrders(){
 async function loadOwnerOrders(){
   let el=document.getElementById('ownerOrdersList'); if(!el) return;
   let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  let email = me?.email || '';
+  // FIX: Get slug from URL if _currentShop not set yet
+  let urlSlug = decodeURIComponent(location.pathname.split('/shop/')[1]||'').split('?')[0].split('/')[0];
   let s=window._currentShop||{};
-  let slug=cleanSlug(s.shop_slug||s.business_name||'');
-  let r=await fetch('/api/shop-owner/dashboard?email='+encodeURIComponent(me?.email||'')+'&slug='+encodeURIComponent(slug)).then(r=>r.json()).catch(()=>null);
+  let slug=cleanSlug(s.shop_slug||s.business_name||urlSlug||'');
+  let r=await fetch('/api/shop-owner/dashboard?email='+encodeURIComponent(email)+'&slug='+encodeURIComponent(slug)).then(r=>r.json()).catch(()=>null);
   _allOrders = r?.orders || [];
+  // FALLBACK: If dashboard says 0, try seller API which we KNOW works
+  if(!_allOrders.length && email){
+    let r2=await fetch('/api/orders/seller?email='+encodeURIComponent(email)+'&shop_slug='+encodeURIComponent(slug)).then(r=>r.json()).catch(()=>null);
+    if(r2?.orders?.length) _allOrders = r2.orders;
+    if(r2?.count && !_allOrders.length && r2.orders) _allOrders = r2.orders;
+  }
+  console.log('OWNER ORDERS LOADED:', _allOrders.length, 'slug:', slug, 'email:', email);
   renderOwnerOrders();
 }
 async function updateOrderStatus(id, status){
