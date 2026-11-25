@@ -363,7 +363,9 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
   <div id="shopBannerWrap" style="margin:0;background:#FF6A00;overflow:hidden;position:relative;display:none">
   <img id="shopBannerImg" src="" style="width:100%;height:auto;max-height:280px;object-fit:contain;display:block;background:#FF6A00">
 </div>
-  <div class="avatar-wrap" style="margin-top:-45px">
+    <!-- ✅ GLASSY CARD - Lifted halfway on banner -->
+  <div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.7);border-radius:22px;margin:-110px 14px 0 14px;padding:14px 10px 10px;position:relative;z-index:5;box-shadow:0 12px 30px rgba(0,0,0,0.15)">
+  <div class="avatar-wrap" style="margin-top:0">
   <div class="avatar-ring"><div class="avatar-box" id="shopAvatarBox">S</div></div><div class="verified-badge">✓</div></div>
   <div class="shop-name" id="shopNameBig">Loading...</div>
   <div class="shop-handle" id="shopHandleText">@shop</div>
@@ -373,6 +375,7 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
     <div class="stat"><b id="statFollowers">0</b><span>Followers</span></div>
     <div class="stat"><b id="statLikes">0</b><span>Likes</span></div>
     <div class="stat"><b id="statViews">0</b><span>Views</span></div>
+  </div>
   </div>
   <div class="action-row" id="shopActions"></div>
 
