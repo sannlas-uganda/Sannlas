@@ -126,20 +126,30 @@ function getAllImages(p){
   return ['/icon-192.png'];
 }
 function render(list){
+  // Hide Hidden products + use Manage fields
+  list = list.filter(p=> !(p.is_hidden || p.hidden));
   document.getElementById('products').innerHTML = list.map(p=>{
     let name = p.name || p.product_name || 'Product';
     let img = getAllImages(p)[0];
-    let price = p.price || 0;
-    let discount = p.original_price && p.original_price > price ? Math.round((p.original_price - price)*100/p.original_price) + '% OFF' : '10% OFF';
+    let origPrice = Number(p.price || 0);
+    let discPrice = Number(p.discount_price || 0);
+    let price = (discPrice > 0 && discPrice < origPrice) ? discPrice : origPrice;
+    let discount = discPrice > 0 && discPrice < origPrice ? Math.round((origPrice - discPrice)*100/origPrice) + '% OFF' : (p.original_price && p.original_price > price ? Math.round((p.original_price - price)*100/p.original_price) + '% OFF' : '');
+    let stock = Number(p.stock ?? p.quantity ?? 999);
+    let featBadge = p.featured ? `<span style="background:#FFCC02;color:#000;padding:3px 7px;border-radius:8px;font-size:10px;font-weight:900;position:absolute;top:8px;right:8px;z-index:2">⭐ Featured</span>` : '';
+    let stockBadge = stock <= 0 ? `<div style="font-size:10px;color:#ff4444;font-weight:900">❌ Out of Stock</div>` : stock < 5 ? `<div style="font-size:10px;color:#ff8800;font-weight:900">⚠️ Only ${stock} left!</div>` : '';
+    let promoBadge = p.promo_coins ? `<div style="font-size:10px;color:#00aa00;font-weight:900">💰 ${p.promo_coins} coins promo</div>` : '';
     let count = getAllImages(p).length;
     let badge = count > 1 ? `<span class="photo-count">📸 ${count} photos</span>` : '';
     return `<div class="product-card" onclick="openProduct('${p.id}')">
-      <span class="off">${discount}</span>${badge}
+      ${discount?`<span class="off">${discount}</span>`:''}${badge}${featBadge}
       <img src="${img}" onerror="this.src='/icon-192.png'" loading="lazy">
       <div class="p-info">
         <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
         <b style="color:#FF6600;font-size:13px">UGX ${Number(price).toLocaleString()}</b>
-        <div style="font-size:10px;color:#666">📍 ${p.location||'Kampala'}</div>
+        ${discPrice>0 && discPrice<origPrice ? `<span style="font-size:11px;color:#888;text-decoration:line-through;margin-left:4px">UGX ${origPrice.toLocaleString()}</span>` : ''}
+        ${stockBadge}${promoBadge}
+        <div style="font-size:10px;color:#666">📍 ${p.location||'Kampala'} • 👁️ ${p.views||0} • 🛒 ${p.sold||0} sold</div>
       </div></div>`;
   }).join('');
 }
@@ -154,9 +164,15 @@ function openProduct(id){
   currentIdx = 0;
   selectedSize = '';
   let name = p.name || p.product_name || 'Product';
-  let price = p.price || 0;
-  let orig = p.original_price || price;
+  let orig = Number(p.price || 0);
+  let discPrice = Number(p.discount_price || 0);
+  let price = (discPrice > 0 && discPrice < orig) ? discPrice : orig;
   let desc = p.description || p.desc || 'Discover premium t-shirts, hoodies, and sweatshirts designed for comfort, quality, and everyday expression.';
+  let stock = Number(p.stock ?? p.quantity ?? 999);
+  let stockText = stock <= 0 ? '❌ Out of Stock - Contact seller' : stock < 5 ? `⚠️ Hurry! Only ${stock} left in stock` : `✅ In Stock - ${stock} available`;
+  let promoText = p.promo_coins ? `💰 Promoter earns ${p.promo_coins} coins = ${(p.promo_coins*599).toLocaleString()} UGX per sale` : '';
+  let featText = p.featured ? '⭐ Featured Product' : '';
+  let saleText = discPrice > 0 && discPrice < orig ? `🔥 SALE -${Math.round((orig-discPrice)*100/orig)}% OFF - You save UGX ${(orig-discPrice).toLocaleString()}!` : '';
   let phone = p.phone || p.business_phone || 'Contact via Shop';
   let biz = p.business || p.business_name || 'SANNLAS Seller';
   let isFash = isFashion(p);
@@ -184,7 +200,8 @@ function openProduct(id){
     <div class="tik-main">
       <div class="tik-left">
         <h1>Wear Confidence<br>Define Your Style.</h1>
-        <p>${desc.slice(0,140)}</p>
+        <p>${desc}</p>
+        <div style="font-size:11px;color:#333;margin-top:8px;line-height:1.6">🏪 ${biz}<br>📍 ${p.location||'Kampala'}<br>${promoText}</div>
         <button class="get-look" onclick="orderNow('${p.id}')">Get the look ›</button>
         <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">${thumbsHtml}</div>
         <div style="font-size:11px;color:#333;margin-top:8px">📸 ${currentImgs.length} photos - Tap to view</div>
@@ -201,8 +218,13 @@ function openProduct(id){
       </div>
       <div class="tik-right">
         <div style="font-size:12px;font-weight:700;margin-bottom:4px">${name}</div>
+        ${featText?`<div style="background:#FFCC02;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:900;display:inline-block">${featText}</div>`:''}
+        ${saleText?`<div style="background:#c0392b;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:900;display:inline-block;margin-top:4px">${saleText}</div>`:''}
         <div class="price">UGX ${Number(price).toLocaleString()}</div>
         ${orig>price?`<div class="old-price">UGX ${Number(orig).toLocaleString()}</div>`:''}
+        <div style="font-size:12px;font-weight:900;margin-top:8px;color:${stock<=0?'#ff4444':'#00aa00'}">${stockText}</div>
+        ${promoText?`<div style="font-size:11px;color:#00aa00;font-weight:900;margin-top:4px">${promoText}</div>`:''}
+        <div style="font-size:11px;color:#666;margin-top:4px">👁️ ${p.views||0} views • 🛒 ${p.sold||0} sold • 📸 ${currentImgs.length} photos</div>
         ${sizeHtml}
         <div style="margin-top:14px">
           <button class="btn btn-black" onclick="orderNow('${p.id}')">💬 Order via WhatsApp</button>
@@ -301,7 +323,8 @@ function orderNow(id){
   let p = allProducts.find(x=>String(x.id)===String(id));
   if(!p) return;
   let name = p.name || p.product_name || 'Product';
-  let price = p.price || 0;
+  let _disc = Number(p.discount_price||0);
+  let price = (_disc>0 && _disc < Number(p.price||0)) ? _disc : Number(p.price||0);
   let sizeText = selectedSize ? ' Size: '+selectedSize : '';
   let msg = `Hi Boss! I want ${name} - UGX ${Number(price).toLocaleString()}${sizeText} - Product ID ${id} - from SANNLAS PRODUCTS`;
   window.open(`https://wa.me/256795712326?text=${encodeURIComponent(msg)}`,'_blank');
@@ -313,7 +336,9 @@ async function addToCart(id){
   let email = (user.email || '').toLowerCase().trim();
   let phone = (user.phone || '').trim();
   if(!email && !phone){ alert('⚠️ Please login first Boss! Go to Home and login.'); window.location.href = '/'; return; }
-  let payload = { email: email, phone: phone, product_id: String(p.id), name: p.name || p.product_name || 'Product', price: Number(p.price || 0), image: getAllImages(p)[0], shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS', shop_slug: p.shop_slug || p.slug || '', qty: 1, size: selectedSize || '' };
+  let _disc2 = Number(p.discount_price||0);
+  let _finalPrice = (_disc2>0 && _disc2 < Number(p.price||0)) ? _disc2 : Number(p.price||0);
+  let payload = { email: email, phone: phone, product_id: String(p.id), name: p.name || p.product_name || 'Product', price: _finalPrice, image: getAllImages(p)[0], shop_name: p.business || p.business_name || p.shop_name || 'SANNLAS', shop_slug: p.shop_slug || p.slug || '', qty: 1, size: selectedSize || '' };
   try {
     let r = await fetch('/api/cart/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     let res = await r.json();
