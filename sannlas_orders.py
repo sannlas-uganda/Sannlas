@@ -359,3 +359,27 @@ def mark_read():
 @orders_bp.route('/track/<tracking_id>')
 def track_page(tracking_id):
     return render_template('track.html', tracking_id=tracking_id)
+
+@orders_bp.route('/api/orders/seller')
+@orders_bp.route('/api/seller/orders')
+@orders_bp.route('/api/shop/orders')
+def api_seller_orders():
+    email = request.args.get('email','').lower().strip()
+    shop_slug = request.args.get('shop_slug','').lower().strip()
+    shop_name = request.args.get('shop_name','').lower().strip()
+    orders = get_orders()
+    mine = []
+    for o in orders:
+        o_seller = str(o.get('seller_email') or '').lower().strip()
+        o_slug = str(o.get('shop_slug') or '').lower().strip()
+        o_shop = str(o.get('shop_name') or o.get('business') or '').lower().strip()
+        # Match ANY: email OR slug OR shop name - so Sann always sees it
+        if email and o_seller == email:
+            mine.append(o)
+        elif shop_slug and o_slug == shop_slug:
+            mine.append(o)
+        elif shop_name and o_shop == shop_name:
+            mine.append(o)
+        elif not email and not shop_slug:
+            mine.append(o)
+    return jsonify({"orders": sorted(mine, key=lambda x: x.get('created_at',0), reverse=True), "count": len(mine)})
