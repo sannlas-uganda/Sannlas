@@ -554,9 +554,17 @@ async function loadShop(){
       if(chk && chk.is_following){ let b=document.getElementById('followShopBtn'); if(b){ b.innerText='✓ Following'; b.style.background='#F1F1F2'; b.style.color='#000'; } }
     }
   }catch(e){}
-  let h='';
-  prods.forEach(p=>{h+=`<div class="card"><img loading="lazy" src="${p.image||'https://via.placeholder.com/300'}"><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4><div class="price">UGX ${(p.price||0).toLocaleString()}</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;});
-  if(!prods.length) h='<p style="padding:20px">No products yet</p>';
+     let h='';
+  prods.filter(p=> !(p.is_hidden || p.hidden)).forEach(p=>{
+    let disc = Number(p.discount_price||0);
+    let stock = Number(p.stock ?? p.quantity ?? 0);
+    let saleHtml = disc>0 ? `<div style="font-size:12px;color:#888;text-decoration:line-through">UGX ${Number(p.price||0).toLocaleString()}</div><div class="price" style="color:#c0392b">UGX ${disc.toLocaleString()} 🔥 SALE -${Math.round((1-disc/Number(p.price||1))*100)}%</div>` : `<div class="price">UGX ${Number(p.price||0).toLocaleString()}</div>`;
+    let featHtml = p.featured ? `<span style="background:#FFCC02;padding:2px 6px;border-radius:10px;font-size:11px;font-weight:900">⭐ Featured</span>` : '';
+    let stockHtml = stock<=0 ? `<div style="color:#ff4444;font-size:11px;font-weight:900">❌ Out of Stock</div>` : stock<5 ? `<div style="color:#ff8800;font-size:11px;font-weight:900">⚠️ Only ${stock} left!</div>` : `<div style="color:#00aa00;font-size:11px">✅ In Stock</div>`;
+    let promoHtml = p.promo_coins ? `<div style="color:#00aa00;font-size:11px;font-weight:900">💰 ${p.promo_coins} coins promo</div>` : '';
+    h+=`<div class="card"><div style="position:relative"><img loading="lazy" src="${p.image||'https://via.placeholder.com/300'}"><div style="position:absolute;top:6px;left:6px;display:flex;gap:4px">${featHtml} ${disc>0?'<span style="background:#c0392b;color:#fff;padding:2px 6px;border-radius:10px;font-size:11px">SALE</span>':''}</div></div><div class="card-body"><h4>${(p.name||p.title||'').replace(/</g,'&lt;')}</h4>${saleHtml}${stockHtml}${promoHtml}<div style="font-size:11px;color:#888">👁️ ${p.views||0} • 🛒 ${p.sold||0} sold</div><a class="btn" href="/product/${p.id||p._id}">View Product</a></div></div>`;
+  });
+   if(!prods.length) h='<p style="padding:20px">No products yet</p>';
   document.getElementById('products').innerHTML=h;
   statsP.then(stats=>{
     if(!stats) return;
