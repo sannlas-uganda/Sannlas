@@ -35,6 +35,23 @@ button{padding:10px 18px;border:none;border-radius:20px;margin:5px;font-weight:b
 </div>
 <div id="highlightBanner" class="highlight-banner">✨ Highlighting product from Reel ✨</div>
 
+<!-- ✅ OWNER ONLY BAR - Hidden by default -->
+<div id="ownerBar" style="display:none;background:#FFCC02;color:#000;padding:12px;text-align:center;font-weight:900;position:sticky;top:48px;z-index:9998">
+  👑 This is YOUR Shop 
+  <a href="/my-shop" style="background:#000;color:#FFCC02;padding:8px 14px;border-radius:20px;text-decoration:none;margin-left:8px">✏️ Edit Shop</a>
+  <a href="/my-shop" style="background:#fff;color:#000;padding:8px 14px;border-radius:20px;text-decoration:none;margin-left:5px">➕ Add Product</a>
+</div>
+
+<!-- ✅ OWNER ONLY STATS - Earnings / Orders - Hidden by default -->
+<div id="ownerStats" style="display:none;background:#fff;margin:10px;border-radius:15px;padding:15px;border:2px solid #FFCC02">
+  <h3 style="margin:0 0 10px 0">👑 Owner Dashboard</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="/my-shop" style="flex:1;text-align:center;background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-decoration:none;font-weight:900">💰 Earnings</a>
+    <a href="/my-shop" style="flex:1;text-align:center;background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-decoration:none;font-weight:900">📦 Orders</a>
+    <a href="/my-shop" style="flex:1;text-align:center;background:#000;color:#FFCC02;padding:12px;border-radius:12px;text-decoration:none;font-weight:900">📊 Stats</a>
+  </div>
+</div>
+
 <div class="shop-profile-header" id="h">
   <div class="profile-top">
     <div class="avatar-wrap" style="cursor:default">
@@ -124,18 +141,32 @@ function renderShopInstant(shop, products){
   if(shop.logo){avatarBox.innerHTML=`<img src="${shop.logo}">`;}else{avatarBox.innerText=(shop.business_name||'S')[0].toUpperCase();}
   document.getElementById('shopNameBig').innerText=`🏪 ${shop.business_name}`;
   document.getElementById('shopBioText').innerHTML=`📍 ${shop.location||'Uganda'} | 📞 ${shop.phone||''}<br>${shop.description||'Quality products!'}<br><span style="color:#FF6A00;font-weight:800">${products.length} Products • Kampala</span>`;
-  document.getElementById('shopActions').innerHTML=`
-<div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px">
-  <button id="followShopBtn" style="background:#FFCC02;color:#000;padding:10px 18px;border-radius:20px;border:2px solid #000" onclick="toggleFollowShop()">+ FOLLOW</button>
-  <button style="background:#25D366;color:#fff;padding:10px 14px;border-radius:20px" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button>
-  <button style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px 14px;border-radius:20px" onclick="openBuyerChat()">💬 Chat • 1 Coin</button>
-  <button style="background:#FFCC02;color:#000;padding:10px 14px;border-radius:20px" onclick="openBuyerCall()">📞 Call • 1 Coin</button>
-  <button style="background:#fff;color:#000;border:2px solid #000;padding:10px 14px;border-radius:20px" onclick="shareShop()">🔗 Share</button>
-</div>
-<div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
-  <a href="/my-shop" style="color:#FFCC02;background:#1a1a1a;text-decoration:none;font-weight:900;padding:12px 20px;border-radius:25px;font-size:14px;border:2px solid #FFCC02;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏪 My Shop</a>
-</div>
-<p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
+  // ✅ OWNER vs VISITOR SPLIT
+  let isOwner = buyerEmail && shopOwnerEmail && buyerEmail === shopOwnerEmail;
+  let ownerBar = document.getElementById('ownerBar');
+  let ownerStats = document.getElementById('ownerStats');
+  if(ownerBar) ownerBar.style.display = isOwner ? 'block' : 'none';
+  if(ownerStats) ownerStats.style.display = isOwner ? 'block' : 'none';
+
+  if(isOwner){
+    document.getElementById('shopActions').innerHTML=`
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+      <a href="/my-shop" style="background:#000;color:#FFCC02;padding:10px 18px;border-radius:20px;text-decoration:none;font-weight:900">✏️ Edit Shop</a>
+      <a href="/my-shop" style="background:#FFCC02;color:#000;padding:10px 18px;border-radius:20px;text-decoration:none;font-weight:900;border:2px solid #000">➕ Add Product</a>
+      <button style="background:#fff;color:#000;border:2px solid #000;padding:10px 14px;border-radius:20px" onclick="shareShop()">🔗 Share My Shop</button>
+    </div>
+    <p style="font-size:11px;color:#666;margin-top:8px">👑 You are viewing your own shop - Visitors see Follow / WhatsApp / Chat / Call</p>`;
+  } else {
+    document.getElementById('shopActions').innerHTML=`
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px">
+      <button id="followShopBtn" style="background:#FFCC02;color:#000;padding:10px 18px;border-radius:20px;border:2px solid #000" onclick="toggleFollowShop()">+ FOLLOW</button>
+      <button style="background:#25D366;color:#fff;padding:10px 14px;border-radius:20px" onclick="openBuyerWhatsApp()">💬 WhatsApp • 1 Coin</button>
+      <button style="background:#000;color:#FFCC02;border:2px solid #FFCC02;padding:10px 14px;border-radius:20px" onclick="openBuyerChat()">💬 Chat • 1 Coin</button>
+      <button style="background:#FFCC02;color:#000;padding:10px 14px;border-radius:20px" onclick="openBuyerCall()">📞 Call • 1 Coin</button>
+      <button style="background:#fff;color:#000;border:2px solid #000;padding:10px 14px;border-radius:20px" onclick="shareShop()">🔗 Share</button>
+    </div>
+    <p style="font-size:11px;color:#0a0;margin-top:8px">✅ Shop is FREE to open - Pay only when you contact seller!</p>`;
+  }
   let pEl=document.getElementById('p');
   if(products.length){pEl.innerHTML=products.map(prod=>{let pid=prod.id||prod._id||'';let badge=prod.discount|| (prod.original_price>prod.price ? Math.round((prod.original_price-prod.price)*100/prod.original_price)+'% OFF' : '');return `<div class="card" id="product-${pid}" data-id="${pid}"><div style="position:relative"><img src="${prod.image||''}" loading="lazy"><div class="discount-badge">${badge}</div></div><div style="padding:8px"><b>${prod.title||prod.name||'Product'}</b><br><small>UGX ${prod.price||''}</small><br><button style="background:#000;color:#FFCC02;width:100%;margin-top:6px" onclick="location.href='/product/${pid}'">View Product</button></div></div>`}).join('');}
   try{ let cachedFollow = sessionStorage.getItem('sannlas_follow_'+slug); if(cachedFollow==='1'){ isFollowingShop=true; updateFollowBtn(); } }catch(e){}
