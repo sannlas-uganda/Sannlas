@@ -62,10 +62,34 @@ COMBINED_SELL_HTML = """<!DOCTYPE html>
 <div id="detailView" class="hidden"><div style="background:#000;padding:8px"><a href="javascript:showView('list')" style="color:#FFCC02;text-decoration:none">← Back</a></div><div id="productBox" style="background:#fff;border-radius:12px;margin:10px;overflow:hidden">Loading...</div></div>
 <script>
 let currentUser=JSON.parse(localStorage.getItem('sannlas_user')||'{}');
-setTimeout(()=>{
-  let biz = currentUser.business || currentUser.business_name || currentUser.name || '';
+// NEW: AGENT CONTEXT - From URL ?as_shop=...&agent_phone=... OR localStorage
+let _params = new URLSearchParams(location.search);
+let _asShop = _params.get('as_shop') || localStorage.getItem('sannlas_active_shop') || '';
+let _agentPhone = _params.get('agent_phone') || localStorage.getItem('sannlas_agent_phone') || '';
+let _agentEmail = _params.get('agent_email') || localStorage.getItem('sannlas_agent_email') || '';
+let _isAgent = _params.get('mode_agent')==='agent' || localStorage.getItem('sannlas_agent_mode')==='agent_upload';
+if(_asShop){ localStorage.setItem('sannlas_active_shop', _asShop); }
+setTimeout(async ()=>{
   let b = document.getElementById('pBiz');
-  if(b && biz){ b.value = biz; b.readOnly = true; }
+  if(_isAgent && _asShop){
+    // AGENT MODE: Show banner + Use SHOP name, not Agent name!
+    let banner = document.createElement('div');
+    banner.innerHTML = `🤝 <b>AGENT MODE:</b> Uploading for shop: <b>${_asShop}</b> | Agent: ${_agentPhone||_agentEmail}`;
+    banner.style.cssText = 'background:#000;color:#FFCC02;padding:10px;border-radius:10px;text-align:center;margin-bottom:10px;font-weight:900';
+    let form = document.querySelector('.sell-form');
+    if(form) form.prepend(banner);
+    // Try to get real shop business name
+    try{
+      let rr = await fetch('/api/agency/available-shops');
+      let dd = await rr.json();
+      let shop = (dd.shops||[]).find(s => (s.shop_slug||s.slug)===_asShop);
+      if(shop && b){ b.value = shop.business_name || shop.name || _asShop; b.readOnly = true; return; }
+    }catch(e){}
+    if(b){ b.value = _asShop; b.readOnly = true; }
+  } else {
+    let biz = currentUser.business || currentUser.business_name || currentUser.name || '';
+    if(b && biz){ b.value = biz; b.readOnly = true; }
+  }
 }, 200);
 function showView(v){document.getElementById('listView').classList.toggle('hidden',v!=='list');document.getElementById('formView').classList.toggle('hidden',v!=='form');document.getElementById('detailView').classList.toggle('hidden',v!=='detail');if(v=='list')loadProducts();}
 let parts=location.pathname.split('/').filter(Boolean);
@@ -119,6 +143,11 @@ async function createProduct(){
   fd.append('phone',currentUser.phone);
   fd.append('email',currentUser.email);
   fd.append('business', document.getElementById('pBiz').value);
+  // NEW: AGENT UPLOAD INFO
+  fd.append('as_shop', _asShop || '');
+  fd.append('agent_phone', _agentPhone || '');
+  fd.append('agent_email', _agentEmail || '');
+  fd.append('is_agent_upload', _isAgent ? '1' : '0');
   fd.append('promo_coins',promoCoins);
   fd.append('promo_commission',promoCoins);
   fd.append('commission_percent',(promoCoins*1.2).toFixed(1)+'%');
@@ -216,8 +245,27 @@ def api_create():
     prod['location'] = location
     prod['phone'] = phone
     prod['seller_email'] = email.lower() if email else ''
+        # NEW: AGENT UPLOAD - Attach to SHOP, not Agent!
+    _as_shop = request.form.get('as_shop','').strip()
+    _agent_phone = request.form.get('agent_phone','').strip()
+    _agent_email = request.form.get('agent_email','').lower().strip()
     prod['business'] = business
     prod['business_name'] = business
+    if _as_shop:
+    prod['shop_slug'] = _as_shop
+    prod['uploaded_by_agent'] = _agent_phone or _agent_email
+    prod['agent_phone'] = _agent_phone
+    prod['agent_email'] = _agent_email
+    # Look up shop owner so product shows under OWNER, not Agent!
+    try:
+        _shops = load_db('shops.json', [])
+        _shop = next((s for s in _shops if (s.get('shop_slug') or s.get('slug','')).lower() == _as_shop.lower()), None)
+        if _shop:
+    prod['business'] = _shop.get('business_name') or _shop.get('name') or business
+    prod['business_name'] = prod['business']
+    prod['shop_owner_email'] = _shop.get('owner_email') or _shop.get('email') or ''
+    prod['shop_owner_phone'] = _shop.get('owner_phone') or _shop.get('phone') or ''
+    except: pass
     prod['image'] = image_url
     prod['images'] = image_urls
     prod['promo_coins'] = int(request.form.get('promo_coins', 0) or 0)
