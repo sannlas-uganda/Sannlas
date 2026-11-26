@@ -2732,9 +2732,40 @@ setTimeout(enableUserPush, 3000);
 <div id="sannlas-bell" onclick="toggleSannlasBell()">🔔<span id="sannlas-bell-count" style="display:none">0</span></div>
 <div id="sannlas-bell-panel">
   <div class="sbell-head"><span>🔔 My Shop Notifications</span><span onclick="toggleSannlasBell()" style="cursor:pointer">✕</span></div>
-  <a class="sbell-shop-btn" href="/my-shop">🏪 OPEN MY SHOP →</a>
-  <div id="sbell-list"><p style="padding:14px;text-align:center;color:#888">Loading...</p></div>
-  <a class="sbell-shop-btn" style="background:#000;color:#FFCC02" href="/my-shop">View All Orders →</a>
+  <a class="sbell-shop-btn" href="javascript:openRealShop()">🏪 OPEN MY SHOP →</a>
+<div id="sbell-list">...</div>
+<a class="sbell-shop-btn" style="background:#000;color:#FFCC02" href="javascript:openRealShop()">View All Orders →</a>
+<script>
+async function openRealShop(){
+  let user=JSON.parse(localStorage.getItem('sannlas_user')||localStorage.getItem('user')||'{}');
+  let email=(user.email||'').toLowerCase();
+  // 1. If user already has shop slug saved, use it - fastest!
+  let savedSlug = user.shop_slug || (user.shop && (user.shop.shop_slug || user.shop.slug)) || localStorage.getItem('my_shop_slug');
+  if(savedSlug){ window.location.href='/shop/'+savedSlug; return; }
+  // 2. Else ask server: which shop has products?
+  try{
+    let r=await fetch('/api/shops?email='+encodeURIComponent(email));
+    let d=await r.json();
+    let shops=d.shops||d||[];
+    // Filter ONLY my shops
+    let mine=shops.filter(s=> (s.owner_email||s.email||'').toLowerCase()===email);
+    if(!mine.length) mine=shops;
+    // Pick REAL one = most products!
+    mine.sort((a,b)=> (b.product_count||b.products?.length||0) - (a.product_count||a.products?.length||0));
+    let real=mine[0];
+    if(real){
+      let slug=real.shop_slug||real.slug||real.business_name;
+      localStorage.setItem('my_shop_slug', slug);
+      window.location.href='/shop/'+slug;
+      return;
+    }
+  }catch(e){}
+  // Fallback
+  window.location.href='/my-shop?email='+encodeURIComponent(email);
+}
+// Also fix notification click - go to REAL shop
+function openRealShopFromNotif(){ openRealShop(); }
+</script>
 </div>
 
 <script>
@@ -2752,7 +2783,7 @@ async function loadSannlasBell(){
     let d=await r.json();
     let list=document.getElementById('sbell-list');
     if(!d.notifications||!d.notifications.length){list.innerHTML='<p style="padding:14px;text-align:center">No new notifications 🎉</p>';return;}
-    list.innerHTML=d.notifications.map(n=>`<div class="sbell-item ${n.is_read?'':'unread'}" onclick="window.location.href='/my-shop'"><b>${n.title||'🔔 Notification'}</b><p>${n.message||''}</p><p style="color:#999">${n.created_at||''}</p></div>`).join('');
+    list.innerHTML=d.notifications.map(n=>`<div class="sbell-item ${n.is_read?'':'unread'}" onclick="openRealShop()"><b>${n.title||'🔔 Notification'}</b><p>${n.message||''}</p><p style="color:#999">${n.created_at||''}</p></div>`).join('');
     // Mark read
     fetch('/api/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
     document.getElementById('sannlas-bell-count').style.display='none';
