@@ -44,8 +44,14 @@ def save_db(file, data):
 def hash_pwd(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def make_agent_code(phone):
-    last4 = phone[-4:] if len(phone) >= 4 else '1234'
+def make_agent_code(phone_or_email):
+    base = str(phone_or_email or '1234')
+    # If email like stephen@gmail.com -> take first 4 letters "STEP"
+    # If phone like 0795712326 -> take last 4 "2326"
+    if '@' in base:
+        last4 = base.split('@')[0][:4].upper()
+    else:
+        last4 = base[-4:] if len(base) >= 4 else '1234'
     rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"SANN-AGENT-{last4}-{rand}"
 
@@ -104,12 +110,22 @@ def register_agent():
     pwd = d.get('password', '').strip()
     roles = d.get('roles', ["reseller", "uploader", "broker"])
 
-    if not name or not phone or not pwd:
-        return jsonify({'success': False, 'message': 'Name, phone, password required'}), 400
+    # EMAIL IS NOW REQUIRED - PHONE IS OPTIONAL
+    if not name or not email or not pwd:
+        return jsonify({'success': False, 'message': 'Name, Email, Password required'}), 400
+
+    if '@' not in email or '.' not in email:
+        return jsonify({'success': False, 'message': 'Enter valid email e.g. stephen@gmail.com'}), 400
 
     agents = load_db('sannlas_agents.json', [])
-    if any(a['phone'] == phone for a in agents):
-        return jsonify({'success': False, 'message': 'Phone already registered - Login'}), 400
+
+    # Check EMAIL duplicate - not phone!
+    if any(a.get('email', '').lower() == email for a in agents if a.get('email')):
+        return jsonify({'success': False, 'message': 'Email already registered - Login instead'}), 400
+
+    # Phone duplicate only if phone given
+    if phone and any(a.get('phone') == phone for a in agents if a.get('phone')):
+        return jsonify({'success': False, 'message': 'Phone already used - Use different phone or leave empty'}), 400
 
     agent = {
         "id": int(time.time() * 1000),
@@ -117,7 +133,7 @@ def register_agent():
         "phone": phone,
         "email": email,
         "password": hash_pwd(pwd),
-        "agent_code": make_agent_code(phone),
+        "agent_code": make_agent_code(phone or email),
         "roles": roles,
         "is_reseller": "reseller" in roles,
         "is_uploader": "uploader" in roles,
@@ -133,7 +149,7 @@ def register_agent():
     }
     agents.append(agent)
     save_db('sannlas_agents.json', agents)
-    return jsonify({'success': True, 'message': 'Agent registered! Start earning Boss!', 'agent': hide_password(agent)})
+    return jsonify({'success': True, 'message': 'Agent registered with Email! Start earning Boss!', 'agent': hide_password(agent)})
 
 @sannlas_agents_bp.route('/api/agents/login', methods=['POST'])
 def login_agent():
@@ -145,14 +161,16 @@ def login_agent():
     agents = load_db('sannlas_agents.json', [])
     agent = None
     for a in agents:
-        phone_match = phone and a['phone'] == phone
+        # EMAIL FIRST - main login
         email_match = email and a.get('email', '').lower() == email
-        if (phone_match or email_match) and a['password'] == hash_pwd(pwd):
+        # Phone still works for old users
+        phone_match = phone and a.get('phone') == phone
+        if (email_match or phone_match) and a['password'] == hash_pwd(pwd):
             agent = a
             break
 
     if not agent:
-        return jsonify({'success': False, 'message': 'Wrong phone/email or password'}), 401
+        return jsonify({'success': False, 'message': 'Wrong email or password'}), 401
 
     agent['last_active'] = time.time()
     save_db('sannlas_agents.json', agents)
@@ -532,9 +550,7 @@ def invite_perm():
     perms.append(new_perm)
     save_db('sannlas_permissions.json', perms)
     return jsonify({"success": True, "message": f"Agent {agent['name']} can now upload to {slug} - CANNOT edit shop details! Scopes: {safe_scopes}", "permission": new_perm})
-    save_db('sannlas_permissions.json', perms)
-    return jsonify({"success": True, "message": "✅ Collaborator added!"})
-
+    
 @sannlas_agents_bp.route('/api/permissions/list')
 def list_perm():
     slug = request.args.get('shop_slug', '').lower().strip()
