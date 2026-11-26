@@ -135,7 +135,8 @@ async function loadAgent(){
  let r2=await fetch(`/api/agency/my-clients?phone=${myPhone}&email=${myEmail}`); let d2=await r2.json(); let shops=d2.shops||[]; let myClients=shops.filter(s=>s.is_my_client!==false && s.permission.status!=='available');
  let opts='<option value="">-- Select Shop --</option>'; let html='';
  if(!myClients.length){ html=`<div style="background:#fff8e1;padding:12px;border-radius:10px">🏪 You have <b>0 shops</b> yet.<br>1. Create Shop For Someone above, OR<br>2. Request to manage an existing shop:<br><button class="btn btn-orange" onclick="loadAvailable()">🔍 See Available Shops</button><div id="availList"></div></div>`; }
- else{ myClients.forEach(item=>{let perm=item.permission; let name=perm.shop_name||perm.shop_slug; opts+=`<option value="${perm.shop_slug}">${name}</option>`; html+=`<div class="shop-card"><b>${name}</b> <span style="background:#e8f5e9;padding:2px 8px;border-radius:20px;font-size:11px">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${(perm.scopes||[]).join(', ')}<br>📦 Uploaded: ${perm.products_uploaded||0} | 💰 Earned: <b style="color:green">${(perm.total_earned||0).toLocaleString()} UGX</b> | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn" style="width:auto;padding:8px 14px" onclick="selectShop('${perm.shop_slug.replace(/'/g,"\\'")}')">✅ Switch</button> <button class="btn btn-yellow" style="width:auto;padding:8px 14px" onclick="location.href='/upload?as_shop=${encodeURIComponent(perm.shop_slug)}&agent=${myPhone}'">➕ Upload</button> <button class="btn btn-red" style="width:auto;padding:8px 14px" data-slug="${perm.shop_slug.replace(/"/g,'&quot;')}" data-name="${name.replace(/"/g,'&quot;')}" onclick="removeShop(this.dataset.slug, this.dataset.name)">🗑️ Remove Shop</button></div>`;}); }
+ else{ myClients.forEach(item=>{let perm=item.permission; let name=perm.shop_name||perm.shop_slug; opts+=`<option value="${perm.shop_slug}">${name}</option>`; html+=`<div class="shop-card"><b>${name}</b> <span style="background:#e8f5e9;padding:2px 8px;border-radius:20px;font-size:11px">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${(perm.scopes||[]).join(', ')}<br>📦 Uploaded: ${perm.products_uploaded||0} | 💰 Earned: <b style="color:green">${(perm.total_earned||0).toLocaleString()} UGX</b> | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn" style="width:auto;padding:8px 14px" onclick="selectShop('${perm.shop_slug.replace(/'/g,"\\'")}')">✅ Switch</button> 
+<button class="btn btn-yellow" style="width:auto;padding:8px 14px" onclick="uploadAsShop('${perm.shop_slug.replace(/'/g,"\\'")}')">➕ Upload</button><button class="btn btn-red" style="width:auto;padding:8px 14px" data-slug="${perm.shop_slug.replace(/"/g,'&quot;')}" data-name="${name.replace(/"/g,'&quot;')}" onclick="removeShop(this.dataset.slug, this.dataset.name)">🗑️ Remove Shop</button></div>`;}); }
  document.getElementById('myShops').innerHTML=html; document.getElementById('shopSwitch').innerHTML=opts;
  if(!activeShop && myClients.length) selectShop(myClients[0].permission.shop_slug);
   let r3=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(myPhone)+'&email='+encodeURIComponent(myEmail)); let d3=await r3.json();
@@ -172,7 +173,22 @@ async function removeAgentByOwner(slug, phone){
   let d = await r.json(); alert(d.message); loadOwner();
 } 
 function switchShop(){let s=document.getElementById('shopSwitch').value; if(s) selectShop(s);}
-function goUpload(){if(!activeShop){alert('Select shop first!');return;} location.href=`/upload?as_shop=${activeShop}&agent=${myPhone}`;}
+function uploadAsShop(slug){
+  activeShop = slug;
+  localStorage.setItem('sannlas_active_shop', slug);
+  localStorage.setItem('sannlas_agent_phone', myPhone);
+  localStorage.setItem('sannlas_agent_email', myEmail);
+  localStorage.setItem('sannlas_agent_mode', 'agent_upload');
+  location.href = `/sell?mode=form&as_shop=${encodeURIComponent(slug)}&agent_phone=${encodeURIComponent(myPhone)}&agent_email=${encodeURIComponent(myEmail)}&mode_agent=agent`;
+}
+function goUpload(){
+  if(!activeShop){alert('Select shop first!');return;}
+  localStorage.setItem('sannlas_active_shop', activeShop);
+  localStorage.setItem('sannlas_agent_phone', myPhone);
+  localStorage.setItem('sannlas_agent_email', myEmail);
+  localStorage.setItem('sannlas_agent_mode', 'agent_upload');
+  location.href = `/sell?mode=form&as_shop=${encodeURIComponent(activeShop)}&agent_phone=${encodeURIComponent(myPhone)}&agent_email=${encodeURIComponent(myEmail)}&mode_agent=agent`;
+}
 function goPromote(){if(!activeShop){alert('Select shop first!');return;} location.href=`/promote?as_shop=${activeShop}`;}
 async function withdraw(){let body={agent_phone:myPhone,amount:parseInt(document.getElementById('w_amount').value),momo_number:document.getElementById('w_momo').value}; let r=await fetch('/api/commission/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('w_msg').textContent=d.message; if(d.success) setTimeout(()=>location.reload(),1500);}
 async function loadOwner(){
