@@ -1338,28 +1338,6 @@ try:
     ensure_tables()
     print("Tables ready")
 except: pass
-
-@app.route('/fix-beauty-shop')
-def fix_beauty():
-    from app import load_db, save_db
-    shops = load_db('shops.json', [])
-    for s in shops:
-        # Find shop by phone 0778496966
-        if str(s.get('phone','')) == '0778496966' or str(s.get('owner_phone','')) == '0778496966':
-            s['owner_email'] = 'beautyaminah65@gmail.com'
-            s['email'] = 'beautyaminah65@gmail.com'
-            s['owner_phone'] = '0778496966'
-            s['phone'] = '0778496966'
-    save_db('shops.json', shops)
-    # Also fix permissions for that shop
-    perms = load_db('sannlas_permissions.json', [])
-    for p in perms:
-        # If this perm belongs to Beauty's shop, set owner_email
-        if p.get('shop_slug','').lower() in ['beauty-aminah', 'aminah', 'beauty']:
-            p['owner_email'] = 'beautyaminah65@gmail.com'
-    save_db('sannlas_permissions.json', perms)
-    return "Fixed Beauty shop! Now refresh /dashboard"
-
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
