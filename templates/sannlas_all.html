@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sannlas Dashboard - Owner + Agent</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}body{background:#f8fafc;padding-bottom:90px}
+.header{background:#000;color:#FFCC02;padding:14px;display:flex;justify-content:space-between;font-weight:900}.header a{color:#FFCC02;text-decoration:none}
+.tabs{display:flex;gap:8px;max-width:900px;margin:14px auto;padding:0 14px}.tab{flex:1;padding:12px;text-align:center;background:#fff;border:2px solid #ddd;border-radius:12px;cursor:pointer;font-weight:900}.tab.active{background:#000;color:#FFCC02;border-color:#FFCC02}
+.wrap{max-width:900px;margin:auto;padding:0 14px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stat{background:#fff;border-radius:16px;padding:16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05)}.stat h2{font-size:24px}
+.box{background:#fff;margin:14px 0;padding:16px;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin:6px 0}
+.btn{width:100%;padding:12px;background:#000;color:#FFCC02;border-radius:10px;border:none;font-weight:900;cursor:pointer;margin-top:8px}.btn-yellow{background:#FFCC02;color:#000}.btn-green{background:#00c853;color:#fff}.btn-orange{background:#FF6A00;color:#fff}.btn-red{background:#ef4444;color:#fff}
+.table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+.shop-card{border-left:4px solid #FFCC02;padding:12px;border-bottom:1px solid #eee}
+.link-box{background:#f1f5f9;padding:10px;border-radius:10px;margin:8px 0;display:flex;justify-content:space-between;word-break:break-all;font-size:13px}
+.warn{background:#fef3c7;border:1px solid #fbbf24;padding:12px;border-radius:10px;font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.card{background:#fff;border-radius:16px;padding:16px;border:2px solid #eee}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:12px;border-top:1px solid #ddd}.nav a{text-decoration:none;color:#666;font-size:12px}
+</style></head><body>
+<div class="header"><a href="/">← Home</a><span>SANNLAS DASHBOARD</span><a href="/">SANNLAS</a></div>
+
+<div class="tabs">
+<div class="tab active" id="tabAgent" onclick="showView('agent')">🧠 AGENT DASHBOARD</div>
+<div class="tab" id="tabOwner" onclick="showView('owner')">🏪 OWNER DASHBOARD</div>
+<div class="tab" id="tabJoin" onclick="showView('join')">🚀 BECOME AGENT</div>
+</div>
+
+<!-- ============ JOIN / BECOME AGENT ============ -->
+<div id="viewJoin" class="wrap" style="display:none">
+<div style="background:#000;color:#fff;padding:24px;border-radius:16px;text-align:center"><h1 style="color:#FFCC02">💰 Become Sannlas Agent</h1><p style="opacity:.8">Earn without owning shop! Like MTN Agent!</p></div>
+<div class="cards" style="margin-top:14px">
+<div class="card"><span style="background:#FFCC02;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:900">15% COMMISSION</span><h3>🪙 Coin Reseller</h3><p>Share link, user buys coins, you get 15%.</p><b>90 UGX per 599 sale</b></div>
+<div class="card"><span style="background:#FFCC02;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:900">80% FOR YOU</span><h3>📦 Shop Uploader</h3><p>Help shops upload. They pay 500 UGX.</p><b>400 UGX you / 100 Sannlas</b></div>
+<div class="card"><span style="background:#FFCC02;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:900">4% PER SALE</span><h3>🤝 Sales Broker</h3><p>Find buyers. When sale happens, you get 4%.</p><b>20k on 500k phone</b></div>
+</div>
+<div class="box">
+<div style="display:flex;gap:8px"><button class="btn" id="btnRegTab" onclick="showJoinTab('reg')">Register</button><button class="btn btn-yellow" id="btnLoginTab" onclick="showJoinTab('login')">Login</button></div>
+<div id="joinReg"><h3 style="text-align:center;margin:10px">🚀 Register as Agent</h3>
+<input id="r_name" placeholder="Full Name"><input id="r_phone" placeholder="Phone 077..."><input id="r_email" placeholder="Email (optional)"><input id="r_pwd" type="password" placeholder="Password">
+<label><input type="checkbox" id="role_reseller" checked> Coin Reseller (15%)</label><br><label><input type="checkbox" id="role_uploader" checked> Shop Uploader (400/product)</label><br><label><input type="checkbox" id="role_broker" checked> Sales Broker (4%)</label>
+<button class="btn btn-yellow" onclick="registerAgent()">Become Agent 👑</button><p id="r_msg" style="text-align:center"></p></div>
+<div id="joinLogin" style="display:none"><h3 style="text-align:center;margin:10px">🔑 Agent Login</h3>
+<input id="l_phone" placeholder="Phone or Email"><input id="l_pwd" type="password" placeholder="Password">
+<button class="btn" onclick="loginAgent()">Login & See Earnings</button><p id="l_msg" style="text-align:center"></p></div>
+</div>
+</div>
+
+<!-- ============ AGENT DASHBOARD ============ -->
+<div id="viewAgent" class="wrap">
+<h2 id="agentName">Loading...</h2><p id="agentCode" style="color:#64748b"></p>
+<div class="stats">
+<div class="stat" style="border:2px solid #FFCC02"><p>🏪 Total Shops I Manage</p><h2 id="s_shops">0</h2><small>0 if none</small></div>
+<div class="stat"><p>💰 Total Earned</p><h2 id="s_earned">0 UGX</h2></div>
+<div class="stat"><p>🪙 Coins Sold</p><h2 id="s_coins">0</h2></div>
+<div class="stat"><p>📦 Products Uploaded</p><h2 id="s_uploads">0</h2></div>
+<div class="stat"><p>🤝 Sales Brokered</p><h2 id="s_sales">0</h2></div>
+<div class="stat"><p>💸 Balance</p><h2 id="s_balance">0 UGX</h2></div>
+</div>
+<div class="box" style="border:2px solid #000"><h3>➕ Create Shop For Someone (No Shop Yet?)</h3><p style="font-size:13px;color:#64748b">Client has no shop? Create it here - You become Agent automatically!</p>
+<input id="c_name" placeholder="Client Business Name e.g Mama Mboga"><input id="c_phone" placeholder="Client Phone 077..."><input id="c_business" placeholder="Business Type e.g Food, Fashion"><input id="c_location" placeholder="Location e.g Kampala">
+<button class="btn btn-yellow" onclick="createShopForClient()">🏪 CREATE SHOP FOR CLIENT →</button><p id="c_msg" style="text-align:center"></p></div>
+<div class="box"><h3>🔀 Active Shop Context</h3><select id="shopSwitch" onchange="switchShop()"><option>Loading...</option></select><div id="contextInfo" style="font-size:12px;color:#666"></div>
+<button class="btn" onclick="goUpload()">➕ Upload Product For Selected Shop</button><button class="btn" onclick="goPromote()">🚀 Promote Product For Selected Shop</button></div>
+<div class="box"><h3>🏪 My Shops - Earnings Per Shop</h3><div id="myShops">Loading...</div></div>
+<div class="box"><h3>🔗 My Referral Links - Earn 15%</h3><div id="linkList">Loading...</div></div>
+<div class="box"><h3>🏦 Withdraw (Min 5000 UGX)</h3><input id="w_amount" type="number" placeholder="Amount UGX"><input id="w_momo" placeholder="MoMo Number 077..."><button class="btn btn-green" onclick="withdraw()">Request Withdraw</button><p id="w_msg"></p></div>
+<div class="box"><h3>💸 Recent Commissions</h3><table class="table" id="commTable"><tr><th>Type</th><th>Shop</th><th>Total</th><th>You Got</th><th>Date</th></tr></table></div>
+</div>
+
+<!-- ============ OWNER DASHBOARD ============ -->
+<div id="viewOwner" class="wrap" style="display:none">
+<h2 id="ownerTitle">🏪 My Shop - Owner</h2><p id="ownerInfo" style="color:#64748b"></p>
+<div class="stats">
+<div class="stat"><p>My Agents</p><h2 id="o_agents">0</h2></div>
+<div class="stat"><p>Pending Requests</p><h2 id="o_pending">0</h2></div>
+<div class="stat"><p>Paid to Agents</p><h2 id="o_paid">0 UGX</h2></div>
+<div class="stat"><p>My Shop Slug</p><h2 id="o_slug" style="font-size:16px">-</h2></div>
+</div>
+<div class="box"><h3>⏳ Pending Agent Requests</h3><div id="pendingList">Loading...</div></div>
+<div class="box"><h3>🔐 Add Agent / Collaborator To My Shop</h3><div class="warn">⚠️ Protected: Agent CANNOT change shop name, phone, location. Only upload.</div>
+<input id="o_shop_slug" placeholder="Your shop slug e.g mama-tomatoes"><input id="o_owner_phone" placeholder="Your phone (owner)"><input id="o_agent_phone" placeholder="Agent phone 077...">
+<label><input type="checkbox" id="o_s_upload" checked> upload_product</label><br><label><input type="checkbox" id="o_s_view" checked> view_products</label><br><label><input type="checkbox" id="o_s_editOwn"> edit_own_product</label><br><label><input type="checkbox" id="o_s_orders"> view_orders</label><br>
+<input id="o_comm" type="number" value="400" placeholder="Commission per upload">
+<button class="btn btn-yellow" onclick="invite()">Add Collaborator 🔑</button><p id="o_msg"></p></div>
+<div class="box"><h3>👥 My Agents / Collaborators</h3><div id="collabList">Loading...</div></div>
+<div class="box" style="background:#000;color:#fff"><h3>🔐 How Split Works</h3><p style="font-size:13px;opacity:.9;line-height:1.6">Coin 5990: Agent 898 (15%) / Sannlas 5092<br>Upload 500: Agent 400 / Sannlas 100 - Charged to you<br>Sale 500k: Owner 470k / Agent 20k (4%) / Sannlas 10k (2%)</p></div>
+</div>
+
+<div class="nav"><a href="/">🏠 Home</a><a href="/dashboard">📊 Dashboard</a><a href="/balance">💰 Balance</a></div>
+<script>
+let user=JSON.parse(localStorage.getItem('sannlas_user')||'{}'); if(user.user) user=user.user;
+let agentStored=JSON.parse(localStorage.getItem('sannlas_agent')||'{}');
+let myPhone=new URLSearchParams(location.search).get('phone')||agentStored.phone||user.phone||'';
+let myEmail=(user.email||agentStored.email||'').toLowerCase();
+let mySlug=localStorage.getItem('my_shop_slug')||'';
+let activeShop=null;
+function showView(v){
+ document.getElementById('viewAgent').style.display=v=='agent'?'block':'none';
+ document.getElementById('viewOwner').style.display=v=='owner'?'block':'none';
+ document.getElementById('viewJoin').style.display=v=='join'?'block':'none';
+ document.getElementById('tabAgent').classList.toggle('active',v=='agent');
+ document.getElementById('tabOwner').classList.toggle('active',v=='owner');
+ document.getElementById('tabJoin').classList.toggle('active',v=='join');
+ if(v=='agent') loadAgent(); if(v=='owner') loadOwner();
+}
+function showJoinTab(t){document.getElementById('joinReg').style.display=t=='reg'?'block':'none';document.getElementById('joinLogin').style.display=t=='login'?'block':'none';}
+async function registerAgent(){
+ let roles=[]; if(document.getElementById('role_reseller').checked) roles.push('reseller'); if(document.getElementById('role_uploader').checked) roles.push('uploader'); if(document.getElementById('role_broker').checked) roles.push('broker');
+ let body={name:document.getElementById('r_name').value,phone:document.getElementById('r_phone').value,email:document.getElementById('r_email').value,password:document.getElementById('r_pwd').value,roles};
+ document.getElementById('r_msg').textContent='⏳...'; let r=await fetch('/api/agents/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('r_msg').textContent=d.message;
+ if(d.success){localStorage.setItem('sannlas_agent',JSON.stringify(d.agent)); myPhone=d.agent.phone; setTimeout(()=>showView('agent'),1000);}
+}
+async function loginAgent(){
+ let body={phone:document.getElementById('l_phone').value,email:document.getElementById('l_phone').value,password:document.getElementById('l_pwd').value};
+ document.getElementById('l_msg').textContent='⏳...'; let r=await fetch('/api/agents/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('l_msg').textContent=d.message||'Welcome!';
+ if(d.success){localStorage.setItem('sannlas_agent',JSON.stringify(d.agent)); myPhone=d.agent.phone; setTimeout(()=>showView('agent'),800);}
+}
+async function loadAgent(){
+ if(!myPhone){showView('join'); return;}
+ let r=await fetch('/api/agents/stats?phone='+encodeURIComponent(myPhone)); let d=await r.json();
+ if(!d.success){showView('join'); return;}
+ document.getElementById('agentName').textContent='👋 '+d.agent.name;
+ document.getElementById('agentCode').textContent='Code: '+d.agent.agent_code+' | Phone: '+d.agent.phone+' | Roles: '+(d.agent.roles||[]).join(', ');
+ document.getElementById('s_earned').textContent=(d.stats.total_earned||0).toLocaleString()+' UGX';
+ document.getElementById('s_coins').textContent=d.stats.coins_sold; document.getElementById('s_uploads').textContent=d.stats.products_uploaded; document.getElementById('s_sales').textContent=d.stats.sales_brokered; document.getElementById('s_balance').textContent=(d.stats.total_earned||0).toLocaleString()+' UGX';
+ document.getElementById('s_shops').textContent=d.stats.total_shops||0;
+ let h=''; d.commissions.forEach(c=>{h+=`<tr><td>${c.type}</td><td>${c.shop_slug||'-'}</td><td>${(c.total_amount||0).toLocaleString()}</td><td style="color:green;font-weight:800">+${(c.agent_amount||0).toLocaleString()}</td><td>${new Date(c.time*1000).toLocaleDateString()}</td></tr>`});
+ document.getElementById('commTable').innerHTML='<tr><th>Type</th><th>Shop</th><th>Total</th><th>You Got</th><th>Date</th></tr>'+(h||'<tr><td colspan=5>No commissions yet - share your link!</td></tr>');
+ // Shops
+ let r2=await fetch(`/api/agency/my-clients?phone=${myPhone}&email=${myEmail}`); let d2=await r2.json(); let shops=d2.shops||[]; let myClients=shops.filter(s=>s.is_my_client!==false && s.permission.status!=='available');
+ let opts='<option value="">-- Select Shop --</option>'; let html='';
+ if(!myClients.length){ html=`<div style="background:#fff8e1;padding:12px;border-radius:10px">🏪 You have <b>0 shops</b> yet.<br>1. Create Shop For Someone above, OR<br>2. Request to manage an existing shop:<br><button class="btn btn-orange" onclick="loadAvailable()">🔍 See Available Shops</button><div id="availList"></div></div>`; }
+ else{ myClients.forEach(item=>{let perm=item.permission; let name=perm.shop_name||perm.shop_slug; opts+=`<option value="${perm.shop_slug}">${name}</option>`; html+=`<div class="shop-card"><b>${name}</b> <span style="background:#e8f5e9;padding:2px 8px;border-radius:20px;font-size:11px">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${(perm.scopes||[]).join(', ')}<br>📦 Uploaded: ${perm.products_uploaded||0} | 💰 Earned From This Shop: <b style="color:green">${(perm.total_earned||0).toLocaleString()} UGX</b> | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn" style="width:auto;padding:8px 14px" onclick="selectShop('${perm.shop_slug}')">✅ Switch</button> <button class="btn btn-yellow" style="width:auto;padding:8px 14px" onclick="location.href='/upload?as_shop=${perm.shop_slug}&agent=${myPhone}'">➕ Upload</button></div>`;}); }
+ document.getElementById('myShops').innerHTML=html; document.getElementById('shopSwitch').innerHTML=opts;
+ if(!activeShop && myClients.length) selectShop(myClients[0].permission.shop_slug);
+ let r3=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(myPhone)); let d3=await r3.json();
+ if(d3.success){let lh=''; for(const k in d3.links){lh+=`<div class=link-box><span><b>${k}:</b> ${d3.links[k]}</span><button class=btn style="width:auto;padding:6px 10px" onclick="navigator.clipboard.writeText('${d3.links[k]}');alert('Copied!')">Copy</button></div>`} document.getElementById('linkList').innerHTML=lh;}
+}
+async function loadAvailable(){let r=await fetch('/api/agency/available-shops'); let d=await r.json(); document.getElementById('availList').innerHTML=(d.shops||[]).slice(0,20).map(s=>`<div style="padding:8px;border-bottom:1px solid #eee"><b>${s.business_name||s.name}</b> - ${s.shop_slug||s.slug} <button class="btn btn-orange" style="width:auto;padding:6px 10px" onclick="requestAccess('${s.shop_slug||s.slug}','${s.business_name||s.name}')">Request</button></div>`).join('');}
+async function requestAccess(slug,name){let r=await fetch('/api/agency/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:slug,shop_name:name,agent_phone:myPhone,agent_name:'Agent'})}); let d=await r.json(); alert(d.message); loadAgent();}
+async function createShopForClient(){
+ let body={business_name:document.getElementById('c_name').value,phone:document.getElementById('c_phone').value,business_type:document.getElementById('c_business').value,location:document.getElementById('c_location').value,agent_phone:myPhone,agent_name:document.getElementById('agentName').textContent};
+ if(!body.business_name||!body.phone){document.getElementById('c_msg').textContent='Enter name + phone';return;}
+ document.getElementById('c_msg').textContent='⏳ Creating...'; let r=await fetch('/api/agency/create-shop-for-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('c_msg').textContent=d.message; if(d.success){alert('Shop created! You are now Agent!'); loadAgent();}
+}
+function selectShop(slug){activeShop=slug; localStorage.setItem('sannlas_active_shop',slug); document.getElementById('contextInfo').innerHTML=`✅ Active: <b>${slug}</b>`; document.getElementById('shopSwitch').value=slug; fetch('/api/agency/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_phone:myPhone,shop_slug:slug})});}
+function switchShop(){let s=document.getElementById('shopSwitch').value; if(s) selectShop(s);}
+function goUpload(){if(!activeShop){alert('Select shop first!');return;} location.href=`/upload?as_shop=${activeShop}&agent=${myPhone}`;}
+function goPromote(){if(!activeShop){alert('Select shop first!');return;} location.href=`/promote?as_shop=${activeShop}`;}
+async function withdraw(){let body={agent_phone:myPhone,amount:parseInt(document.getElementById('w_amount').value),momo_number:document.getElementById('w_momo').value}; let r=await fetch('/api/commission/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('w_msg').textContent=d.message; if(d.success) setTimeout(()=>location.reload(),1500);}
+async function loadOwner(){
+ document.getElementById('o_owner_phone').value=myPhone; document.getElementById('o_shop_slug').value=mySlug; document.getElementById('o_slug').textContent=mySlug||'-'; document.getElementById('ownerInfo').textContent='Phone: '+myPhone+' | Email: '+myEmail;
+ let r=await fetch(`/api/agency/pending-requests?owner_phone=${myPhone}&owner_email=${myEmail}`); let d=await r.json(); let reqs=d.requests||[];
+ document.getElementById('o_pending').textContent=reqs.length;
+ document.getElementById('pendingList').innerHTML=reqs.length?reqs.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee"><b>${p.agent_name||p.agent_phone}</b> - ${p.agent_phone} wants <b>${p.shop_slug}</b><br><button onclick="approveReq('${p.shop_slug}','${p.agent_phone}')" style="background:#00c853;color:#fff;border:none;padding:8px 12px;border-radius:8px">✅ Approve</button> <button onclick="rejectReq('${p.shop_slug}','${p.agent_phone}')" style="background:#ef4444;color:#fff;border:none;padding:8px 12px;border-radius:8px">❌ Reject</button></div>`).join(''):'<small>No pending requests</small>';
+ if(mySlug){let r2=await fetch('/api/permissions/list?shop_slug='+encodeURIComponent(mySlug)); let list=await r2.json(); document.getElementById('o_agents').textContent=list.length; document.getElementById('collabList').innerHTML=list.length?list.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee"><b>${p.agent_name||p.agent_phone}</b> - ${(p.scopes||[]).join(', ')} | Uploads: ${p.products_uploaded||0} | Earned: ${p.total_earned||0} UGX <button onclick="revokeCollab('${p.shop_slug}','${p.agent_phone}')" style="background:#ef4444;color:#fff;border:none;padding:6px 10px;border-radius:8px;float:right">Revoke</button></div>`).join(''):'<small>No agents yet - Add one above</small>';}
+}
+async function invite(){
+ let scopes=[]; if(document.getElementById('o_s_upload').checked) scopes.push('upload_product'); if(document.getElementById('o_s_view').checked) scopes.push('view_products'); if(document.getElementById('o_s_editOwn').checked) scopes.push('edit_own_product'); if(document.getElementById('o_s_orders').checked) scopes.push('view_orders');
+ let body={shop_slug:document.getElementById('o_shop_slug').value,owner_phone:myPhone,owner_email:myEmail,agent_phone:document.getElementById('o_agent_phone').value,scopes,commission_per_upload:parseInt(document.getElementById('o_comm').value)||400};
+ let r=await fetch('/api/permissions/invite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('o_msg').textContent=d.message; loadOwner();
+}
+async function approveReq(slug,phone){let r=await fetch('/api/agency/approve-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:slug,agent_phone:phone,owner_phone:myPhone,owner_email:myEmail})}); let d=await r.json(); alert(d.message); loadOwner();}
+async function rejectReq(slug,phone){let r=await fetch('/api/agency/reject-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:slug,agent_phone:phone})}); let d=await r.json(); alert(d.message); loadOwner();}
+async function revokeCollab(slug,phone){if(!confirm('Revoke?'))return; let r=await fetch('/api/permissions/revoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:slug,agent_phone:phone,owner_phone:myPhone})}); let d=await r.json(); alert(d.message); loadOwner();}
+loadAgent();
+</script></body></html>
