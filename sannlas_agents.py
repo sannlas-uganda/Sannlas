@@ -434,25 +434,32 @@ def switch_ctx():
 def create_shop_for_client():
     d = request.json or {}
     name = d.get('business_name', '').strip()
-    cphone = d.get('phone', '').strip()
+    cphone = d.get('phone', '').strip() or d.get('owner_phone', '').strip()
+    cemail = d.get('owner_email', '').lower().strip() or d.get('email', '').lower().strip()
+    cpwd = d.get('owner_password', '').strip()
     aphone = d.get('agent_phone', '').strip()
 
-    if not name or not cphone or not aphone:
-        return jsonify({"success": False, "message": "Business name, client phone, agent phone required"}), 400
+    # EMAIL + PASSWORD NOW REQUIRED - Owner must login later!
+    if not name or not cemail or not cpwd or not aphone:
+        return jsonify({"success": False, "message": "Business name, Owner Email, Owner Password, Agent required! Owner needs email to login later!"}), 400
+    if '@' not in cemail:
+        return jsonify({"success": False, "message": "Enter valid Owner Email e.g. aminah@gmail.com"}), 400
 
     shops = load_db('shops.json', [])
     slug = name.lower().replace(' ', '-').replace('/', '-')
     if any((s.get('shop_slug') or s.get('slug', '')).lower() == slug for s in shops):
         slug = f"{slug}-{cphone[-4:]}"
 
-    new_shop = {
+       new_shop = {
         "shop_slug": slug,
         "slug": slug,
         "business_name": name,
         "name": name,
         "phone": cphone,
         "owner_phone": cphone,
-        "owner_email": d.get('owner_email', ''),
+        "owner_email": cemail,
+        "owner_password": hash_pwd(cpwd),
+        "email": cemail,
         "business_type": d.get('business_type', ''),
         "location": d.get('location', 'Uganda'),
         "created_by_agent": aphone,
@@ -479,7 +486,7 @@ def create_shop_for_client():
         "created": time.time()
     })
     save_db('sannlas_permissions.json', perms)
-    return jsonify({"success": True, "message": f"✅ Shop {name} created! You are now Agent to it!", "shop": new_shop, "slug": slug})
+    return jsonify({"success": True, "message": f"✅ Shop {name} created! Owner can login with {cemail} / password you set!", "shop": {k:v for k,v in new_shop.items() if k != 'owner_password'}, "slug": slug, "owner_email": cemail, "owner_login": f"Email: {cemail} | Password: (you set it)"})
 
 # ============================================================
 # 9. PERMISSIONS - INVITE / LIST / REVOKE
