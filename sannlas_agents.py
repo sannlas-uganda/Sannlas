@@ -449,8 +449,7 @@ def create_shop_for_client():
     slug = name.lower().replace(' ', '-').replace('/', '-')
     if any((s.get('shop_slug') or s.get('slug', '')).lower() == slug for s in shops):
         slug = f"{slug}-{cphone[-4:]}"
-
-       new_shop = {
+    new_shop = {
         "shop_slug": slug,
         "slug": slug,
         "business_name": name,
