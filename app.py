@@ -142,8 +142,8 @@ app.register_blueprint(sannlas_upload_bp)
 from sannlas_security import sannlas_security_bp
 app.register_blueprint(sannlas_security_bp)
 
-from sannlas_all import sannlas_all_bp
-app.register_blueprint(sannlas_all_bp)
+from sannlas_agents import sannlas_agents_bp
+app.register_blueprint(sannlas_agents_bp)
 
 from sannlas_ai import ai_bp
 app.register_blueprint(ai_bp)
