@@ -465,8 +465,47 @@ def create_shop_for_client():
         "created": time.time(),
         "total_products": 0
     }
-    shops.append(new_shop)
+        shops.append(new_shop)
     save_db('shops.json', shops)
+
+    # === FIX: CREATE MAIN SITE USER TOO - SAME LOGIN GATE ===
+    # Owner must be able to login on sannlas.store with same email + password!
+    # Main site checks users.json, not shops.json - so we create user here!
+    try:
+        users = load_db('users.json', [])
+        # Check if user already exists (maybe owner already has account)
+        existing_user = next((u for u in users if str(u.get('email','')).lower() == cemail), None)
+        if not existing_user:
+            # Create new main site user - SAME password hash as main site uses!
+            new_user = {
+                "id": int(time.time() * 1000),
+                "name": name,  # Shop name as name, owner can change later
+                "business_name": name,
+                "email": cemail,
+                "password": hash_pwd(cpwd),  # SAME hash function as main login!
+                "phone": cphone,
+                "role": "seller",
+                "is_seller": True,
+                "is_shop_owner": True,
+                "shop_slug": slug,
+                "my_shop_slug": slug,
+                "created_by_agent": aphone,
+                "created": time.time(),
+            }
+            users.append(new_user)
+            save_db('users.json', users)
+            print(f"✅ MAIN USER CREATED for owner: {cemail}")
+        else:
+            # Owner already has account - just link shop to him!
+            existing_user['shop_slug'] = slug
+            existing_user['my_shop_slug'] = slug
+            existing_user['is_shop_owner'] = True
+            existing_user['is_seller'] = True
+            save_db('users.json', users)
+            print(f"✅ EXISTING USER LINKED to shop: {cemail}")
+    except Exception as e:
+        print(f"⚠️ Could not create main user: {e}")
+        # Don't fail shop creation even if user creation fails
 
     # Auto make agent = collaborator
     perms = load_db('sannlas_permissions.json', [])
