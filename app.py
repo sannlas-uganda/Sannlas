@@ -132,9 +132,6 @@ app.register_blueprint(sannlas_delivery_bp)
 from sannlas_balance import sannlas_balance_bp
 app.register_blueprint(sannlas_balance_bp)
 
-from sannlas_promotion import sannlas_promotion_bp
-app.register_blueprint(sannlas_promotion_bp)
-
 from sannlas_upload import sannlas_upload_bp
 app.register_blueprint(sannlas_upload_bp)
 
