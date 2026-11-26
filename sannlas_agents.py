@@ -3,7 +3,7 @@
 from flask import Blueprint, Response, request, jsonify
 import os, json, time, hashlib, random, string
 
-sannlas_all_bp = Blueprint('sannlas_all_bp', __name__)
+sannlas_agents_bp = Blueprint('sannlas_agents_bp', __name__)
 
 def load_db(file, default):
     try:
@@ -37,13 +37,13 @@ def can_agent_do(agent_phone, shop_slug, action):
     return True, "Allowed"
 
 # ===== PAGES - ONE HTML HAS BOTH DASHBOARDS =====
-@sannlas_all_bp.route('/dashboard')
-@sannlas_all_bp.route('/owner-dashboard')
-@sannlas_all_bp.route('/agent/dashboard')
-@sannlas_all_bp.route('/agency')
-@sannlas_all_bp.route('/agents')
-@sannlas_all_bp.route('/collaborators')
-@sannlas_all_bp.route('/commission')
+@sannlas_agents_bp.route('/dashboard')
+@sannlas_agents_bp.route('/owner-dashboard')
+@sannlas_agents_bp.route('/agent/dashboard')
+@sannlas_agents_bp.route('/agency')
+@sannlas_agents_bp.route('/agents')
+@sannlas_agents_bp.route('/collaborators')
+@sannlas_agents_bp.route('/commission')
 def all_page():
     # Load the single HTML file
     for p in ['templates/sannlas_all.html','sannlas_all.html']:
@@ -52,7 +52,7 @@ def all_page():
     return Response("Create sannlas_all.html first", mimetype='text/html')
 
 # ===== AGENTS: REGISTER / LOGIN =====
-@sannlas_all_bp.route('/api/agents/register', methods=['POST'])
+@sannlas_agents_bp.route('/api/agents/register', methods=['POST'])
 def register_agent():
     d=request.json or {}; name=d.get('name','').strip(); phone=d.get('phone','').strip(); email=d.get('email','').lower().strip(); pwd=d.get('password','').strip(); roles=d.get('roles',["reseller","uploader","broker"])
     if not name or not phone or not pwd: return jsonify({'success':False,'message':'Name, phone, password required'}),400
@@ -63,7 +63,7 @@ def register_agent():
     safe={k:v for k,v in agent.items() if k!='password'}
     return jsonify({'success':True,'message':'Agent registered! Start earning Boss!','agent':safe})
 
-@sannlas_all_bp.route('/api/agents/login', methods=['POST'])
+@sannlas_agents_bp.route('/api/agents/login', methods=['POST'])
 def login_agent():
     d=request.json or {}; phone=d.get('phone','').strip(); email=d.get('email','').lower().strip(); pwd=d.get('password','').strip()
     agents=load_db('sannlas_agents.json',[])
@@ -76,7 +76,7 @@ def login_agent():
     return jsonify({'success':True,'agent':{k:v for k,v in agent.items() if k!='password'}})
 
 # ===== AGENTS: STATS + SHOPS + EARNINGS PER SHOP =====
-@sannlas_all_bp.route('/api/agents/stats')
+@sannlas_agents_bp.route('/api/agents/stats')
 def agent_stats():
     phone=request.args.get('phone','').strip(); code=request.args.get('code','').strip()
     agents=load_db('sannlas_agents.json',[])
@@ -97,7 +97,7 @@ def agent_stats():
     agent.update({"total_earned":total,"coins_sold":coins,"products_uploaded":uploads,"sales_brokered":sales,"balance":total}); save_db('sannlas_agents.json',agents)
     return jsonify({'success':True,'agent':{k:v for k,v in agent.items() if k!='password'},'commissions':sorted(my,key=lambda x:x.get('time',0),reverse=True)[:50],'stats':{'total_earned':total,'coins_sold':coins,'products_uploaded':uploads,'sales_brokered':sales,'total_shops':len(my_perms)},'my_shops':my_perms,'earnings_per_shop':per_shop})
 
-@sannlas_all_bp.route('/api/agents/referral-link')
+@sannlas_agents_bp.route('/api/agents/referral-link')
 def referral_link():
     phone=request.args.get('phone','').strip(); agents=load_db('sannlas_agents.json',[])
     agent=next((a for a in agents if a['phone']==phone),None)
@@ -106,7 +106,7 @@ def referral_link():
     links={"coin_link":f"{base}/coins?ref={agent['agent_code']}","shop_link":f"{base}/?ref={agent['agent_code']}","product_link":f"{base}/?ref={agent['agent_code']}","become_agent_link":f"{base}/agents?ref={agent['agent_code']}"}
     return jsonify({'success':True,'links':links,'agent_code':agent['agent_code']})
 
-@sannlas_all_bp.route('/api/agents/coin-sold', methods=['POST'])
+@sannlas_agents_bp.route('/api/agents/coin-sold', methods=['POST'])
 def coin_sold():
     d=request.json or {}; code=d.get('agent_code','').strip(); buyer=d.get('buyer_phone','').strip(); coins=int(d.get('coins',0)); price=int(d.get('price_paid',0))
     if not code or not buyer: return jsonify({'success':False,'message':'agent_code and buyer_phone required'}),400
@@ -117,7 +117,7 @@ def coin_sold():
     return jsonify({'success':True,'message':f'Commission {cut} UGX given','agent_cut':cut})
 
 # ===== AGENCY: MY CLIENTS / AVAILABLE / REQUEST / APPROVE =====
-@sannlas_all_bp.route('/api/agency/my-clients')
+@sannlas_agents_bp.route('/api/agency/my-clients')
 def my_clients():
     phone=request.args.get('phone','').strip(); email=request.args.get('email','').lower().strip()
     perms=load_db('sannlas_permissions.json',[]); shops_db=load_db('shops.json',[])
@@ -132,11 +132,11 @@ def my_clients():
             result.append({"permission":{"shop_slug":slug,"shop_name":s.get('business_name') or s.get('name') or 'Shop',"status":"available","scopes":["upload_product"],"products_uploaded":0,"total_earned":0,"commission_per_upload":400},"shop":s,"is_my_client":False})
     return jsonify({"success":True,"shops":result})
 
-@sannlas_all_bp.route('/api/agency/available-shops')
+@sannlas_agents_bp.route('/api/agency/available-shops')
 def available_shops():
     shops=load_db('shops.json',[]); return jsonify({"success":True,"shops":sorted(shops,key=lambda x:x.get('total_products',0) or 0,reverse=True)[:200]})
 
-@sannlas_all_bp.route('/api/agency/request', methods=['POST'])
+@sannlas_agents_bp.route('/api/agency/request', methods=['POST'])
 def request_helper():
     d=request.json or {}; slug=d.get('shop_slug','').lower().strip(); phone=d.get('agent_phone','').strip()
     if not slug or not phone: return jsonify({"success":False,"message":"shop and phone needed"}),400
@@ -145,7 +145,7 @@ def request_helper():
     perms.append({"id":int(time.time()*1000),"shop_slug":slug,"shop_name":d.get('shop_name',slug),"agent_phone":phone,"agent_name":d.get('agent_name','Helper'),"owner_phone":"","scopes":["upload_product","view_products","edit_own_product"],"status":"pending","products_uploaded":0,"total_earned":0,"commission_per_upload":400,"created":time.time()}); save_db('sannlas_permissions.json',perms)
     return jsonify({"success":True,"message":f"Request sent to {slug}! Owner will approve."})
 
-@sannlas_all_bp.route('/api/agency/pending-requests')
+@sannlas_agents_bp.route('/api/agency/pending-requests')
 def pending_requests():
     owner_phone=request.args.get('owner_phone','').strip(); owner_email=request.args.get('owner_email','').lower().strip()
     perms=load_db('sannlas_permissions.json',[]); shops_db=load_db('shops.json',[])
@@ -158,7 +158,7 @@ def pending_requests():
     pending=[p for p in perms if p.get('status')=='pending' and (not my_slugs or p.get('shop_slug','').lower() in my_slugs)]
     return jsonify({"success":True,"requests":pending,"my_shops":my_slugs})
 
-@sannlas_all_bp.route('/api/agency/approve-request', methods=['POST'])
+@sannlas_agents_bp.route('/api/agency/approve-request', methods=['POST'])
 def approve_req():
     d=request.json or {}; perms=load_db('sannlas_permissions.json',[])
     for p in perms:
@@ -166,25 +166,25 @@ def approve_req():
             p['status']='active'; p['owner_phone']=d.get('owner_phone',''); p['owner_email']=d.get('owner_email',''); p['approved_at']=time.time(); save_db('sannlas_permissions.json',perms); return jsonify({"success":True,"message":f"✅ Approved! {d.get('agent_phone')} can now upload"})
     return jsonify({"success":False,"message":"Request not found"}),404
 
-@sannlas_all_bp.route('/api/agency/reject-request', methods=['POST'])
+@sannlas_agents_bp.route('/api/agency/reject-request', methods=['POST'])
 def reject_req():
     d=request.json or {}; perms=load_db('sannlas_permissions.json',[])
     perms=[p for p in perms if not (p['shop_slug'].lower()==d.get('shop_slug','').lower() and p['agent_phone']==d.get('agent_phone','') and p.get('status')=='pending')]; save_db('sannlas_permissions.json',perms)
     return jsonify({"success":True,"message":"❌ Rejected"})
 
-@sannlas_all_bp.route('/api/agency/my-helpers')
+@sannlas_agents_bp.route('/api/agency/my-helpers')
 def my_helpers():
     owner_phone=request.args.get('owner_phone','').strip(); perms=load_db('sannlas_permissions.json',[])
     return jsonify({"success":True,"permissions":[p for p in perms if p.get('owner_phone')==owner_phone and p.get('status')=='active']})
 
-@sannlas_all_bp.route('/api/agency/switch', methods=['POST'])
+@sannlas_agents_bp.route('/api/agency/switch', methods=['POST'])
 def switch_ctx():
     d=request.json or {}; ok,reason=can_agent_do(d.get('agent_phone',''),d.get('shop_slug',''),'view_products')
     if not ok: return jsonify({"success":False,"message":reason}),403
     return jsonify({"success":True,"message":f"Switched to {d.get('shop_slug')}","active_shop":d.get('shop_slug')})
 
 # ===== CREATE SHOP FOR SOMEONE - NEW =====
-@sannlas_all_bp.route('/api/agency/create-shop-for-client', methods=['POST'])
+@sannlas_agents_bp.route('/api/agency/create-shop-for-client', methods=['POST'])
 def create_shop_for_client():
     d=request.json or {}; name=d.get('business_name','').strip(); cphone=d.get('phone','').strip(); aphone=d.get('agent_phone','').strip()
     if not name or not cphone or not aphone: return jsonify({"success":False,"message":"Business name, client phone, agent phone required"}),400
@@ -197,7 +197,7 @@ def create_shop_for_client():
     return jsonify({"success":True,"message":f"✅ Shop {name} created! You are now Agent to it!","shop":new_shop,"slug":slug})
 
 # ===== PERMISSIONS: INVITE / LIST / REVOKE =====
-@sannlas_all_bp.route('/api/permissions/invite', methods=['POST'])
+@sannlas_agents_bp.route('/api/permissions/invite', methods=['POST'])
 def invite_perm():
     d=request.json or {}; slug=d.get('shop_slug','').lower().strip(); aphone=d.get('agent_phone','').strip()
     if not slug or not aphone: return jsonify({"success":False,"message":"shop_slug and agent_phone required"}),400
@@ -207,12 +207,12 @@ def invite_perm():
     perms.append({"id":int(time.time()*1000),"shop_slug":slug,"shop_name":slug,"agent_phone":aphone,"agent_name":aphone,"owner_phone":d.get('owner_phone',''),"owner_email":d.get('owner_email',''),"scopes":d.get('scopes',["upload_product","view_products"]),"status":"active","products_uploaded":0,"total_earned":0,"commission_per_upload":d.get('commission_per_upload',400),"created":time.time()}); save_db('sannlas_permissions.json',perms)
     return jsonify({"success":True,"message":"✅ Collaborator added!"})
 
-@sannlas_all_bp.route('/api/permissions/list')
+@sannlas_agents_bp.route('/api/permissions/list')
 def list_perm():
     slug=request.args.get('shop_slug','').lower().strip(); perms=load_db('sannlas_permissions.json',[])
     return jsonify([p for p in perms if p['shop_slug'].lower()==slug and p.get('status')=='active'])
 
-@sannlas_all_bp.route('/api/permissions/revoke', methods=['POST'])
+@sannlas_agents_bp.route('/api/permissions/revoke', methods=['POST'])
 def revoke_perm():
     d=request.json or {}; perms=load_db('sannlas_permissions.json',[])
     for p in perms:
@@ -221,7 +221,7 @@ def revoke_perm():
     return jsonify({"success":False,"message":"Not found"}),404
 
 # ===== AGENCY UPLOAD AS SHOP =====
-@sannlas_all_bp.route('/api/agency/upload', methods=['POST'])
+@sannlas_agents_bp.route('/api/agency/upload', methods=['POST'])
 def agency_upload():
     d=request.json or {}; slug=d.get('shop_slug','').lower().strip(); aphone=d.get('agent_phone','').strip(); prod=d.get('product',{})
     ok,reason=can_agent_do(aphone,slug,"upload_product")
@@ -238,13 +238,13 @@ def agency_upload():
     return jsonify({"success":True,"message":"Product uploaded AS shop! +400 UGX","product":np})
 
 # ===== COMMISSION: LIST / WITHDRAW / PROFIT / PAYOUTS =====
-@sannlas_all_bp.route('/api/commission/list')
+@sannlas_agents_bp.route('/api/commission/list')
 def comm_list():
     phone=request.args.get('agent_phone','').strip(); comms=load_db('sannlas_commissions.json',[])
     if phone: comms=[c for c in comms if c.get('agent_phone')==phone]
     return jsonify(sorted(comms,key=lambda x:x.get('time',0),reverse=True)[:100])
 
-@sannlas_all_bp.route('/api/commission/withdraw', methods=['POST'])
+@sannlas_agents_bp.route('/api/commission/withdraw', methods=['POST'])
 def withdraw():
     d=request.json or {}; amt=int(d.get('amount',0) or 0); phone=d.get('agent_phone','').strip(); momo=d.get('momo_number','').strip()
     if amt<5000: return jsonify({"success":False,"message":"Min 5000 UGX"}),400
@@ -255,21 +255,21 @@ def withdraw():
     payouts.append({"id":int(time.time()*1000),"agent_phone":phone,"agent_name":phone,"amount":amt,"momo_number":momo,"status":"pending","time":time.time()}); save_db('sannlas_payouts.json',payouts)
     return jsonify({"success":True,"message":f"Withdraw request {amt} UGX sent! We will pay via MoMo."})
 
-@sannlas_all_bp.route('/api/commission/sannlas-profit')
+@sannlas_agents_bp.route('/api/commission/sannlas-profit')
 def profit():
     if request.args.get('key','')!='SANNLAS2026SECURE': return jsonify({"success":False,"message":"Admin key required"}),403
     comms=load_db('sannlas_commissions.json',[])
     total_profit=sum(c.get('sannlas_amount',0) for c in comms)
     return jsonify({"success":True,"stats":{"total_profit":total_profit,"from_coins":sum(c.get('sannlas_amount',0) for c in comms if c.get('type')=='coin_resale'),"from_uploads":sum(c.get('sannlas_amount',0) for c in comms if c.get('type')=='upload'),"from_sales":sum(c.get('sannlas_amount',0) for c in comms if c.get('type')=='broker_sale'),"total_sales_volume":sum(c.get('total_amount',0) for c in comms if c.get('type')=='broker_sale'),"total_coin_volume":sum(c.get('total_amount',0) for c in comms if c.get('type')=='coin_resale'),"total_uploads":sum(1 for c in comms if c.get('type')=='upload'),"total_commissions":len(comms)},"recent":sorted(comms,key=lambda x:x.get('time',0),reverse=True)[:50]})
 
-@sannlas_all_bp.route('/api/commission/payouts')
+@sannlas_agents_bp.route('/api/commission/payouts')
 def payouts():
     if request.args.get('key','')!='SANNLAS2026SECURE': return jsonify({"success":False,"message":"Admin key required"}),403
     payouts=load_db('sannlas_payouts.json',[]); st=request.args.get('status','')
     if st: payouts=[p for p in payouts if p.get('status')==st]
     return jsonify(sorted(payouts,key=lambda x:x.get('time',0),reverse=True))
 
-@sannlas_all_bp.route('/api/commission/payout/approve', methods=['POST'])
+@sannlas_agents_bp.route('/api/commission/payout/approve', methods=['POST'])
 def approve_payout():
     d=request.json or {}
     if d.get('key','')!='SANNLAS2026SECURE': return jsonify({"success":False,"message":"Admin key required"}),403
@@ -278,7 +278,7 @@ def approve_payout():
         if p.get('id')==d.get('payout_id'): p['status']='paid'; save_db('sannlas_payouts.json',payouts); return jsonify({"success":True,"message":"Marked paid!"})
     return jsonify({"success":False,"message":"Not found"}),404
 
-@sannlas_all_bp.route('/api/agents/list')
+@sannlas_agents_bp.route('/api/agents/list')
 def list_agents():
     if request.args.get('key','')!='SANNLAS2026SECURE': return jsonify({"success":False,"message":"Admin key required"}),403
     agents=load_db('sannlas_agents.json',[])
