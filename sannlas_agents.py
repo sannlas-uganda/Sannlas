@@ -300,6 +300,7 @@ def my_clients():
     perms = load_db('sannlas_permissions.json', [])
     shops_db = load_db('shops.json', [])
     my_perms = [p for p in perms if p.get('status') == 'active' and ((phone and p.get('agent_phone') == phone) or (email and str(p.get('agent_email','')).lower() == email))]
+
     result = []
     for perm in my_perms:
         shop = next(
@@ -308,23 +309,6 @@ def my_clients():
         )
         result.append({"permission": perm, "shop": shop, "is_my_client": True})
 
-    # If agent has 0 shops, show available shops to request
-    if not result:
-        for s in shops_db[:100]:
-            slug = s.get('shop_slug') or s.get('slug') or s.get('business_name', 'shop')
-            result.append({
-                "permission": {
-                    "shop_slug": slug,
-                    "shop_name": s.get('business_name') or s.get('name') or 'Shop',
-                    "status": "available",
-                    "scopes": ["upload_product"],
-                    "products_uploaded": 0,
-                    "total_earned": 0,
-                    "commission_per_upload": 400
-                },
-                "shop": s,
-                "is_my_client": False
-            })
     return jsonify({"success": True, "shops": result})
 
 @sannlas_agents_bp.route('/api/agency/available-shops')
