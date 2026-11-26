@@ -960,3 +960,61 @@ def admin_list_perms():
     if request.args.get('key', '') != 'SANNLAS2026SECURE':
         return jsonify({"success": False, "message": "Admin key required"}), 403
     return jsonify(load_db('sannlas_permissions.json', []))
+
+# === OWNER STATS - MAKE ALL COUNT - Finds shop by Email OR Phone ===
+@sannlas_agents_bp.route('/api/agency/owner-stats')
+def owner_stats():
+    owner_email = request.args.get('email', '').lower().strip() or request.args.get('owner_email', '').lower().strip()
+    owner_phone = request.args.get('phone', '').strip() or request.args.get('owner_phone', '').strip()
+
+    shops = load_db('shops.json', [])
+    perms = load_db('sannlas_permissions.json', [])
+    comms = load_db('sannlas_commissions.json', [])
+
+    # 1. FIND MY SHOP(S) - Try EVERY field!
+    my_shops = []
+    for s in shops:
+        slug = (s.get('shop_slug') or s.get('slug') or '').lower()
+        if not slug:
+            continue
+        # Match by ANY of these - email, phone, owner_email, owner_phone
+        if owner_email and (str(s.get('owner_email','')).lower() == owner_email or str(s.get('email','')).lower() == owner_email or str(s.get('seller_email','')).lower() == owner_email):
+            my_shops.append(s)
+        elif owner_phone and (str(s.get('owner_phone','')) == owner_phone or str(s.get('phone','')) == owner_phone or str(s.get('seller_phone','')) == owner_phone):
+            my_shops.append(s)
+
+    my_slugs = [(s.get('shop_slug') or s.get('slug') or '').lower() for s in my_shops]
+    my_slugs = list(set(my_slugs))
+
+    # 2. MY AGENTS - ALL perms for MY slugs, ACTIVE only
+    my_agents = [p for p in perms if p.get('shop_slug','').lower() in my_slugs and p.get('status') == 'active']
+    # ALSO include perms where owner_email matches (old data where slug mismatch)
+    if owner_email:
+        extra = [p for p in perms if str(p.get('owner_email','')).lower() == owner_email and p.get('status') == 'active' and p not in my_agents]
+        my_agents.extend(extra)
+
+    # 3. PENDING - ALL pending for MY slugs
+    pending = [p for p in perms if p.get('shop_slug','').lower() in my_slugs and p.get('status') == 'pending']
+    if owner_email:
+        extra_p = [p for p in perms if str(p.get('owner_email','')).lower() == owner_email and p.get('status') == 'pending' and p not in pending]
+        pending.extend(extra_p)
+
+    # 4. PAID TO AGENTS - Sum commissions for MY slugs
+    paid = sum(c.get('agent_amount', 0) for c in comms if str(c.get('shop_slug','')).lower() in my_slugs)
+    # Also if commission has no shop_slug but agent is my agent, count it
+    my_agent_phones = [p.get('agent_phone') for p in my_agents]
+    paid_extra = sum(c.get('agent_amount', 0) for c in comms if c.get('agent_phone') in my_agent_phones and not c.get('shop_slug'))
+    paid += paid_extra
+
+    return jsonify({
+        "success": True,
+        "my_shops": my_shops,
+        "my_slugs": my_slugs,
+        "my_shop_slug": my_slugs[0] if my_slugs else "",
+        "agents": my_agents,
+        "agents_count": len(my_agents),
+        "pending": pending,
+        "pending_count": len(pending),
+        "paid_to_agents": paid,
+        "debug": {"looked_for_email": owner_email, "looked_for_phone": owner_phone, "found_slugs": my_slugs}
+    })
