@@ -36,11 +36,11 @@ input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;ma
 <div class="box">
 <div style="display:flex;gap:8px"><button class="btn" id="btnRegTab" onclick="showJoinTab('reg')">Register</button><button class="btn btn-yellow" id="btnLoginTab" onclick="showJoinTab('login')">Login</button></div>
 <div id="joinReg"><h3 style="text-align:center;margin:10px">🚀 Register as Agent</h3>
-<input id="r_name" placeholder="Full Name"><input id="r_phone" placeholder="Phone 077..."><input id="r_email" placeholder="Email (optional)"><input id="r_pwd" type="password" placeholder="Password">
+<input id="r_name" placeholder="Full Name e.g. NDYOMUGISHA STEPHEN"><input id="r_email" type="email" placeholder="Email * e.g. stephen@gmail.com" required><input id="r_phone" placeholder="Phone (optional) 079..."><input id="r_pwd" type="password" placeholder="Password *">
 <label><input type="checkbox" id="role_reseller" checked> Coin Reseller (15%)</label><br><label><input type="checkbox" id="role_uploader" checked> Shop Uploader (400/product)</label><br><label><input type="checkbox" id="role_broker" checked> Sales Broker (4%)</label>
 <button class="btn btn-yellow" onclick="registerAgent()">Become Agent 👑</button><p id="r_msg" style="text-align:center"></p></div>
 <div id="joinLogin" style="display:none"><h3 style="text-align:center;margin:10px">🔑 Agent Login</h3>
-<input id="l_phone" placeholder="Phone or Email"><input id="l_pwd" type="password" placeholder="Password">
+<input id="l_email" type="email" placeholder="Email e.g. stephen@gmail.com"><input id="l_pwd" type="password" placeholder="Password">
 <button class="btn" onclick="loginAgent()">Login & See Earnings</button><p id="l_msg" style="text-align:center"></p></div>
 </div>
 </div>
@@ -91,7 +91,7 @@ input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;ma
 let user=JSON.parse(localStorage.getItem('sannlas_user')||'{}'); if(user.user) user=user.user;
 let agentStored=JSON.parse(localStorage.getItem('sannlas_agent')||'{}');
 let myPhone=new URLSearchParams(location.search).get('phone')||agentStored.phone||user.phone||'';
-let myEmail=(user.email||agentStored.email||'').toLowerCase();
+let myEmail=(new URLSearchParams(location.search).get('email')||user.email||agentStored.email||'').toLowerCase();
 let mySlug=localStorage.getItem('my_shop_slug')||'';
 let activeShop=null;
 function showView(v){
@@ -106,18 +106,22 @@ function showView(v){
 function showJoinTab(t){document.getElementById('joinReg').style.display=t=='reg'?'block':'none';document.getElementById('joinLogin').style.display=t=='login'?'block':'none';}
 async function registerAgent(){
  let roles=[]; if(document.getElementById('role_reseller').checked) roles.push('reseller'); if(document.getElementById('role_uploader').checked) roles.push('uploader'); if(document.getElementById('role_broker').checked) roles.push('broker');
- let body={name:document.getElementById('r_name').value,phone:document.getElementById('r_phone').value,email:document.getElementById('r_email').value,password:document.getElementById('r_pwd').value,roles};
+ let email=document.getElementById('r_email').value.trim().toLowerCase();
+ if(!email || !email.includes('@')){document.getElementById('r_msg').textContent='❌ Enter valid Email!'; return;}
+ if(!document.getElementById('r_name').value.trim()){document.getElementById('r_msg').textContent='❌ Enter Name!'; return;}
+ if(!document.getElementById('r_pwd').value){document.getElementById('r_msg').textContent='❌ Enter Password!'; return;}
+ let body={name:document.getElementById('r_name').value,email:email,phone:document.getElementById('r_phone').value,password:document.getElementById('r_pwd').value,roles};
  document.getElementById('r_msg').textContent='⏳...'; let r=await fetch('/api/agents/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('r_msg').textContent=d.message;
- if(d.success){localStorage.setItem('sannlas_agent',JSON.stringify(d.agent)); myPhone=d.agent.phone; setTimeout(()=>showView('agent'),1000);}
+ if(d.success){localStorage.setItem('sannlas_agent',JSON.stringify(d.agent)); myPhone=d.agent.phone; myEmail=d.agent.email; setTimeout(()=>showView('agent'),1000);}
 }
 async function loginAgent(){
- let body={phone:document.getElementById('l_phone').value,email:document.getElementById('l_phone').value,password:document.getElementById('l_pwd').value};
+ let body={email:document.getElementById('l_email').value.trim().toLowerCase(),password:document.getElementById('l_pwd').value};
  document.getElementById('l_msg').textContent='⏳...'; let r=await fetch('/api/agents/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('l_msg').textContent=d.message||'Welcome!';
  if(d.success){localStorage.setItem('sannlas_agent',JSON.stringify(d.agent)); myPhone=d.agent.phone; setTimeout(()=>showView('agent'),800);}
 }
 async function loadAgent(){
- if(!myPhone){showView('join'); return;}
- let r=await fetch('/api/agents/stats?phone='+encodeURIComponent(myPhone)); let d=await r.json();
+ if(!myPhone && !myEmail){showView('join'); return;}
+ let r=await fetch('/api/agents/stats?phone='+encodeURIComponent(myPhone)+'&email='+encodeURIComponent(myEmail)); let d=await r.json();
  if(!d.success){showView('join'); return;}
  document.getElementById('agentName').textContent='👋 '+d.agent.name;
  document.getElementById('agentCode').textContent='Code: '+d.agent.agent_code+' | Phone: '+d.agent.phone+' | Roles: '+(d.agent.roles||[]).join(', ');
@@ -133,7 +137,7 @@ async function loadAgent(){
  else{ myClients.forEach(item=>{let perm=item.permission; let name=perm.shop_name||perm.shop_slug; opts+=`<option value="${perm.shop_slug}">${name}</option>`; html+=`<div class="shop-card"><b>${name}</b> <span style="background:#e8f5e9;padding:2px 8px;border-radius:20px;font-size:11px">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${(perm.scopes||[]).join(', ')}<br>📦 Uploaded: ${perm.products_uploaded||0} | 💰 Earned From This Shop: <b style="color:green">${(perm.total_earned||0).toLocaleString()} UGX</b> | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn" style="width:auto;padding:8px 14px" onclick="selectShop('${perm.shop_slug}')">✅ Switch</button> <button class="btn btn-yellow" style="width:auto;padding:8px 14px" onclick="location.href='/upload?as_shop=${perm.shop_slug}&agent=${myPhone}'">➕ Upload</button></div>`;}); }
  document.getElementById('myShops').innerHTML=html; document.getElementById('shopSwitch').innerHTML=opts;
  if(!activeShop && myClients.length) selectShop(myClients[0].permission.shop_slug);
- let r3=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(myPhone)); let d3=await r3.json();
+  let r3=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(myPhone)+'&email='+encodeURIComponent(myEmail)); let d3=await r3.json();
  if(d3.success){let lh=''; for(const k in d3.links){lh+=`<div class=link-box><span><b>${k}:</b> ${d3.links[k]}</span><button class=btn style="width:auto;padding:6px 10px" onclick="navigator.clipboard.writeText('${d3.links[k]}');alert('Copied!')">Copy</button></div>`} document.getElementById('linkList').innerHTML=lh;}
 }
 async function loadAvailable(){let r=await fetch('/api/agency/available-shops'); let d=await r.json(); document.getElementById('availList').innerHTML=(d.shops||[]).slice(0,20).map(s=>`<div style="padding:8px;border-bottom:1px solid #eee"><b>${s.business_name||s.name}</b> - ${s.shop_slug||s.slug} <button class="btn btn-orange" style="width:auto;padding:6px 10px" onclick="requestAccess('${s.shop_slug||s.slug}','${s.business_name||s.name}')">Request</button></div>`).join('');}
