@@ -1,26 +1,16 @@
-self.addEventListener('install', e => self.skipWaiting());
-self.addEventListener('activate', e => self.clients.claim());
+// --- SANNLAS MERGED WORKER: OneSignal + User-to-User ---
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKWorker.js');
 
-// OneSignal Worker - Keep this!
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
-
-// --- SANNLAS CUSTOM PUSH (VAPID) ---
-self.addEventListener('push', function(event) {
-  let data = {};
-  try { data = event.data.json(); } catch(e) { data = {title:'Sannlas', body: event.data.text()}; }
-  // Don't double-show if it's from OneSignal
-  if (data.custom && data.custom.i) return;
-  const options = {
-    body: data.body || 'New order!',
-    icon: '/static/icon.png',
-    badge: '/static/icon.png',
-    data: { url: data.url || '/' },
-    vibrate: [200, 100, 200]
-  };
-  event.waitUntil(self.registration.showNotification(data.title || '🔔 Sannlas - New Order!', options));
+self.addEventListener('push', function(e){
+  // If it's OneSignal, let OneSignal handle it
+  if(e.data && e.data.text().includes('onesignal')) return;
+  // Our User-to-User push
+  try{
+    let data = e.data.json();
+    e.waitUntil(self.registration.showNotification(data.title, {body: data.body, icon: '/icon-192.png', data: {url: data.url||'/my-shop'}}));
+  }catch(err){}
 });
-
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data.url || '/'));
+self.addEventListener('notificationclick', function(e){
+  e.notification.close();
+  e.waitUntil(clients.openWindow(e.notification.data.url || '/my-shop'));
 });
