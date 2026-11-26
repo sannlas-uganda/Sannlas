@@ -135,7 +135,7 @@ async function loadAgent(){
  let r2=await fetch(`/api/agency/my-clients?phone=${myPhone}&email=${myEmail}`); let d2=await r2.json(); let shops=d2.shops||[]; let myClients=shops.filter(s=>s.is_my_client!==false && s.permission.status!=='available');
  let opts='<option value="">-- Select Shop --</option>'; let html='';
  if(!myClients.length){ html=`<div style="background:#fff8e1;padding:12px;border-radius:10px">🏪 You have <b>0 shops</b> yet.<br>1. Create Shop For Someone above, OR<br>2. Request to manage an existing shop:<br><button class="btn btn-orange" onclick="loadAvailable()">🔍 See Available Shops</button><div id="availList"></div></div>`; }
- else{ myClients.forEach(item=>{let perm=item.permission; let name=perm.shop_name||perm.shop_slug; opts+=`<option value="${perm.shop_slug}">${name}</option>`; html+=`<div class="shop-card"><b>${name}</b> <span style="background:#e8f5e9;padding:2px 8px;border-radius:20px;font-size:11px">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${(perm.scopes||[]).join(', ')}<br>📦 Uploaded: ${perm.products_uploaded||0} | 💰 Earned From This Shop: <b style="color:green">${(perm.total_earned||0).toLocaleString()} UGX</b> | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn" style="width:auto;padding:8px 14px" onclick="selectShop('${perm.shop_slug}')">✅ Switch</button> <button class="btn btn-yellow" style="width:auto;padding:8px 14px" onclick="location.href='/upload?as_shop=${perm.shop_slug}&agent=${myPhone}'">➕ Upload</button></div>`;}); }
+ else{ myClients.forEach(item=>{let perm=item.permission; let name=perm.shop_name||perm.shop_slug; opts+=`<option value="${perm.shop_slug}">${name}</option>`; html+=`<div class="shop-card"><b>${name}</b> <span style="background:#e8f5e9;padding:2px 8px;border-radius:20px;font-size:11px">${perm.status}</span><br><small>Slug: ${perm.shop_slug} | Scopes: ${(perm.scopes||[]).join(', ')}<br>📦 Uploaded: ${perm.products_uploaded||0} | 💰 Earned From This Shop: <b style="color:green">${(perm.total_earned||0).toLocaleString()} UGX</b> | Per Upload: ${perm.commission_per_upload||400} UGX</small><br><button class="btn" style="width:auto;padding:8px 14px" onclick="selectShop('${perm.shop_slug}')">✅ Switch</button> <button class="btn btn-yellow" style="width:auto;padding:8px 14px" onclick="location.href='/upload?as_shop=${perm.shop_slug}&agent=${myPhone}'">➕ Upload</button> <button class="btn btn-red" style="width:auto;padding:8px 14px" onclick="removeShop('${perm.shop_slug}','${name}')">🗑️ Remove Shop</button></div>`;}); }
  document.getElementById('myShops').innerHTML=html; document.getElementById('shopSwitch').innerHTML=opts;
  if(!activeShop && myClients.length) selectShop(myClients[0].permission.shop_slug);
   let r3=await fetch('/api/agents/referral-link?phone='+encodeURIComponent(myPhone)+'&email='+encodeURIComponent(myEmail)); let d3=await r3.json();
@@ -153,6 +153,20 @@ async function createShopForClient(){
  document.getElementById('c_msg').textContent='⏳ Creating...'; let r=await fetch('/api/agency/create-shop-for-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('c_msg').textContent=d.message; if(d.success){alert('✅ Shop created!\n\nTell Owner:\nEmail: '+cEmail+'\nPassword: '+cPwd+'\nGo to sannlas.store → Login → OWNER DASHBOARD → You will see your shop!'); loadAgent();}
 }
 function selectShop(slug){activeShop=slug; localStorage.setItem('sannlas_active_shop',slug); document.getElementById('contextInfo').innerHTML=`✅ Active: <b>${slug}</b>`; document.getElementById('shopSwitch').value=slug; fetch('/api/agency/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_phone:myPhone,shop_slug:slug})});}
+// AGENT removes himself from a shop - Owner stays, shop stays, agent just leaves!
+async function removeShop(slug, name){
+  if(!confirm(`Remove yourself from ${name}?\n\nYou will NO LONGER manage this shop.\nShop owner keeps his shop!\nYour past earnings stay.`)) return;
+  let r = await fetch('/api/agency/remove-shop', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({shop_slug: slug, agent_phone: myPhone, agent_email: myEmail})});
+  let d = await r.json();
+  alert(d.message);
+  if(d.success){ if(activeShop === slug) activeShop = null; loadAgent(); }
+}
+// OWNER removes agent - Already exists, keep it!
+async function removeAgentByOwner(slug, phone){
+  if(!confirm('Remove this agent from your shop? Agent will lose access!')) return;
+  let r = await fetch('/api/permissions/revoke', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({shop_slug: slug, agent_phone: phone, owner_phone: myPhone, owner_email: myEmail})});
+  let d = await r.json(); alert(d.message); loadOwner();
+} 
 function switchShop(){let s=document.getElementById('shopSwitch').value; if(s) selectShop(s);}
 function goUpload(){if(!activeShop){alert('Select shop first!');return;} location.href=`/upload?as_shop=${activeShop}&agent=${myPhone}`;}
 function goPromote(){if(!activeShop){alert('Select shop first!');return;} location.href=`/promote?as_shop=${activeShop}`;}
