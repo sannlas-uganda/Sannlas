@@ -15,6 +15,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary_config
 from seo import register_seo
+from push import save_sub, send_to_all
 
 app = Flask(__name__)
 register_seo(app)
@@ -26,6 +27,21 @@ app.register_blueprint(seo_auto_bp)
 @app.route('/ping')
 def ping():
     return "OK", 200
+
+# --- SANNLAS PUSH ROUTES ---
+@app.route('/vapid-public-key')
+def vapid_key():
+    return {"publicKey": os.getenv("VAPID_PUBLIC_KEY")}
+
+@app.route('/save-subscription', methods=['POST'])
+def save_subscription():
+    sub = request.get_json()
+    # Use your Postgres system, not file!
+    subs = load_db('push_subs.json', [])
+    if sub not in subs:
+        subs.append(sub)
+        save_db('push_subs.json', subs)
+    return {"success": True}
 
 @app.route('/health')
 def health():
