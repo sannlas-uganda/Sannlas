@@ -182,10 +182,10 @@ def login_agent():
 @sannlas_agents_bp.route('/api/agents/stats')
 def agent_stats():
     phone = request.args.get('phone', '').strip()
+    email = request.args.get('email', '').lower().strip()
     code = request.args.get('code', '').strip()
-
     agents = load_db('sannlas_agents.json', [])
-    agent = next((a for a in agents if a['phone'] == phone or a['agent_code'] == code), None)
+    agent = next((a for a in agents if (phone and a.get('phone') == phone) or (email and a.get('email','').lower() == email) or (code and a.get('agent_code') == code)), None)
     if not agent:
         return jsonify({'success': False, 'message': 'Agent not found'}), 404
 
@@ -233,8 +233,9 @@ def agent_stats():
 @sannlas_agents_bp.route('/api/agents/referral-link')
 def referral_link():
     phone = request.args.get('phone', '').strip()
+    email = request.args.get('email', '').lower().strip()
     agents = load_db('sannlas_agents.json', [])
-    agent = next((a for a in agents if a['phone'] == phone), None)
+    agent = next((a for a in agents if (phone and a.get('phone') == phone) or (email and a.get('email','').lower() == email)), None)
     if not agent:
         return jsonify({'success': False, 'message': 'Agent not found'}), 404
 
