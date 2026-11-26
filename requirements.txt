@@ -9,3 +9,5 @@ requests
 cloudinary
 Flask-Compress
 imageio-ffmpeg
+pywebpush==1.14.0
+cryptography==42.0.5
