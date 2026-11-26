@@ -216,7 +216,6 @@ def api_create():
     business = request.form.get('business','')
     if not name or not price:
         return jsonify({'success':False,'message':'Name and price required'}),400
-    # FIXED: Upload ALL up to 4 images
     image_urls = []
     files = request.files.getlist('images')
     for f in files[:4]:
@@ -245,27 +244,8 @@ def api_create():
     prod['location'] = location
     prod['phone'] = phone
     prod['seller_email'] = email.lower() if email else ''
-        # NEW: AGENT UPLOAD - Attach to SHOP, not Agent!
-    _as_shop = request.form.get('as_shop','').strip()
-    _agent_phone = request.form.get('agent_phone','').strip()
-    _agent_email = request.form.get('agent_email','').lower().strip()
     prod['business'] = business
     prod['business_name'] = business
-if _as_shop:
-    prod['shop_slug'] = _as_shop
-    prod['uploaded_by_agent'] = _agent_phone or _agent_email
-    prod['agent_phone'] = _agent_phone
-    prod['agent_email'] = _agent_email
-    # Look up shop owner so product shows under OWNER, not Agent!
-    try:
-        _shops = load_db('shops.json', [])
-        _shop = next((s for s in _shops if (s.get('shop_slug') or s.get('slug','')).lower() == _as_shop.lower()), None)
-        if _shop:
-    prod['business'] = _shop.get('business_name') or _shop.get('name') or business
-    prod['business_name'] = prod['business']
-    prod['shop_owner_email'] = _shop.get('owner_email') or _shop.get('email') or ''
-    prod['shop_owner_phone'] = _shop.get('owner_phone') or _shop.get('phone') or ''
-    except: pass
     prod['image'] = image_url
     prod['images'] = image_urls
     prod['promo_coins'] = int(request.form.get('promo_coins', 0) or 0)
@@ -277,6 +257,21 @@ if _as_shop:
     prod['created_at'] = datetime.utcnow().isoformat()
     prod['views'] = 0
     prod['sold'] = 0
+    _as_shop = request.form.get('as_shop','').strip()
+    _agent_phone = request.form.get('agent_phone','').strip()
+    _agent_email = request.form.get('agent_email','').lower().strip()
+    if _as_shop:
+        prod['shop_slug'] = _as_shop
+        prod['uploaded_by_agent'] = _agent_phone or _agent_email
+        prod['agent_phone'] = _agent_phone
+        prod['agent_email'] = _agent_email
+        _shops = load_db('shops.json', [])
+        _found = [s for s in _shops if (s.get('shop_slug') or s.get('slug','')).lower() == _as_shop.lower()]
+        if _found:
+            prod['business'] = _found[0].get('business_name') or _found[0].get('name') or business
+            prod['business_name'] = prod['business']
+            prod['shop_owner_email'] = _found[0].get('owner_email') or _found[0].get('email') or ''
+            prod['shop_owner_phone'] = _found[0].get('owner_phone') or _found[0].get('phone') or ''
     products = get_products()
     products.append(prod)
     save_products(products)
