@@ -37,21 +37,49 @@ def save_db(file, data):
     except Exception as e:
         print("push save error", e)
 
-def save_sub(sub):
+# --- NEW: SAVE WITH EMAIL ---
+def save_sub(email, sub):
     subs = load_db('push_subs.json', [])
-    if sub not in subs:
-        subs.append(sub)
-        save_db('push_subs.json', subs)
+    email = (email or '').lower().strip()
+    endpoint = sub.get('endpoint', '')
+    # Remove old entry for same phone + same email
+    subs = [s for s in subs if not (s.get('email')==email and s.get('subscription',{}).get('endpoint')==endpoint)]
+    subs.append({"email": email, "subscription": sub})
+    save_db('push_subs.json', subs)
+    print(f"Push saved for {email}")
     return True
 
+# --- NEW: SEND ONLY TO ONE USER (Seller / Buyer) ---
+def send_to_email(email, title, body, url="/my-shop"):
+    def _send():
+        try:
+            from pywebpush import webpush
+            subs = load_db('push_subs.json', [])
+            target = (email or '').lower().strip()
+            mine = [s for s in subs if s.get('email')==target]
+            print(f"Push to {target}: {len(mine)} devices - {title}")
+            for s in mine:
+                try:
+                    webpush(subscription_info=s['subscription'], data=json.dumps({"title": title, "body": body, "url": url}), vapid_private_key=os.getenv("VAPID_PRIVATE_KEY"), vapid_claims={"sub": os.getenv("VAPID_CLAIM_EMAIL")})
+                except Exception as e:
+                    print("Push fail:", e)
+                    # If expired, remove it
+                    if '410' in str(e) or 'Gone' in str(e):
+                        subs.remove(s)
+                        save_db('push_subs.json', subs)
+        except Exception as e:
+            print("Push error:", e)
+    threading.Thread(target=_send, daemon=True).start()
+
+# Keep old for compatibility - but we won't use it for orders
 def send_to_all(title, body, url="/"):
     def _send():
         try:
             from pywebpush import webpush
             subs = load_db('push_subs.json', [])
-            print(f"Push to {len(subs)} devices: {title}")
-            for sub in subs:
+            for s in subs:
                 try:
+                    sub = s.get('subscription', s)
                     webpush(subscription_info=sub, data=json.dumps({"title": title, "body": body, "url": url}), vapid_private_key=os.getenv("VAPID_PRIVATE_KEY"), vapid_claims={"sub": os.getenv("VAPID_CLAIM_EMAIL")})
                 except Exception as e:
                     print("Push fail:", e)
