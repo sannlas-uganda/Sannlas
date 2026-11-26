@@ -2695,5 +2695,25 @@ document.addEventListener('DOMContentLoaded', function(){
 </div> 
   </div>
 </div>
+<script>
+// --- SANNLAS USER-TO-USER PUSH (Separate from OneSignal) ---
+async function enableUserPush(){
+  try{
+    let u = JSON.parse(localStorage.getItem('sannlas_user')||'{}');
+    if(!u.email) return; // Must login first!
+    if(Notification.permission==='default') await Notification.requestPermission();
+    if(Notification.permission!=='granted') return;
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const res = await fetch('/vapid-public-key');
+    const {publicKey} = await res.json();
+    const sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(publicKey)});
+    // SAVE WITH EMAIL - So we can send ONLY to this seller/buyer!
+    await fetch('/save-subscription', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: u.email.toLowerCase(), subscription: sub})});
+    console.log('User-to-User Push ON for', u.email);
+  }catch(e){ console.log('User Push error', e); }
+}
+function urlBase64ToUint8Array(b64){ const p='='.repeat((4-b64.length%4)%4); const b=(b64+p).replace(/\-/g,'+').replace(/_/g,'/'); const r=window.atob(b); const o=new Uint8Array(r.length); for(let i=0;i<r.length;++i) o[i]=r.charCodeAt(i); return o; }
+setTimeout(enableUserPush, 3000);
+</script>
 </body>
 </html>
