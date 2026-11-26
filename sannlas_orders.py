@@ -4,6 +4,7 @@ from datetime import datetime
 from collections import defaultdict
 
 orders_bp = Blueprint('orders_bp', __name__)
+import threading
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
@@ -228,6 +229,20 @@ def create_orders():
             except: pass
 
         save_orders(orders)
+                # --- 🔔 SANNLAS PUSH - SEND TO ALL SELLERS ---
+        def do_push():
+            try:
+                from pywebpush import webpush
+                subs = load_db('push_subs.json', [])
+                for o in created:
+                    for sub in subs:
+                        try:
+                            webpush(subscription_info=sub, data=json.dumps({"title": f"🔔 NEW ORDER! {o['tracking_id']}", "body": f"{o['items'][0]['name']} - {o['buyer_name']} UGX {o['total']}", "url": "/my-shop"}), vapid_private_key=os.getenv("VAPID_PRIVATE_KEY"), vapid_claims={"sub": os.getenv("VAPID_CLAIM_EMAIL")})
+                        except Exception as e:
+                            print("Push fail:", e)
+            except Exception as e:
+                print("Push error:", e)
+        threading.Thread(target=do_push, daemon=True).start()
         # Clear cart
         if not direct:
             try:
