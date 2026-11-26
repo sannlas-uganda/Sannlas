@@ -1338,6 +1338,26 @@ try:
     ensure_tables()
     print("Tables ready")
 except: pass
+
+@app.route('/fix-beauty-perm')
+def fix_beauty_perm():
+    from app import load_db, save_db
+    perms = load_db('sannlas_permissions.json', [])
+    shops = load_db('shops.json', [])
+    # Find Beauty shop by phone
+    beauty = next((s for s in shops if str(s.get('phone',''))=='0778496966' or str(s.get('owner_phone',''))=='0778496966'), None)
+    if beauty:
+        slug = str(beauty.get('shop_slug') or beauty.get('slug','')).lower()
+        beauty['owner_email'] = 'beautyaminah65@gmail.com'
+        beauty['email'] = 'beautyaminah65@gmail.com'
+        save_db('shops.json', shops)
+        for p in perms:
+            if p.get('shop_slug','').lower() == slug:
+                p['owner_email'] = 'beautyaminah65@gmail.com'
+                p['owner_phone'] = '0778496966'
+        save_db('sannlas_permissions.json', perms)
+        return f"Fixed! Slug={slug} OwnerEmail=beautyaminah65@gmail.com Perms fixed={len([p for p in perms if p.get('shop_slug','').lower()==slug])}"
+    return "Beauty shop not found by phone 0778496966"
 if __name__=='__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
