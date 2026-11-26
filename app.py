@@ -15,7 +15,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary_config
 from seo import register_seo
-from push import save_sub, send_to_all
+from push import save_sub, send_to_all, send_to_email
 
 app = Flask(__name__)
 register_seo(app)
@@ -35,13 +35,15 @@ def vapid_key():
 
 @app.route('/save-subscription', methods=['POST'])
 def save_subscription():
-    sub = request.get_json()
-    # Use your Postgres system, not file!
-    subs = load_db('push_subs.json', [])
-    if sub not in subs:
-        subs.append(sub)
-        save_db('push_subs.json', subs)
-    return {"success": True}
+    data = request.get_json() or {}
+    # NEW: {email, subscription} from index.html
+    email = data.get('email', '')
+    sub = data.get('subscription', data)
+    # If email was inside sub, pull it out
+    if not email and isinstance(sub, dict) and 'email' in sub:
+        email = sub.pop('email')
+    save_sub(email.lower().strip() if email else '', sub)
+    return {"success": True, "email": email}
 
 @app.route('/health')
 def health():
