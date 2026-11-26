@@ -357,7 +357,7 @@ body{font-family:system-ui;background:#f8fafc;margin:0}
 #loading{text-align:center;padding:60px 20px;font-size:18px}
 </style></head>
 <body>
-<div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a></div>
+<div class="topnav"><a href="javascript:history.back()" onclick="if(!document.referrer.includes('/shop')){location.href='/all-shops'}else{history.back()} return false">← Back to Shops</a><a href="/">SANNLAS</a><div style="position:relative;cursor:pointer" onclick="openNotifPanel()"><span style="font-size:22px">🔔</span><span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-8px;background:#ff4444;color:#fff;font-size:10px;font-weight:900;padding:2px 6px;border-radius:50%">0</span></div></div>
 <div class="shop-profile-header" id="shop-header" style="display:none;padding:0 0 0 0">
   <!-- ✅ BANNER - FIXED -->
   <div id="shopBannerWrap" style="margin:0;background:#FF6A00;overflow:hidden;position:relative;display:none">
@@ -902,6 +902,36 @@ async function toggleFollowShop(){
   b.disabled=false;
 }
 loadShop();
+</script>
+
+<!-- 🔔 NOTIFICATION PANEL -->
+<div id="notifPanel" style="display:none;position:fixed;top:0;right:0;width:320px;max-width:90%;height:100%;background:#fff;z-index:99999;box-shadow:-5px 0 20px rgba(0,0,0,.3);overflow-y:auto">
+  <div style="background:#000;color:#FFCC02;padding:14px;display:flex;justify-content:space-between"><b>🔔 Notifications</b><span onclick="closeNotifPanel()" style="cursor:pointer">✖️</span></div>
+  <div id="notifList" style="padding:10px">Loading...</div>
+</div>
+<script>
+async function loadNotifs(){
+  let me=null; try{me=JSON.parse(localStorage.getItem('sannlas_user')||'null')}catch(e){}
+  if(!me?.email) return;
+  let r=await fetch('/api/notifications?email='+encodeURIComponent(me.email)).then(r=>r.json()).catch(()=>null);
+  if(!r) return;
+  let badge=document.getElementById('notifBadge');
+  if(badge){ badge.style.display=r.unread>0?'block':'none'; badge.innerText=r.unread; }
+  let list=document.getElementById('notifList'); if(!list) return;
+  if(!r.notifications.length){ list.innerHTML='<p style="text-align:center;color:#888;padding:20px">No notifications yet</p>'; return; }
+  list.innerHTML=r.notifications.map(n=>{
+    let d=n.timestamp ? new Date(n.timestamp*1000).toLocaleString() : (n.created_at||'');
+    return `<div onclick="closeNotifPanel();document.getElementById('panel-orders')?.scrollIntoView()" style="background:${n.is_read?'#fff':'#FFF8E1'};border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer"><b>${n.title||'🔔 Notification'}</b><br><span style="font-size:13px">${n.message||''}</span><br><small style="color:#888">${d}</small></div>`;
+  }).join('');
+}
+async function openNotifPanel(){
+  document.getElementById('notifPanel').style.display='block';
+  let me=JSON.parse(localStorage.getItem('sannlas_user')||'null');
+  if(me?.email) await fetch('/api/notifications/mark-read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:me.email})});
+  setTimeout(loadNotifs,500);
+}
+function closeNotifPanel(){ document.getElementById('notifPanel').style.display='none'; }
+loadNotifs(); setInterval(loadNotifs, 30000);
 </script></body></html>
 """
 
