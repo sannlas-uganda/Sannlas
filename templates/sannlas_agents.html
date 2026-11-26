@@ -158,11 +158,32 @@ function goUpload(){if(!activeShop){alert('Select shop first!');return;} locatio
 function goPromote(){if(!activeShop){alert('Select shop first!');return;} location.href=`/promote?as_shop=${activeShop}`;}
 async function withdraw(){let body={agent_phone:myPhone,amount:parseInt(document.getElementById('w_amount').value),momo_number:document.getElementById('w_momo').value}; let r=await fetch('/api/commission/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('w_msg').textContent=d.message; if(d.success) setTimeout(()=>location.reload(),1500);}
 async function loadOwner(){
- document.getElementById('o_owner_phone').value=myPhone; document.getElementById('o_shop_slug').value=mySlug; document.getElementById('o_slug').textContent=mySlug||'-'; document.getElementById('ownerInfo').textContent='Phone: '+myPhone+' | Email: '+myEmail;
- let r=await fetch(`/api/agency/pending-requests?owner_phone=${myPhone}&owner_email=${myEmail}`); let d=await r.json(); let reqs=d.requests||[];
- document.getElementById('o_pending').textContent=reqs.length;
- document.getElementById('pendingList').innerHTML=reqs.length?reqs.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee"><b>${p.agent_name||p.agent_phone}</b> - ${p.agent_phone} wants <b>${p.shop_slug}</b><br><button onclick="approveReq('${p.shop_slug}','${p.agent_phone}')" style="background:#00c853;color:#fff;border:none;padding:8px 12px;border-radius:8px">✅ Approve</button> <button onclick="rejectReq('${p.shop_slug}','${p.agent_phone}')" style="background:#ef4444;color:#fff;border:none;padding:8px 12px;border-radius:8px">❌ Reject</button></div>`).join(''):'<small>No pending requests</small>';
- if(mySlug){let r2=await fetch('/api/permissions/list?shop_slug='+encodeURIComponent(mySlug)); let list=await r2.json(); document.getElementById('o_agents').textContent=list.length; document.getElementById('collabList').innerHTML=list.length?list.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee"><b>${p.agent_name||p.agent_phone}</b> - ${(p.scopes||[]).join(', ')} | Uploads: ${p.products_uploaded||0} | Earned: ${p.total_earned||0} UGX <button onclick="revokeCollab('${p.shop_slug}','${p.agent_phone}')" style="background:#ef4444;color:#fff;border:none;padding:6px 10px;border-radius:8px;float:right">Revoke</button></div>`).join(''):'<small>No agents yet - Add one above</small>';}
+ // NEW: Use owner-stats - finds shop by email OR phone, counts ALL!
+ let r = await fetch(`/api/agency/owner-stats?email=${encodeURIComponent(myEmail)}&phone=${encodeURIComponent(myPhone)}`);
+ let d = await r.json();
+ console.log('OWNER STATS:', d); // Check in F12 console!
+
+ if(d.my_shop_slug){
+   mySlug = d.my_shop_slug;
+   localStorage.setItem('my_shop_slug', mySlug);
+ }
+ document.getElementById('o_owner_phone').value = myPhone;
+ document.getElementById('o_shop_slug').value = mySlug;
+ document.getElementById('o_slug').textContent = mySlug || '-';
+ document.getElementById('ownerInfo').textContent = 'Phone: '+myPhone+' | Email: '+myEmail+' | Shop: '+(mySlug||'NOT FOUND');
+
+ // MAKE ALL COUNT - From ONE endpoint!
+ document.getElementById('o_agents').textContent = d.agents_count || 0;
+ document.getElementById('o_pending').textContent = d.pending_count || 0;
+ document.getElementById('o_paid').textContent = (d.paid_to_agents||0).toLocaleString()+' UGX';
+
+ // PENDING LIST
+ let reqs = d.pending || [];
+ document.getElementById('pendingList').innerHTML = reqs.length ? reqs.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee"><b>${p.agent_name||p.agent_phone}</b> - ${p.agent_phone} wants <b>${p.shop_slug}</b><br><button onclick="approveReq('${p.shop_slug}','${p.agent_phone}')" style="background:#00c853;color:#fff;border:none;padding:8px 12px;border-radius:8px">✅ Approve</button> <button onclick="rejectReq('${p.shop_slug}','${p.agent_phone}')" style="background:#ef4444;color:#fff;border:none;padding:8px 12px;border-radius:8px">❌ Reject</button></div>`).join('') : '<small>No pending requests</small>';
+
+ // MY AGENTS LIST - MAKE ALL SHOW!
+ let list = d.agents || [];
+ document.getElementById('collabList').innerHTML = list.length ? list.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee"><b>${p.agent_name||p.agent_phone}</b><br><small>${p.agent_email||p.agent_phone} | ${(p.scopes||[]).join(', ')} | Uploads: ${p.products_uploaded||0} | Earned: ${(p.total_earned||0).toLocaleString()} UGX | Shop: ${p.shop_slug}</small> <button onclick="revokeCollab('${p.shop_slug}','${p.agent_phone}')" style="background:#ef4444;color:#fff;border:none;padding:6px 10px;border-radius:8px;float:right">Revoke</button></div>`).join('') : '<small>No agents yet - Add one above. Shop: '+(mySlug||'not found')+'</small>';
 }
 async function invite(){
  let scopes=[]; if(document.getElementById('o_s_upload').checked) scopes.push('upload_product'); if(document.getElementById('o_s_view').checked) scopes.push('view_products'); if(document.getElementById('o_s_editOwn').checked) scopes.push('edit_own_product'); if(document.getElementById('o_s_orders').checked) scopes.push('view_orders');
