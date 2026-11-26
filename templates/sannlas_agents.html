@@ -56,8 +56,9 @@ input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;ma
 <div class="stat"><p>🤝 Sales Brokered</p><h2 id="s_sales">0</h2></div>
 <div class="stat"><p>💸 Balance</p><h2 id="s_balance">0 UGX</h2></div>
 </div>
-<div class="box" style="border:2px solid #000"><h3>➕ Create Shop For Someone (No Shop Yet?)</h3><p style="font-size:13px;color:#64748b">Client has no shop? Create it here - You become Agent automatically!</p>
-<input id="c_name" placeholder="Client Business Name e.g Mama Mboga"><input id="c_phone" placeholder="Client Phone 077..."><input id="c_business" placeholder="Business Type e.g Food, Fashion"><input id="c_location" placeholder="Location e.g Kampala">
+<div class="box" style="border:2px solid #000"><h3>➕ Create Shop For Someone (No Shop Yet?)</h3><p style="font-size:13px;color:#64748b">Client has no shop? Create it here - You become Agent automatically! Client will login later with Email!</p>
+<input id="c_name" placeholder="Client Business Name e.g Aminah's Coffee"><input id="c_email" type="email" placeholder="Client Email * e.g aminah@gmail.com - OWNER WILL LOGIN WITH THIS"><input id="c_phone" placeholder="Client Phone 077..."><input id="c_owner_pwd" type="password" placeholder="Set Owner Password * e.g 123456 - Give to owner"><input id="c_business" placeholder="Business Type e.g Food, Fashion"><input id="c_location" placeholder="Location e.g Kampala">
+<small style="color:#666">⚠️ Tell owner: Go to sannlas.store → Login with Email above + Password above → You will see your shop in OWNER DASHBOARD!</small>
 <button class="btn btn-yellow" onclick="createShopForClient()">🏪 CREATE SHOP FOR CLIENT →</button><p id="c_msg" style="text-align:center"></p></div>
 <div class="box"><h3>🔀 Active Shop Context</h3><select id="shopSwitch" onchange="switchShop()"><option>Loading...</option></select><div id="contextInfo" style="font-size:12px;color:#666"></div>
 <button class="btn" onclick="goUpload()">➕ Upload Product For Selected Shop</button><button class="btn" onclick="goPromote()">🚀 Promote Product For Selected Shop</button></div>
@@ -143,9 +144,13 @@ async function loadAgent(){
 async function loadAvailable(){let r=await fetch('/api/agency/available-shops'); let d=await r.json(); document.getElementById('availList').innerHTML=(d.shops||[]).slice(0,20).map(s=>`<div style="padding:8px;border-bottom:1px solid #eee"><b>${s.business_name||s.name}</b> - ${s.shop_slug||s.slug} <button class="btn btn-orange" style="width:auto;padding:6px 10px" onclick="requestAccess('${s.shop_slug||s.slug}','${s.business_name||s.name}')">Request</button></div>`).join('');}
 async function requestAccess(slug,name){let r=await fetch('/api/agency/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop_slug:slug,shop_name:name,agent_phone:myPhone,agent_name:'Agent'})}); let d=await r.json(); alert(d.message); loadAgent();}
 async function createShopForClient(){
- let body={business_name:document.getElementById('c_name').value,phone:document.getElementById('c_phone').value,business_type:document.getElementById('c_business').value,location:document.getElementById('c_location').value,agent_phone:myPhone,agent_name:document.getElementById('agentName').textContent};
- if(!body.business_name||!body.phone){document.getElementById('c_msg').textContent='Enter name + phone';return;}
- document.getElementById('c_msg').textContent='⏳ Creating...'; let r=await fetch('/api/agency/create-shop-for-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('c_msg').textContent=d.message; if(d.success){alert('Shop created! You are now Agent!'); loadAgent();}
+ let cEmail=document.getElementById('c_email').value.trim().toLowerCase();
+ let cPwd=document.getElementById('c_owner_pwd').value.trim();
+ if(!document.getElementById('c_name').value.trim()){document.getElementById('c_msg').textContent='❌ Enter Business Name!';return;}
+ if(!cEmail || !cEmail.includes('@')){document.getElementById('c_msg').textContent='❌ Enter Client Email! Owner needs it to login!';return;}
+ if(!cPwd){document.getElementById('c_msg').textContent='❌ Set Owner Password! Give it to owner!';return;}
+ let body={business_name:document.getElementById('c_name').value,owner_email:cEmail,owner_password:cPwd,phone:document.getElementById('c_phone').value,owner_phone:document.getElementById('c_phone').value,business_type:document.getElementById('c_business').value,location:document.getElementById('c_location').value,agent_phone:myPhone,agent_email:myEmail,agent_name:document.getElementById('agentName').textContent};
+ document.getElementById('c_msg').textContent='⏳ Creating...'; let r=await fetch('/api/agency/create-shop-for-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); let d=await r.json(); document.getElementById('c_msg').textContent=d.message; if(d.success){alert('✅ Shop created!\n\nTell Owner:\nEmail: '+cEmail+'\nPassword: '+cPwd+'\nGo to sannlas.store → Login → OWNER DASHBOARD → You will see your shop!'); loadAgent();}
 }
 function selectShop(slug){activeShop=slug; localStorage.setItem('sannlas_active_shop',slug); document.getElementById('contextInfo').innerHTML=`✅ Active: <b>${slug}</b>`; document.getElementById('shopSwitch').value=slug; fetch('/api/agency/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_phone:myPhone,shop_slug:slug})});}
 function switchShop(){let s=document.getElementById('shopSwitch').value; if(s) selectShop(s);}
