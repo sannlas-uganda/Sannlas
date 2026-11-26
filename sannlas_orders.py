@@ -229,20 +229,13 @@ def create_orders():
             except: pass
 
         save_orders(orders)
-                # --- 🔔 SANNLAS PUSH - SEND TO ALL SELLERS ---
-        def do_push():
-            try:
-                from pywebpush import webpush
-                subs = load_db('push_subs.json', [])
-                for o in created:
-                    for sub in subs:
-                        try:
-                            webpush(subscription_info=sub, data=json.dumps({"title": f"🔔 NEW ORDER! {o['tracking_id']}", "body": f"{o['items'][0]['name']} - {o['buyer_name']} UGX {o['total']}", "url": "/my-shop"}), vapid_private_key=os.getenv("VAPID_PRIVATE_KEY"), vapid_claims={"sub": os.getenv("VAPID_CLAIM_EMAIL")})
-                        except Exception as e:
-                            print("Push fail:", e)
-            except Exception as e:
-                print("Push error:", e)
-        threading.Thread(target=do_push, daemon=True).start()
+                    # --- 🔔 USER-TO-USER: Buyer -> ONLY Seller ---
+        try:
+            from push import send_to_email
+            for o in created:
+                send_to_email(o.get('seller_email',''), f"🔔 NEW ORDER! {o['tracking_id']}", f"{o['items'][0]['name']} - {o['buyer_name']} UGX {o['total']}", url="/my-shop")
+        except Exception as e:
+            print("Push error:", e)
         # Clear cart
         if not direct:
             try:
@@ -334,6 +327,11 @@ def shop_owner_update_order():
         if str(o.get('tracking_id'))==oid or str(o.get('id'))==oid:
             o['status']=status; o['updated_at']=datetime.now().isoformat()
             save_orders(orders)
+                        # --- 🔔 Seller -> ONLY Buyer ---
+            try:
+                from push import send_to_email
+                send_to_email(o.get('buyer_email',''), f"📦 Order {status} - {o.get('tracking_id')}", f"Your order {o.get('items',[{}])[0].get('name','')} is now {status}", url="/my-orders")
+            except: pass
             return jsonify({"success": True})
     return jsonify({"success": False, "message": "Order not found"}), 404
 
@@ -351,6 +349,10 @@ def update_status(tracking_id):
         if str(o.get('tracking_id'))==str(tracking_id):
             if data.get('status'): o['status']=data.get('status').upper()
             save_orders(orders)
+            try:
+                from push import send_to_email
+                send_to_email(o.get('buyer_email',''), f"📦 Order {o.get('status')} - {o.get('tracking_id')}", f"Your order is now {o.get('status')}", url="/my-orders")
+            except: pass
             return jsonify({"success": True})
     return jsonify({"success": False}), 404
 
