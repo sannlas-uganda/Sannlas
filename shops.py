@@ -121,15 +121,47 @@ def get_shop_fast(cleaned, raw=""):
             except: shops = []
         if not isinstance(shops, list):
             return None
+        # COLLECT ALL matches - don't return first!
+        matches = []
         for s in shops:
             for key in ['shop_slug','slug','business_name','name']:
                 val = str(s.get(key,'') or '')
                 if clean_slug_fix(val) == cleaned or val.lower().strip() == raw.lower():
-                    return s
-        for s in shops:
-            if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
-                return s
-        return None
+                    matches.append(s)
+                    break
+        if not matches:
+            for s in shops:
+                if cleaned in clean_slug_fix(s.get('shop_slug','')) or cleaned in clean_slug_fix(s.get('business_name','')):
+                    matches.append(s)
+        if not matches:
+            return None
+        if len(matches) == 1:
+            return matches[0]
+        # ✅ MULTIPLE shops same name -> Pick REAL one = most products!
+        # Score: products count wins, then logo/banner/description
+        best = None
+        best_score = -1
+        try:
+            conn2 = get_conn()
+            cur2 = conn2.cursor()
+            for s in matches:
+                biz = s.get('business_name','')
+                email = s.get('owner_email','') or s.get('email','')
+                slug2 = clean_slug_fix(s.get('shop_slug','') or biz)
+                try:
+                    cur2.execute("SELECT COUNT(*) FROM products WHERE data->>'shop_slug' = %s OR data->>'business' = %s OR data->>'seller_email' = %s", (slug2, biz, email))
+                    cnt = cur2.fetchone()[0] or 0
+                except: cnt = 0
+                score = cnt * 100
+                if s.get('logo'): score += 10
+                if s.get('banner'): score += 10
+                if s.get('description'): score += 5
+                if score > best_score:
+                    best_score = score
+                    best = s
+            cur2.close(); conn2.close()
+        except: pass
+        return best or matches[-1]  # Fallback: LAST one = newest = real
     except Exception as e:
         print("get_shop_fast err", e)
         return None
@@ -1088,10 +1120,29 @@ def shop_owner_dashboard():
         return jsonify({'success':False,'message':'Not owner'}), 403
     shop = get_shop_fast(slug, slug) or {}
     prods = get_shop_products_fast(slug, shop)
-    orders = load_db('orders_v2.json', []) or []
-    my_orders = [o for o in orders if str(o.get('seller_email','')).lower()==email]
-    total_earnings = sum(int(o.get('total') or o.get('price') or 0) for o in my_orders if str(o.get('status','')).lower() in ['paid','completed','delivered','success'])
-    return jsonify({'success':True,'shop':shop,'products':prods,'orders':sorted(my_orders,key=lambda x:x.get('created_at',0),reverse=True),
+    # ✅ MERGED: Read BOTH orders.json (REAL) + orders_v2.json
+    all_orders = []
+    for fname in ['orders.json', 'orders_v2.json']:
+        try:
+            o_list = load_db(fname, []) or []
+            if isinstance(o_list, list):
+                all_orders.extend(o_list)
+        except: pass
+    # Dedupe by id
+    seen = set()
+    my_orders = []
+    for o in all_orders:
+        oid = str(o.get('id') or o.get('tracking_id') or '')
+        if oid in seen: continue
+        seen.add(oid)
+        o_seller = str(o.get('seller_email') or '').lower()
+        o_slug = clean_slug_fix(o.get('shop_slug') or '')
+        o_shop = clean_slug_fix(o.get('shop_name') or o.get('business') or '')
+        if o_seller == email or (slug and (o_slug == slug or o_shop == slug)):
+            my_orders.append(o)
+    my_orders = sorted(my_orders, key=lambda x: x.get('created_at', 0), reverse=True)
+    total_earnings = sum(float(o.get('total') or o.get('price') or 0) for o in my_orders if str(o.get('status','')).lower() in ['paid','completed','delivered','success'])
+    return jsonify({'success':True,'shop':shop,'products':prods,'orders':my_orders,
         'stats':{'total_products':len(prods),'total_orders':len(my_orders),'total_earnings':total_earnings,
         'total_views':sum(int(p.get('views',0) or 0) for p in prods),
         'total_likes':sum(int(p.get('likes',0) or 0) for p in prods)}})
@@ -1255,60 +1306,3 @@ def shop_owner_delete_product():
             return jsonify({'success':True})
     cur.close(); conn.close()
     return jsonify({'success':False}), 404
-    # ===== FIX: Seller dashboard reads REAL orders.json =====
-@shops_bp.route('/api/shop-owner/dashboard')
-def shop_owner_dashboard_FIXED():
-    email = (request.args.get('email') or '').lower().strip()
-    slug = clean_slug_fix(request.args.get('slug') or '')
-    try:
-        orders = load_db('orders.json', []) or []
-    except:
-        orders = []
-    if not isinstance(orders, list):
-        orders = []
-    mine = []
-    for o in orders:
-        o_seller = str(o.get('seller_email') or '').lower().strip()
-        o_slug = clean_slug_fix(o.get('shop_slug') or '')
-        o_shop = clean_slug_fix(o.get('shop_name') or o.get('business') or '')
-        if email and o_seller == email:
-            mine.append(o)
-        elif slug and (o_slug == slug or o_shop == slug):
-            mine.append(o)
-    mine = sorted(mine, key=lambda x: x.get('created_at', 0), reverse=True)
-    total_earn = sum(float(o.get('total') or 0) for o in mine if str(o.get('status') or '').lower() in ['delivered','completed','paid'])
-    return jsonify({
-        "success": True,
-        "orders": mine,
-        "count": len(mine),
-        "stats": {
-            "total_orders": len(mine),
-            "total_earnings": total_earn,
-            "total_products": 0,
-            "total_views": 0,
-            "total_likes": 0,
-            "new_orders": len([o for o in mine if str(o.get('status') or '').lower() in ['new','pending']])
-        }
-    })
-
-@shops_bp.route('/api/shop-owner/update-order', methods=['POST'])
-def shop_owner_update_order_FIXED():
-    d = request.get_json() or {}
-    oid = str(d.get('id') or '')
-    status = str(d.get('status') or '').lower().strip()
-    orders = load_db('orders.json', []) or []
-    found = False
-    for o in orders:
-        if str(o.get('id')) == oid or str(o.get('tracking_id')) == oid:
-            o['status'] = status
-            found = True
-            break
-    if found:
-        # save back to kv_store orders.json
-        try:
-            conn = get_conn(); cur = conn.cursor()
-            cur.execute("INSERT INTO kv_store (key, data) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data", ('orders.json', json.dumps(orders)))
-            conn.commit(); cur.close(); conn.close()
-        except Exception as e:
-            print("update-order save fail:", e)
-    return jsonify({"success": found})
