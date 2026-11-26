@@ -251,7 +251,7 @@ def api_create():
     _agent_email = request.form.get('agent_email','').lower().strip()
     prod['business'] = business
     prod['business_name'] = business
-        if _as_shop:
+if _as_shop:
     prod['shop_slug'] = _as_shop
     prod['uploaded_by_agent'] = _agent_phone or _agent_email
     prod['agent_phone'] = _agent_phone
