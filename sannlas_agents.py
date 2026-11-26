@@ -465,7 +465,7 @@ def create_shop_for_client():
         "created": time.time(),
         "total_products": 0
     }
-        shops.append(new_shop)
+    shops.append(new_shop)
     save_db('shops.json', shops)
 
     # === FIX: CREATE MAIN SITE USER TOO - SAME LOGIN GATE ===
