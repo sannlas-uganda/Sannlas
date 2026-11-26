@@ -55,6 +55,9 @@ def hide_password(agent):
 # ------------------------------------------------------------
 # 3. PERMISSION HELPER - Can agent do this action?
 # ------------------------------------------------------------
+# --- NEW SECURE ONE ---
+VALID_SCOPES = ["upload_product","view_products","view_orders","edit_own_product","delete_own_product"]
+
 def can_agent_do(agent_phone, shop_slug, action):
     perms = load_db('sannlas_permissions.json', [])
     perm = next(
@@ -67,7 +70,9 @@ def can_agent_do(agent_phone, shop_slug, action):
     if not perm:
         return False, "No permission for this shop"
     if action not in perm.get('scopes', []):
-        return False, f"Scope {action} denied"
+        return False, f"Scope {action} not allowed. Your scopes: {perm.get('scopes')}"
+    if perm.get('expires_at') and time.time() > perm['expires_at']:
+        return False, "Permission expired"
     return True, "Allowed"
 
 # ------------------------------------------------------------
@@ -464,37 +469,69 @@ def create_shop_for_client():
 def invite_perm():
     d = request.json or {}
     slug = d.get('shop_slug', '').lower().strip()
+    owner_phone = d.get('owner_phone', '').strip()
+    owner_email = d.get('owner_email', '').lower().strip()
     aphone = d.get('agent_phone', '').strip()
+    scopes = d.get('scopes', ["upload_product", "view_products", "edit_own_product"])
+    commission_per_upload = int(d.get('commission_per_upload', 400))
+    commission_percent = d.get('commission_percent', 0)
+
     if not slug or not aphone:
         return jsonify({"success": False, "message": "shop_slug and agent_phone required"}), 400
 
-    perms = load_db('sannlas_permissions.json', [])
-    ex = next((p for p in perms if p['agent_phone'] == aphone and p['shop_slug'].lower() == slug), None)
-    if ex:
-        ex.update({
-            "status": "active",
-            "scopes": d.get('scopes', ex.get('scopes', [])),
-            "commission_per_upload": d.get('commission_per_upload', 400),
-            "owner_phone": d.get('owner_phone', '')
-        })
-        save_db('sannlas_permissions.json', perms)
-        return jsonify({"success": True, "message": "Collaborator updated!"})
+    # 1. Shop must exist
+    shops = load_db('shops.json', [])
+    shop = next((s for s in shops if s.get('shop_slug', '').lower() == slug or s.get('slug', '').lower() == slug), None)
+    if not shop:
+        return jsonify({"success": False, "message": "Shop not found"}), 404
 
-    perms.append({
+    # 2. Only REAL owner can invite
+    shop_owner_phone = shop.get('phone', '')
+    shop_owner_email = shop.get('owner_email', '').lower()
+    if owner_phone and shop_owner_phone and owner_phone != shop_owner_phone:
+        if not (owner_email and shop_owner_email and owner_email == shop_owner_email):
+            return jsonify({"success": False, "message": "You are not shop owner"}), 403
+
+    # 3. Agent must exist + must be uploader
+    agents = load_db('sannlas_agents.json', [])
+    agent = next((a for a in agents if a['phone'] == aphone), None)
+    if not agent:
+        return jsonify({"success": False, "message": "Agent not found. Ask him to register at /agents"}), 404
+    if not agent.get('is_uploader'):
+        return jsonify({"success": False, "message": "This user is not registered as uploader. Tell him to enable uploader role at /agents"}), 400
+
+    # 4. Only SAFE scopes
+    safe_scopes = [s for s in scopes if s in VALID_SCOPES]
+    if not safe_scopes:
+        safe_scopes = ["upload_product", "view_products"]
+
+    perms = load_db('sannlas_permissions.json', [])
+    ex = next((p for p in perms if p['agent_phone'] == aphone and p['shop_slug'].lower() == slug and p.get('status') == 'active'), None)
+    if ex:
+        return jsonify({"success": False, "message": "Agent already has access to this shop", "permission": ex}), 400
+
+    new_perm = {
         "id": int(time.time() * 1000),
         "shop_slug": slug,
-        "shop_name": slug,
+        "shop_name": shop.get('business_name') or shop.get('name') or slug,
+        "owner_phone": owner_phone or shop_owner_phone,
+        "owner_email": owner_email or shop_owner_email,
         "agent_phone": aphone,
-        "agent_name": aphone,
-        "owner_phone": d.get('owner_phone', ''),
-        "owner_email": d.get('owner_email', ''),
-        "scopes": d.get('scopes', ["upload_product", "view_products"]),
+        "agent_name": agent.get('name', ''),
+        "agent_code": agent.get('agent_code', ''),
+        "scopes": safe_scopes,
+        "commission_per_upload": commission_per_upload,
+        "commission_percent": commission_percent,
         "status": "active",
         "products_uploaded": 0,
         "total_earned": 0,
-        "commission_per_upload": d.get('commission_per_upload', 400),
-        "created": time.time()
-    })
+        "created": time.time(),
+        "expires_at": None,
+        "created_by": owner_phone or owner_email
+    }
+    perms.append(new_perm)
+    save_db('sannlas_permissions.json', perms)
+    return jsonify({"success": True, "message": f"Agent {agent['name']} can now upload to {slug} - CANNOT edit shop details! Scopes: {safe_scopes}", "permission": new_perm})
     save_db('sannlas_permissions.json', perms)
     return jsonify({"success": True, "message": "✅ Collaborator added!"})
 
@@ -840,3 +877,24 @@ def product_promoters(product_id):
     promos = load_db('promotions.json', [])
     result = [p for p in promos if str(p.get('product_id')) == str(product_id) and p.get('status') == 'approved']
     return jsonify(result)
+
+# --- ADD THESE 2 ROUTES AT BOTTOM ---
+@sannlas_agents_bp.route('/api/permissions/my-shops')
+def my_shops_as_agent():
+    agent_phone = request.args.get('agent_phone', '').strip()
+    if not agent_phone:
+        return jsonify({'success': False, 'message': 'agent_phone required'}), 400
+    perms = load_db('sannlas_permissions.json', [])
+    my_perms = [p for p in perms if p['agent_phone'] == agent_phone and p['status'] == 'active']
+    shops = load_db('shops.json', [])
+    result = []
+    for perm in my_perms:
+        shop = next((s for s in shops if s.get('shop_slug', '').lower() == perm['shop_slug'].lower()), None)
+        result.append({"permission": perm, "shop": shop})
+    return jsonify({'success': True, 'shops': result})
+
+@sannlas_agents_bp.route('/api/permissions/admin/list')
+def admin_list_perms():
+    if request.args.get('key', '') != 'SANNLAS2026SECURE':
+        return jsonify({"success": False, "message": "Admin key required"}), 403
+    return jsonify(load_db('sannlas_permissions.json', []))
