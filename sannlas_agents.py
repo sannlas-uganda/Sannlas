@@ -299,8 +299,7 @@ def my_clients():
 
     perms = load_db('sannlas_permissions.json', [])
     shops_db = load_db('shops.json', [])
-    my_perms = [p for p in perms if p.get('agent_phone') == phone and p.get('status') == 'active']
-
+    my_perms = [p for p in perms if p.get('status') == 'active' and ((phone and p.get('agent_phone') == phone) or (email and str(p.get('agent_email','')).lower() == email))]
     result = []
     for perm in my_perms:
         shop = next(
@@ -415,8 +414,15 @@ def reject_req():
 @sannlas_agents_bp.route('/api/agency/my-helpers')
 def my_helpers():
     owner_phone = request.args.get('owner_phone', '').strip()
+    owner_email = request.args.get('owner_email', '').lower().strip() or request.args.get('email','').lower().strip()
     perms = load_db('sannlas_permissions.json', [])
-    active = [p for p in perms if p.get('owner_phone') == owner_phone and p.get('status') == 'active']
+    shops = load_db('shops.json', [])
+    # Find my slugs by email OR phone
+    my_slugs = []
+    for s in shops:
+        if owner_email and str(s.get('owner_email','')).lower() == owner_email: my_slugs.append(str(s.get('shop_slug') or s.get('slug','')).lower())
+        if owner_phone and (str(s.get('owner_phone','')) == owner_phone or str(s.get('phone','')) == owner_phone): my_slugs.append(str(s.get('shop_slug') or s.get('slug','')).lower())
+    active = [p for p in perms if p.get('status') == 'active' and (p.get('shop_slug','').lower() in my_slugs or (owner_phone and p.get('owner_phone') == owner_phone) or (owner_email and str(p.get('owner_email','')).lower() == owner_email))]
     return jsonify({"success": True, "permissions": active})
 
 @sannlas_agents_bp.route('/api/agency/switch', methods=['POST'])
@@ -514,8 +520,10 @@ def create_shop_for_client():
         "shop_slug": slug,
         "shop_name": name,
         "agent_phone": aphone,
+        "agent_email": d.get('agent_email','').lower().strip(),
         "agent_name": d.get('agent_name', 'Agent'),
         "owner_phone": cphone,
+        "owner_email": cemail,
         "scopes": ["upload_product", "view_products", "edit_own_product", "view_orders"],
         "status": "active",
         "products_uploaded": 0,
@@ -556,9 +564,12 @@ def invite_perm():
         if not (owner_email and shop_owner_email and owner_email == shop_owner_email):
             return jsonify({"success": False, "message": "You are not shop owner"}), 403
 
-    # 3. Agent must exist + must be uploader
+    # 3. Agent must exist + must be uploader - by phone OR email
     agents = load_db('sannlas_agents.json', [])
-    agent = next((a for a in agents if a['phone'] == aphone), None)
+    aemail = d.get('agent_email','').lower().strip()
+    agent = next((a for a in agents if (aphone and a.get('phone') == aphone) or (aemail and str(a.get('email','')).lower() == aemail)), None)
+    if agent:
+        aphone = agent.get('phone','') or aphone
     if not agent:
         return jsonify({"success": False, "message": "Agent not found. Ask him to register at /agents"}), 404
     if not agent.get('is_uploader'):
@@ -581,6 +592,7 @@ def invite_perm():
         "owner_phone": owner_phone or shop_owner_phone,
         "owner_email": owner_email or shop_owner_email,
         "agent_phone": aphone,
+        "agent_email": agent.get('email',''),
         "agent_name": agent.get('name', ''),
         "agent_code": agent.get('agent_code', ''),
         "scopes": safe_scopes,
@@ -1018,3 +1030,51 @@ def owner_stats():
         "paid_to_agents": paid,
         "debug": {"looked_for_email": owner_email, "looked_for_phone": owner_phone, "found_slugs": my_slugs}
     })
+
+# === AGENT REMOVE SHOP + OWNER SHOP LOOKUP ===
+@sannlas_agents_bp.route('/api/agency/my-shop-by-owner')
+def my_shop_by_owner():
+    email = request.args.get('email', '').lower().strip()
+    phone = request.args.get('phone', '').strip()
+    shops = load_db('shops.json', [])
+    shop = next((s for s in shops if (email and str(s.get('owner_email','')).lower() == email) or (email and str(s.get('email','')).lower() == email) or (phone and str(s.get('owner_phone','')) == phone) or (phone and str(s.get('phone','')) == phone)), None)
+    if not shop:
+        return jsonify({"success": False, "message": "No shop found for this email/phone"}), 404
+    return jsonify({"success": True, "shop_slug": shop.get('shop_slug') or shop.get('slug'), "shop": shop})
+
+# AGENT removes HIMSELF from shop - Shop + Owner stay!
+@sannlas_agents_bp.route('/api/agency/remove-shop', methods=['POST'])
+def agent_remove_shop():
+    d = request.json or {}
+    slug = str(d.get('shop_slug', '')).lower().strip()
+    agent_phone = d.get('agent_phone', '').strip()
+    agent_email = d.get('agent_email', '').lower().strip()
+    if not slug:
+        return jsonify({"success": False, "message": "Shop slug required"}), 400
+    perms = load_db('sannlas_permissions.json', [])
+    found = False
+    for p in perms:
+        if p.get('shop_slug','').lower() == slug and ((agent_phone and p.get('agent_phone') == agent_phone) or (agent_email and str(p.get('agent_email','')).lower() == agent_email)):
+            p['status'] = 'removed_by_agent'
+            p['removed_at'] = time.time()
+            found = True
+    if not found:
+        return jsonify({"success": False, "message": "You are not agent to this shop!"}), 404
+    save_db('sannlas_permissions.json', perms)
+    return jsonify({"success": True, "message": f"✅ Removed yourself from {slug}! Owner keeps shop!"})
+
+# OWNER deletes AGENT - Already have revoke, but this checks owner is real owner!
+@sannlas_agents_bp.route('/api/agency/remove-agent', methods=['POST'])
+def owner_remove_agent():
+    d = request.json or {}
+    slug = str(d.get('shop_slug','')).lower().strip()
+    agent_phone = d.get('agent_phone','').strip()
+    agent_email = d.get('agent_email','').lower().strip()
+    perms = load_db('sannlas_permissions.json', [])
+    for p in perms:
+        if p.get('shop_slug','').lower() == slug and ((agent_phone and p.get('agent_phone') == agent_phone) or (agent_email and str(p.get('agent_email','')).lower() == agent_email)):
+            p['status'] = 'revoked'
+            p['revoked_at'] = time.time()
+            save_db('sannlas_permissions.json', perms)
+            return jsonify({"success": True, "message": "✅ Agent removed from your shop!"})
+    return jsonify({"success": False, "message": "Agent not found"}), 404
